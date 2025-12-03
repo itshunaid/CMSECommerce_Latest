@@ -1,11 +1,12 @@
-﻿using CMSECommerce.Infrastructure;
+﻿using CMSECommerce.Areas.Admin.Models;
+using CMSECommerce.Infrastructure;
+using CMSECommerce.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity.UI.Services;
-using Microsoft.AspNetCore.Identity;
-using CMSECommerce.Models;
 using Microsoft.Extensions.Logging;
 
 namespace CMSECommerce.Areas.Admin.Controllers
@@ -13,11 +14,11 @@ namespace CMSECommerce.Areas.Admin.Controllers
     [Area("Admin")]
     [Authorize("Admin")]
     public class ProductsController(
-                        DataContext context,
-                        IWebHostEnvironment webHostEnvironment,
-                        IEmailSender emailSender,
-                        UserManager<IdentityUser> userManager,
-                        ILogger<ProductsController> logger) : Controller
+        DataContext context,
+        IWebHostEnvironment webHostEnvironment,
+        IEmailSender emailSender,
+        UserManager<IdentityUser> userManager,
+        ILogger<ProductsController> logger) : Controller
     {
         private readonly DataContext _context = context;
         private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
@@ -25,76 +26,129 @@ namespace CMSECommerce.Areas.Admin.Controllers
         private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly ILogger<ProductsController> _logger = logger;
 
-        public async Task<IActionResult> Index(int categoryId = 0, int p = 1)
+        public async Task<IActionResult> Index(
+    string sortOrder,
+    string SearchName,
+    string SearchDescription,
+    string SearchCategory,
+    int? pageNumber,
+    int pageSize = 6) // *** ADDED pageSize parameter with a default of 6 ***
         {
-            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
+            // 1. Setup
+            // Use the value from the parameter, which defaults to 6 if not passed
+            // int pageSize = 6; // REMOVED: Now uses the parameter value
+            int currentPage = pageNumber ?? 1;
 
-            ViewBag.SelectedCategory = categoryId.ToString();
-            int pageSize = 3;
-            ViewBag.PageNumber = p;
-            ViewBag.PageRange = pageSize;
+            // 2. Base Query
+            var products = _context.Products.Include(p => p.Category).AsQueryable();
 
-            Category category = await _context.Categories
-                                 .Where(x => x.Id == categoryId)
-                                 .FirstOrDefaultAsync();
-
-            if (category == null)
+            // 3. Filtering (Case-Insensitive)
+            if (!string.IsNullOrEmpty(SearchName))
             {
-                ViewBag.TotalPages = (int)Math.Ceiling((decimal)_context.Products.Count() / pageSize);
-
-                List<Product> products =
-                                    await _context.Products
-                                    .Include(x => x.Category)
-                                    .OrderByDescending(x => x.Id)
-                                    .Skip((p - 1) * pageSize)
-                                    .Take(pageSize)
-                                    .ToListAsync();
-
-                return View(products);
+                products = products.Where(p => p.Name.ToLower().Contains(SearchName.ToLower()));
+            }
+            if (!string.IsNullOrEmpty(SearchDescription))
+            {
+                products = products.Where(p => p.Description.ToLower().Contains(SearchDescription.ToLower()));
+            }
+            if (!string.IsNullOrEmpty(SearchCategory))
+            {
+                products = products.Where(p => p.Category.Name.ToLower().Contains(SearchCategory.ToLower()));
             }
 
-            var productsByCategory = _context.Products.Where(x => x.CategoryId == categoryId);
+            // 4. Sorting (Original logic preserved)
+            switch (sortOrder)
+            {
+                case "name_desc":
+                    products = products.OrderByDescending(p => p.Name);
+                    break;
+                case "Name":
+                    products = products.OrderBy(p => p.Name);
+                    break;
+                case "price_desc":
+                    products = products.OrderByDescending(p => p.Price);
+                    break;
+                case "Price":
+                    products = products.OrderBy(p => p.Price);
+                    break;
+                case "category_desc":
+                    products = products.OrderByDescending(p => p.Category.Name);
+                    break;
+                case "Category":
+                    products = products.OrderBy(p => p.Category.Name);
+                    break;
+                default: // Default sort
+                    products = products.OrderBy(p => p.Id);
+                    break;
+            }
 
-            ViewBag.TotalPages = (int)Math.Ceiling((decimal)productsByCategory.Count() / pageSize);
+            // 5. Pagination
+            // pageSize is now passed from the method parameter
+            var paginatedProducts = await PaginatedList<Product>.CreateAsync(products.AsNoTracking(), currentPage, pageSize);
 
-            return View(await productsByCategory
-                                 .Include(x => x.Category)
-                                 .OrderByDescending(x => x.Id)
-                                 .Skip((p - 1) * pageSize)
-                                 .Take(pageSize)
-                                 .ToListAsync());
+            // 6. Return ViewModel
+            var viewModel = new ProductListViewModel
+            {
+                Products = paginatedProducts,
+                CurrentSortOrder = sortOrder,
+                CurrentSearchName = SearchName,
+                CurrentSearchDescription = SearchDescription,
+                CurrentSearchCategory = SearchCategory,
+                // *** ADDED: Pass the current page size to the view/model ***
+                CurrentPageSize = pageSize
+            };
 
+            return View(viewModel);
         }
         public async Task<IActionResult> PendingProducts(int categoryId = 0, int p = 1)
         {
+            // 1. Setup
             ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
-
             ViewBag.SelectedCategory = categoryId.ToString();
-            int pageSize = 3;
-            ViewBag.PageNumber = p;
-            ViewBag.PageRange = pageSize;
-            // 🛠️ NEW: Pass the current action name for pagination link building
-            ViewBag.PageAction = nameof(Index);
 
-            // Fetch products where status is NOT Approved (Pending or Rejected)
-            var productsQuery = _context.Products.Where(x => x.Status != ProductStatus.Approved);
+            // Set Page Size
+            int pageSize = 3;
+
+            // 2. Base Query and Filtering
+            var productsQuery = _context.Products
+                                         .Include(x => x.Category) // Include Category here before filtering/counting
+                                         .Where(x => x.Status != ProductStatus.Approved)
+                                         .AsQueryable();
 
             if (categoryId != 0)
             {
-                // Filter by category AND status != Approved
                 productsQuery = productsQuery.Where(x => x.CategoryId == categoryId);
             }
 
-            ViewBag.TotalPages = (int)Math.Ceiling((decimal)productsQuery.Count() / pageSize);
+            // 3. Counting and Pagination
+            int totalCount = await productsQuery.CountAsync();
 
-            return View("Index", await productsQuery
-                                         .Include(x => x.Category)
-                                         .OrderByDescending(x => x.Id)
+            // Apply sorting, skipping, and taking
+            var products = await productsQuery
+                                         .OrderByDescending(x => x.Id) // Default sort for PendingProducts
                                          .Skip((p - 1) * pageSize)
                                          .Take(pageSize)
-                                         .ToListAsync());
-        }
+                                         .ToListAsync();
 
+            // 4. Instantiate PaginatedList and ViewModel (THE FIX)
+            var paginatedProducts = new PaginatedList<Product>(products, totalCount, p, pageSize);
+
+            var viewModel = new ProductListViewModel
+            {
+                Products = paginatedProducts,
+
+                // Pass relevant filtering/pagination state for link building
+                CurrentSearchName = null, // No search name filter in this action
+                CurrentSearchDescription = null, // No search description filter in this action
+                CurrentSearchCategory = _context.Categories.FirstOrDefault(c => c.Id == categoryId)?.Name, // Show filtered category name
+                CurrentSortOrder = null, // No sort order in this action, using default
+                CurrentPageSize = pageSize
+            };
+
+            // 5. Return the ViewModel
+            // Note: The view is still Index.cshtml, but it now receives the correct model type.
+            return View("Index", viewModel);
+        }
         public IActionResult Create()
         {
             ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name");
@@ -145,6 +199,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                 product.Image = imageName;
                 product.OwnerId = _userManager.GetUserName(User);
+                // Status is Pending by default upon creation
 
                 _context.Add(product);
                 await _context.SaveChangesAsync();
@@ -227,17 +282,17 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     product.Image = imageName;
                 }
 
-                // ⭐ Copy back OwnerId and Status since they are not typically in the Edit form
-                // Using AsNoTracking above prevents issues with Update() below
+                // ⭐ Copy back OwnerId and RejectionReason since they are not typically in the Edit form
                 product.OwnerId = dbProduct.OwnerId;
-                product.Status = dbProduct.Status;
                 product.RejectionReason = dbProduct.RejectionReason;
 
+                // ⭐ REQUIRED CHANGE: Set status to Pending upon any edit
+                product.Status = ProductStatus.Pending;
 
                 _context.Update(product);
                 await _context.SaveChangesAsync();
 
-                TempData["Success"] = "The product has been updated!";
+                TempData["Success"] = "The product has been updated! Status set to Pending for review.";
 
                 return RedirectToAction("Edit", new { product.Id });
             }
@@ -360,8 +415,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
             var product = await _context.Products.FindAsync(id);
             if (product == null) return NotFound();
 
+            // ⭐ REQUIRED CHANGE: If Unapprove, set status to Pending
             product.Status = ProductStatus.Pending;
-            product.RejectionReason = null;
+            product.RejectionReason = null; // Clear reason if it was previously rejected
             _context.Update(product);
             await _context.SaveChangesAsync();
 

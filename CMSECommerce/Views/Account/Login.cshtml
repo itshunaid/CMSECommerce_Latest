@@ -4,60 +4,71 @@
     ViewData["Title"] = "Log In";
     // Define controller name for clarity and reuse
     const string controllerName = "Account";
+
+    // 💡 Best Practice: Centralize the primary color variable for theme consistency
+    const string primaryColor = "#0d6efd"; // Standard Bootstrap Blue
 }
 
 <div class="container py-5">
     <div class="row justify-content-center">
-        @* Smaller column for login form (max width for focus) *@
+        @* Smaller column for login form (max width for focus) - Ensures form is centered and legible *@
         <div class="col-sm-10 col-md-7 col-lg-5">
 
-            <h1 class="display-4 fw-bolder text-center mb-5 text-dark">Welcome Back</h1>
+            <h1 class="display-4 fw-bolder text-center mb-5 text-dark" aria-label="Welcome Back to the Application">Welcome Back</h1>
 
             <div class="card p-5 border-0 rounded-4 auth-card bg-white">
-                <form method="post" asp-controller="@controllerName" asp-action="Login">
+                @* 💡 Best Practice: Use a descriptive title for the form for accessibility and context *@
+                <form method="post" asp-controller="@controllerName" asp-action="Login" role="form" title="User Login Form">
 
                     @* Validation summary for model-level errors (e.g., login failed) *@
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    @* 💡 Best Practice: Ensure accessibility attributes for alerts *@
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert" aria-live="assertive"></div>
 
                     <div class="form-floating mb-3">
-                        <input asp-for="UserName" class="form-control" placeholder="username@example.com" autofocus /> @* Added autofocus *@
-                        <label asp-for="UserName"><i class="fas fa-user me-2"></i> Username or Email</label>
-                        <span asp-validation-for="UserName" class="text-danger small mt-1 d-block"></span> @* d-block for better spacing *@
+                        <input asp-for="UserName" class="form-control" placeholder="username@example.com" autofocus />
+                        <label asp-for="UserName"><i class="fas fa-user me-2" aria-hidden="true"></i> Username or Email</label>
+                        <span asp-validation-for="UserName" class="text-danger small mt-1 d-block" aria-live="polite"></span> @* d-block for better spacing, aria-live for dynamic validation updates *@
                     </div>
 
                     <div class="form-floating mb-4">
+                        @* 💡 Best Practice: Type="password" is crucial for security and browser autofill *@
                         <input asp-for="Password" type="password" class="form-control" placeholder="Password" />
-                        <label asp-for="Password"><i class="fas fa-lock me-2"></i> Password</label>
-                        <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span> @* d-block for better spacing *@
+                        <label asp-for="Password"><i class="fas fa-lock me-2" aria-hidden="true"></i> Password</label>
+                        <span asp-validation-for="Password" class="text-danger small mt-1 d-block" aria-live="polite"></span>
                     </div>
 
+                    @* 💡 Best Practice: Cleaner tag helper approach to conditionally render 'Remember Me' *@
+                    <div class="d-flex justify-content-between align-items-center mb-4">
 
-                    @if (ViewData.ModelMetadata.Properties.Any(p => p.PropertyName == "RememberMe"))
-                    {
-                        <div class="d-flex justify-content-between align-items-center mb-4">
+                        @* Check if the RememberMe property exists on the model to render the checkbox *@
+                        @if (Model.GetType().GetProperty("RememberMe") != null)
+                        {
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" asp-for="RememberMe">
+                                @* Added custom class 'form-check-input-a11y' for custom focus style *@
+                                <input class="form-check-input form-check-input-a11y" type="checkbox" asp-for="RememberMe">
                                 <label class="form-check-label small text-muted" asp-for="RememberMe">
                                     Keep me logged in
                                 </label>
                             </div>
 
                             <a asp-controller="@controllerName" asp-action="ForgotPassword" class="btn btn-link text-primary small fw-semibold p-0 forgot-link">Forgot Password?</a>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="text-end mb-4">
-                            <a asp-controller="@controllerName" asp-action="ForgotPassword" class="btn btn-link text-primary small fw-semibold p-0 forgot-link">Forgot Password?</a>
-                        </div>
-                    }
+                        }
+                        else
+                        {
+                            <div class="ms-auto">
+                                @* Used ms-auto to push to the right if RememberMe is absent *@
+                                <a asp-controller="@controllerName" asp-action="ForgotPassword" class="btn btn-link text-primary small fw-semibold p-0 forgot-link">Forgot Password?</a>
+                            </div>
+                        }
+                    </div>
 
 
+                    @* 💡 Best Practice: The hidden field must be present to allow the controller to receive the return URL *@
                     <input type="hidden" asp-for="ReturnUrl" />
 
                     <div class="d-grid mb-4">
                         <button type="submit" class="btn btn-primary btn-lg fw-bold submit-btn">
-                            <i class="fas fa-sign-in-alt me-2"></i> Secure Log In
+                            <i class="fas fa-sign-in-alt me-2" aria-hidden="true"></i> Secure Log In
                         </button>
                     </div>
 
@@ -70,28 +81,31 @@
                 </form>
             </div>
 
-            @* Social Logins Section - Separated for clearer design *@
-            <div class="text-center mt-4">
-                <p class="text-muted small mb-2">Or log in with:</p>
-                <button class="btn btn-outline-dark btn-sm me-2 social-btn"><i class="fab fa-google me-1"></i> Google</button>
-                <button class="btn btn-outline-dark btn-sm social-btn"><i class="fab fa-facebook me-1"></i> Facebook</button>
-            </div>
-
+            
         </div>
     </div>
 </div>
 
 @section Scripts {
     @{
+        // 💡 Best Practice: Load validation scripts here to ensure performance
         <partial name="_ValidationScriptsPartial" />
     }
 }
 
 @section Styles {
+    @* 💡 Best Practice: Move CSS to a dedicated .css file (e.g., Login.css) for better separation of concerns *@
     <style>
-        /* Define a consistent primary color variable if not already set by theme */
+        /*
+                ******************************************************************
+                CSS Best Practice: Move the following block to a separate file (e.g., Login.css)
+                ******************************************************************
+                */
+
         :root {
-            --bs-primary: #0d6efd; /* Standard Bootstrap Blue */
+            /* Define a consistent primary color variable if not already set by theme */
+            --bs-primary: @primaryColor;
+            --bs-primary-darker: #0b5ed7; /* Slightly darker shade of primary on hover */
         }
 
         /* 🎨 Professional Card Styling */
@@ -111,6 +125,13 @@
             box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); /* Primary color glow */
         }
 
+        /* 💡 A11y Best Practice: Custom focus ring for checkbox, which Bootstrap's form-check-input can sometimes obscure */
+        .form-check-input-a11y:focus {
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+            border-color: var(--bs-primary);
+            outline: 0;
+        }
+
         /* 🚀 Primary Button Style */
         .submit-btn {
             background-color: var(--bs-primary);
@@ -119,14 +140,13 @@
         }
 
             .submit-btn:hover {
-                background-color: #0b5ed7; /* Slightly darker shade of primary on hover */
-                border-color: #0b5ed7;
+                background-color: var(--bs-primary-darker);
+                border-color: var(--bs-primary-darker);
                 box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.15) !important;
             }
 
-            /* Optional: Add a subtle press effect */
             .submit-btn:active {
-                transform: translateY(1px);
+                transform: translateY(1px); /* Subtle press effect */
             }
 
         /* Link style for registration/forgot password */
@@ -147,5 +167,11 @@
                 background-color: #f8f9fa; /* Light background on hover */
                 border-color: #ced4da;
             }
+
+        /*
+                ******************************************************************
+                END of CSS block to move
+                ******************************************************************
+                */
     </style>
 }

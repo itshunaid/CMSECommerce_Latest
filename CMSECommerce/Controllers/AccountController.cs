@@ -266,7 +266,15 @@ namespace CMSECommerce.Controllers
         [Authorize]
         public async Task<IActionResult> ProfileDetails(string userId="")
         {
-            var identityUser = await _userManager.FindByIdAsync(userId);
+            IdentityUser identityUser = new();
+            if (string.IsNullOrEmpty(userId))
+            {
+                identityUser = await _userManager.GetUserAsync(User);
+            }
+            else
+            {
+                identityUser = await _userManager.FindByIdAsync(userId);
+            }
             if (identityUser == null) return RedirectToAction("Login");
 
             // Attempt to find existing profile data
@@ -664,6 +672,7 @@ namespace CMSECommerce.Controllers
         public async Task<IActionResult> UserList()
         {
             // 1. Get all IdentityUsers
+            // Note: We avoid ToListAsync() here to enable more efficient filtering later, but we need ToListAsync() for step 2.
             var allIdentityUsers = await _userManager.Users.ToListAsync();
 
             // 2. Get all UserProfiles
@@ -671,9 +680,10 @@ namespace CMSECommerce.Controllers
             var profilesDictionary = allUserProfiles.ToDictionary(p => p.UserId, p => p);
 
             // 3. Create a list of the ProfileUpdateViewModel by combining IdentityUser and UserProfile
-            var userList = allIdentityUsers.Select(async user =>
+            var userListTasks = allIdentityUsers.Select(async user =>
             {
                 profilesDictionary.TryGetValue(user.Id, out var profile);
+                // Important: GetRolesAsync is an asynchronous operation, hence the Select(async...) structure.
                 var roles = await _userManager.GetRolesAsync(user);
 
                 var viewModel = new ProfileUpdateViewModel
@@ -682,12 +692,11 @@ namespace CMSECommerce.Controllers
                     UserName = user.UserName,
                     Email = user.Email,
                     PhoneNumber = user.PhoneNumber,
-                    // ADDED FirstName and LastName
                     FirstName = profile?.FirstName,
                     LastName = profile?.LastName,
-                    ITSNumber = profile?.ITSNumber, // Null-conditional operator for safety
+                    ITSNumber = profile?.ITSNumber,
                     Profession = profile?.Profession,
-                    // Note: Adding a property for CurrentRole in the ViewModel would be beneficial for display here.
+                    // Assign the user's highest role, or "None"
                     CurrentRole = roles.FirstOrDefault() ?? "None"
                 };
 
@@ -695,13 +704,17 @@ namespace CMSECommerce.Controllers
             }).ToList();
 
             // Wait for all the role lookups to complete
-            var finalUserList = await Task.WhenAll(userList);
+            var finalUserList = await Task.WhenAll(userListTasks);
 
+            // 4. ⭐ Implementation of the Filter: Exclude users who are in the "Admin" role.
+            var filteredUserList = finalUserList
+                                       .Where(u => u.CurrentRole != "Admin")
+                                       .OrderBy(u => u.UserName) // Optional: Add sorting
+                                       .ToList();
 
             // Note: Consider a dedicated, lighter ViewModel if ProfileUpdateViewModel is too heavy.
-            return View(finalUserList);
+            return View(filteredUserList);
         }
-
         /// <summary>
         /// Displays the full details of a specific user by their ID.
         /// Requires Admin/Staff Authorization to view other users' details.
