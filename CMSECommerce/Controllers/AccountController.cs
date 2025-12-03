@@ -216,14 +216,13 @@ namespace CMSECommerce.Controllers
 
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> EditProfile()
+        public async Task<IActionResult> EditProfile(string id)
         {
-            var identityUser = await _userManager.GetUserAsync(User);
-            if (identityUser == null) return RedirectToAction("Login");
+            var identityUser = await _userManager.FindByIdAsync(id);
 
             // Attempt to find existing profile data
             var userProfile = await _context.UserProfiles
-                .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);
+                .FirstOrDefaultAsync(p => p.UserId == id);
 
             // Map data to the ViewModel
             var viewModel = new ProfileUpdateViewModel
@@ -265,9 +264,9 @@ namespace CMSECommerce.Controllers
 
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> ProfileDetails()
+        public async Task<IActionResult> ProfileDetails(string userId="")
         {
-            var identityUser = await _userManager.GetUserAsync(User);
+            var identityUser = await _userManager.FindByIdAsync(userId);
             if (identityUser == null) return RedirectToAction("Login");
 
             // Attempt to find existing profile data
@@ -319,8 +318,8 @@ namespace CMSECommerce.Controllers
             {
                 return View(model);
             }
-
-            var identityUser = await _userManager.GetUserAsync(User);
+            var identityUser = await _userManager.FindByIdAsync(model.UserId);
+            //var identityUser = await _userManager.GetUserAsync(User);
             if (identityUser == null)
             {
                 TempData["error"] = "User not found.";
@@ -435,7 +434,7 @@ namespace CMSECommerce.Controllers
             await _context.SaveChangesAsync();
 
             TempData["success"] = "Your profile has been updated successfully!";
-            return RedirectToAction("ProfileDetails"); // Redirect to display the updated profile
+            return RedirectToAction("ProfileDetails", new {userId=userProfile.UserId}); // Redirect to display the updated profile
         }
 
         // ... (DeleteProfileData method remains the same) ...
