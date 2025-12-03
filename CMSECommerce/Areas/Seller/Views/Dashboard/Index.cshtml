@@ -1,0 +1,160 @@
+﻿@model CMSECommerce.Areas.Seller.Models.SellerDashboardViewModel
+
+@{
+    ViewData["Title"] = "Seller Dashboard";
+}
+
+<h1 class="mb-5 text-success"><i class="fas fa-store me-2"></i> Welcome to Your Seller Portal!</h1>
+
+<div class="row g-4">
+
+    @* 1. Total Products (Green - Inventory Status) *@
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-success text-white shadow-lg h-100 border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="me-3">
+                        <div class="text-uppercase fw-bold mb-1 fs-6">Total Products Listed</div>
+                        <div class="h3 mb-0 fw-bolder">@Model.ProductsCount</div>
+                    </div>
+                    <i class="fas fa-boxes fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between bg-success bg-opacity-75 p-3">
+                <a asp-area="Seller" asp-controller="Products" asp-action="Index" class="small text-white stretched-link text-decoration-none">
+                    Manage Products
+                </a>
+                <div class="small text-white"><i class="fas fa-arrow-circle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+    @* 2. Orders to Ship (Warning - Action Required) *@
+    <div class="col-xl-3 col-md-6">
+        @{
+            var pendingOrdersCount = Model.OrdersCount;
+        }
+        <div class="card bg-warning text-dark shadow-lg h-100 border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="me-3">
+                        <div class="text-uppercase fw-bold mb-1 fs-6">Orders to Ship (Pending)</div>
+                        <div class="h3 mb-0 fw-bolder">@pendingOrdersCount</div>
+                    </div>
+                    <i class="fas fa-hourglass-half fa-3x opacity-50"></i>
+                </div>
+            </div>
+            @* Use dark text in the footer for warning background *@
+            <div class="card-footer d-flex align-items-center justify-content-between bg-warning bg-opacity-75 p-3">
+                <a asp-area="Seller" asp-controller="Orders" asp-action="Index" class="small text-dark stretched-link text-decoration-none fw-bold">
+                    View Pending Shipments
+                </a>
+                <div class="small text-dark"><i class="fas fa-arrow-circle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+    @* 3. Orders Shipped (Info - Progress Status) - Changed from Warning/Info mix to pure Info/Blue *@
+    <div class="col-xl-3 col-md-6">
+        @{
+            var isProcessedCount = Model.IsProcessedCount;
+        }
+        <div class="card bg-info text-white shadow-lg h-100 border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="me-3">
+                        <div class="text-uppercase fw-bold mb-1 fs-6">Orders Shipped (Processed)</div>
+                        <div class="h3 mb-0 fw-bolder">@isProcessedCount</div>
+                    </div>
+                    <i class="fas fa-truck fa-3x opacity-50"></i> @* Changed icon for better representation *@
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between bg-info bg-opacity-75 p-3">
+                <a asp-area="Seller" asp-controller="Orders" asp-action="Shipped" class="small text-white stretched-link text-decoration-none">
+                    View Processed Shipments
+                </a>
+                <div class="small text-white"><i class="fas fa-arrow-circle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+    @* 4. Total Sales (Primary - Performance Metric) *@
+    <div class="col-xl-3 col-md-6">
+        @{
+            var totalSales = Model.ProductsCount * 45.50; // Mock calculation
+        }
+        <div class="card bg-primary text-white shadow-lg h-100 border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="me-3">
+                        <div class="text-uppercase fw-bold mb-1 fs-6">Total Sales (Lifetime)</div>
+                        <div class="h3 mb-0 fw-bolder">@totalSales.ToString("C2")</div>
+                    </div>
+                    <i class="fas fa-dollar-sign fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between bg-primary bg-opacity-75 p-3">
+                <a asp-area="Seller" asp-controller="Sales" asp-action="Report" class="small text-white stretched-link text-decoration-none">
+                    View Sales Reports
+                </a>
+                <div class="small text-white"><i class="fas fa-arrow-circle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+    @* --- Separator for clarity in a two-row layout --- *@
+</div>
+
+<div class="row g-4 mt-1">
+    @* Added mt-1 for minimal separation if this row exists *@
+
+    @* 5. Low Stock Alert (Danger - Urgent Action) *@
+    <div class="col-xl-3 col-md-6">
+        @{
+            var lowStockCount = Model.ProductsCount > 2 ? 2 : 0;
+            string lowStockClass = lowStockCount > 0 ? "bg-danger text-white" : "bg-success text-white"; // Use success if no low stock
+        }
+        <div class="card @lowStockClass shadow-lg h-100 border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="me-3">
+                        <div class="text-uppercase fw-bold mb-1 fs-6">Low Stock Items</div>
+                        <div class="h3 mb-0 fw-bolder">@lowStockCount</div>
+                    </div>
+                    <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between @lowStockClass bg-opacity-75 p-3">
+                <a asp-area="Seller" asp-controller="Products" asp-action="Inventory" class="small text-white stretched-link text-decoration-none fw-bold">
+                    Replenish Inventory
+                </a>
+                <div class="small text-white"><i class="fas fa-arrow-circle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+    @* 6. Category Management (Secondary - Administrative Task) - Corrected the duplicate logic/naming *@
+    <div class="col-xl-3 col-md-6">
+        @{
+            var categoriesCount = Model.Categories; // Use the actual model property for category count
+        }
+        <div class="card bg-secondary text-white shadow-lg h-100 border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="me-3">
+                        <div class="text-uppercase fw-bold mb-1 fs-6">Total Categories/Sections</div>
+                        <div class="h3 mb-0 fw-bolder">@categoriesCount</div>
+                    </div>
+                    <i class="fas fa-tags fa-3x opacity-50"></i> @* Updated icon for categories/tags *@
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between bg-secondary bg-opacity-75 p-3">
+                <a asp-area="Seller" asp-controller="Categories" asp-action="Index" class="small text-white stretched-link text-decoration-none">
+                    Manage Categories
+                </a>
+                <div class="small text-white"><i class="fas fa-arrow-circle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+</div>

@@ -1,0 +1,24 @@
+@model CMSECommerce.Models.ViewModels.AccessDeniedViewModel
+
+@{
+ ViewData["Title"] = "Access Denied";
+}
+
+<h1>Access Denied</h1>
+
+<div class="alert alert-warning">
+ @Model?.Message
+</div>
+
+@if (User?.Identity?.IsAuthenticated == true)
+{
+ <p>
+ <a asp-controller="Account" asp-action="Logout" class="btn btn-secondary">Sign out</a>
+ </p>
+}
+else
+{
+ <p>
+ <a asp-controller="Account" asp-action="Login" class="btn btn-primary">Sign in</a>
+ </p>
+}

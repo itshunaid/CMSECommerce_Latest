@@ -1,0 +1,34 @@
+﻿@model Page
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+
+<style>
+    /* 1. Reset for basic responsiveness */
+    .responsive-img {
+        /* Key CSS: Ensures the image scales down, never exceeding 100% of its container */
+        max-width: 100%;
+        /* Ensures the aspect ratio is maintained */
+        height: auto;
+        /* Optional: Makes the image behave like a block element, filling the space */
+        display: block;
+        margin: 0 auto;
+        border: 2px solid #007bff; /* Just for visualization */
+    }
+
+    /* 2. Style for the containing div (Optional but good practice) */
+    .image-container {
+        padding: 15px;
+        background-color: #f8f9fa;
+        text-align: center;
+    }
+</style>
+@Html.Raw(Model.Body)
+
+<script>
+        config.allowedContent = true;
+    // OR a specific rule:
+    config.extraAllowedContent = 'picture(*)[*]; source(*)[*]; img[srcset,sizes]';
+</script>

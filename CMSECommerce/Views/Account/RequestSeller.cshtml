@@ -1,0 +1,40 @@
+﻿@model CMSECommerce.Models.SubscriberRequest
+
+@{
+    ViewData["Title"] = "Request Seller Access";
+}
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <h2 class="text-center">Request Seller Access</h2>
+        <hr />
+
+        @* --------------------------------------------------------
+           Check if Model is NULL (No existing request found)
+           -------------------------------------------------------- *@
+        @if (Model.Approved == false)
+        {
+            <div class="alert alert-info">
+                <p>By clicking the button below, you will submit a request to the admin to upgrade your account to the **Subscriber** role, allowing you to manage products and orders.</p>
+            </div>
+
+            <form asp-action="RequestSeller" method="post">
+                <div class="form-group">
+                    <button type="submit" class="btn btn-lg btn-success">Submit Seller Request</button>
+                </div>
+            </form>
+        }
+        else
+        {
+            @* --------------------------------------------------------
+               Model is NOT NULL (Existing request found)
+               -------------------------------------------------------- *@
+            <div class="alert alert-warning mt-3">
+                <h4>Existing Request Found</h4>
+                <p>You have already submitted a request on **@Model.RequestDate.ToShortDateString()**. You cannot submit a new request while one is pending or has been finalized.</p>
+                <a asp-action="RequestStatus" class="btn btn-primary">View Request Status</a>
+            </div>
+        }
+
+    </div>
+</div>

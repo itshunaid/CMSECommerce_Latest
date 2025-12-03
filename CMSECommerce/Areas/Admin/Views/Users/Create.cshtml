@@ -1,0 +1,45 @@
+@model global::CMSECommerce.Areas.Admin.Models.CreateUserModel
+
+@{
+ ViewData["Title"] = "Create User";
+}
+
+<h1>Create User</h1>
+
+<form asp-action="Create" method="post">
+ @Html.AntiForgeryToken()
+ <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+ <div class="form-group mt-3">
+ <label asp-for="UserName"></label>
+ <input asp-for="UserName" class="form-control" />
+ <span asp-validation-for="UserName" class="text-danger"></span>
+ </div>
+ <div class="form-group mt-3">
+ <label asp-for="Email"></label>
+ <input asp-for="Email" class="form-control" />
+ <span asp-validation-for="Email" class="text-danger"></span>
+ </div>
+    <div class="form-group mt-3">
+        <label asp-for="PhoneNumber"></label>
+        <input asp-for="PhoneNumber" class="form-control" />
+        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+    </div>
+ <div class="form-group mt-3">
+ <label asp-for="Password"></label>
+ <input asp-for="Password" class="form-control" />
+ <span asp-validation-for="Password" class="text-danger"></span>
+ </div>
+ <div class="form-group mt-3">
+ <label asp-for="Role"></label>
+ <select asp-for="Role" class="form-select">
+ <option value="">-- none --</option>
+ @foreach(var r in ViewBag.Roles as List<string>)
+ {
+ <option value="@r">@r</option>
+ }
+ </select>
+ </div>
+ <div class="form-group mt-3">
+ <button class="btn btn-primary">Create</button>
+ </div>
+</form>

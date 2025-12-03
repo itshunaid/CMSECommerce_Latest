@@ -1,0 +1,75 @@
+﻿@model List<CMSECommerce.Models.SubscriberRequest>
+
+@{
+    ViewData["Title"] = "Seller Requests (Admin)";
+}
+
+<h2>Subscriber Requests</h2>
+<p>Manage pending and completed requests for the Subscriber (Seller) role.</p>
+
+<table class="table table-striped table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Date Submitted</th>
+            <th>Requested Role</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.UserName</td>
+                <td>@item.RequestDate.ToShortDateString()</td>
+                <td>@item.RequestedRole</td>
+                <td>
+                    @{
+                        string statusClass = item.Approved == false ? "badge bg-primary" :
+                        item.Approved == true ? "badge bg-success" : "badge bg-danger";
+                        string statusText = item.Approved == false ? "Pending" :
+                        item.Approved == true ? "Approved" : "Rejected";
+                    }
+                    <span class="@statusClass">@statusText</span>
+                </td>
+                <td>
+                    
+                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">Review</a>
+
+                    @if (item.Approved == false)
+                    {
+                        
+                        <form asp-action="Process" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to approve this request?');">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <input type="hidden" name="adminNotes" value="Quickly approved via Index page." />
+                            <button type="submit" name="adminAction" value="Approve" class="btn btn-sm btn-success">Approve</button>
+                            @Html.AntiForgeryToken()
+                        </form>
+
+                        
+                        <form asp-action="Process" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to reject this request?');">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <input type="hidden" name="adminNotes" value="Quickly rejected via Index page." />
+                            <button type="submit" name="adminAction" value="Reject" class="btn btn-sm btn-warning">Reject</button>
+                            @Html.AntiForgeryToken()
+                        </form>
+                    }
+
+                    
+                    <form asp-action="Delete" method="post" style="display:inline;" onsubmit="return confirm('WARNING: Are you sure you want to PERMANENTLY delete this request record?');">
+                        <input type="hidden" name="id" value="@item.Id" />
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        @Html.AntiForgeryToken()
+                    </form>
+                </td>
+            </tr>
+        }
+        @if (!Model.Any())
+        {
+            <tr>
+                <td colspan="5" class="text-center">No pending requests found.</td>
+            </tr>
+        }
+    </tbody>
+</table>

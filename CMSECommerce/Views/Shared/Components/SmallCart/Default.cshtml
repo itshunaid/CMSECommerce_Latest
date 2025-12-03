@@ -1,0 +1,28 @@
+﻿@model SmallCartViewModel
+
+
+@if (Model != null && Model.NumberOfItems > 0)
+{
+    @* Cart is NOT empty: Display count and total amount inline. *@
+    <a asp-controller="Cart" asp-action="Index" class="nav-link text-warning me-3 d-flex align-items-center fw-bold position-relative">
+        <i class="fas fa-shopping-cart fa-lg"></i>
+        
+        @* Cart Item Count Badge (Absolute Positioned) *@
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-circle bg-danger border border-light p-1" style="font-size: 0.7em;">
+            @Model.NumberOfItems
+            <span class="visually-hidden">New items</span>
+        </span>
+
+        @* Display total amount text *@
+        <span class="ms-2 me-1">@Model.NumberOfItems item(s)</span>
+        <span class="badge rounded-pill text-bg-warning">@Model.TotalAmount.ToString("C2")</span>
+    </a>
+}
+else
+{
+    @* Cart is empty: Display the simple cart icon/text. *@
+    <a asp-controller="Cart" asp-action="Index" class="nav-link text-warning me-3 d-flex align-items-center">
+        <i class="fas fa-shopping-cart fa-lg"></i>
+        <span class="ms-2 fw-bold d-none d-sm-inline">Cart (Empty)</span>
+    </a>
+}

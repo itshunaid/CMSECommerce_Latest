@@ -1,0 +1,19 @@
+@model CMSECommerce.Areas.Admin.Models.UserViewModel
+
+@{
+ ViewData["Title"] = "Delete User";
+}
+
+<h1>Delete User</h1>
+
+<div>
+    <h4>Are you sure you want to delete user **@Model.UserName**?</h4>
+    
+    <form asp-action="Delete" method="post">
+        @* RECTIFICATION: Change asp-action to "Delete" to match the [ActionName("Delete")] attribute on the POST method. *@
+        
+        <input type="hidden" name="id" value="@Model.Id" />
+        <button type="submit" class="btn btn-danger">Delete</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>

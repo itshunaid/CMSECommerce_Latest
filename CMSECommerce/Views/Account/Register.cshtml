@@ -1,0 +1,114 @@
+﻿@model User
+
+@{
+    ViewData["Title"] = "Create Account"; // Updated Title
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <h1 class="display-5 fw-bold text-center mb-4">Create Your Account</h1>
+
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+
+                    <form asp-action="Register" method="post">
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <h4 class="mb-3 text-primary">Account Details</h4>
+                        <hr class="mt-0 mb-4" />
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="UserName" class="form-control" placeholder="Choose a Username" />
+                            <label asp-for="UserName">Username</label>
+                            <span asp-validation-for="UserName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input type="email" asp-for="Email" class="form-control" placeholder="name@example.com" />
+                            <label asp-for="Email">Email Address</label>
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="PhoneNumber" class="form-control" placeholder="e.g., (555) 555-1234" />
+                            <label asp-for="PhoneNumber">Mobile Number</label>
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="Password" class="form-control" placeholder="Password" type="password" />
+                            <label asp-for="Password">Password</label>
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-4">
+                            <input asp-for="ConfirmPassword" class="form-control" placeholder="Confirm Password" type="password" />
+                            <label asp-for="ConfirmPassword">Confirm Password</label>
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        </div>
+
+                        <h4 class="mb-3 mt-5 text-primary">Shipping Address</h4>
+                        <hr class="mt-0 mb-4" />
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="StreetAddress" class="form-control" placeholder="123 Main St" />
+                            <label asp-for="StreetAddress">Street Address</label>
+                            <span asp-validation-for="StreetAddress" class="text-danger small"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input asp-for="City" class="form-control" placeholder="New York" />
+                                    <label asp-for="City">City</label>
+                                    <span asp-validation-for="City" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input asp-for="State" class="form-control" placeholder="NY" />
+                                    <label asp-for="State">State/Province</label>
+                                    <span asp-validation-for="State" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating mb-4">
+                                    <input asp-for="PostalCode" class="form-control" placeholder="10001" />
+                                    <label asp-for="PostalCode">Postal Code</label>
+                                    <span asp-validation-for="PostalCode" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating mb-4">
+                                    <input asp-for="Country" class="form-control" placeholder="USA" />
+                                    <label asp-for="Country">Country</label>
+                                    <span asp-validation-for="Country" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold">
+                                <i class="fas fa-user-plus me-2"></i> Register
+                            </button>
+                        </div>
+                    </form>
+
+                    <p class="text-center mt-4 mb-0 small text-muted">
+                        Already have an account? <a asp-controller="Account" asp-action="Login" class="text-decoration-none">Log In here</a>.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        <partial name="_ValidationScriptsPartial" />
+    }
+}

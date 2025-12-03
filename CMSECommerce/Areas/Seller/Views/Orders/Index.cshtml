@@ -1,0 +1,157 @@
+﻿@model IEnumerable<CMSECommerce.Models.OrderDetail>
+
+@{
+    ViewData["Title"] = "New Orders (Unprocessed Items)";
+}
+
+<div class="container py-5">
+    @if (!ViewBag.IsProcessed)
+        {
+    <h1 class="display-5 fw-bold text-dark mb-4">🆕 New Orders Awaiting Processing</h1>
+    <p class="lead text-muted">
+        This table displays individual line items from customer orders that you need to fulfill. Mark an item as **Processed** once it has been shipped or completed.
+    </p>
+        }
+
+    @* Display Status Messages (Success/Error from ToggleProcessed action) *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        @if (!ViewBag.IsProcessed)
+        {
+            <div class="alert alert-success text-center mt-5" role="alert">
+                <h4 class="alert-heading">All Orders Processed! 🎉</h4>
+                <p class="mb-0">You have no new orders awaiting processing. Great job!</p>
+            </div>
+        }
+
+    }
+    else
+    {
+        // ... (Summary Cards: Revenue and Items Sold) ...
+        // Note: Total Revenue and Total Items Sold are based ONLY on UNPROCESSED items here.
+        decimal totalRevenue = Model.Sum(d => d.Price * d.Quantity);
+        @if (!ViewBag.IsProcessed)
+        {
+        <div class="row mb-4">
+            <div class="col-md-6 col-lg-4">
+                <div class="card text-white bg-danger mb-3 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Pending Revenue</h5>
+                        <p class="card-text fs-3 fw-bold">@totalRevenue.ToString("C")</p>
+                    </div>
+                </div>
+            </div>
+            
+                <div class="col-md-6 col-lg-4">
+                    <div class="card text-white bg-warning text-dark mb-3 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">Items Awaiting Shipment</h5>
+                            <p class="card-text fs-3 fw-bold">@Model.Sum(d => d.Quantity)</p>
+                        </div>
+                    </div>
+                </div>
+            
+           
+        </div>
+        }
+        <div class="table-responsive">
+            <table class="table table-hover table-striped border rounded-3 overflow-hidden shadow-sm align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 5%;"></th> @* Image column placeholder *@
+                        <th style="width: 20%;">Product</th>
+                        <th style="width: 15%;">Customer</th>
+                        <th style="width: 15%;">Contact</th>
+                        <th style="width: 5%;">Qty</th>
+                        <th style="width: 10%;">Price</th>
+                        <th style="width: 10%;">Subtotal</th>
+                        <th style="width: 10%;">Order ID</th>
+                        @if (!ViewBag.IsProcessed)
+                        {
+                            <th style="width: 10%;">Status / Action</th> @* Combined Status and Action *@
+                        }
+                        
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.OrderBy(d => d.OrderId))
+                    {
+                        <tr>
+                            <td>
+                                @* Assuming image path is /media/products/{ImageFile.png} *@
+                                <img src="/media/products/@item.Image" class="img-thumbnail rounded-3" alt="@item.ProductName" style="width: 50px; height: 50px; object-fit: cover;">
+                            </td>
+                            <td>
+                                <strong>@item.ProductName</strong>
+                                <br><span class="text-muted small">ID: @item.ProductId</span>
+                            </td>
+                            <td>
+                                @item.Customer
+                            </td>
+                            <td>
+                                <a href="tel:@item.CustomerNumber" class="text-decoration-none">
+                                    <i class="fas fa-phone me-1"></i> @item.CustomerNumber
+                                </a>
+                            </td>
+                            <td>@item.Quantity</td>
+                            <td>@item.Price.ToString("C")</td>
+                            <td class="fw-bold text-info">@((item.Price * item.Quantity).ToString("C"))</td>
+                            <td>
+                                @* Link to Order Details page, assuming a controller named Orders exists *@
+                                <a asp-area="" asp-controller="Orders" asp-action="Details" asp-route-id="@item.OrderId" class="btn btn-sm btn-outline-secondary">
+                                    #@item.OrderId
+                                </a>
+                            </td>
+                            @if(!ViewBag.IsProcessed)
+                            {
+                                <td>
+                                    @* Toggle Form for IsProcessed *@
+                                    <form asp-action="ToggleProcessed" method="post" class="d-inline-block">
+                                        @* Pass the OrderDetail ID and the status to set (true) *@
+                                        <input type="hidden" name="detailId" value="@item.Id" />
+                                        <input type="hidden" name="setTo" value="true" />
+                                        <button type="submit" class="btn btn-success btn-sm fw-bold" data-bs-toggle="tooltip" title="Mark as Processed / Shipped">
+                                            <i class="fas fa-check me-1"></i> Process
+                                        </button>
+                                    </form>
+                                </td>
+                            }
+                            
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="text-center mt-4">
+            <a asp-action="Shipped" class="btn btn-outline-primary">
+                <i class="fas fa-history me-2"></i> View Processed/Completed Orders
+            </a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Initialize tooltips for better UX (Bootstrap feature)
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    </script>
+}

@@ -1,0 +1,168 @@
+﻿@model CMSECommerce.Areas.Admin.Models.AdminDashboardViewModel
+
+<h1 class="mb-5 text-primary"><i class="fas fa-crown me-2"></i> Welcome, Admin!</h1>
+
+<div class="row g-4">
+
+    @* 1. Total Users (Primary - Core Metric) *@
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-primary text-white shadow-lg h-100 border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="me-3">
+                        <div class="text-uppercase fw-bold mb-1 fs-6">Total Users</div>
+                        <div class="h3 mb-0 fw-bolder">@Model.UsersCount</div>
+                    </div>
+                    <i class="fas fa-users fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between bg-primary bg-opacity-75 p-3">
+                <a asp-area="Admin" asp-controller="Users" asp-action="Index" class="small text-white stretched-link text-decoration-none">
+                    Manage Users
+                </a>
+                <div class="small text-white"><i class="fas fa-arrow-circle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+    @* 2. Pending Seller Requests (Danger/Red - Urgent Action) *@
+    <div class="col-xl-3 col-md-6">
+        @{
+            // Dynamically set class to highlight if there are requests needing attention
+            string sellerReqClass = Model.PendingSubscriberRequests > 0 ? "bg-danger" : "bg-info"; // Use Danger or Info (instead of Secondary)
+        }
+        <div class="card @sellerReqClass text-white shadow-lg h-100 border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="me-3">
+                        <div class="text-uppercase fw-bold mb-1 fs-6">Pending Seller Requests</div>
+                        <div class="h3 mb-0 fw-bolder">@Model.PendingSubscriberRequests</div>
+                    </div>
+                    <i class="fas fa-user-tag fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between @sellerReqClass bg-opacity-75 p-3">
+                <a asp-area="Admin" asp-controller="SubscriberRequests" asp-action="Index" class="small text-white stretched-link text-decoration-none fw-bold">
+                    Review Requests
+                </a>
+                <div class="small text-white"><i class="fas fa-arrow-circle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+    @* 3. Product Approval Required (Warning/Orange - Action Required) *@
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-warning text-dark shadow-lg h-100 border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="me-3">
+                        <div class="text-uppercase fw-bold mb-1 fs-6">Product Approval Required</div>
+                        <div class="h3 mb-0 fw-bolder">@Model.ProductsRequestCount</div>
+                    </div>
+                    <i class="fas fa-boxes fa-3x opacity-50"></i>
+                </div>
+            </div>
+            @* Use dark text in the footer for warning background *@
+            <div class="card-footer d-flex align-items-center justify-content-between bg-warning bg-opacity-75 p-3">
+                <a asp-area="Admin" asp-controller="Products" asp-action="PendingProducts" class="small text-dark stretched-link text-decoration-none fw-bold">
+                    Review Pending Products
+                </a>
+                <div class="small text-dark"><i class="fas fa-arrow-circle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+    @* 4. Total Orders (Info/Teal - Activity Metric) *@
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-info text-white shadow-lg h-100 border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="me-3">
+                        <div class="text-uppercase fw-bold mb-1 fs-6">Total Orders</div>
+                        <div class="h3 mb-0 fw-bolder">@Model.OrdersCount</div>
+                    </div>
+                    <i class="fas fa-shopping-basket fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between bg-info bg-opacity-75 p-3">
+                <a asp-area="Admin" asp-controller="Orders" asp-action="Index" class="small text-white stretched-link text-decoration-none">
+                    Manage Orders
+                </a>
+                <div class="small text-white"><i class="fas fa-arrow-circle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="row g-4 mt-1">
+
+    @* 5. Total Active Products (Success/Green - Inventory Status) *@
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-success text-white shadow-lg h-100 border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="me-3">
+                        <div class="text-uppercase fw-bold mb-1 fs-6">Total Active Products</div>
+                        <div class="h3 mb-0 fw-bolder">@Model.ProductsCount</div>
+                    </div>
+                    <i class="fas fa-store fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between bg-success bg-opacity-75 p-3">
+                <a asp-area="Admin" asp-controller="Products" asp-action="Index" class="small text-white stretched-link text-decoration-none">
+                    Manage All Products
+                </a>
+                <div class="small text-white"><i class="fas fa-arrow-circle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+    @* 6. Category Management (Secondary/Gray - Administrative Task) *@
+    <div class="col-xl-3 col-md-6">
+        @{
+            var categoriesCount = Model.Categories;
+        }
+        <div class="card bg-secondary text-white shadow-lg h-100 border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="me-3">
+                        <div class="text-uppercase fw-bold mb-1 fs-6">Total Categories/Sections</div>
+                        <div class="h3 mb-0 fw-bolder">@categoriesCount</div>
+                    </div>
+                    <i class="fas fa-tags fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between bg-secondary bg-opacity-75 p-3">
+                <a asp-area="Admin" asp-controller="Categories" asp-action="Index" class="small text-white stretched-link text-decoration-none">
+                    Manage Categories
+                </a>
+                <div class="small text-white"><i class="fas fa-arrow-circle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        @{
+            var userProfileCount = Model.UserProfilesCount;
+        }
+        <div class="card bg-secondary text-white shadow-lg h-100 border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="me-3">
+                        <div class="text-uppercase fw-bold mb-1 fs-6">Total User Profile Image Request</div>
+                        <div class="h3 mb-0 fw-bolder">@userProfileCount</div>
+                    </div>
+                    <i class="fas fa-tags fa-3x opacity-50"></i>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between bg-secondary bg-opacity-75 p-3">
+                <a asp-area="Admin" asp-controller="UsersProfile" asp-action="PendingImageApprovals" class="small text-white stretched-link text-decoration-none">
+                    Manage User Profile Image Request
+                </a>
+                <div class="small text-white"><i class="fas fa-arrow-circle-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+</div>

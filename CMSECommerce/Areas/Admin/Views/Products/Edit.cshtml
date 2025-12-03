@@ -1,0 +1,181 @@
+﻿@model Product
+
+@{
+    ViewData["Title"] = "Edit Product";
+}
+
+<h1>Edit Product</h1>
+
+<div class="row">
+    <div class="col-8">
+        <form asp-action="Edit" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <input type="hidden" asp-for="Id" /> @* Required to pass the ID back to the POST action *@
+
+            @* --- Name --- *@
+            <div class="form-group mb-3">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            @* --- Description --- *@
+            <div class="form-group mb-3">
+                <label asp-for="Description" class="control-label"></label>
+                @* Corrected textarea tag usage *@
+                <textarea asp-for="Description" class="form-control"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            @* --- Price --- *@
+            <div class="form-group mb-3">
+                <label asp-for="Price" class="control-label"></label>
+                <input asp-for="Price" class="form-control" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+
+            @* 🛠️ NEW FIELD: Stock Quantity *@
+            <div class="form-group mb-3">
+                <label asp-for="StockQuantity" class="control-label"></label>
+                @* Use type="number" and min="0" to enforce client-side validation *@
+                <input asp-for="StockQuantity" type="number" min="0" class="form-control" />
+                <span asp-validation-for="StockQuantity" class="text-danger"></span>
+            </div>
+
+            @* --- Category --- *@
+            <div class="form-group mb-3">
+                <label class="control-label">Category</label>
+                <select asp-for="CategoryId" class="form-control" asp-items="ViewBag.Categories">
+                    <option value="0">Choose a category</option>
+                </select>
+                <span asp-validation-for="CategoryId" class="text-danger"></span>
+            </div>
+
+            @* --- Current Image --- *@
+            <div class="form-group mb-3">
+                <label class="control-label">Current Main Image</label>
+                <img src="/media/products/@Model.Image" width="200" alt="Current Main Image" />
+            </div>
+
+            @* --- Image Upload --- *@
+            <div class="form-group mb-3">
+                <label asp-for="Image" class="control-label">Upload New Image</label>
+                <input asp-for="ImageUpload" class="form-control" onchange="img_pathUrl(this);" />
+                <img src="" id="imgpreview" class="pt-2" alt="Image Preview" style="max-width: 150px; display: block;" />
+                <span asp-validation-for="ImageUpload" class="text-danger"></span>
+            </div>
+
+            <input type="hidden" asp-for="Image" /> @* Pass current image name for controller logic *@
+
+            <div class="form-group">
+                <button class="btn btn-primary">Edit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+<div class="row mt-3">
+
+    @if (Model.GalleryImages?.Any() != true)
+    {
+        <h4>There are no gallery images for this product.</h4>
+    }
+    else
+    {
+        <h4 class="pb-3">Gallery Images</h4>
+        @foreach (var image in Model.GalleryImages)
+        {
+            <div class="col-2">
+                <img class="img-fluid" src="/media/gallery/@Model.Id/@image" alt="Gallery Image" /> <br />
+                <a data-name="@image" class="deleteImage confirm mt-2 btn btn-sm btn-danger">Delete</a>
+            </div>
+        }
+    }
+</div>
+
+<div class="row mt-3">
+    <div class="col">
+        <h3>Upload Gallery Images</h3>
+        <form asp-action="UploadImages" class="dropzone" id="upload" enctype="multipart/form-data"></form>
+        <button id="btnupload" class="btn btn-success mt-3">Upload Files</button>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        <partial name="_ValidationScriptsPartial" />
+    }
+
+    <script src="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone-min.js"></script>
+    <link href="https://unpkg.com/dropzone@6.0.0-beta.1/dist/dropzone.css" rel="stylesheet" type="text/css" />
+
+    <script src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
+
+    <script>
+        CKEDITOR.replace('Description');
+
+        function img_pathUrl(input) {
+            $("img#imgpreview")[0].src = URL.createObjectURL(input.files[0]);
+        }
+
+        Dropzone.autoDiscover = false;
+        $(function () {
+            var dz = null;
+            $("#upload").dropzone({
+                autoProcessQueue: false,
+                paramName: "File Upload",
+                maxFilesize: 5, //mb
+                maxThumbnailFilesize: 1, //mb
+                maxFiles: 5,
+                parallelUploads: 5,
+                acceptedFiles: ".jpeg,.png,.jpg",
+                uploadMultiple: true,
+                addRemoveLinks: true,
+
+                init: function () {
+                    dz = this;
+                    $("#btnupload").click(function () {
+                        dz.processQueue();
+                        $(this).attr("disabled", "disabled");
+                    });
+                    dz.on("sending", function (file, xhr, formData) {
+                        formData.append("id", @Model.Id);
+                    });
+                },
+                success: function (file) {
+                    var preview = $(file.previewElement);
+                    preview.addClass("dz-success text-success");
+                    setTimeout(function () {
+                        dz.removeFile(file);
+
+                    }, 2000);
+
+                },
+                queuecomplete: function () {
+                    setTimeout(() => location.reload(), 2000);
+                },
+                dictDefaultMessage: "You can drag and drop your images here.",
+                dictRemoveFile: "File Remove"
+            });
+
+            $("a.deleteImage").on("click", function (e) {
+                e.preventDefault();
+
+                const $this = $(this);
+
+                const url = "/admin/products/DeleteImage";
+
+                const imageName = $this.data("name");
+
+                $.post(url, { id: @Model.Id, imageName: imageName }, function (data) {
+                    $this.parent().fadeOut("fast");
+                });
+            });
+        });
+    </script>
+}

@@ -1,0 +1,31 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
+using System.IO;
+
+namespace CMSECommerce.Infrastructure
+{
+    // Design-time factory so EF Core tools can create the DbContext when running migrations or tools.
+    public class DataContextFactory : IDesignTimeDbContextFactory<DataContext>
+    {
+        public DataContext CreateDbContext(string[] args)
+        {
+            var basePath = Directory.GetCurrentDirectory();
+
+            var builder = new ConfigurationBuilder()
+            .SetBasePath(basePath)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddEnvironmentVariables();
+
+            var configuration = builder.Build();
+
+            var connectionString = configuration.GetConnectionString("DbConnection")
+            ?? "Data Source=CMSECommerce.db";
+
+            var optionsBuilder = new DbContextOptionsBuilder<DataContext>();
+            optionsBuilder.UseSqlite(connectionString);
+
+            return new DataContext(optionsBuilder.Options);
+        }
+    }
+}

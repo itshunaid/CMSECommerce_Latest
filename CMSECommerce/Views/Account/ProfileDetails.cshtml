@@ -1,0 +1,410 @@
+﻿﻿@using System.Security.Claims
+@model CMSECommerce.Models.ViewModels.ProfileUpdateViewModel
+
+@{
+    ViewData["Title"] = "My Profile Overview";
+    // ⭐ GET THE LOGGED-IN USER ID
+    var loggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+}
+
+<style>
+    /* Custom Color Palette & Aesthetics */
+    :root {
+        --premium-primary: #1e3a8a; /* Darker, sophisticated Blue */
+        --premium-accent: #059669; /* Teal/Green for success/links */
+        --premium-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.1), 0 4px 6px -2px rgba(30, 58, 138, 0.05);
+    }
+
+    .text-premium-primary {
+        color: var(--premium-primary) !important;
+    }
+
+    .text-premium-accent {
+        color: var(--premium-accent) !important;
+    }
+
+    .bg-premium-header {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    }
+
+    /* Tab Refinement */
+    .profile-nav .nav-link {
+        font-weight: 600;
+        color: #6b7280;
+        border: none;
+        border-bottom: 4px solid transparent;
+        transition: all 0.3s ease-in-out;
+    }
+
+        .profile-nav .nav-link.active {
+            color: var(--premium-primary) !important;
+            border-bottom: 4px solid var(--premium-accent) !important;
+            background-color: transparent !important;
+        }
+
+    /* Detail List Refinement (Stripe/Hover Effect) */
+    .detail-list .row:nth-of-type(odd) {
+        background-color: #f9fafb; /* Lighter background for stripe */
+        border-radius: 0.25rem;
+    }
+
+    .detail-list .row:hover {
+        background-color: #f3f4f6;
+        cursor: default;
+    }
+
+    .detail-list dd, .detail-list dt {
+        padding-top: 0.75rem; /* Increased padding */
+        padding-bottom: 0.75rem;
+    }
+
+    /* Address Card Header */
+    .address-card .card-header {
+        background-color: var(--premium-primary) !important;
+        color: white;
+    }
+
+    /* Social Link Buttons */
+    .social-link-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.375rem 0.75rem;
+        border-radius: 50rem; /* Pill shape */
+        font-weight: 500;
+        text-decoration: none;
+        transition: background-color 0.3s;
+    }
+
+        .social-link-btn:hover {
+            opacity: 0.9;
+            text-decoration: none;
+        }
+
+    .linkedin-color {
+        background-color: #0077b5;
+        color: white;
+    }
+
+    .facebook-color {
+        background-color: #1877f2;
+        color: white;
+    }
+
+    .instagram-color {
+        background-color: #e4405f;
+        color: white;
+    }
+    /* PhonePe Custom Color */
+    .text-purple {
+        color: #5352ed;
+    }
+
+    /* General Card Shadow for Consistency */
+    .card {
+        box-shadow: var(--premium-shadow);
+    }
+</style>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-xl-8">
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="display-5 fw-extrabold text-premium-primary">Profile Management</h1>
+            </div>
+
+            <div class="card border-0">
+
+                <div class="card-header bg-premium-header p-4 p-md-5 text-center border-bottom-0 rounded-top">
+                    @if (Model.IsImageApproved == true && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
+                    {
+                        <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle shadow-lg mb-3 border border-4 border-white" style="width: 150px; height: 150px; object-fit: cover;" />
+                    }
+                    else
+                    {
+                        <i class="fas fa-user-circle fa-7x text-secondary mb-3"></i>
+                    }
+                    <h2 class="h3 mb-0 fw-bold text-premium-primary">@Model.UserName</h2>
+                    <p class="text-secondary fw-medium">@Model.Profession</p>
+                </div>
+
+                <div class="card-body pt-3 px-4 px-md-5">
+                    @if (Model.UserId == loggedInUserId || User.IsInRole("Admin"))
+                    {
+                        <div class="d-flex justify-content-end mb-4">
+                            <div class="btn-group" role="group" aria-label="Profile Actions">
+                                <a asp-action="EditProfile" class="btn btn-premium-primary btn-primary shadow-sm fw-bold">
+                                    <i class="fas fa-edit me-1"></i> Edit Details
+                                </a>
+                                <button type="button" class="btn btn-outline-danger shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#deleteProfileModal">
+                                    <i class="fas fa-trash-alt me-1"></i> Delete Data
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="card-body pt-0 px-4 px-md-5 border-top">
+                    <ul class="nav nav-tabs nav-fill profile-nav mb-4" id="profileTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button" role="tab" aria-controls="account" aria-selected="true">
+                                <i class="fas fa-user me-1"></i> Account
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="professional-tab" data-bs-toggle="tab" data-bs-target="#professional" type="button" role="tab" aria-controls="professional" aria-selected="false">
+                                <i class="fas fa-briefcase me-1"></i> Professional
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="address-tab" data-bs-toggle="tab" data-bs-target="#address" type="button" role="tab" aria-controls="address" aria-selected="false">
+                                <i class="fas fa-map-marker-alt me-1"></i> Addresses
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab" aria-controls="social" aria-selected="false">
+                                <i class="fas fa-share-alt me-1"></i> Social & Pay
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="profileTabsContent">
+
+                        <div class="tab-pane fade show active" id="account" role="tabpanel" aria-labelledby="account-tab">
+                            <h5 class="text-premium-primary mb-3"><i class="fas fa-id-badge me-1"></i> Login and Contact</h5>
+                            <dl class="detail-list border rounded">
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">Username:</dt>
+                                    <dd class="col-sm-8 fw-bold text-premium-primary">@Model.UserName</dd>
+                                </div>
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">First Name:</dt>
+                                    <dd class="col-sm-8 fw-bold text-premium-primary">@Model.FirstName</dd>
+                                </div>
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">LastName:</dt>
+                                    <dd class="col-sm-8 fw-bold text-premium-primary">@Model.LastName</dd>
+                                </div>
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">Email Address:</dt>
+                                    <dd class="col-sm-8">@Model.Email</dd>
+                                </div>
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">Mobile Number:</dt>
+                                    <dd class="col-sm-8">@Model.PhoneNumber</dd>
+                                </div>
+                            </dl>
+
+                            <h5 class="mt-5 text-premium-primary mb-3"><i class="fas fa-clipboard-list me-1"></i> About Me:</h5>
+                            <div class="p-4 border rounded bg-white shadow-sm">
+                                @if (!string.IsNullOrEmpty(Model.About))
+                                {
+                                    <p class="mb-0 text-secondary">@Model.About</p>
+                                }
+                                else
+                                {
+                                    <em class="text-muted small">N/A - Please click "Edit Details" to add your professional biography.</em>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="professional" role="tabpanel" aria-labelledby="professional-tab">
+                            <h5 class="text-premium-primary mb-3"><i class="fas fa-cogs me-1"></i> Professional and Service Information</h5>
+                            <dl class="detail-list border rounded">
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">ITS Number:</dt>
+                                    <dd class="col-sm-8">@(string.IsNullOrEmpty(Model.ITSNumber) ? "<span class=\"text-danger\">Not Set</span>" : Model.ITSNumber)</dd>
+                                </div>
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">Profession/Title:</dt>
+                                    <dd class="col-sm-8 fw-medium">@(string.IsNullOrEmpty(Model.Profession) ? "N/A" : Model.Profession)</dd>
+                                </div>
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">WhatsApp Number:</dt>
+                                    <dd class="col-sm-8">
+                                        @if (!string.IsNullOrEmpty(Model.WhatsappNumber))
+                                        {
+                                            // 1. WhatsApp Number is now a clickable link
+                                            <a href="https://wa.me/@Model.WhatsappNumber" target="_blank" class="text-success fw-medium">
+                                                <i class="fab fa-whatsapp me-1"></i> @Model.WhatsappNumber
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span>N/A</span>
+                                        }
+                                    </dd>
+                                </div>
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">Services Provided:</dt>
+                                    <dd class="col-sm-8">
+                                        @if (!string.IsNullOrEmpty(Model.ServicesProvided))
+                                        {
+                                            @foreach (var service in Model.ServicesProvided.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                                            {
+                                                <span class="badge rounded-pill bg-premium-accent text-white me-2 my-1">@service.Trim()</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span>N/A</span>
+                                        }
+                                    </dd>
+                                </div>
+                            </dl>
+                        </div>
+
+                        <div class="tab-pane fade" id="address" role="tabpanel" aria-labelledby="address-tab">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="card h-100 address-card border-0">
+                                        <div class="card-header fw-bold">
+                                            <i class="fas fa-home me-2"></i> Home Address
+                                        </div>
+                                        <div class="card-body bg-white">
+                                            <p class="mb-3">
+                                                @(string.IsNullOrEmpty(Model.HomeAddress) ? "<em class=\"text-muted\">N/A - No home address provided.</em>" : Model.HomeAddress)
+                                            </p>
+                                            <small class="text-muted d-block pt-2 border-top">
+                                                <i class="fas fa-phone me-1"></i> Phone: @(string.IsNullOrEmpty(Model.HomePhoneNumber) ? "N/A" : Model.HomePhoneNumber)
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="card h-100 address-card border-0">
+                                        <div class="card-header fw-bold">
+                                            <i class="fas fa-building me-2"></i> Business Address
+                                        </div>
+                                        <div class="card-body bg-white">
+                                            <p class="mb-3">
+                                                @(string.IsNullOrEmpty(Model.BusinessAddress) ? "<em class=\"text-muted\">N/A - No business address provided.</em>" : Model.BusinessAddress)
+                                            </p>
+                                            <small class="text-muted d-block pt-2 border-top">
+                                                <i class="fas fa-phone-square-alt me-1"></i> Phone: @(string.IsNullOrEmpty(Model.BusinessPhoneNumber) ? "N/A" : Model.BusinessPhoneNumber)
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="social" role="tabpanel" aria-labelledby="social-tab">
+                            <h5 class="text-premium-primary mb-3"><i class="fas fa-link me-1"></i> Social Media Links</h5>
+                            <dl class="detail-list mb-5 border rounded">
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">LinkedIn:</dt>
+                                    <dd class="col-sm-8">
+                                        @if (!string.IsNullOrEmpty(Model.LinkedInUrl))
+                                        {
+                                            <a href="@Model.LinkedInUrl" target="_blank" class="social-link-btn linkedin-color">
+                                                <i class="fab fa-linkedin me-2"></i> View Profile
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span>N/A</span>
+                                        }
+                                    </dd>
+                                </div>
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">Facebook:</dt>
+                                    <dd class="col-sm-8">
+                                        @if (!string.IsNullOrEmpty(Model.FacebookUrl))
+                                        {
+                                            <a href="@Model.FacebookUrl" target="_blank" class="social-link-btn facebook-color">
+                                                <i class="fab fa-facebook me-2"></i> View Profile
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span>N/A</span>
+                                        }
+                                    </dd>
+                                </div>
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">Instagram:</dt>
+                                    <dd class="col-sm-8">
+                                        @if (!string.IsNullOrEmpty(Model.InstagramUrl))
+                                        {
+                                            <a href="@Model.InstagramUrl" target="_blank" class="social-link-btn instagram-color">
+                                                <i class="fab fa-instagram me-2"></i> View Profile
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span>N/A</span>
+                                        }
+                                    </dd>
+                                </div>
+                            </dl>
+
+                            <h5 class="text-premium-primary mb-4"><i class="fas fa-qrcode me-1"></i> Payment QR Codes</h5>
+                            <div class="p-4 border rounded bg-white shadow-sm">
+                                <div class="row g-4 justify-content-center">
+                                    <div class="col-sm-6 text-center">
+                                        <div class="p-3 border rounded h-100">
+                                            <p class="fw-bold text-success mb-2"><i class="fas fa-mobile-alt me-1"></i> GPay QR Code</p>
+                                            @if (!string.IsNullOrEmpty(Model.ExistingGpayQRCodePath))
+                                            {
+                                                <img src="/@Model.ExistingGpayQRCodePath" alt="GPay QR" class="img-fluid border shadow-sm p-1" style="max-height: 150px; max-width: 150px;" />
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-barcode fa-4x text-light my-3 border p-3 rounded"></i>
+                                                <p class="text-muted small mt-2">QR code not uploaded.</p>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <div class="col-sm-6 text-center">
+                                        <div class="p-3 border rounded h-100">
+                                            <p class="fw-bold text-purple mb-2"><i class="fas fa-mobile-alt me-1"></i> PhonePe QR Code</p>
+                                            @if (!string.IsNullOrEmpty(Model.ExistingPhonePeQRCodePath))
+                                            {
+                                                <img src="/@Model.ExistingPhonePeQRCodePath" alt="PhonePe QR" class="img-fluid border shadow-sm p-1" style="max-height: 150px; max-width: 150px;" />
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-barcode fa-4x text-light my-3 border p-3 rounded"></i>
+                                                <p class="text-muted small mt-2">QR code not uploaded.</p>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteProfileModal" tabindex="-1" aria-labelledby="deleteProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteProfileModalLabel"><i class="fas fa-trash-alt me-1"></i> Confirm Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>WARNING:</strong> Are you absolutely sure you want to delete your custom profile data?</p>
+                <p class="text-danger small">This action is irreversible and will remove your ITS number, addresses, social links, and uploaded images/QR codes. Your account login will remain active.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form asp-action="DeleteProfileData" method="post">
+                    <button type="submit" class="btn btn-danger">Yes, Delete Profile Data</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        <partial name="_ValidationScriptsPartial" />
+    }
+}

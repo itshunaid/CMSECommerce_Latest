@@ -1,0 +1,299 @@
+﻿@using CMSECommerce.Models
+@using CMSECommerce.Models.ViewModels
+@using Microsoft.AspNetCore.Routing
+@using System.Globalization
+
+@model PagedList<Order> 
+
+@{
+    ViewData["Title"] = "Your Orders History";
+
+    // Define modern accent colors
+    var primaryBlue = "#007bff";
+    var shippedGreen = "#28a745";
+    var pendingOrange = "#ffc107";
+
+    // ... (Rest of the setup code remains the same) ...
+    // --- Pagination Setup ---
+    int pageSize = 10; // Assuming a default page size of 10.
+
+    // Fallback calculation for page size (in case PagedList<T> doesn't expose it)
+    if (Model.Count > 0 && Model.PageIndex * pageSize < Model.TotalCount)
+    {
+        pageSize = Model.Count;
+    }
+
+    // --- Capture Current Filter Values from Query String (Passed via ViewData from Controller) ---
+    var currentOrderId = ViewData["CurrentOrderId"] as string;
+    var currentStatus = ViewData["CurrentStatus"] as string;
+    var currentMinTotal = ViewData["CurrentMinTotal"] as string;
+    var currentMaxTotal = ViewData["CurrentMaxTotal"] as string;
+    var currentMinDate = ViewData["CurrentMinDate"] as string;
+    var currentMaxDate = ViewData["CurrentMaxDate"] as string;
+}
+
+<style>
+        .order-card {
+                border: 1px solid #dee2e6;
+                border-radius: 0.5rem;
+                transition: box-shadow 0.3s;
+                margin-bottom: 1.5rem;
+                background-color: white;
+
+    }
+
+            .order-card:hover {
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+        }
+
+        .order-header {
+                background-color: #f8f9fa; /* Light gray header */
+                padding: 0.75rem 1.25rem;
+                border-bottom: 1px solid #dee2e6;
+                border-top-left-radius: 0.5rem;
+                border-top-right-radius: 0.5rem;
+
+    }
+
+        .status-shipped {
+        color: @shippedGreen;
+        font-weight: bold;
+    }
+
+        .status-pending {
+        color: @pendingOrange;
+        font-weight: bold;
+    }
+
+        .filter-box {
+                background-color: #f8f9fa;
+                padding: 1rem;
+                border-radius: 0.5rem;
+                margin-bottom: 1.5rem;
+
+    }
+</style>
+
+<div class="container py-4">
+
+    <h1 class="mb-4 display-5 fw-bold" style="color: @primaryBlue;">
+        <i class="fas fa-receipt me-2"></i> Your Orders
+    </h1>
+
+    @* --- SEARCH/FILTER FORM --- *@
+    <div class="filter-box shadow-sm">
+        <form asp-action="Index" method="get">
+            <div class="row g-3 align-items-end">
+
+                @* Filter by Order ID *@
+                <div class="col-md-3 col-sm-6">
+                    <label for="orderId" class="form-label small text-muted mb-0">Order ID</label>
+                    <input type="text" name="orderId" value="@currentOrderId" class="form-control form-control-sm" placeholder="e.g., 10045" />
+                </div>
+
+                @* Filter by Status *@
+                <div class="col-md-3 col-sm-6">
+                    <label for="status" class="form-label small text-muted mb-0">Status</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">All</option>
+                        <option value="Shipped" selected="@(currentStatus == "Shipped")">Shipped</option>
+                        <option value="Pending" selected="@(currentStatus == "Pending")">Pending</option>
+                    </select>
+                </div>
+
+                @* Filter by Total Range *@
+                <div class="col-md-4">
+                    <label class="form-label small text-muted mb-0">Total (₹ Min - Max)</label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" name="minTotal" value="@currentMinTotal" class="form-control" placeholder="Min" step="0.01" />
+                        <input type="number" name="maxTotal" value="@currentMaxTotal" class="form-control" placeholder="Max" step="0.01" />
+                    </div>
+                </div>
+
+                @* Filter by Date Range (Min Date - Max Date) *@
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-0">Min Date</label>
+                    <input type="date" name="minDate" value="@currentMinDate" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-0">Max Date</label>
+                    <input type="date" name="maxDate" value="@currentMaxDate" class="form-control form-control-sm" />
+                </div>
+
+
+                @* Action Buttons *@
+                <div class="col-12 text-center mt-3">
+                    <button type="submit" class="btn btn-primary btn-sm me-2"><i class="fas fa-search me-1"></i> Search Orders</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="fas fa-redo me-1"></i> Clear Filters</a>
+                </div>
+            </div>
+        </form>
+    </div>
+    @* --- END SEARCH/FILTER FORM --- *@
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center" role="alert">
+            <h4 class="alert-heading">No Orders Found!</h4>
+            <p>Adjust your filters or try a different search.</p>
+            <hr>
+            <a href="@Url.Action("Index", "Shop")" class="btn btn-primary">Go to Shop</a>
+        </div>
+    }
+    else
+    {
+        @* --- Order Cards Loop --- *@
+        @foreach (var item in Model)
+        {
+            <div class="card order-card shadow-sm">
+
+                <div class="order-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">Order #<span style="color: @primaryBlue;">@item.Id</span></h5>
+                    <small class="text-muted">Date Placed: @item.DateTime.ToString("MMM dd, yyyy")</small>
+                </div>
+
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <h6 class="text-uppercase text-muted small mb-1">Status</h6>
+                            @if (item.Shipped)
+                            {
+                                <p class="status-shipped mb-0"><i class="fas fa-shipping-fast me-1"></i> SHIPPED</p>
+                            }
+                            else
+                            {
+                                <p class="status-pending mb-0"><i class="fas fa-clock me-1"></i> PENDING</p>
+                            }
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="text-uppercase text-muted small mb-1">Total</h6>
+                            <p class="fs-5 fw-bolder mb-0">@item.GrandTotal.ToString("C", new CultureInfo("en-IN"))</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="text-uppercase text-muted small mb-1">Ship To</h6>
+                            <p class="mb-0">@item.UserName</p>
+                            <p class="small text-muted mb-0">@item.PhoneNumber</p>
+                        </div>
+                        <div class="col-md-3 text-end d-flex flex-column align-items-end justify-content-center">
+
+                            @* Check if the order is Shipped or Pending and display the opposite action button *@
+                            @if (item.Shipped)
+                            {
+                                @* Form to mark as Pending (Shipped = false) *@
+                                <form asp-action="ShippedStatus" method="post" class="mb-2">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <input type="hidden" name="shipped" value="false" />
+                                    <button type="submit" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-undo me-1"></i> Mark as Pending
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                @* Form to mark as Shipped (Shipped = true) *@
+                                <form asp-action="ShippedStatus" method="post" class="mb-2">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <input type="hidden" name="shipped" value="true" />
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fas fa-truck me-1"></i> Mark as Shipped
+                                    </button>
+                                </form>
+                            }
+
+                            <a asp-area="" asp-controller="Account" asp-action="OrderDetails" asp-route-id="@item.Id"
+                                               class="btn btn-primary btn-sm">
+                                View Order Details &rarr;
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <hr class="mt-4" />
+
+        @* --- RECTIFICATION: PAGINATION CONTROL (Fixed Type Conversion) --- *@
+
+        var controllerName = ViewContext.RouteData.Values["Controller"].ToString();
+        var actionName = ViewContext.RouteData.Values["Action"].ToString();
+
+        // 1. Define RouteValueDictionary to hold the filter values
+        var routeValues = new RouteValueDictionary
+        {
+        { "orderId", currentOrderId },
+        { "status", currentStatus },
+        { "minTotal", currentMinTotal },
+        { "maxTotal", currentMaxTotal },
+        { "minDate", currentMinDate },
+        { "maxDate", currentMaxDate }
+        };
+
+        // 2. Rectification: Convert to the IDictionary<string, string> type required by asp-all-route-data
+        IDictionary<string, string> routeDataForTagHelper = routeValues.ToDictionary(
+        kvp => kvp.Key,
+        kvp => kvp.Value?.ToString()
+        );
+
+        // Calculation for the "Displaying Orders X to Y" text
+        int startItem = (Model.PageIndex - 1) * pageSize + 1;
+        int endItem = Model.PageIndex * pageSize;
+        if (endItem > Model.TotalCount) { endItem = Model.TotalCount; }
+        if (Model.TotalCount == 0) { startItem = 0; }
+
+
+        <nav aria-label="Page navigation" class="d-flex justify-content-between align-items-center">
+            <div class="text-muted small">
+                Displaying Orders @startItem - @endItem of @Model.TotalCount
+            </div>
+
+            <ul class="pagination mb-0">
+
+                @* Previous Button *@
+                <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                    @{
+                        routeDataForTagHelper["page"] = (Model.PageIndex - 1).ToString();
+                    }
+                    <a class="page-link"  
+                                   asp-controller="@controllerName"  
+                                   asp-action="@actionName"  
+                                   asp-all-route-data="routeDataForTagHelper"  
+                                   aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+
+                @* Page Numbers *@
+                @for (var i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.PageIndex ? "active" : "")">
+                        @{
+                            routeDataForTagHelper["page"] = i.ToString();
+                        }
+                        <a class="page-link"  
+                                         asp-controller="@controllerName"  
+                                         asp-action="@actionName"  
+                                         asp-all-route-data="routeDataForTagHelper">
+                            @i
+                        </a>
+                    </li>
+                }
+
+                @* Next Button *@
+                <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                    @{
+                        routeDataForTagHelper["page"] = (Model.PageIndex + 1).ToString();
+                    }
+                    <a class="page-link"  
+                                   asp-controller="@controllerName"  
+                                   asp-action="@actionName"  
+                                   asp-all-route-data="routeDataForTagHelper"  
+                                   aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        @* --- END PAGINATION CONTROL --- *@
+    }
+</div>

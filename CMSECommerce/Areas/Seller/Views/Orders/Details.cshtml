@@ -1,0 +1,54 @@
+@model CMSECommerce.Models.ViewModels.OrderDetailsViewModel
+
+
+
+@if(Model.OrderDetails==null && Model.Order==null)
+{
+
+    <h1>No Order has been created for you!</h1>
+}
+else
+{
+
+   
+ ViewData["Title"] = "Order Details";
+
+    <h1>Order #@Model.Order.Id</h1>
+
+    <div class="mb-3">
+        <strong>User:</strong> @Model.Order.UserName
+    </div>
+    <div class="mb-3">
+        <strong>Date:</strong> @Model.Order.DateTime
+    </div>
+    <div class="mb-3">
+        <strong>Total:</strong> @Model.Order.GrandTotal.ToString("C2")
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in Model.OrderDetails)
+            {
+                <tr>
+                    <td>@d.ProductName</td>
+                    <td>@d.Quantity</td>
+                    <td>@d.Price.ToString("C2")</td>
+                    <td>@(d.Price* d.Quantity).ToString("C2")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+}
+
+<p>
+ <a asp-area="Seller" asp-controller="Orders" asp-action="Index" class="btn btn-secondary">Back</a>
+</p>

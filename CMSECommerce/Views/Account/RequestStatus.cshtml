@@ -1,0 +1,90 @@
+﻿@model CMSECommerce.Models.SubscriberRequest
+
+@{
+    ViewData["Title"] = "Seller Request Status";
+}
+<div class="row">
+
+    <div class="col-md-8 offset-md-2">
+        <h2 class="text-center">Seller Request Status for @Model.UserName</h2>
+        <hr />
+
+
+
+        @* --------------------------------------------------------
+                Request Submitted - Display Status Details
+                -------------------------------------------------------- *@
+        <div class="card shadow p-4">
+            <h4 class="card-title">Details:</h4>
+
+            <dl class="row">
+                <dt class="col-sm-4">Requested Role:</dt>
+                <dd class="col-sm-8">@Model.RequestedRole</dd>
+
+                @* Showing the current role again in the details list for clarity *@
+                <dt class="col-sm-4">Your Current Role:</dt>
+                <dd class="col-sm-8"><span class="badge bg-dark">@ViewBag.CurrentRole</span></dd>
+
+                <dt class="col-sm-4">Date Submitted:</dt>
+                <dd class="col-sm-8">@Model.RequestDate.ToString("MMMM dd, yyyy h:mm tt")</dd>
+
+                @if (!string.IsNullOrEmpty(Model.AdminNotes))
+                {
+                    <dt class="col-sm-4">Admin Notes:</dt>
+                    <dd class="col-sm-8">@Model.AdminNotes</dd>
+                }
+            </dl>
+
+            <h4 class="mt-4">Current Status: @ViewBag.CurrentRole</h4>
+
+            @* Check for PENDING (Approved == null) *@
+            @if (Model.Approved == false)
+            {
+                <div class="alert alert-primary">
+                    <i class="fas fa-clock"></i> **PENDING REVIEW**
+                    <p class="mb-0 mt-1">Your request is awaiting review by the administrator. Status updates will be available here.</p>
+                </div>
+            }
+            else if (Model.Approved == true)
+            {
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> **APPROVED**
+                    <p class="mb-0 mt-1">
+                        Congratulations! Your account has been upgraded to **@Model.RequestedRole**.
+                        You may now proceed to the vendor dashboard.
+                    </p>
+                </div>
+            }
+            @* Check for REJECTED/REVOKED (Approved == false) *@
+            else // Model.Approved == false
+            {
+                <div class="alert alert-danger">
+                    <i class="fas fa-times-circle"></i> **REJECTED/REVOKED**
+                    <p class="mb-0 mt-1">
+                        Your request was rejected or your subscription was later revoked by an Admin.
+                        Please contact support for more details.
+                    </p>
+                </div>
+            }
+        </div>
+        @* The card div is closed here *@
+
+    </div>
+    @* The col-md-8 offset-md-2 div is closed here *@
+</div>
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+
+
+        <div class="card shadow p-4">
+
+            @* Only show the button if the current role isn't already Subscriber or Admin *@
+            @if (ViewBag.CurrentRole == "Customer")
+            {
+                <a asp-controller="Account" asp-action="RequestSeller" class="btn btn-success btn-lg mt-3">
+                    <i class="fas fa-plus-circle"></i> Submit a New Request Now
+                </a>
+            }
+        </div>
+    </div>
+</div>

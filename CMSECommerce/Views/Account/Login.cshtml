@@ -1,0 +1,151 @@
+﻿@model LoginViewModel
+
+@{
+    ViewData["Title"] = "Log In";
+    // Define controller name for clarity and reuse
+    const string controllerName = "Account";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        @* Smaller column for login form (max width for focus) *@
+        <div class="col-sm-10 col-md-7 col-lg-5">
+
+            <h1 class="display-4 fw-bolder text-center mb-5 text-dark">Welcome Back</h1>
+
+            <div class="card p-5 border-0 rounded-4 auth-card bg-white">
+                <form method="post" asp-controller="@controllerName" asp-action="Login">
+
+                    @* Validation summary for model-level errors (e.g., login failed) *@
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="form-floating mb-3">
+                        <input asp-for="UserName" class="form-control" placeholder="username@example.com" autofocus /> @* Added autofocus *@
+                        <label asp-for="UserName"><i class="fas fa-user me-2"></i> Username or Email</label>
+                        <span asp-validation-for="UserName" class="text-danger small mt-1 d-block"></span> @* d-block for better spacing *@
+                    </div>
+
+                    <div class="form-floating mb-4">
+                        <input asp-for="Password" type="password" class="form-control" placeholder="Password" />
+                        <label asp-for="Password"><i class="fas fa-lock me-2"></i> Password</label>
+                        <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span> @* d-block for better spacing *@
+                    </div>
+
+
+                    @if (ViewData.ModelMetadata.Properties.Any(p => p.PropertyName == "RememberMe"))
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" asp-for="RememberMe">
+                                <label class="form-check-label small text-muted" asp-for="RememberMe">
+                                    Keep me logged in
+                                </label>
+                            </div>
+
+                            <a asp-controller="@controllerName" asp-action="ForgotPassword" class="btn btn-link text-primary small fw-semibold p-0 forgot-link">Forgot Password?</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-end mb-4">
+                            <a asp-controller="@controllerName" asp-action="ForgotPassword" class="btn btn-link text-primary small fw-semibold p-0 forgot-link">Forgot Password?</a>
+                        </div>
+                    }
+
+
+                    <input type="hidden" asp-for="ReturnUrl" />
+
+                    <div class="d-grid mb-4">
+                        <button type="submit" class="btn btn-primary btn-lg fw-bold submit-btn">
+                            <i class="fas fa-sign-in-alt me-2"></i> Secure Log In
+                        </button>
+                    </div>
+
+                    <div class="text-center border-top pt-4">
+                        <p class="mb-0 small text-dark">
+                            New user? <a asp-controller="@controllerName" asp-action="Register" class="text-decoration-none fw-bold text-primary register-link">Create an account</a>
+                        </p>
+                    </div>
+
+                </form>
+            </div>
+
+            @* Social Logins Section - Separated for clearer design *@
+            <div class="text-center mt-4">
+                <p class="text-muted small mb-2">Or log in with:</p>
+                <button class="btn btn-outline-dark btn-sm me-2 social-btn"><i class="fab fa-google me-1"></i> Google</button>
+                <button class="btn btn-outline-dark btn-sm social-btn"><i class="fab fa-facebook me-1"></i> Facebook</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        <partial name="_ValidationScriptsPartial" />
+    }
+}
+
+@section Styles {
+    <style>
+        /* Define a consistent primary color variable if not already set by theme */
+        :root {
+            --bs-primary: #0d6efd; /* Standard Bootstrap Blue */
+        }
+
+        /* 🎨 Professional Card Styling */
+        .auth-card {
+            box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08) !important; /* Lighter, more modern shadow */
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid #e0e0e0 !important; /* Subtle border for definition */
+        }
+
+            .auth-card:hover {
+                box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.1) !important;
+            }
+
+        /* 🖋️ Input Focus Styling */
+        .form-control:focus {
+            border-color: var(--bs-primary);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); /* Primary color glow */
+        }
+
+        /* 🚀 Primary Button Style */
+        .submit-btn {
+            background-color: var(--bs-primary);
+            border-color: var(--bs-primary);
+            transition: background-color 0.2s, box-shadow 0.2s, transform 0.1s;
+        }
+
+            .submit-btn:hover {
+                background-color: #0b5ed7; /* Slightly darker shade of primary on hover */
+                border-color: #0b5ed7;
+                box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.15) !important;
+            }
+
+            /* Optional: Add a subtle press effect */
+            .submit-btn:active {
+                transform: translateY(1px);
+            }
+
+        /* Link style for registration/forgot password */
+        .text-primary {
+            color: var(--bs-primary) !important;
+        }
+
+        .register-link:hover, .forgot-link:hover {
+            text-decoration: underline !important;
+        }
+
+        /* Social Login Buttons */
+        .social-btn {
+            transition: all 0.2s;
+        }
+
+            .social-btn:hover {
+                background-color: #f8f9fa; /* Light background on hover */
+                border-color: #ced4da;
+            }
+    </style>
+}

@@ -1,0 +1,55 @@
+﻿@using System.Security.Claims
+<ul class="activeul navbar-nav flex-grow-1 justify-content-end">
+    @if (User.Identity.IsAuthenticated)
+    {
+        <li class="nav-item d-flex align-items-center me-2">
+            <span class="nav-link text-dark">Hello, @User.Identity.Name
+                @* @{
+                    var roleLabel = string.Empty;
+                    if (User.IsInRole("Admin")) { roleLabel = "Admin"; }
+                    else if (User.IsInRole("Customer")) { roleLabel = "Customer"; }
+                }
+                @if (!string.IsNullOrEmpty(roleLabel))
+                {
+                    <span class="badge bg-secondary ms-2">@roleLabel</span>
+                } *@
+            </span>
+        </li>
+
+        <li class="nav-item">
+            <a asp-controller="Account" asp-action="Index" class="nav-link text-dark">My Account</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Profile" title="Profile">
+                <i class="fas fa-user-cog me-1"></i> My Profile
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a asp-controller="Account"
+               asp-action="Logout"
+               class="nav-link text-dark">
+                Log Out
+            </a>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item">
+            <a asp-controller="Account"
+               asp-action="Register"
+               class="nav-link text-dark">
+                Register
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a asp-controller="Account"
+               asp-action="Login"
+               class="nav-link text-dark">
+                Log in
+            </a>
+        </li>
+    }
+
+</ul>

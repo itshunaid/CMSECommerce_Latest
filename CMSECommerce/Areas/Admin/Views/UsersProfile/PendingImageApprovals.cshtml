@@ -1,0 +1,79 @@
+﻿@model IEnumerable<CMSECommerce.Models.UserProfile>
+@{
+    ViewData["Title"] = "Pending Image Approvals";
+}
+
+<div class="container">
+    <h2 class="my-4">🖼️ Profile Image Approval Queue</h2>
+    <hr>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success" role="alert">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            🎉 **No pending profile images requiring approval!**
+        </div>
+    }
+    else
+    {
+        <p>Found **@Model.Count()** profiles waiting for review. Review the image and decide whether to approve or reject.</p>
+
+        <div class="row">
+            @foreach (var profile in Model)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+
+                            <h5 class="card-title">@profile.FirstName @profile.LastName</h5>
+                            <p class="card-text text-muted">User ID: @profile.UserId</p>
+
+                            <div class="mb-3">
+                                @if (!string.IsNullOrEmpty(profile.ProfileImagePath))
+                                {
+                                    <img src="@profile.ProfileImagePath"
+                                         alt="Pending Profile Image"
+                                         class="img-thumbnail"
+                                         style="width: 150px; height: 150px; object-fit: cover;">
+                                }
+                                else
+                                {
+                                    <span class="text-danger">Image Path Missing!</span>
+                                }
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-block">
+                                <form asp-controller="UsersProfile" asp-action="ApproveProfileImage" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@profile.Id" />
+                                    <button type="submit" class="btn btn-success btn-sm" title="Approve and make visible">
+                                        <i class="fas fa-check"></i> Approve
+                                    </button>
+                                </form>
+
+                                <form asp-controller="UsersProfile" asp-action="DisapproveProfileImage" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@profile.Id" />
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Reject and clear path" onclick="return confirm('Are you sure you want to reject this image? This will clear the profile image path.');">
+                                        <i class="fas fa-times"></i> Reject
+                                    </button>
+                                </form>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

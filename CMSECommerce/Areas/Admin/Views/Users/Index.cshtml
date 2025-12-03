@@ -1,0 +1,60 @@
+@model global::System.Collections.Generic.IEnumerable<global::CMSECommerce.Areas.Admin.Models.UserViewModel>
+
+@{
+    ViewData["Title"] = "Users";
+}
+
+<h1>Users</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Create User</a>
+</p>
+
+<table class="table table-striped table-bordered">
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>PhoneNumber</th>
+            <th>Roles</th>
+            <th>Enabled</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var u in Model)
+        {
+            <tr>
+                <td>@u.UserName</td>
+                <td>@u.Email</td>
+                <td>@u.PhoneNumber</td>
+                <td>@string.Join(", ", u.Roles)</td>
+                <td>
+                    @* Display "Yes" if not locked out, "No" if locked out *@
+                    @(u.IsLockedOut ? "No" : "Yes")
+                </td>
+                <td class="d-flex justify-content-start align-items-center">
+
+                    @* Edit Action: Standard GET link *@
+                    <a asp-action="Edit" asp-route-id="@u.Id" class="btn btn-sm btn-secondary me-2">Edit</a>
+
+                    @* Enable/Disable Action: Standard GET link *@
+                    <a asp-action="EnableDisable" asp-route-id="@u.Id" class="btn btn-sm btn-warning me-2">
+                        @(u.IsLockedOut ? "Enable" : "Disable")
+                    </a>
+
+                    @* ?? Delete Action: MUST use a POST form for security and to resolve the 405 error *@
+                    <form asp-action="Delete" asp-route-id="@u.Id" method="post" class="m-0">
+                        @* CRITICAL: Include the Anti-Forgery Token *@
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit" class="btn btn-sm btn-danger"
+                                onclick="return confirm('Are you sure you want to delete user @u.UserName? This action is irreversible and will remove all their data.');">
+                            Delete
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

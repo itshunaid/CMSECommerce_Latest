@@ -1,0 +1,112 @@
+﻿@model OrderDetailsViewModel
+
+@{
+    // Set the page title dynamically
+    ViewData["Title"] = $"Order #{Model.Order.Id} Details";
+
+    // Check if the order has been entirely shipped (assuming Shipped is a boolean on Order model)
+    bool isOrderShipped = Model.Order.Shipped;
+}
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="display-5 fw-bold text-dark">
+            Order Details <span class="text-primary">#@Model.Order.Id</span>
+        </h1>
+    </div>
+
+    @* --- Order Summary Card --- *@
+    <div class="card shadow-sm mb-5 border-0 rounded-3">
+        <div class="card-header bg-light fw-bold fs-5">
+            <i class="fas fa-info-circle me-2"></i> Order Summary
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3 text-muted">Customer Name:</dt>
+                <dd class="col-sm-9 fw-semibold">@Model.Order.UserName</dd>
+
+                <dt class="col-sm-3 text-muted">Placed On:</dt>
+                <dd class="col-sm-9">@Model.Order.DateTime.ToString("MMMM dd, yyyy h:mm tt")</dd>
+
+                <dt class="col-sm-3 text-muted">Order Status:</dt>
+                <dd class="col-sm-9">
+                    @{
+                        string shipBadgeClass = isOrderShipped ? "bg-success" : "bg-warning text-dark";
+                        string shipText = isOrderShipped ? "Shipped / Completed" : "Processing";
+                    }
+                    <span class="badge @shipBadgeClass fs-6 p-2">
+                        @shipText
+                    </span>
+                </dd>
+
+                <dt class="col-sm-3 text-muted border-top pt-3 mt-3">Grand Total:</dt>
+                <dd class="col-sm-9 fw-bolder text-primary fs-4 border-top pt-3 mt-3">
+                    @Model.Order.GrandTotal.ToString("C2")
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    @* --- Detailed Items Table --- *@
+    <h2 class="h3 fw-bold mb-3">Items in Order</h2>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover border rounded-3 overflow-hidden align-middle shadow-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 10%;">Image</th>
+                    <th style="width: 35%;">Product</th>
+                    <th style="width: 15%;">Price</th>
+                    <th style="width: 10%;">Quantity</th>
+                    <th style="width: 15%;">Subtotal</th>
+                    <th style="width: 15%;">Processing Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.OrderDetails)
+                {
+                    <tr>
+                        <td>
+                            <img src="/media/products/@item.Image" class="img-thumbnail rounded-3" alt="@item.ProductName" style="width: 70px; height: 70px; object-fit: cover;" />
+                        </td>
+                        <td>
+                            <strong>@item.ProductName</strong>
+                            <br><small class="text-muted">ID: @item.ProductId</small>
+                        </td>
+                        <td>
+                            @item.Price.ToString("C2")
+                        </td>
+                        <td class="fw-semibold">
+                            @item.Quantity
+                        </td>
+                        <td class="fw-bold text-info">
+                            @((item.Price * item.Quantity).ToString("C2"))
+                        </td>
+                        <td>
+                            @{
+                                string processedIconClass = item.IsProcessed ? "text-success" : "text-danger";
+                                string processedText = item.IsProcessed ? "Shipped" : "Pending";
+                            }
+                            <span class="@processedIconClass fw-semibold">
+                                <i class="fas @(item.IsProcessed ? "fa-check-circle" : "fa-clock") me-1"></i> @processedText
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot class="table-light border-top">
+                <tr>
+                    <td colspan="4" class="text-end fw-bold">Items Subtotal:</td>
+                    <td colspan="2" class="fw-bold">@Model.Order.GrandTotal.ToString("C2")</td>
+                </tr>
+                @* You might add rows for tax, shipping, and discount here if applicable *@
+            </tfoot>
+        </table>
+    </div>
+
+    <div class="mt-5">
+        <a href="javascript:history.go(-1)" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Go Back
+        </a>
+    </div>
+</div>
