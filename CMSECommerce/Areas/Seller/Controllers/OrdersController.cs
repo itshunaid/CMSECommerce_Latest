@@ -18,32 +18,87 @@ namespace CMSECommerce.Areas.Seller.Controllers
         // ... using statements and dependencies
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchString, string searchField)
         {
             var userName = _userManager.GetUserName(User);
             ViewBag.IsProcessed = false;
-            // Get only UNPROCESSED order details that belong to the seller
-            var orderDetails = await _context.OrderDetails
+
+            // Start with the base query for UNPROCESSED items belonging to the seller
+            var query = _context.OrderDetails
                 .Where(p => p.ProductOwner == userName && p.IsProcessed == false)
+                .AsQueryable();
+
+            // Apply filtering if a search string is provided
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                // To support case-insensitive contains search in EF Core
+                var lowerSearch = searchString.ToLower();
+
+                // Apply filtering based on the selected field
+                query = searchField switch
+                {
+                    "OrderId" => query.Where(d => d.OrderId.ToString().Contains(lowerSearch)),
+                    "Subtotal" => query.Where(d => (d.Price * d.Quantity).ToString().Contains(lowerSearch)), // Calculate subtotal for filtering
+                    "Price" => query.Where(d => d.Price.ToString().Contains(lowerSearch)),
+                    "Qty" => query.Where(d => d.Quantity.ToString().Contains(lowerSearch)),
+                    "Contact" => query.Where(d => d.CustomerNumber.ToLower().Contains(lowerSearch)),
+                    "Customer" => query.Where(d => d.Customer.ToLower().Contains(lowerSearch)),
+                    "Product" => query.Where(d => d.ProductName.ToLower().Contains(lowerSearch)),
+                    _ => query // Default case: no specific field filter applied
+                };
+
+                // Store search parameters in ViewBag for view persistence
+                ViewBag.CurrentSearchString = searchString;
+                ViewBag.CurrentSearchField = searchField;
+            }
+
+            // Execute the query and order the results
+            var orderDetails = await query
                 .OrderBy(d => d.OrderId) // Group by order for better viewing
                 .ToListAsync();
 
             return View(orderDetails);
         }
+        // Apply similar changes to the Shipped action for consistency
         [HttpGet]
-        public async Task<IActionResult> Shipped()
+        public async Task<IActionResult> Shipped(string searchString, string searchField)
         {
             var userName = _userManager.GetUserName(User);
+            ViewBag.IsProcessed = true;
 
-            // Get only UNPROCESSED order details that belong to the seller
-            var orderDetails = await _context.OrderDetails
+            // Start with the base query for PROCESSED items belonging to the seller
+            var query = _context.OrderDetails
                 .Where(p => p.ProductOwner == userName && p.IsProcessed == true)
+                .AsQueryable();
+
+            // Apply filtering if a search string is provided (same logic as Index)
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                var lowerSearch = searchString.ToLower();
+
+                query = searchField switch
+                {
+                    "OrderId" => query.Where(d => d.OrderId.ToString().Contains(lowerSearch)),
+                    "Subtotal" => query.Where(d => (d.Price * d.Quantity).ToString().Contains(lowerSearch)),
+                    "Price" => query.Where(d => d.Price.ToString().Contains(lowerSearch)),
+                    "Qty" => query.Where(d => d.Quantity.ToString().Contains(lowerSearch)),
+                    "Contact" => query.Where(d => d.CustomerNumber.ToLower().Contains(lowerSearch)),
+                    "Customer" => query.Where(d => d.Customer.ToLower().Contains(lowerSearch)),
+                    "Product" => query.Where(d => d.ProductName.ToLower().Contains(lowerSearch)),
+                    _ => query
+                };
+
+                // Store search parameters for view persistence
+                ViewBag.CurrentSearchString = searchString;
+                ViewBag.CurrentSearchField = searchField;
+            }
+
+            var orderDetails = await query
                 .OrderBy(d => d.OrderId) // Group by order for better viewing
                 .ToListAsync();
-            ViewBag.IsProcessed = true;
-            return View("Index",orderDetails);
-        }
 
+            return View("Index", orderDetails);
+        }
         // NEW ACTION: To toggle the IsProcessed status via POST
         [HttpPost]
         [ValidateAntiForgeryToken] // Security best practice

@@ -1,19 +1,33 @@
 ﻿@model IEnumerable<CMSECommerce.Models.OrderDetail>
 
 @{
-    ViewData["Title"] = "New Orders (Unprocessed Items)";
+    // Conditional Title based on ViewBag.IsProcessed
+    ViewData["Title"] = ViewBag.IsProcessed ? "Processed Orders" : "New Orders (Unprocessed Items)";
+
+    // Retrieve search parameters for form persistence
+    string currentSearchString = ViewBag.CurrentSearchString ?? string.Empty;
+    string currentSearchField = ViewBag.CurrentSearchField ?? "Product"; // Default filter field
 }
 
 <div class="container py-5">
     @if (!ViewBag.IsProcessed)
-        {
-    <h1 class="display-5 fw-bold text-dark mb-4">🆕 New Orders Awaiting Processing</h1>
-    <p class="lead text-muted">
-        This table displays individual line items from customer orders that you need to fulfill. Mark an item as **Processed** once it has been shipped or completed.
-    </p>
-        }
+    {
+        <h1 class="display-5 fw-bold text-dark mb-4">🆕 New Orders Awaiting Processing</h1>
+        <p class="lead text-muted">
+            This table displays individual line items from customer orders that you need to fulfill. Mark an item as **Processed** once it has been shipped or completed.
+        </p>
+    }
+    else
+    {
+        <h1 class="display-5 fw-bold text-dark mb-4">✅ Processed & Shipped Orders</h1>
+        <p class="lead text-muted">
+            This table displays individual line items from customer orders that you have already processed and shipped.
+        </p>
+    }
 
     @* Display Status Messages (Success/Error from ToggleProcessed action) *@
+    @* ... (TempData success/error alerts remain the same) ... *@
+
     @if (TempData["Success"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -29,8 +43,10 @@
         </div>
     }
 
+
     @if (!Model.Any())
     {
+        // ... (No orders message remains the same) ...
         @if (!ViewBag.IsProcessed)
         {
             <div class="alert alert-success text-center mt-5" role="alert">
@@ -38,25 +54,30 @@
                 <p class="mb-0">You have no new orders awaiting processing. Great job!</p>
             </div>
         }
-
+        else
+        {
+            <div class="alert alert-info text-center mt-5" role="alert">
+                <h4 class="alert-heading">No Processed Orders Found 😞</h4>
+                <p class="mb-0">You haven't marked any items as processed yet.</p>
+            </div>
+        }
     }
     else
     {
-        // ... (Summary Cards: Revenue and Items Sold) ...
-        // Note: Total Revenue and Total Items Sold are based ONLY on UNPROCESSED items here.
-        decimal totalRevenue = Model.Sum(d => d.Price * d.Quantity);
+        // ... (Summary Cards: Revenue and Items Sold remain the same) ...
         @if (!ViewBag.IsProcessed)
         {
-        <div class="row mb-4">
-            <div class="col-md-6 col-lg-4">
-                <div class="card text-white bg-danger mb-3 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Pending Revenue</h5>
-                        <p class="card-text fs-3 fw-bold">@totalRevenue.ToString("C")</p>
+            decimal totalRevenue = Model.Sum(d => d.Price * d.Quantity);
+            <div class="row mb-4">
+                <div class="col-md-6 col-lg-4">
+                    <div class="card text-white bg-danger mb-3 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">Pending Revenue</h5>
+                            <p class="card-text fs-3 fw-bold">@totalRevenue.ToString("C")</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
+
                 <div class="col-md-6 col-lg-4">
                     <div class="card text-white bg-warning text-dark mb-3 shadow-sm">
                         <div class="card-body">
@@ -65,12 +86,41 @@
                         </div>
                     </div>
                 </div>
-            
-           
-        </div>
+
+
+            </div>
         }
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <form asp-action="@(ViewBag.IsProcessed ? "Shipped" : "Index")" method="get">
+                    <div class="input-group">
+                        <select name="searchField" class="form-select" style="max-width: 150px;">
+                            <option value="Product" selected="@(currentSearchField == "Product")">Product</option>
+                            <option value="Customer" selected="@(currentSearchField == "Customer")">Customer</option>
+                            <option value="OrderId" selected="@(currentSearchField == "OrderId")">Order ID</option>
+                            <option value="Subtotal" selected="@(currentSearchField == "Subtotal")">Subtotal</option>
+                            <option value="Price" selected="@(currentSearchField == "Price")">Price</option>
+                            <option value="Qty" selected="@(currentSearchField == "Qty")">Qty</option>
+                            <option value="Contact" selected="@(currentSearchField == "Contact")">Contact</option>
+                        </select>
+                        <input type="text" name="searchString" class="form-control" placeholder="Search orders..." value="@currentSearchString" />
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search me-1"></i> Search
+                        </button>
+                        @* Add a clear button that navigates back to the unfiltered index/shipped action *@
+                        @if (!string.IsNullOrEmpty(currentSearchString))
+                        {
+                            <a asp-action="@(ViewBag.IsProcessed ? "Shipped" : "Index")" class="btn btn-secondary">Clear Filter</a>
+                        }
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-hover table-striped border rounded-3 overflow-hidden shadow-sm align-middle">
+                @* ... (Table Head/Thead remains the same) ... *@
                 <thead class="table-dark">
                     <tr>
                         <th style="width: 5%;"></th> @* Image column placeholder *@
@@ -85,12 +135,13 @@
                         {
                             <th style="width: 10%;">Status / Action</th> @* Combined Status and Action *@
                         }
-                        
+
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var item in Model.OrderBy(d => d.OrderId))
                     {
+                        @* ... (Table Row/TR contents remain the same) ... *@
                         <tr>
                             <td>
                                 @* Assuming image path is /media/products/{ImageFile.png} *@
@@ -117,7 +168,7 @@
                                     #@item.OrderId
                                 </a>
                             </td>
-                            @if(!ViewBag.IsProcessed)
+                            @if (!ViewBag.IsProcessed)
                             {
                                 <td>
                                     @* Toggle Form for IsProcessed *@
@@ -131,17 +182,27 @@
                                     </form>
                                 </td>
                             }
-                            
+
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
 
+        @* Update the link to toggle between views based on current state *@
         <div class="text-center mt-4">
-            <a asp-action="Shipped" class="btn btn-outline-primary">
-                <i class="fas fa-history me-2"></i> View Processed/Completed Orders
-            </a>
+            @if (!ViewBag.IsProcessed)
+            {
+                <a asp-action="Shipped" class="btn btn-outline-primary">
+                    <i class="fas fa-history me-2"></i> View Processed/Completed Orders
+                </a>
+            }
+            else
+            {
+                <a asp-action="Index" class="btn btn-outline-primary">
+                    <i class="fas fa-inbox me-2"></i> View New Orders Awaiting Processing
+                </a>
+            }
         </div>
     }
 </div>
