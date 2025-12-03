@@ -1,43 +1,67 @@
 ﻿@model IEnumerable<Page>
 
 @{
-    ViewData["Title"] = "Pages";
+    ViewData["Title"] = "Pages Management";
 }
 
-<h1>Pages</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1><i class="bi bi-file-earmark-text"></i> Manage Pages</h1>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Create New Page
+    </a>
+</div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
+<hr />
 
-<table class="table sorting" id="pages">
-    <thead>
-        <tr class="home">
+@* Optional: Add a subtle alert for reordering capability *@
+<div class="alert alert-info" role="alert">
+    Pages can be **dragged and dropped** to change their display order.
+</div>
+
+<table class="table table-striped table-hover sorting" id="pages">
+    <thead class="table-dark">
+        <tr>
             <th>
                 Title
             </th>
             <th>
-                Slug
+                Slug (URL Segment)
             </th>
-            <th></th>
+            <th class="text-center">Actions</th>
         </tr>
     </thead>
-    <tbody>
-        @foreach (var item in Model)
+    <tbody id="page-list-body">
+        @foreach (var item in Model.OrderBy(p => p.Order))
         {
-            <tr id="id_@item.Id" class="@item.Slug">
+            @*BEST PRACTICE: Use data-id for non-visual attributes.
+                The 'home' page (item.Id == 1) should not be re-orderable, 
+                so we add a specific class/data attribute.*@
+            <tr data-id="@item.Id" class="@(item.Id == 1 ? "non-sortable" : "")">
                 <td>
-                    @item.Title
+                    <strong>@item.Title</strong>
                 </td>
                 <td>
-                    @item.Slug
+                    <code>/@item.Slug</code>
                 </td>
-                <td>
-                    <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                <td class="text-center">
+                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary" title="Edit Page">
+                        <i class="bi bi-pencil-square"></i> Edit
+                    </a>
+
+                    @* Check if the page is the protected 'home' page (Id == 1) *@
                     @if (item.Id != 1)
                     {
-                        <a class="confirm" asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-
+                        <a class="btn btn-sm btn-outline-danger confirm-delete"
+                           asp-action="Delete"
+                           asp-route-id="@item.Id"
+                           title="Delete Page"
+                           data-title="@item.Title">
+                            <i class="bi bi-trash"></i> Delete
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary" title="System Page">Protected</span>
                     }
                 </td>
             </tr>
@@ -47,20 +71,75 @@
 
 @section Scripts {
     <script src="~/lib/jqueryui/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <script>
         $(function () {
-            $("table#pages tbody").sortable({
-                items: "tr:not(.home)",
+            // 1. Initialise the sortable feature on the table body
+            $("#page-list-body").sortable({
+                items: "tr:not(.non-sortable)", // Exclude the home page
+                cursor: "move",
+                opacity: 0.8,
                 placeholder: "ui-state-highlight",
-                update: function() {
-                    const ids = $("table#pages tbody").sortable("serialize");
+
+                // 2. Event triggered when the reordering is complete
+                update: function(event, ui) {
+                    // Extract the ordered IDs from the data-id attribute
+                    const pageIds = $(this).find("tr").map(function() {
+                        return $(this).data("id");
+                    }).get();
+
+                    // BEST PRACTICE: Send a clean array of IDs, not a serialized string
+                    // This is more robust and easier to handle in the C# controller
                     const url = "/admin/pages/ReorderPages";
 
-                    $.post(url, ids, function (data) { });
+                    $.ajax({
+                        url: url,
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify(pageIds),
+                        success: function (response) {
+                            console.log("Pages reordered successfully.", response);
+                            // Optional: Add visual feedback (e.g., a toast notification)
+                        },
+                        error: function (error) {
+                            console.error("Error reordering pages.", error);
+                            // Optional: Alert the user and revert the sorting if needed
+                        }
+                    });
+                }
+            });
+
+            // 3. Custom Confirmation for Deletion (Better UX)
+            $(".confirm-delete").click(function (e) {
+                e.preventDefault();
+                const pageTitle = $(this).data("title");
+                const deleteUrl = $(this).attr("href");
+
+                if (confirm(`Are you sure you want to delete the page: "${pageTitle}"?`)) {
+                    window.location.href = deleteUrl;
                 }
             });
         });
     </script>
 
+    <style>
+        .ui-state-highlight {
+            height: 2.5em; /* Match row height */
+            line-height: 2.5em;
+            background-color: #f7f7f7;
+            border: 1px dashed #ccc;
+        }
+
+        .non-sortable {
+            background-color: #f8f9fa; /* Light grey for non-sortable row */
+            color: #6c757d;
+            cursor: not-allowed !important;
+        }
+
+            .non-sortable td:first-child::before {
+                content: "\1F6AB"; /* No Entry sign emoji */
+                margin-right: 5px;
+            }
+    </style>
 }

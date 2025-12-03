@@ -4,42 +4,96 @@
     ViewData["Title"] = "Create Page";
 }
 
-<h1>Create Page</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-file-earmark-plus"></i> Create New Page</h1>
+</div>
 
-<div class="row">
-    <div class="col-8">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group mb-3">
-                <label asp-for="Title" class="control-label"></label>
-                <input asp-for="Title" class="form-control" />
-                <span asp-validation-for="Title" class="text-danger"></span>
+<hr />
+
+<div class="row justify-content-center">
+    @* Use a larger column for better form readability, centered *@
+    <div class="col-lg-8 col-md-10">
+        <form asp-action="Create" method="post">
+            @* Display all validation errors prominently at the top *@
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            @* --- Title Field --- *@
+            <div class="form-group mb-4">
+                <label asp-for="Title" class="form-label fs-5"></label>
+                <input asp-for="Title" class="form-control form-control-lg" placeholder="e.g., About Us, Contact, etc." />
+                <span asp-validation-for="Title" class="text-danger mt-1 d-block"></span>
             </div>
-            <div class="form-group mb-3">
-                <label asp-for="Body" class="control-label"></label>
-                <textarea asp-for="Body" class="form-control"></textarea>
-                <span asp-validation-for="Body" class="text-danger"></span>
+
+            @* --- Body Field (Rich Text Editor) --- *@
+            <div class="form-group mb-4">
+                @* Hiding the label for a clean editor look, but keeping it for accessibility *@
+                <label asp-for="Body" class="form-label fs-5 visually-hidden"></label>
+                <textarea asp-for="Body" class="form-control" rows="15"></textarea>
+                <span asp-validation-for="Body" class="text-danger mt-1 d-block"></span>
             </div>
-            <div class="form-group">
-                <button class="btn btn-primary">Create</button>
+            
+            @* --- Submit Button --- *@
+            <div class="form-group pt-2 d-flex justify-content-between">
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-lg"></i> Create Page
+                </button>
             </div>
         </form>
     </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
 </div>
 
 @section Scripts {
     @{
         <partial name="_ValidationScriptsPartial" />
     }
+    
+    @*Using the requested CKEditor version but linking Bootstrap Icons for better UI *@
+    <script src="https://cdn.ckeditor.com/4.22.1/full/ckeditor.js"></script> 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <script src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
 
     <script>
-        CKEDITOR.replace('Body');
+        $(document).ready(function () {
+            // Initialize CKEditor on the 'Body' textarea
+            CKEDITOR.replace('Body', {
+                // Optional: Use a richer toolbar set for content creation
+                toolbarGroups: [
+                    { name: 'document', groups: ['mode', 'document', 'doctools'] },
+                    { name: 'clipboard', groups: ['clipboard', 'undo'] },
+                    { name: 'editing', groups: ['find', 'selection', 'spellchecker', 'editing'] },
+                    { name: 'links' },
+                    { name: 'insert' },
+                    { name: 'basicstyles', groups: ['basicstyles', 'cleanup'] },
+                    { name: 'paragraph', groups: ['list', 'indent', 'blocks', 'align', 'bidi', 'paragraph'] },
+                    { name: 'styles' },
+                    { name: 'colors' }
+                ],
+                removeButtons: 'Save,NewPage,Print,Form,Checkbox,Radio,TextField,Textarea,Select,Button,ImageButton,HiddenField,About,Templates',
+                // Optional: Remove 'required' if client-side validation is causing issues with the editor iframe
+                on: {
+                    instanceReady: function(evt) {
+                        this.element.removeAttribute('required'); 
+                    }
+                }
+            });
+            
+            // 🛑 CRITICAL FUNCTIONALITY FIX 🛑
+            // Ensure the CKEditor content is copied back to the original textarea 
+            // before the form is submitted. This prevents the 'Body' property from 
+            // being null or empty on the server, which is the most common functional break 
+            // when using RTEs.
+            $('form').submit(function () {
+                for (instance in CKEDITOR.instances) {
+                    CKEDITOR.instances[instance].updateElement();
+                }
+                // Also trigger validation check explicitly if needed, though updateElement often suffices
+                if (!$(this).valid()) {
+                    return false; // Prevent form submission if validation fails
+                }
+            });
+        });
     </script>
-
 }

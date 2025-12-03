@@ -1,45 +1,110 @@
 ﻿@model Page
 
 @{
-    ViewData["Title"] = "Create Edit";
+    ViewData["Title"] = "Edit Page: " + Model.Title;
 }
 
-<h1>Edit Page</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-pencil-square"></i> Edit Page</h1>
+</div>
 
-<div class="row">
-    <div class="col-8">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group mb-3">
-                <label asp-for="Title" class="control-label"></label>
-                <input asp-for="Title" class="form-control" />
-                <span asp-validation-for="Title" class="text-danger"></span>
+<hr />
+
+<div class="row justify-content-center">
+    @* Use a larger column for better form readability, centered *@
+    <div class="col-lg-8 col-md-10">
+        <form asp-action="Edit" method="post">
+            
+            @* Hidden input for the Page ID is crucial for the POST action to work correctly *@
+            <input type="hidden" asp-for="Id" />
+
+            @* Display all validation errors prominently at the top *@
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            @* --- Title Field --- *@
+            <div class="form-group mb-4">
+                <label asp-for="Title" class="form-label fs-5"></label>
+                <input asp-for="Title" class="form-control form-control-lg" placeholder="e.g., About Us, Contact, etc." />
+                <span asp-validation-for="Title" class="text-danger mt-1 d-block"></span>
             </div>
-            <div class="form-group mb-3">
-                <label asp-for="Body" class="control-label"></label>
-                <textarea asp-for="Body" class="form-control"></textarea>
-                <span asp-validation-for="Body" class="text-danger"></span>
+            
+            @* BEST PRACTICE: Include the Slug field if your Page model has one, 
+               as it's often needed for URL structure/SEO and should be editable.
+            *@
+            @* <div class="form-group mb-4">
+                <label asp-for="Slug" class="form-label">Page Slug (URL Path)</label>
+                <input asp-for="Slug" class="form-control" />
+                <span asp-validation-for="Slug" class="text-danger mt-1 d-block"></span>
+            </div> *@
+
+            @* --- Body Field (Rich Text Editor) --- *@
+            <div class="form-group mb-4">
+                @* Hiding the label for a clean editor look, but keeping it for accessibility *@
+                <label asp-for="Body" class="form-label fs-5 visually-hidden"></label>
+                <textarea asp-for="Body" class="form-control" rows="15"></textarea>
+                <span asp-validation-for="Body" class="text-danger mt-1 d-block"></span>
             </div>
-            <div class="form-group">
-                <button class="btn btn-primary">Edit</button>
+            
+            @* --- Submit Button --- *@
+            <div class="form-group pt-2 d-flex justify-content-between">
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-save"></i> Save Changes
+                </button>
             </div>
         </form>
     </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
 </div>
 
 @section Scripts {
     @{
         <partial name="_ValidationScriptsPartial" />
     }
+    
+    @*Using the full version of CKEditor for better tools *@
+    <script src="https://cdn.ckeditor.com/4.22.1/full/ckeditor.js"></script> 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <script src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
 
     <script>
-        CKEDITOR.replace('Body');
+        $(document).ready(function () {
+            // Initialize CKEditor on the 'Body' textarea
+            CKEDITOR.replace('Body', {
+                // Configuration for a richer toolbar set
+                toolbarGroups: [
+                    { name: 'document', groups: ['mode', 'document', 'doctools'] },
+                    { name: 'clipboard', groups: ['clipboard', 'undo'] },
+                    { name: 'editing', groups: ['find', 'selection', 'spellchecker', 'editing'] },
+                    { name: 'links' },
+                    { name: 'insert' },
+                    { name: 'basicstyles', groups: ['basicstyles', 'cleanup'] },
+                    { name: 'paragraph', groups: ['list', 'indent', 'blocks', 'align', 'bidi', 'paragraph'] },
+                    { name: 'styles' },
+                    { name: 'colors' }
+                ],
+                removeButtons: 'Save,NewPage,Print,Form,Checkbox,Radio,TextField,Textarea,Select,Button,ImageButton,HiddenField,About,Templates',
+                on: {
+                    instanceReady: function(evt) {
+                        // Remove 'required' if present to avoid client-side validation conflict with the editor iframe
+                        this.element.removeAttribute('required'); 
+                    }
+                }
+            });
+            
+            // 🛑 CRITICAL FUNCTIONALITY FIX 🛑
+            // This ensures the content from the visual editor is copied back to the 
+            // original textarea before submission, preventing the Body from being empty.
+            $('form').submit(function () {
+                for (instance in CKEDITOR.instances) {
+                    CKEDITOR.instances[instance].updateElement();
+                }
+                // Optionally re-run validation if needed
+                if (!$(this).valid()) {
+                    return false;
+                }
+            });
+        });
     </script>
-
 }
