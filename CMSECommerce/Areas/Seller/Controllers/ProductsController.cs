@@ -13,11 +13,11 @@ namespace CMSECommerce.Areas.Seller.Controllers
     [Area("Seller")]
     [Authorize("Subscriber")]
     public class ProductsController(
-                    DataContext context,
-                    IWebHostEnvironment webHostEnvironment,
-                    IEmailSender emailSender,
-                    UserManager<IdentityUser> userManager,
-                    ILogger<ProductsController> logger) : Controller
+        DataContext context,
+        IWebHostEnvironment webHostEnvironment,
+        IEmailSender emailSender,
+        UserManager<IdentityUser> userManager,
+        ILogger<ProductsController> logger) : Controller
     {
         private readonly DataContext _context = context;
         private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
@@ -25,11 +25,15 @@ namespace CMSECommerce.Areas.Seller.Controllers
         private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly ILogger<ProductsController> _logger = logger;
 
-        public async Task<IActionResult> Index(int categoryId = 0, int p = 1)
+        // UPDATED: Added string search and string status parameters
+        public async Task<IActionResult> Index(int categoryId = 0, string search = "", string status = "", int p = 1)
         {
             ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
 
             ViewBag.SelectedCategory = categoryId.ToString();
+            ViewBag.CurrentSearch = search; // Pass search query to View for persistence
+            ViewBag.CurrentStatus = status; // Pass status filter to View for persistence
+
             int pageSize = 3;
             ViewBag.PageNumber = p;
             ViewBag.PageRange = pageSize;
@@ -38,11 +42,32 @@ namespace CMSECommerce.Areas.Seller.Controllers
             var currentUserId = _userManager.GetUserName(User);
             var productsQuery = _context.Products.Where(x => x.OwnerId == currentUserId);
 
-            // Apply category filter if needed
+            // 1. Apply category filter
             if (categoryId != 0)
             {
                 productsQuery = productsQuery.Where(x => x.CategoryId == categoryId);
             }
+
+            // 2. Apply search filter
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                string searchLower = search.ToLower();
+                productsQuery = productsQuery.Where(x =>
+                    x.Name.ToLower().Contains(searchLower) ||
+                    x.Description.ToLower().Contains(searchLower)
+                );
+            }
+
+            // 3. Apply status filter
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                // Parse the status string back into the enum
+                if (Enum.TryParse(status, true, out ProductStatus productStatus))
+                {
+                    productsQuery = productsQuery.Where(x => x.Status == productStatus);
+                }
+            }
+
 
             ViewBag.TotalPages = (int)Math.Ceiling((decimal)await productsQuery.CountAsync() / pageSize);
 
@@ -320,6 +345,9 @@ namespace CMSECommerce.Areas.Seller.Controllers
             }
         }
 
+        // These actions below are typically administrative but exist in the original prompt.
+        // They are kept here for completeness but should likely be restricted further (e.g., to Admin role)
+        // if this controller is strictly for the Seller/Subscriber area.
         public async Task<IActionResult> Approve(int id)
         {
             var product = await _context.Products.FindAsync(id);

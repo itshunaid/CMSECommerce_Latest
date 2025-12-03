@@ -31,6 +31,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
     string SearchName,
     string SearchDescription,
     string SearchCategory,
+    string SearchStatus,
     int? pageNumber,
     int pageSize = 6) // *** ADDED pageSize parameter with a default of 6 ***
         {
@@ -54,6 +55,14 @@ namespace CMSECommerce.Areas.Admin.Controllers
             if (!string.IsNullOrEmpty(SearchCategory))
             {
                 products = products.Where(p => p.Category.Name.ToLower().Contains(SearchCategory.ToLower()));
+            }
+            // <<< NEW: Status Filtering Logic >>>
+            if (!string.IsNullOrEmpty(SearchStatus))
+            {
+                if (Enum.TryParse(SearchStatus, out ProductStatus status))
+                {
+                    products = products.Where(p => p.Status == status);
+                }
             }
 
             // 4. Sorting (Original logic preserved)
@@ -97,7 +106,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 // *** ADDED: Pass the current page size to the view/model ***
                 CurrentPageSize = pageSize
             };
-
+            ViewBag.CurrentSearchStatus = SearchStatus;
             return View(viewModel);
         }
         public async Task<IActionResult> PendingProducts(int categoryId = 0, int p = 1)

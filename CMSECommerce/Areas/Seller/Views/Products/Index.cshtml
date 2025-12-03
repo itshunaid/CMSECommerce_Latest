@@ -5,11 +5,14 @@
     ViewData["Title"] = "Product Inventory";
     // Set pageAction explicitly to "Index" since PendingProducts is removed
     string pageAction = "Index";
+    // Get current query parameters for persistence
+    string currentSearch = Context.Request.Query["search"];
+    string currentStatus = Context.Request.Query["status"];
 }
 
 @* ---------------------------------------------------------------------- *
- * TEMP DATA MESSAGES (Success/Error Popups)
- * ---------------------------------------------------------------------- *@
+ * TEMP DATA MESSAGES (Success/Error Popups)
+ * ---------------------------------------------------------------------- *@
 @if (TempData["Success"] != null)
 {
     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -27,7 +30,7 @@
 }
 
 
-@* --- Action Header and Controls (Pending Review Button Removed) --- *@
+@* --- Action Header and Controls --- *@
 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
     <h1 class="text-primary"><i class="bi bi-boxes me-2"></i> Product Inventory</h1>
     <div class="d-flex gap-2">
@@ -37,31 +40,44 @@
     </div>
 </div>
 
-@* --- Filter and Search Bar --- *@
+@* --- Filter and Search Bar (UPDATED) --- *@
 <div class="row mb-4 align-items-end">
-    <div class="col-md-4">
+    @* Category Filter *@
+    <div class="col-md-3">
         <label for="selectCategory" class="form-label text-muted fw-bold"><i class="bi bi-funnel me-1"></i> Filter by Category</label>
         <select id="selectCategory" class="form-select" asp-items="ViewBag.Categories">
             <option value="0">--- All Categories ---</option>
         </select>
     </div>
 
-    <div class="col-md-5">
+    @* Status Filter (NEW) *@
+    <div class="col-md-3">
+        <label for="selectStatus" class="form-label text-muted fw-bold"><i class="bi bi-activity me-1"></i> Filter by Status</label>
+        <select id="selectStatus" class="form-select">
+            <option value="">--- All Statuses ---</option>
+            <option value="Approved" selected="@(currentStatus == "Approved")">Approved</option>
+            <option value="Pending" selected="@(currentStatus == "Pending")">Pending</option>
+            <option value="Rejected" selected="@(currentStatus == "Rejected")">Rejected</option>
+        </select>
+    </div>
+
+    @* Search Query *@
+    <div class="col-md-4">
         <label for="searchQuery" class="form-label text-muted fw-bold"><i class="bi bi-search me-1"></i> Search Products</label>
         <div class="input-group">
-            <input type="text" id="searchQuery" class="form-control" placeholder="Search by name or keyword..." />
-            <button class="btn btn-outline-secondary" type="button" id="searchButton"><i class="bi bi-arrow-right"></i></button>
+            <input type="text" id="searchQuery" class="form-control" placeholder="Search by name or keyword..." value="@currentSearch" />
+            <button class="btn btn-primary" type="button" id="searchButton"><i class="bi bi-search me-1"></i> Search</button>
         </div>
     </div>
 
-    <div class="col-md-3 text-end">
+    <div class="col-md-2 text-end d-flex align-items-end justify-content-end">
         <span class="text-muted">Total Products: @(Model.Count())</span>
     </div>
 </div>
 
 <hr />
 
-@* --- Product Listing Table --- *@
+@* --- Product Listing Table (UNCHANGED) --- *@
 <div class="table-responsive shadow-sm rounded-3">
     <table class="table table-striped table-hover align-middle border" id="productTable">
         <thead class="table-dark">
@@ -72,8 +88,8 @@
                 <th style="width: 170px;"><i class="bi bi-box me-1"></i> Stock / Status</th>
                 <th style="width: 120px;"><i class="bi bi-tags me-1"></i> Category</th>
                 <th style="width: 100px;"><i class="bi bi-shield-check me-1"></i> Status</th>
-                <th style="width: 250px;"><i class="bi bi-exclamation-triangle me-1"></i> Reject Reason</th> @* <-- NEW HEADER *@
-                <th style="width: 120px;">Actions</th>
+                <th style="width: 250px;"><i class="bi bi-exclamation-triangle me-1"></i> Reject Reason</th>
+                <th style="width: 160px;" class="text-center"><i class="bi bi-lightning-fill me-1"></i> Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -110,33 +126,34 @@
                         @Html.Raw(GetStatusBadge(item.Status.ToString()))
                     </td>
 
-                   
+
                     <td>
                         @if (item.Status.ToString() == "Rejected" && !string.IsNullOrEmpty(item.RejectionReason))
                         {
                             <span class="text-danger small fw-semibold" data-bs-toggle="tooltip" data-bs-placement="top" title="@item.RejectionReason">
                                 @(item.RejectionReason.Length > 30 ? item.RejectionReason.Substring(0, 30) + "..." : item.RejectionReason)
                             </span>
-                        }                       
+                        }
                         else
                         {
                             <span class="text-muted fst-italic">N/A</span>
                         }
                     </td>
-                   
 
-                    <td class="d-flex gap-1 align-items-center">
+
+                    <td class="d-flex gap-1 justify-content-center">
+                        @* UPDATED: Edit Button with Icon and Text *@
                         <a asp-action="Edit" asp-route-id="@item.Id"
-                           class="btn btn-sm btn-primary" title="Edit Product">
-                            <i class="bi bi-pencil"></i>
+                           class="btn btn-sm btn-info" title="Edit Product">
+                            <i class="bi bi-pencil me-1"></i> Edit
                         </a>
 
-                        @* Assuming the Product model has a Delete action *@
+                        @* UPDATED: Delete Button with Icon and Text *@
                         <a asp-action="Delete" class="btn btn-sm btn-danger confirm"
                            asp-route-id="@item.Id" title="Delete Product"
                            data-confirm-title="Delete Confirmation"
                            data-confirm-message="Are you sure you want to permanently delete this product?">
-                            <i class="bi bi-trash"></i>
+                            <i class="bi bi-trash me-1"></i> Delete
                         </a>
                     </td>
                 </tr>
@@ -147,17 +164,19 @@
 
 <hr />
 
-@* --- Pagination Area --- *@
+@* --- Pagination Area (UPDATED to include new parameters) --- *@
 <div class="d-flex w-100 justify-content-center mt-4">
     <pagination page-count="@ViewBag.TotalPages"
                 page-target="@pageAction"
                 category-id="@ViewBag.SelectedCategory"
                 page-number="@ViewBag.PageNumber"
-                page-range="@ViewBag.PageRange">
+                page-range="@ViewBag.PageRange"
+                search-query="@currentSearch"
+                status-filter="@currentStatus">
     </pagination>
 </div>
 
-@* --- HELPER FUNCTION FOR STATUS BADGE (Simplified) --- *@
+@* --- HELPER FUNCTION FOR STATUS BADGE (UNCHANGED) --- *@
 @functions {
     string GetStatusBadge(string status)
     {
@@ -192,17 +211,22 @@
             // Initialize tooltips (important for displaying full reject reason)
             $('[data-bs-toggle="tooltip"]').tooltip();
 
-            // --- 1. Category Filter & Search Logic ---
+            // --- 1. Category, Status, and Search Logic ---
             const baseUrl = "@Url.Action(pageAction)";
 
             function applyFilters() {
                 const categoryId = $("#selectCategory").val();
+                const status = $("#selectStatus").val(); // NEW: Get status value
                 const searchQuery = $("#searchQuery").val().trim();
                 let url = baseUrl;
                 const params = [];
 
                 if (categoryId !== "0") {
                     params.push("categoryId=" + categoryId);
+                }
+                // NEW: Add status parameter if selected
+                if (status) {
+                    params.push("status=" + status);
                 }
                 if (searchQuery) {
                     params.push("search=" + encodeURIComponent(searchQuery));
@@ -215,6 +239,7 @@
             }
 
             $("#selectCategory").on("change", applyFilters);
+            $("#selectStatus").on("change", applyFilters); // NEW: Trigger filter on status change
             $("#searchButton").on("click", applyFilters);
             $("#searchQuery").on("keypress", function (e) {
                 if (e.which === 13) {
@@ -222,7 +247,7 @@
                 }
             });
 
-            // --- 2. Confirmation Dialog for Delete Only ---
+            // --- 2. Confirmation Dialog for Delete Only (UNCHANGED) ---
             $('.confirm').on('click', function(e) {
                 const btn = $(this);
                 const title = btn.data('confirm-title') || 'Confirmation';

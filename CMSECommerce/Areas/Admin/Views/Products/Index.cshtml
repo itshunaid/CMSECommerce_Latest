@@ -1,84 +1,139 @@
 ﻿@model CMSECommerce.Areas.Admin.Models.ProductListViewModel
 @using CMSECommerce.Areas.Admin.Models
-
+@using CMSECommerce.Models
 @{
-    ViewData["Title"] = "Product List";
+    ViewData["Title"] = "Product Inventory";
+    // Set pageAction explicitly to "Index" since PendingProducts is removed
+    string pageAction = "Index";
 }
 
-<div class="container mt-4">
-    <h2 class="text-primary">Product List</h2>
-    <p>
-        <a asp-action="Create" class="btn btn-success">Create New Product</a>
-    </p>
+<style>
 
-    <form asp-action="Index" method="get" class="mb-3">
-        <div class="row">
-            <div class="col-md-3">
-                <input type="text" name="SearchName" class="form-control" placeholder="Filter by Name" value="@Model.CurrentSearchName" />
-            </div>
-            <div class="col-md-3">
-                <input type="text" name="SearchDescription" class="form-control" placeholder="Filter by Description" value="@Model.CurrentSearchDescription" />
-            </div>
-            <div class="col-md-3">
-                <input type="text" name="SearchCategory" class="form-control" placeholder="Filter by Category" value="@Model.CurrentSearchCategory" />
-            </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary">Filter</button>
-                <a asp-action="Index" class="btn btn-secondary">Clear</a>
-            </div>
-        </div>
-        <input type="hidden" name="SortOrder" value="@Model.CurrentSortOrder" />
-        <input type="hidden" name="pageSize" value="@Model.CurrentPageSize" /> @* Preserves the current page size on filter *@
-    </form>
+    /* Custom style for image thumbnail */
+        .product-img {
+                width: 60px;
+                height: 60px;
+                object-fit: cover;
 
-    @{
-        // 1. Prepare base route data, including search terms and page size.
-        var baseParams = new Dictionary<string, string>
-        {
-        { "SearchName", Model.CurrentSearchName },
-        { "SearchDescription", Model.CurrentSearchDescription },
-        { "SearchCategory", Model.CurrentSearchCategory },
-        { "pageSize", Model.CurrentPageSize.ToString() }
-        };
     }
+</style>
 
-    @if (Model.Products == null || !Model.Products.Any())
-    {
-        <div class="alert alert-info" role="alert">
-            No products found matching the criteria.
+@* --- TEMP DATA MESSAGES (Success/Error Popups - assuming a partial view or shared layout handles this) --- *@
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i><strong>Success!</strong> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-x-octagon-fill me-2"></i><strong>Error!</strong> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@* --- Action Header and Controls --- *@
+<div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+    <h1 class="text-primary"><i class="bi bi-boxes me-2"></i> Product Inventory</h1>
+    <a asp-action="Create" class="btn btn-success btn-lg shadow-sm">
+        <i class="bi bi-plus-lg me-1"></i> Add Product
+    </a>
+</div>
+
+@* --- Filter and Search Bar (Improved Layout) --- *@
+<form asp-action="Index" method="get" class="mb-4 p-3 border rounded shadow-sm bg-light">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label for="SearchName" class="form-label text-muted fw-bold small">Name</label>
+            <input type="text" name="SearchName" class="form-control" placeholder="Search by name" value="@Model.CurrentSearchName" />
         </div>
-    }
-    else
-    {
-        <table class="table table-striped table-bordered">
-            <thead class="thead-dark">
+        <div class="col-md-3">
+            <label for="SearchCategory" class="form-label text-muted fw-bold small">Category</label>
+            <input type="text" name="SearchCategory" class="form-control" placeholder="Search by category" value="@Model.CurrentSearchCategory" />
+        </div>
+
+        @* --- NEW: Status Filter Dropdown --- *@
+        <div class="col-md-3">
+            <label for="SearchStatus" class="form-label text-muted fw-bold small">Status</label>
+            <select name="SearchStatus" id="SearchStatus" class="form-select">
+                <option value="">All Statuses</option>
+                @foreach (var status in Enum.GetValues(typeof(ProductStatus)).Cast<ProductStatus>())
+                {
+                    <option value="@status" selected="@(ViewBag.CurrentSearchStatus == status.ToString())">
+                        @status.ToString()
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-50"><i class="bi bi-funnel-fill"></i> Filter</button>
+            <a asp-action="Index" class="btn btn-outline-secondary w-50"><i class="bi bi-x-lg"></i> Clear</a>
+        </div>
+    </div>
+    <input type="hidden" name="SortOrder" value="@Model.CurrentSortOrder" />
+    <input type="hidden" name="pageSize" value="@Model.CurrentPageSize" />
+    @* Removing SearchDescription since the layout above is now using only three search fields + status *@
+</form>
+
+<hr />
+
+@* --- Prepare Base Route Data for Sorting and Pagination --- *@
+@{
+    // Get the current SearchStatus value from the ViewBag set in the Controller
+    string currentSearchStatus = ViewBag.CurrentSearchStatus as string;
+
+    var baseParams = new Dictionary<string, string>
+  {
+    { "SearchName", Model.CurrentSearchName },
+    { "SearchCategory", Model.CurrentSearchCategory },
+    { "SearchStatus", currentSearchStatus }, // NEW: Include Status in base params
+        { "pageSize", Model.CurrentPageSize.ToString() }
+  };
+}
+
+@* --- Product Listing Table --- *@
+@if (Model.Products == null || !Model.Products.Any())
+{
+    <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle-fill me-2"></i>No products found matching the criteria.
+
+    </div>
+}
+else
+{
+    <div class="table-responsive shadow-lg rounded-3">
+        <table class="table table-striped table-hover align-middle border" id="productTable">
+            <thead class="table-dark">
                 <tr>
+                    <th style="width: 80px;">Image</th>
                     <th>
                         <a asp-action="Index"
-                           asp-route-sortOrder="@(Model.CurrentSortOrder == "Name" ? "name_desc" : "Name")"
-                           asp-all-route-data="baseParams">
-                            Name @(Model.CurrentSortOrder == "Name" ? "▲" : (Model.CurrentSortOrder == "name_desc" ? "▼" : ""))
+                                         asp-route-sortOrder="@(Model.CurrentSortOrder == "Name" ? "name_desc" : "Name")"
+                                         asp-all-route-data="baseParams" class="text-white text-decoration-none">
+                            <i class="bi bi-card-heading me-1"></i> Name @(Model.CurrentSortOrder == "Name" ? "▼" : (Model.CurrentSortOrder == "name_desc" ? "▲" : ""))
                         </a>
                     </th>
-                    <th>
-                        Description
-                    </th>
-                    <th>
+                    <th style="width: 100px;">
                         <a asp-action="Index"
-                           asp-route-sortOrder="@(Model.CurrentSortOrder == "Price" ? "price_desc" : "Price")"
-                           asp-all-route-data="baseParams">
-                            Price @(Model.CurrentSortOrder == "Price" ? "▲" : (Model.CurrentSortOrder == "price_desc" ? "▼" : ""))
+                                         asp-route-sortOrder="@(Model.CurrentSortOrder == "Price" ? "price_desc" : "Price")"
+                                         asp-all-route-data="baseParams" class="text-white text-decoration-none">
+                            <i class="bi bi-currency-dollar me-1"></i> Price @(Model.CurrentSortOrder == "Price" ? "▼" : (Model.CurrentSortOrder == "price_desc" ? "▲" : ""))
                         </a>
                     </th>
-                    <th>
+                    <th style="width: 150px;">
                         <a asp-action="Index"
-                           asp-route-sortOrder="@(Model.CurrentSortOrder == "Category" ? "category_desc" : "Category")"
-                           asp-all-route-data="baseParams">
-                            Category @(Model.CurrentSortOrder == "Category" ? "▲" : (Model.CurrentSortOrder == "category_desc" ? "▼" : ""))
+                                         asp-route-sortOrder="@(Model.CurrentSortOrder == "Category" ? "category_desc" : "Category")"
+                                         asp-all-route-data="baseParams" class="text-white text-decoration-none">
+                            <i class="bi bi-tags me-1"></i> Category @(Model.CurrentSortOrder == "Category" ? "▼" : (Model.CurrentSortOrder == "category_desc" ? "▲" : ""))
                         </a>
                     </th>
-                    <th>Status</th> @* New column for Status badge *@
-                    <th class="text-nowrap">Actions</th>
+                    <th style="width: 120px;"><i class="bi bi-shield-check me-1"></i> Status</th>
+                    <th style="width: 250px;"><i class="bi bi-exclamation-triangle me-1"></i> Reject Reason</th>
+                    <th style="width: 200px;" class="text-center"><i class="bi bi-lightning-fill"></i> Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -86,133 +141,158 @@
                 {
                     <tr>
                         <td>
+                            <img src="/media/products/@item.Image" class="img-thumbnail rounded product-img" alt="@item.Name" />
+                        </td>
+                        <td class="fw-bold">
                             @Html.DisplayFor(modelItem => item.Name)
+                            <div class="text-muted small mt-1 text-truncate" title="@Html.Raw(item.Description)">
+                                @(item.Description.Length > 80 ? item.Description.Substring(0, 80) + "..." : Html.Raw(item.Description))
+                            </div>
                         </td>
                         <td>
-                            @Html.Raw(item.Description)
+                            <span class="text-success fw-bold">@item.Price.ToString("C2")</span>
                         </td>
                         <td>
-                            @Html.DisplayFor(modelItem => item.Price)
+                            <span class="text-muted small">@item.Category.Name</span>
                         </td>
                         <td>
-                            @Html.DisplayFor(modelItem => item.Category.Name)
+                            @{
+                                string statusClass = item.Status == ProductStatus.Approved ? "bg-success" :
+                                item.Status == ProductStatus.Pending ? "bg-warning text-dark" : "bg-danger";
+                                string statusIcon = item.Status == ProductStatus.Approved ? "bi-check-circle-fill" :
+                                item.Status == ProductStatus.Pending ? "bi-clock-fill" : "bi-ban-fill";
+                            }
+                            <span class="badge @statusClass">
+                                <i class="bi @statusIcon me-1"></i> @item.Status
+                            </span>
                         </td>
                         <td>
-                            <span class="badge
-                                        @(item.Status == ProductStatus.Approved ? "bg-success" :
-                                                                    item.Status == ProductStatus.Pending ? "bg-warning text-dark" : "bg-danger")">
-                        @item.Status
-                    </span>
-                </td>
-                <td class="text-nowrap">
-                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-info">Edit</a>
-
-                    @if (item.Status == ProductStatus.Pending)
+                            @if (item.Status == ProductStatus.Rejected && !string.IsNullOrEmpty(item.RejectionReason))
                             {
-                                <a asp-action="Approve" asp-route-id="@item.Id" class="btn btn-sm btn-success">Approve</a>
-                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal" data-product-id="@item.Id">
-                                    Reject
+                                <span class="text-danger small fw-semibold" data-bs-toggle="tooltip" data-bs-placement="top" title="@item.RejectionReason">
+                                    @(item.RejectionReason.Length > 30 ? item.RejectionReason.Substring(0, 30) + "..." : item.RejectionReason)
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted fst-italic">N/A</span>
+                            }
+                        </td>
+                        <td class="d-flex gap-1 justify-content-center">
+                            @* --- UPDATED: Edit Button with Text and Icon --- *@
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-info" title="Edit">
+                                <i class="bi bi-pencil me-1"></i> Edit
+                            </a>
+
+                            @if (item.Status == ProductStatus.Pending)
+                            {
+                                @* --- UPDATED: Approve Button with Text and Icon --- *@
+                                <a asp-action="Approve" asp-route-id="@item.Id" class="btn btn-sm btn-success" title="Approve">
+                                    <i class="bi bi-check-lg me-1"></i> Approve
+                                </a>
+                                @* --- UPDATED: Reject Button with Text and Icon --- *@
+                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal" data-product-id="@item.Id" title="Reject">
+                                    <i class="bi bi-x-lg me-1"></i> Reject
                                 </button>
                             }
                             else if (item.Status == ProductStatus.Approved)
                             {
-                                <a asp-action="Unapprove" asp-route-id="@item.Id" class="btn btn-sm btn-warning text-dark">Unapprove</a>
+                                @* --- UPDATED: Unapprove Button with Text and Icon --- *@
+                                <a asp-action="Unapprove" asp-route-id="@item.Id" class="btn btn-sm btn-warning text-dark" title="Unapprove">
+                                    <i class="bi bi-arrow-bar-left me-1"></i> Unapprove
+                                </a>
                             }
 
+                            @* --- UPDATED: Delete Button with Text and Icon --- *@
                             <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger delete-product"
-                               onclick="return confirm('Are you sure you want to delete @item.Name?');">
-                                Delete
+                                               onclick="return confirm('Are you sure you want to delete @item.Name?');" title="Delete">
+                                <i class="bi bi-trash me-1"></i> Delete
                             </a>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+    </div>
+}
 
-        <div class="d-flex flex-column align-items-center mt-4">
-            <p class="mb-2">
-                Page @(Model.Products.TotalPages > 0 ? Model.Products.PageIndex : 0) of @Model.Products.TotalPages
-            </p>
+<hr />
 
-            <nav aria-label="Page navigation" class="mb-0">
-                <ul class="pagination mb-0">
+@* --- Pagination Area (UNCHANGED) --- *@
+<div class="d-flex w-100 justify-content-between align-items-center mt-4">
+    <div class="text-muted small">
+        Displaying @(Model.Products.Count) items on page @(Model.Products.TotalPages > 0 ? Model.Products.PageIndex : 0) of @Model.Products.TotalPages
+    </div>
 
-                    <li class="page-item @(!Model.Products.HasPreviousPage ? "disabled" : "")">
-                        @{
-                            // Route data for previous page
-                            var prevParams = new Dictionary<string, string>(baseParams)
-                                        {
-                                        { "SortOrder", Model.CurrentSortOrder },
-                                        { "pageNumber", (Model.Products.PageIndex - 1).ToString() }
-                                        };
-                        }
-                        <a class="page-link"
-                           asp-action="Index"
-                           asp-all-route-data="prevParams">
-                            Previous
-                        </a>
-                    </li>
+    <nav aria-label="Page navigation" class="mb-0">
+        <ul class="pagination pagination-sm mb-0 shadow-sm">
 
-                    @for (int i = 1; i <= Model.Products.TotalPages; i++)
-                    {
-                        // Route data for the current number link
-                        var pageParams = new Dictionary<string, string>(baseParams)
+            <li class="page-item @(!Model.Products.HasPreviousPage ? "disabled" : "")">
+                @{
+                    var prevParams = new Dictionary<string, string>(baseParams)
                                 {
                                 { "SortOrder", Model.CurrentSortOrder },
-                                { "pageNumber", i.ToString() }
+                                { "pageNumber", (Model.Products.PageIndex - 1).ToString() }
                                 };
+                }
+                <a class="page-link" asp-action="Index" asp-all-route-data="prevParams" title="Previous Page">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+            </li>
 
-                        <li class="page-item @(i == Model.Products.PageIndex ? "active" : "")">
-                            <a class="page-link"
-                               asp-action="Index"
-                               asp-all-route-data="pageParams">
-                                @i
-                            </a>
-                        </li>
-                    }
+            @for (int i = 1; i <= Model.Products.TotalPages; i++)
+            {
+                var pageParams = new Dictionary<string, string>(baseParams)
+                        {
+                        { "SortOrder", Model.CurrentSortOrder },
+                        { "pageNumber", i.ToString() }
+                        };
 
-                    <li class="page-item @(!Model.Products.HasNextPage ? "disabled" : "")">
-                        @{
-                            // Route data for next page
-                            var nextParams = new Dictionary<string, string>(baseParams)
-                                        {
-                                        { "SortOrder", Model.CurrentSortOrder },
-                                        { "pageNumber", (Model.Products.PageIndex + 1).ToString() }
-                                        };
-                        }
-                        <a class="page-link"
-                           asp-action="Index"
-                           asp-all-route-data="nextParams">
-                            Next
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-    }
+                <li class="page-item @(i == Model.Products.PageIndex ? "active" : "")">
+                    <a class="page-link" asp-action="Index" asp-all-route-data="pageParams">
+                        @i
+                    </a>
+                </li>
+            }
+
+            <li class="page-item @(!Model.Products.HasNextPage ? "disabled" : "")">
+                @{
+                    var nextParams = new Dictionary<string, string>(baseParams)
+                                {
+                                { "SortOrder", Model.CurrentSortOrder },
+                                { "pageNumber", (Model.Products.PageIndex + 1).ToString() }
+                                };
+                }
+                <a class="page-link" asp-action="Index" asp-all-route-data="nextParams" title="Next Page">
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
 </div>
 
-@* --- Rejection Modal Definition --- *@
+
+@* --- Rejection Modal Definition (KEPT UNCHANGED) --- *@
 <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <form id="rejectForm" asp-action="Reject" method="post">
-            @Html.AntiForgeryToken() @* Ensures the Anti-Forgery Token is included for security *@
+            @Html.AntiForgeryToken()
             <input type="hidden" name="id" id="reject-product-id" />
 
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="rejectModalLabel">Reject Product</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="rejectModalLabel"><i class="bi bi-x-octagon-fill me-2"></i> Reject Product</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="reason">Reason for Rejection:</label>
-                        <textarea name="reason" id="reason" class="form-control" rows="3" required></textarea>
+                        <label for="reason" class="fw-bold">Reason for Rejection: (Required)</label>
+                        <textarea name="reason" id="reason" class="form-control" rows="3" required placeholder="Explain clearly why the product is being rejected..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Confirm Reject</button>
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-send-fill me-1"></i> Confirm Reject</button>
                 </div>
             </div>
         </form>
@@ -223,6 +303,12 @@
     <script>
         // JavaScript to capture the product ID when the Reject button is clicked and populate the modal form
         document.addEventListener('DOMContentLoaded', function () {
+             // Initialize tooltips (for reject reason)
+             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                 return new bootstrap.Tooltip(tooltipTriggerEl)
+             })
+
             var rejectModal = document.getElementById('rejectModal');
             if (rejectModal) {
                 rejectModal.addEventListener('show.bs.modal', function (event) {
