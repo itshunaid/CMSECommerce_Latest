@@ -1,49 +1,152 @@
 ﻿@model IEnumerable<Order>
 
 @{
-    ViewData["Title"] = "Orders";
+    ViewData["Title"] = "Your Orders";
 }
 
-<h1>Orders</h1>
+<div class="container my-4 amazon-orders-page">
+    <h1 class="h2 fw-bold text-dark mb-4 border-bottom pb-2">
+        Your Orders
+    </h1>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                Order Number
-            </th>
-            <th>
-                GrandTotal
-            </th>
-            <th>
-                Date
-            </th>
-            <th>
-                Shipped
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>
-                    @item.Id
-                </td>
-                <td>
-                    @item.GrandTotal.ToString("C2")
-                </td>
-                <td>
-                    @item.DateTime
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Shipped)
-                </td>
-                <td>
-                    <a asp-action="OrderDetails" asp-route-id="@item.Id">Details</a>
-                </td>
-            </tr>
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5 bg-white rounded border shadow-sm empty-state-box">
+            <i class="fas fa-box-open display-1 text-muted mb-3"></i>
+            <h3 class="fw-bold">No Orders Found</h3>
+            <p class="text-muted">It looks like you haven't placed any orders yet.</p>
+            <a asp-controller="Products" asp-action="Index" class="btn btn-amazon-checkout btn-lg rounded-pill fw-bold px-5">
+                Start Shopping
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="orders-list-container">
+            @foreach (var order in Model.OrderByDescending(o => o.DateTime))
+            {
+                var isShipped = order.Shipped;
+                var statusText = isShipped ? "Shipped" : "Processing";
+                var statusClass = isShipped ? "text-success" : "text-warning";
+
+                <div class="card mb-4 shadow-sm border amazon-order-card">
+                    <div class="card-header d-flex justify-content-between align-items-center bg-light p-3">
+
+                        
+                        <div class="d-flex flex-column me-3">
+                            <span class="small text-muted mb-0">ORDER PLACED</span>
+                            <span class="fw-bold">@order.DateTime.ToString("MMMM dd, yyyy")</span>
+                        </div>
+
+                        <div class="d-flex flex-column me-3">
+                            <span class="small text-muted mb-0">TOTAL</span>
+                            <span class="fw-bold price-red fs-5">@order.GrandTotal.ToString("C2")</span>
+                        </div>
+
+                        
+                        <div class="d-flex flex-column text-end">
+                            <span class="small text-muted mb-0">ORDER #</span>
+                            <span class="fw-bold text-amazon-link">@order.Id</span>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <div class="row align-items-center">
+
+                            
+                            <div class="col-lg-8">
+                                <h5 class="fw-bold @statusClass mb-2">
+                                    <i class="fas @(isShipped ? "fa-box" : "fa-truck") me-2"></i> @statusText
+                                </h5>
+                                <p class="small text-muted mb-0">
+                                    Estimated Delivery: @(isShipped ? "Delivered" : "In 3-5 business days")
+                                </p>
+                            </div>
+
+                        
+                            <div class="col-lg-4 text-lg-end text-start mt-3 mt-lg-0">
+                                <a asp-action="OrderDetails" asp-route-id="@order.Id"
+                                   class="btn btn-amazon-view-order btn-sm fw-bold">
+                                    View Order Details
+                                </a>
+                                <button type="button" class="btn btn-secondary btn-sm ms-2" disabled>
+                                    Invoice
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+</div>
+
+@section Styles {
+    <style>
+        /* --- AMAZON COLOR PALETTE (From previous view) --- */
+        :root {
+            --amazon-price-red: #B12704;
+            --amazon-dark-text: #0F1111;
+            --amazon-yellow-action: #FFD814;
+            --amazon-yellow-action-hover: #F7CA00;
+            --amazon-link-teal: #007185;
+            --amazon-link-teal-hover: #C7511F;
+            --amazon-background-light: #f7f7f7;
+            --amazon-card-border: #ddd;
         }
-    </tbody>
-</table>
+
+        .amazon-orders-page {
+            color: var(--amazon-dark-text);
+        }
+
+        .price-red {
+            color: var(--amazon-price-red) !important;
+        }
+
+        .text-amazon-link {
+            color: var(--amazon-link-teal) !important;
+        }
+
+            .text-amazon-link:hover {
+                color: var(--amazon-link-teal-hover) !important;
+            }
+
+        /* --- ORDER CARD STYLING --- */
+        .amazon-order-card {
+            border: 1px solid var(--amazon-card-border) !important;
+            background-color: #fff;
+            border-radius: 8px;
+        }
+
+            .amazon-order-card .card-header {
+                background-color: #f0f2f2 !important; /* Lighter header */
+                border-bottom: 1px solid var(--amazon-card-border);
+            }
+
+        /* View Order Button (Light Action Button) */
+        .btn-amazon-view-order {
+            background-color: #f0f2f2;
+            border: 1px solid #c9c9c9;
+            color: var(--amazon-dark-text) !important;
+            border-radius: 7px;
+            box-shadow: 0 1px 2px rgba(15, 17, 17, 0.15);
+            padding: 5px 15px;
+        }
+
+            .btn-amazon-view-order:hover {
+                background-color: #e0e0e0;
+                border-color: #a2a2a2;
+            }
+
+        /* Empty State Button */
+        .btn-amazon-checkout {
+            background-color: var(--amazon-yellow-action) !important;
+            border-color: #FCD200 !important;
+            color: #0F1111 !important;
+            font-weight: 700;
+            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
+            border-radius: 7px !important;
+        }
+    </style>
+}
