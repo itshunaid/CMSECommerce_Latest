@@ -1,43 +1,172 @@
 @model CMSECommerce.Models.ViewModels.OrderDetailsViewModel
 
 @{
- ViewData["Title"] = "Order Details";
+    ViewData["Title"] = "Order Details";
+
+    // Define Amazon color palette
+    var amazonDarkBlue = "#232F3E";
+    var amazonYellow = "#FF9900";
+    var amazonLinkBlue = "#0066c0";
+    var amazonPriceRed = "#B12704"; // Red for grand total
 }
 
-<h1>Order #@Model.Order.Id</h1>
+<style>
+    /* Global Amazon-like body background */
+    body {
+        background-color: #EAEDED;
+        color: @amazonDarkBlue;
+    }
 
-<div class="mb-3">
- <strong>User:</strong> @Model.Order.UserName
-</div>
-<div class="mb-3">
- <strong>Date:</strong> @Model.Order.DateTime
-</div>
-<div class="mb-3">
- <strong>Total:</strong> @Model.Order.GrandTotal.ToString("C2")
-</div>
+    /* Main Container Card (Mimics Amazon Order Box) */
+    .order-summary-card {
+        background-color: white;
+        border: 1px solid #D5D9D9;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        padding: 20px;
+        margin-bottom: 30px;
+    }
 
-<table class="table">
- <thead>
- <tr>
- <th>Product</th>
- <th>Quantity</th>
- <th>Price</th>
- <th>Subtotal</th>
- </tr>
- </thead>
- <tbody>
- @foreach (var d in Model.OrderDetails)
- {
- <tr>
- <td>@d.ProductName</td>
- <td>@d.Quantity</td>
- <td>@d.Price.ToString("C2")</td>
- <td>@(d.Price * d.Quantity).ToString("C2")</td>
- </tr>
- }
- </tbody>
-</table>
+    /* Header Styling */
+    .order-details-header {
+        border-bottom: 2px solid @amazonYellow;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
 
-<p>
- <a asp-area="Admin" asp-controller="Orders" asp-action="Index" class="btn btn-secondary">Back</a>
-</p>
+        .order-details-header h1 {
+            color: @amazonDarkBlue;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0;
+        }
+
+    /* Summary Section Styling */
+    .summary-item {
+        margin-bottom: 10px;
+        font-size: 1rem;
+    }
+
+        .summary-item strong {
+            color: #555555;
+            font-weight: 500;
+            display: inline-block;
+            width: 80px; /* Aligns values */
+        }
+
+    .total-amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: @amazonPriceRed;
+    }
+
+    /* Order Items Table Styling */
+    .order-items-table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 20px;
+        border: 1px solid #DDDDDD;
+        border-radius: 4px;
+        overflow: hidden; /* Ensures border radius applies to table */
+    }
+
+        .order-items-table thead {
+            background-color: #F7FAFA;
+            color: @amazonDarkBlue;
+            font-size: 0.9rem;
+        }
+
+        .order-items-table th,
+        .order-items-table td {
+            padding: 12px 15px;
+            border: 1px solid #DDDDDD;
+            text-align: left;
+        }
+
+        .order-items-table tbody tr:nth-child(even) {
+            background-color: #F9F9F9;
+        }
+
+    /* Back Button Style */
+    .btn-amazon-secondary {
+        background-color: #F0F2F2;
+        border-color: #ADB1B8;
+        color: @amazonDarkBlue;
+        font-weight: 500;
+        border-radius: 3px;
+        padding: 0.5rem 1rem;
+        text-decoration: none;
+    }
+
+        .btn-amazon-secondary:hover {
+            background-color: #E3E6E6;
+            border-color: #A2A6AC;
+            color: @amazonDarkBlue;
+        }
+</style>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+
+            <div class="order-details-header">
+                <h1>Order Details</h1>
+            </div>
+
+            <div class="order-summary-card">
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h3 style="font-size: 1.25rem; color:@amazonDarkBlue; border-bottom: 1px solid #EEEEEE; padding-bottom: 8px;">Order Information</h3>
+                        <div class="summary-item">
+                            <strong>Order #:</strong> <span style="font-weight: 700; color: @amazonLinkBlue;">@Model.Order.Id</span>
+                        </div>
+                        <div class="summary-item">
+                            <strong>User:</strong> @Model.Order.UserName
+                        </div>
+                        <div class="summary-item">
+                            <strong>Date:</strong> @Model.Order.DateTime.ToString("MMMM dd, yyyy h:mm tt")
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <h3 style="font-size: 1.25rem; color:@amazonDarkBlue; border-bottom: 1px solid #EEEEEE; padding-bottom: 8px;">Grand Total</h3>
+                        <div class="total-amount">
+                            @Model.Order.GrandTotal.ToString("C2")
+                        </div>
+                        <p class="small text-muted mt-2 mb-0">Invoice details available upon request.</p>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 1.25rem; color:@amazonDarkBlue; border-bottom: 1px solid #EEEEEE; padding-bottom: 8px; margin-top: 30px;">Items Ordered</h3>
+
+                <table class="order-items-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%;">Product</th>
+                            <th style="width: 15%; text-align: center;">Quantity</th>
+                            <th style="width: 20%; text-align: right;">Price</th>
+                            <th style="width: 25%; text-align: right;">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in Model.OrderDetails)
+                        {
+                            <tr>
+                                <td><a href="#" style="color: @amazonLinkBlue; text-decoration: none;">@d.ProductName</a></td>
+                                <td style="text-align: center;">@d.Quantity</td>
+                                <td style="text-align: right;">@d.Price.ToString("C2")</td>
+                                <td style="text-align: right; font-weight: 700;">@(d.Price* d.Quantity).ToString("C2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="text-end">
+                <a asp-area="Admin" asp-controller="Orders" asp-action="Index" class="btn btn-amazon-secondary">
+                    <i class="fas fa-chevron-left me-1"></i> Back to Orders List
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
