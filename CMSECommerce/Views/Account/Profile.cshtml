@@ -4,99 +4,116 @@
     ViewData["Title"] = "Update Profile";
 }
 
-<style>
-    /* Premium LinkedIn-like Design */
-    :root {
-        --premium-primary: #1e3a8a;
-        --premium-accent: #059669;
-        --premium-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.1), 0 4px 6px -2px rgba(30, 58, 138, 0.05);
-    }
-
-    .text-premium-primary {
-        color: var(--premium-primary) !important;
-    }
-
-    .text-premium-accent {
-        color: var(--premium-accent) !important;
-    }
-
-    .bg-premium-header {
-        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    }
-
-    .card {
-        box-shadow: var(--premium-shadow);
-    }
-
-    /* Social Link Buttons */
-    .social-link-btn {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.375rem 0.75rem;
-        border-radius: 50rem;
-        font-weight: 500;
-        text-decoration: none;
-        transition: background-color 0.3s;
-    }
-
-        .social-link-btn:hover {
-            opacity: 0.9;
-            text-decoration: none;
+@section Styles {
+    <style>
+        /* --- AMAZON COLOR PALETTE --- */
+        :root {
+            --amazon-dark-text: #0F1111;
+            --amazon-yellow-action: #FFD814;
+            --amazon-yellow-action-hover: #F7CA00;
+            --amazon-link-teal: #007185;
+            --amazon-page-bg: #f7f7f7; /* Light grey background */
+            --amazon-border-color: #D5DBDB;
         }
 
-    .linkedin-color {
-        background-color: #0077b5;
-        color: white;
-    }
+        .amazon-page-container {
+            background-color: var(--amazon-page-bg);
+            min-height: 100vh;
+        }
 
-    .facebook-color {
-        background-color: #1877f2;
-        color: white;
-    }
+        .text-amazon-dark {
+            color: var(--amazon-dark-text);
+        }
 
-    .instagram-color {
-        background-color: #e4405f;
-        color: white;
-    }
+        .text-amazon-link {
+            color: var(--amazon-link-teal) !important;
+        }
 
-    .text-purple {
-        color: #5352ed;
-    }
+        /* Central Form Box/Card Styling - Clean White with subtle border/shadow */
+        .amazon-form-box {
+            border: 1px solid var(--amazon-border-color);
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(15, 17, 17, 0.15);
+            background-color: white; /* Important: ensures card is white */
+        }
 
-    .form-section-header {
-        color: var(--premium-primary);
-        font-weight: 600;
-        margin-top: 2.5rem;
-        margin-bottom: 1rem;
-    }
+        /* Header Section - Light background, not a heavy gradient */
+        .amazon-header-section {
+            background-color: #FAFAFA; /* Very light header */
+            border-bottom: 1px solid var(--amazon-border-color);
+        }
 
-    .danger-zone-card {
-        box-shadow: var(--premium-shadow);
-        border-left: 0.25rem solid #dc3545;
-    }
-</style>
+        /* Primary Action Button (Save Changes) - Amazon Yellow/Orange */
+        .btn-amazon-checkout {
+            background-color: var(--amazon-yellow-action);
+            border-color: #FCD200;
+            color: var(--amazon-dark-text);
+            font-weight: 700;
+            /* Subtler shadow for the button */
+            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
+            border-radius: 7px;
+            height: 35px;
+            line-height: 1.2;
+            font-size: 13px;
+            padding: 0.375rem 1rem;
+            width: 100%;
+        }
 
-<div class="container py-5">
+            .btn-amazon-checkout:hover {
+                background-color: var(--amazon-yellow-action-hover);
+            }
+
+        /* Form Headers */
+        .form-section-header-amazon {
+            color: var(--amazon-dark-text);
+            font-weight: 700;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ddd;
+            font-size: 1.25rem;
+        }
+
+        /* Danger Zone Card */
+        .danger-zone-card-amazon {
+            border: 1px solid #dc3545;
+            border-radius: 8px;
+            background-color: #fff9fa;
+        }
+
+            .danger-zone-card-amazon .card-body p {
+                font-size: 0.875rem;
+            }
+
+        /* Input Field Styling - Focus border changes to Amazon teal */
+        .form-control:focus {
+            border-color: var(--amazon-link-teal);
+            box-shadow: 0 0 0 0.25rem rgba(0, 113, 133, 0.25);
+        }
+    </style>
+}
+
+<div class="amazon-page-container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-10 col-xl-8">
 
             <div class="text-center mb-4">
-                <h1 class="display-5 fw-extrabold text-premium-primary">Edit Your Profile</h1>
-                <p class="text-muted">Update your account, professional details, social links, and payment information.</p>
+                <h1 class="display-5 fw-bold text-amazon-dark">Update Your Profile 🛠️</h1>
+                <p class="text-muted">Manage your account, contact, and payment details securely.</p>
             </div>
 
-            <div class="card border-0 shadow-lg">
-                <div class="card-header bg-premium-header text-center rounded-top p-5">
+            <div class="amazon-form-box">
+                <div class="p-4 text-center amazon-header-section rounded-top">
                     @if (Model.IsImageApproved == true && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
                     {
-                        <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle shadow-lg border border-4 border-white mb-3" style="width: 150px; height: 150px; object-fit: cover;" />
+                        <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle border border-2 border-light-subtle mb-3" style="width: 100px; height: 100px; object-fit: cover;" />
                     }
                     else
                     {
-                        <i class="fas fa-user-circle fa-7x text-secondary mb-3"></i>
+                        <i class="fas fa-user-circle fa-4x text-muted mb-3"></i>
                     }
-                    <h2 class="h3 fw-bold text-premium-primary">@Model.UserName</h2>
-                    <p class="text-secondary fw-medium">@Model.Profession</p>
+                    <h2 class="h4 fw-bold text-amazon-dark mb-0">@Model.UserName</h2>
+                    <p class="text-muted small">@Model.Profession</p>
                 </div>
 
                 <div class="card-body px-4 px-md-5 py-4">
@@ -106,21 +123,22 @@
                         <input type="hidden" asp-for="ExistingProfileImagePath" />
                         <input type="hidden" asp-for="ExistingGpayQRCodePath" />
                         <input type="hidden" asp-for="ExistingPhonePeQRCodePath" />
+                        <input type="hidden" asp-for="IsImageApproved" />
 
-                        <!-- Account Details -->
-                        <h4 class="form-section-header"><i class="fas fa-user-circle me-2"></i> Account Details</h4>
+                        <h4 class="form-section-header-amazon"><i class="fas fa-user-circle me-2 text-amazon-link"></i> Account Details</h4>
                         <div class="row g-3 mb-4">
                             <div class="col-md-4 text-center">
                                 @if (Model.IsImageApproved == true && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
                                 {
-                                    <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;" />
+                                    <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle mb-3 border border-1" style="width: 100px; height: 100px; object-fit: cover;" />
                                 }
                                 else
                                 {
-                                    <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 120px; height: 120px;">
-                                        <i class="fas fa-camera fa-3x text-muted"></i>
+                                    <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3 border border-1" style="width: 100px; height: 100px;">
+                                        <i class="fas fa-camera fa-2x text-muted"></i>
                                     </div>
                                 }
+                                <label class="form-label small text-muted">Profile Photo</label>
                                 <input type="file" asp-for="ProfileImageUpload" class="form-control form-control-sm" />
                                 <span asp-validation-for="ProfileImageUpload" class="text-danger small"></span>
                             </div>
@@ -131,15 +149,21 @@
                                     <label asp-for="UserName"></label>
                                     <span asp-validation-for="UserName" class="text-danger small"></span>
                                 </div>
-                                <div class="form-floating mb-3">
-                                    <input asp-for="FirstName" class="form-control" placeholder="First Name" />
-                                    <label asp-for="FirstName"></label>
-                                    <span asp-validation-for="FirstName" class="text-danger small"></span>
-                                </div>
-                                <div class="form-floating mb-3">
-                                    <input asp-for="LastName" class="form-control" placeholder="Last Name" />
-                                    <label asp-for="LastName"></label>
-                                    <span asp-validation-for="LastName" class="text-danger small"></span>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="form-floating mb-3">
+                                            <input asp-for="FirstName" class="form-control" placeholder="First Name" />
+                                            <label asp-for="FirstName"></label>
+                                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating mb-3">
+                                            <input asp-for="LastName" class="form-control" placeholder="Last Name" />
+                                            <label asp-for="LastName"></label>
+                                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="form-floating mb-3">
                                     <input type="email" asp-for="Email" class="form-control" placeholder="Email" />
@@ -154,8 +178,7 @@
                             </div>
                         </div>
 
-                        <!-- Professional & Services -->
-                        <h4 class="form-section-header"><i class="fas fa-briefcase me-2"></i> Professional & Contact</h4>
+                        <h4 class="form-section-header-amazon"><i class="fas fa-briefcase me-2 text-amazon-link"></i> Professional & Contact</h4>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
                                 <div class="form-floating mb-3">
@@ -194,8 +217,7 @@
                             </div>
                         </div>
 
-                        <!-- Social Media -->
-                        <h4 class="form-section-header"><i class="fas fa-share-alt me-2"></i> Social Media Links</h4>
+                        <h4 class="form-section-header-amazon"><i class="fas fa-share-alt me-2 text-amazon-link"></i> Social Media Links</h4>
                         <div class="row g-3 mb-4">
                             <div class="col-md-4">
                                 <div class="form-floating mb-3">
@@ -217,11 +239,10 @@
                             </div>
                         </div>
 
-                        <!-- Addresses -->
-                        <h4 class="form-section-header"><i class="fas fa-map-marker-alt me-2"></i> Addresses</h4>
+                        <h4 class="form-section-header-amazon"><i class="fas fa-map-marker-alt me-2 text-amazon-link"></i> Addresses</h4>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <h5 class="text-secondary mb-3">Home Address</h5>
+                                <label class="form-label fw-bold small text-muted mb-2">Home Address</label>
                                 <div class="form-floating mb-3">
                                     <input asp-for="HomeAddress" class="form-control" placeholder="Home Address" />
                                     <label asp-for="HomeAddress"></label>
@@ -232,7 +253,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <h5 class="text-secondary mb-3">Business Address</h5>
+                                <label class="form-label fw-bold small text-muted mb-2">Business Address</label>
                                 <div class="form-floating mb-3">
                                     <input asp-for="BusinessAddress" class="form-control" placeholder="Business Address" />
                                     <label asp-for="BusinessAddress"></label>
@@ -244,10 +265,10 @@
                             </div>
                         </div>
 
-                        <!-- Payment -->
-                        <h4 class="form-section-header"><i class="fas fa-qrcode me-2"></i> Payment Details</h4>
+                        <h4 class="form-section-header-amazon"><i class="fas fa-qrcode me-2 text-amazon-link"></i> Payment Details (QR Codes)</h4>
                         <div class="row g-4 mb-4">
                             <div class="col-md-6 text-center">
+                                <label class="form-label small text-muted">GPay QR Code</label>
                                 @if (!string.IsNullOrEmpty(Model.ExistingGpayQRCodePath))
                                 {
                                     <img src="/@Model.ExistingGpayQRCodePath" alt="GPay QR" class="img-fluid border rounded mb-2" style="max-height: 150px; max-width: 150px;" />
@@ -256,6 +277,7 @@
                                 <span asp-validation-for="GpayQRCodeUpload" class="text-danger small"></span>
                             </div>
                             <div class="col-md-6 text-center">
+                                <label class="form-label small text-muted">PhonePe QR Code</label>
                                 @if (!string.IsNullOrEmpty(Model.ExistingPhonePeQRCodePath))
                                 {
                                     <img src="/@Model.ExistingPhonePeQRCodePath" alt="PhonePe QR" class="img-fluid border rounded mb-2" style="max-height: 150px; max-width: 150px;" />
@@ -265,9 +287,8 @@
                             </div>
                         </div>
 
-                        <!-- Save Button -->
                         <div class="d-grid mt-4">
-                            <button type="submit" class="btn btn-success btn-lg fw-bold">
+                            <button type="submit" class="btn btn-amazon-checkout fw-bold">
                                 <i class="fas fa-save me-2"></i> Save Changes
                             </button>
                         </div>
@@ -275,12 +296,13 @@
                 </div>
             </div>
 
-            <!-- Danger Zone -->
-            <div class="card danger-zone-card mt-5">
+            <hr class="my-5 border-amazon-border-color" />
+
+            <div class="card danger-zone-card-amazon">
                 <div class="card-body p-4">
-                    <h5 class="text-danger mb-3"><i class="fas fa-exclamation-triangle me-2"></i> Danger Zone</h5>
+                    <h5 class="text-danger mb-3 fw-bold small"><i class="fas fa-exclamation-triangle me-2"></i> Danger Zone</h5>
                     <p class="text-muted small">
-                        Permanently delete all custom profile data (ITS number, addresses, social links, images, etc.) without deleting your main login credentials.
+                        Permanently delete all custom profile data (ITS number, addresses, social links, images, QR codes, etc.) without deleting your main login credentials.
                     </p>
                     <form asp-action="DeleteProfileData" method="post" onsubmit="return confirm('WARNING: Are you sure you want to delete all your custom profile data? This action is irreversible.');">
                         <button type="submit" class="btn btn-danger btn-sm">

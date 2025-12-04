@@ -7,57 +7,122 @@
 }
 
 <style>
+    /* Amazon Primary Palette: Orange/Yellow, Dark Blue/Black */
     :root {
-        --primary-blue: #0073b1;
-        --accent-teal: #059669;
-        --shadow-card: 0 4px 6px rgba(0,0,0,0.1);
+        --amazon-yellow: #FF9900; /* Primary accent color */
+        --amazon-dark-blue: #232F3E; /* Header/primary background color */
+        --amazon-text: #111111; /* General text color */
+        --amazon-link: #0066c0; /* Standard link color */
+        --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24); /* Subtle Amazon-like shadow */
     }
 
-    .text-primary-blue {
-        color: var(--primary-blue) !important;
+    body {
+        background-color: #EAEDED; /* Light off-white/gray background, typical of Amazon body */
     }
 
-    .text-accent-teal {
-        color: var(--accent-teal) !important;
+    .text-amazon-yellow {
+        color: var(--amazon-yellow) !important;
     }
 
-    .bg-header {
-        background: linear-gradient(135deg, #eef6ff 0%, #dbeafe 100%);
+    .text-amazon-dark-blue {
+        color: var(--amazon-dark-blue) !important;
+    }
+
+    .bg-header-amazon {
+        background-color: #FFFFFF; /* White card header */
     }
 
     .profile-nav .nav-link {
-        font-weight: 600;
-        color: #6b7280;
-        border-bottom: 4px solid transparent;
-        transition: 0.3s;
+        font-weight: 500;
+        color: var(--amazon-link);
+        border-bottom: 3px solid transparent;
+        transition: border-color 0.2s, color 0.2s;
     }
 
         .profile-nav .nav-link.active {
-            color: var(--primary-blue);
-            border-bottom: 4px solid var(--accent-teal);
+            color: var(--amazon-yellow); /* Yellow text when active */
+            border-bottom: 3px solid var(--amazon-yellow); /* Yellow underline for active tab */
         }
 
-    .detail-list .row:nth-of-type(odd) {
-        background-color: #f9fafb;
-        border-radius: 0.25rem;
+        .profile-nav .nav-link:hover {
+            border-bottom: 3px solid #ffad33; /* Slightly brighter hover yellow */
+        }
+
+    .detail-list .row {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e7e7e7; /* Light separator */
     }
 
-    .detail-list .row:hover {
-        background-color: #f3f4f6;
-    }
+        .detail-list .row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-list .row:hover {
+            background-color: #f7fafa; /* Very subtle hover effect */
+        }
 
     .card {
+        border: 1px solid #DDDDDD; /* Light gray border */
+        border-radius: 8px; /* Slightly rounded corners */
         box-shadow: var(--shadow-card);
     }
 
+    .card-header {
+        background-color: #F7FAFA; /* Very light background for headers */
+        border-bottom: 1px solid #DDDDDD;
+        font-weight: 700;
+        color: var(--amazon-dark-blue);
+    }
+
+    /* Custom button styles to match Amazon's look */
+    .btn-amazon-primary {
+        background-color: #FFD814; /* Standard Amazon button yellow */
+        border-color: #FCD200;
+        color: var(--amazon-dark-blue);
+        font-weight: 700;
+        padding: 0.5rem 1rem;
+        border-radius: 3px;
+    }
+
+        .btn-amazon-primary:hover {
+            background-color: #F7CA00; /* Darker yellow on hover */
+            border-color: #F2C200;
+        }
+
+    .btn-amazon-secondary {
+        background-color: #F0F2F2; /* Standard Amazon secondary button light gray */
+        border-color: #ADB1B8;
+        color: var(--amazon-dark-blue);
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 3px;
+    }
+
+        .btn-amazon-secondary:hover {
+            background-color: #E3E6E6;
+            border-color: #A2A6AC;
+        }
+
+    .text-link-amazon {
+        color: var(--amazon-link);
+        text-decoration: none;
+    }
+
+        .text-link-amazon:hover {
+            color: var(--amazon-yellow);
+            text-decoration: underline;
+        }
+
+    /* Social links adjusted for color */
     .social-link-btn {
         display: inline-flex;
         align-items: center;
         padding: 0.375rem 0.75rem;
-        border-radius: 50rem;
+        border-radius: 3px; /* More square than pill */
         font-weight: 500;
         text-decoration: none;
         transition: 0.3s;
+        border: 1px solid transparent;
     }
 
         .social-link-btn:hover {
@@ -82,42 +147,50 @@
     .text-purple {
         color: #5352ed;
     }
+
+    .address-card .card-header {
+        background-color: #F7FAFA;
+    }
+
+    .badge-amazon {
+        background-color: #0073b1; /* A neutral/professional blue for services */
+        color: white;
+    }
 </style>
 
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-10 col-xl-8">
 
-            <h1 class="display-5 fw-bold text-primary-blue mb-4 text-center">Profile Management</h1>
+            <h1 class="display-6 fw-bold text-amazon-dark-blue mb-4">Your Account Details</h1>
+            <p class="text-secondary mb-4">View and manage your personal, professional, and address information.</p>
 
             <div class="card border-0">
 
-                <!-- Header -->
-                <div class="card-header bg-header text-center p-5 border-bottom-0 rounded-top">
+                <div class="card-header bg-header-amazon text-center p-4 rounded-top">
                     @if (Model.IsImageApproved && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
                     {
-                        <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle shadow-lg mb-3 border border-4 border-white" style="width:150px; height:150px; object-fit:cover;" />
+                        <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle shadow-sm mb-3 border border-2 border-amazon-yellow" style="width:100px; height:100px; object-fit:cover;" />
                     }
                     else
                     {
 
-                        <i class="fas fa-user-circle fa-7x text-secondary mb-3"></i>
+                        <i class="fas fa-user-circle fa-5x text-secondary mb-3"></i>
                     }
 
-                    <h2 class="h3 fw-bold text-primary-blue">@Model.UserName</h2>
-                    <p class="text-secondary">@Model.Profession</p>
+                    <h2 class="h4 fw-bold text-amazon-dark-blue mb-0">Hello, @Model.UserName</h2>
+                    <p class="text-muted small">@Model.Profession</p>
                 </div>
 
-                <!-- Actions -->
-                <div class="card-body pt-3 px-4 px-md-5">
+                <div class="card-body pt-3 px-4 px-md-5 border-bottom">
                     @if (Model.UserId == loggedInUserId || User.IsInRole("Admin"))
                     {
-                        <div class="d-flex justify-content-end mb-4">
-                            <div class="btn-group">
-                                <a asp-action="EditProfile" asp-route-id="@Model.UserId" class="btn btn-primary shadow-sm fw-bold">
+                        <div class="d-flex justify-content-end mb-3">
+                            <div class="btn-group" role="group" aria-label="Profile actions">
+                                <a asp-action="EditProfile" asp-route-id="@Model.UserId" class="btn btn-amazon-primary shadow-sm me-2">
                                     <i class="fas fa-edit me-1"></i> Edit Details
                                 </a>
-                                <button type="button" class="btn btn-outline-danger shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#deleteProfileModal">
+                                <button type="button" class="btn btn-amazon-secondary shadow-sm" data-bs-toggle="modal" data-bs-target="#deleteProfileModal">
                                     <i class="fas fa-trash-alt me-1"></i> Delete Data
                                 </button>
                             </div>
@@ -125,43 +198,40 @@
                     }
                 </div>
 
-                <!-- Tabs -->
-                <div class="card-body pt-0 px-4 px-md-5 border-top">
+                <div class="card-body pt-0 px-4 px-md-5">
                     <ul class="nav nav-tabs nav-fill profile-nav mb-4" id="profileTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button" role="tab">Account</button>
+                            <button class="nav-link active" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button" role="tab" aria-controls="account" aria-selected="true">Account</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="professional-tab" data-bs-toggle="tab" data-bs-target="#professional" type="button" role="tab">Professional</button>
+                            <button class="nav-link" id="professional-tab" data-bs-toggle="tab" data-bs-target="#professional" type="button" role="tab" aria-controls="professional" aria-selected="false">Professional</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="address-tab" data-bs-toggle="tab" data-bs-target="#address" type="button" role="tab">Addresses</button>
+                            <button class="nav-link" id="address-tab" data-bs-toggle="tab" data-bs-target="#address" type="button" role="tab" aria-controls="address" aria-selected="false">Addresses</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab">Social & Pay</button>
+                            <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab" aria-controls="social" aria-selected="false">Social & Pay</button>
                         </li>
                     </ul>
 
                     <div class="tab-content" id="profileTabsContent">
-                        <!-- Account Tab -->
-                        <div class="tab-pane fade show active" id="account" role="tabpanel">
-                            <h5 class="text-primary-blue mb-3">Login and Contact</h5>
-                            <dl class="detail-list border rounded p-3">
-                                <div class="row"><dt class="col-sm-4 text-muted">Username:</dt><dd class="col-sm-8 fw-bold text-primary-blue">@Model.UserName</dd></div>
-                                <div class="row"><dt class="col-sm-4 text-muted">Email:</dt><dd class="col-sm-8">@Model.Email</dd></div>
+                        <div class="tab-pane fade show active" id="account" role="tabpanel" aria-labelledby="account-tab">
+                            <h5 class="text-amazon-dark-blue mb-3">Login and Contact</h5>
+                            <dl class="detail-list border rounded px-3 py-2 bg-white">
+                                <div class="row"><dt class="col-sm-4 text-muted">Username:</dt><dd class="col-sm-8 fw-bold text-amazon-dark-blue">@Model.UserName</dd></div>
+                                <div class="row"><dt class="col-sm-4 text-muted">Email:</dt><dd class="col-sm-8"><a href="mailto:@Model.Email" class="text-link-amazon">@Model.Email</a></dd></div>
                                 <div class="row"><dt class="col-sm-4 text-muted">Phone:</dt><dd class="col-sm-8">@Model.PhoneNumber</dd></div>
                             </dl>
-                            <h5 class="mt-4 text-primary-blue">About Me:</h5>
+                            <h5 class="mt-4 text-amazon-dark-blue">About Me:</h5>
                             <div class="p-3 border rounded bg-white shadow-sm">@(!string.IsNullOrEmpty(Model.About) ? @Model.About : "<em class='text-muted small'>N/A</em>")</div>
                         </div>
 
-                        <!-- Professional Tab -->
-                        <div class="tab-pane fade" id="professional" role="tabpanel">
-                            <h5 class="text-primary-blue mb-3">Professional Info</h5>
-                            <dl class="detail-list border rounded p-3">
+                        <div class="tab-pane fade" id="professional" role="tabpanel" aria-labelledby="professional-tab">
+                            <h5 class="text-amazon-dark-blue mb-3">Professional Info</h5>
+                            <dl class="detail-list border rounded px-3 py-2 bg-white">
                                 <div class="row"><dt class="col-sm-4 text-muted">ITS Number:</dt><dd class="col-sm-8">@(string.IsNullOrEmpty(Model.ITSNumber) ? "<span class='text-danger'>Not Set</span>" : Model.ITSNumber)</dd></div>
                                 <div class="row"><dt class="col-sm-4 text-muted">Profession:</dt><dd class="col-sm-8">@Model.Profession</dd></div>
-                                <div class="row"><dt class="col-sm-4 text-muted">WhatsApp:</dt><dd class="col-sm-8">@(!string.IsNullOrEmpty(Model.WhatsappNumber) ? $"<a href='https://wa.me/{Model.WhatsappNumber}' class='text-success'>{Model.WhatsappNumber}</a>" : "N/A")</dd></div>
+                                <div class="row"><dt class="col-sm-4 text-muted">WhatsApp:</dt><dd class="col-sm-8">@(!string.IsNullOrEmpty(Model.WhatsappNumber) ? $"<a href='https://wa.me/{Model.WhatsappNumber}' class='text-link-amazon'>{Model.WhatsappNumber}</a>" : "N/A")</dd></div>
                                 <div class="row">
                                     <dt class="col-sm-4 text-muted">Services:</dt>
                                     <dd class="col-sm-8">
@@ -169,7 +239,7 @@
                                         {
                                             foreach (var s in Model.ServicesProvided.Split(','))
                                             {
-                                                <span class="badge bg-accent-teal text-white me-2">@s.Trim()</span>
+                                                <span class="badge badge-amazon text-white me-2">@s.Trim()</span>
                                             }
                                         }
                                         else
@@ -182,27 +252,26 @@
                             </dl>
                         </div>
 
-                        <!-- Address Tab -->
-                        <div class="tab-pane fade" id="address" role="tabpanel">
+                        <div class="tab-pane fade" id="address" role="tabpanel" aria-labelledby="address-tab">
+                            <h5 class="text-amazon-dark-blue mb-3">Your Addresses</h5>
                             <div class="row g-4">
                                 <div class="col-md-6">
-                                    <div class="card address-card border-0">
-                                        <div class="card-header fw-bold">Home Address</div>
+                                    <div class="card address-card">
+                                        <div class="card-header">Home Address</div>
                                         <div class="card-body bg-white">@(!string.IsNullOrEmpty(Model.HomeAddress) ? Model.HomeAddress : "<em class='text-muted'>N/A</em>")</div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="card address-card border-0">
-                                        <div class="card-header fw-bold">Business Address</div>
+                                    <div class="card address-card">
+                                        <div class="card-header">Business Address</div>
                                         <div class="card-body bg-white">@(!string.IsNullOrEmpty(Model.BusinessAddress) ? Model.BusinessAddress : "<em class='text-muted'>N/A</em>")</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Social Tab -->
-                        <div class="tab-pane fade" id="social" role="tabpanel">
-                            <h5 class="text-primary-blue mb-3">Social Links</h5>
+                        <div class="tab-pane fade" id="social" role="tabpanel" aria-labelledby="social-tab">
+                            <h5 class="text-amazon-dark-blue mb-3">Social Links</h5>
                             <div class="mb-4">
                                 @if (!string.IsNullOrEmpty(Model.LinkedInUrl))
                                 {
@@ -216,21 +285,33 @@
                                 {
                                     <a href="@Model.InstagramUrl" target="_blank" class="social-link-btn instagram-color"><i class="fab fa-instagram me-1"></i> Instagram</a>
                                 }
+                                @if (string.IsNullOrEmpty(Model.LinkedInUrl) && string.IsNullOrEmpty(Model.FacebookUrl) && string.IsNullOrEmpty(Model.InstagramUrl))
+                                {
+                                    <span class="text-muted">No social links configured.</span>
+                                }
                             </div>
-                            <h5 class="text-primary-blue mb-3">Payment QR Codes</h5>
+                            <h5 class="text-amazon-dark-blue mb-3">Payment QR Codes</h5>
                             <div class="row g-4 justify-content-center">
                                 <div class="col-sm-6 text-center">
                                     <p class="fw-bold text-success">GPay</p>
                                     @if (!string.IsNullOrEmpty(Model.ExistingGpayQRCodePath))
                                     {
-                                        <img src="/@Model.ExistingGpayQRCodePath" class="img-fluid border rounded" style="max-width:150px;" />
+                                        <img src="/@Model.ExistingGpayQRCodePath" class="img-fluid border rounded shadow-sm" style="max-width:150px; border-color: #DDDDDD !important;" />
+                                    }
+                                    else
+                                    {
+                                        <em class='text-muted'>N/A</em>
                                     }
                                 </div>
                                 <div class="col-sm-6 text-center">
                                     <p class="fw-bold text-purple">PhonePe</p>
                                     @if (!string.IsNullOrEmpty(Model.ExistingPhonePeQRCodePath))
                                     {
-                                        <img src="/@Model.ExistingPhonePeQRCodePath" class="img-fluid border rounded" style="max-width:150px;" />
+                                        <img src="/@Model.ExistingPhonePeQRCodePath" class="img-fluid border rounded shadow-sm" style="max-width:150px; border-color: #DDDDDD !important;" />
+                                    }
+                                    else
+                                    {
+                                        <em class='text-muted'>N/A</em>
                                     }
                                 </div>
                             </div>
@@ -243,19 +324,18 @@
     </div>
 </div>
 
-<!-- Delete Modal -->
 <div class="modal fade" id="deleteProfileModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title">Confirm Deletion</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p><strong>Warning:</strong> Deleting profile data is irreversible.</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-amazon-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form asp-action="DeleteProfileData" method="post">
                     <button type="submit" class="btn btn-danger">Delete Profile Data</button>
                 </form>
