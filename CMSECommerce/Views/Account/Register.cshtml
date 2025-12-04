@@ -1,7 +1,7 @@
 ﻿@model User
 
 @{
-    ViewData["Title"] = "Create Account"; // Updated Title
+    ViewData["Title"] = "Create Account";
 }
 
 <div class="container py-5">
@@ -9,13 +9,15 @@
         <div class="col-md-10 col-lg-8">
             <h1 class="display-5 fw-bold text-center mb-4">Create Your Account</h1>
 
-            <div class="card shadow-lg border-0">
+            <div class="card shadow-lg border-0 rounded-3">
                 <div class="card-body p-5">
 
                     <form asp-action="Register" method="post">
 
+                        <!-- Validation Summary -->
                         <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
+                        <!-- ACCOUNT DETAILS -->
                         <h4 class="mb-3 text-primary">Account Details</h4>
                         <hr class="mt-0 mb-4" />
 
@@ -38,17 +40,18 @@
                         </div>
 
                         <div class="form-floating mb-3">
-                            <input asp-for="Password" class="form-control" placeholder="Password" type="password" />
+                            <input asp-for="Password" type="password" class="form-control" placeholder="Password" />
                             <label asp-for="Password">Password</label>
                             <span asp-validation-for="Password" class="text-danger small"></span>
                         </div>
 
                         <div class="form-floating mb-4">
-                            <input asp-for="ConfirmPassword" class="form-control" placeholder="Confirm Password" type="password" />
+                            <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Confirm Password" />
                             <label asp-for="ConfirmPassword">Confirm Password</label>
                             <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
                         </div>
 
+                        <!-- SHIPPING ADDRESS -->
                         <h4 class="mb-3 mt-5 text-primary">Shipping Address</h4>
                         <hr class="mt-0 mb-4" />
 
@@ -91,6 +94,8 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- SUBMIT BUTTON -->
                         <div class="d-grid mt-4">
                             <button type="submit" class="btn btn-primary btn-lg fw-bold">
                                 <i class="fas fa-user-plus me-2"></i> Register
@@ -98,8 +103,10 @@
                         </div>
                     </form>
 
+                    <!-- LOGIN LINK -->
                     <p class="text-center mt-4 mb-0 small text-muted">
-                        Already have an account? <a asp-controller="Account" asp-action="Login" class="text-decoration-none">Log In here</a>.
+                        Already have an account?
+                        <a asp-controller="Account" asp-action="Login" class="text-decoration-none">Log In here</a>.
                     </p>
                 </div>
             </div>
@@ -108,7 +115,5 @@
 </div>
 
 @section Scripts {
-    @{
-        <partial name="_ValidationScriptsPartial" />
-    }
+    <partial name="_ValidationScriptsPartial" />
 }

@@ -8,43 +8,50 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CMSECommerce.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
+    @RenderSection("Styles", required: false)
     <style>
-        /* 🛠️ FIX: Category link color set to Black for visibility on white background */
+        /* Navbar Links */
+        .activeul a {
+            color: #fff;
+        }
+
+        .admin-category-link a {
+            color: #ffc107 !important;
+            font-weight: bold;
+        }
+
+        /* Footer */
+        footer {
+            font-size: 0.9rem;
+        }
+
+        /* Sidebar Categories */
         .category-list-item .nav-link {
             color: #000 !important;
-            padding: 0.75rem 1rem;
+            padding: 0.5rem 1rem;
         }
 
-        /* 🛠️ NEW: Styling for the specific Category Management link in the navbar */
-        .admin-category-link .nav-link {
-            color: var(--bs-warning) !important;
-            font-weight: bold;
-        }
-        
-        /* 💡 NEW MOBILE STYLE: Style for categories inside the collapsed navbar */
+        /* Mobile Categories */
         .mobile-categories-section {
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            margin-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
             padding-top: 10px;
+            margin-top: 10px;
         }
-        .mobile-categories-section .category-header {
-            color: #ffc107; /* Warning color for highlight */
-            font-weight: bold;
-            padding: 8px 15px 5px;
-            display: block;
-        }
-    </style>
-    @RenderSection("Styles", required: false)
-</head>
 
+            .mobile-categories-section .category-header {
+                color: #ffc107;
+                font-weight: bold;
+                display: block;
+                padding: 8px 15px 5px;
+            }
+    </style>
+</head>
 <body>
+    <!-- HEADER: NAVBAR -->
     <header>
-        @* ROYAL DESIGN: Deep dark navbar with strong shadow (bg-dark) *@
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-lg mb-4">
             <div class="container">
-                @* 🛠️ FAR LEFT FIX: Cleaned up brand link structure *@
                 <a class="navbar-brand fs-3 fw-bolder text-warning" href="/">
-                    @* <i class="fas fa-crown me-2"></i> Vepari *@
                     <i class="fas fa-store me-2"></i>Vepari
                 </a>
 
@@ -54,10 +61,8 @@
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    @* Functionality preserved: Menu ViewComponent *@
                     <ul class="activeul navbar-nav me-auto mb-2 mb-lg-0">
-                        <vc:menu />  
-                        @* ⭐ NEW: Direct link for User List - Requires Admin or Staff role *@
+                        <vc:menu />
                         @if (User.IsInRole("Admin") || User.IsInRole("Subscriber"))
                         {
                             <li class="nav-item admin-link">
@@ -69,18 +74,14 @@
                     </ul>
 
                     <div class="d-lg-none mobile-categories-section w-100">
-                        <span class="category-header">
-                            <i class="fas fa-list me-2"></i> Shop Categories
-                        </span>
+                        <span class="category-header"><i class="fas fa-list me-2"></i> Shop Categories</span>
                         <div class="card-body p-0">
                             <vc:categories />
                         </div>
                     </div>
-                    <div class="d-flex align-items-center">
-                        @* 🛠️ Small Cart View Component in the navbar *@
-                        <vc:small-cart />
 
-                        @* Functionality preserved: Identity Links Partial *@
+                    <div class="d-flex align-items-center">
+                        <vc:small-cart />
                         <partial name="_IdentityLinksPartial" />
                     </div>
                 </div>
@@ -88,32 +89,26 @@
         </nav>
     </header>
 
-    @* ROYAL DESIGN: Main body uses bg-light for contrast *@
+    <!-- MAIN BODY -->
     <div class="container bg-light py-4">
         <main role="main" class="pb-3">
-            @* Functionality preserved: Notifications Partial *@
             <partial name="_NotificationsPartial" />
 
             <div class="row">
+                <!-- Sidebar Categories -->
                 <div class="col-lg-3 d-none d-lg-block">
-                    @* ROYAL DESIGN: Sidebar card with a distinct dark header and shadow *@
                     <div class="card shadow-lg mb-3 border-dark">
                         <div class="card-header bg-dark text-warning fw-bold fs-5">
                             <i class="fas fa-bars me-2"></i> Categories
                         </div>
                         <div class="card-body p-0">
-                            @* Functionality preserved: Categories ViewComponent *@
                             <vc:categories />
                         </div>
                     </div>
-
-                    <div class="mt-4">
-                        @* Small Cart View Component removed from sidebar as it is in navbar *@
-                    </div>
                 </div>
 
+                <!-- Page Content -->
                 <div class="col-lg-9">
-                    @* Functionality preserved: RenderBody *@
                     @RenderBody()
                 </div>
             </div>
@@ -122,11 +117,10 @@
 
     <hr />
 
-    @* ROYAL DESIGN: Footer matches the dark theme *@
+    <!-- FOOTER -->
     <footer class="border-top footer mt-5 bg-dark text-white">
         <div class="container py-3">
             &copy; 2024 - CMSEcommerce -
-            @* Privacy link uses gold/yellow text (text-warning) *@
             <a asp-area="" asp-controller="Home" asp-action="Privacy" class="text-warning">Privacy</a>
         </div>
     </footer>
@@ -136,31 +130,18 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 
-    @* SCRIPT: Add custom colors to menu links for visibility and royal flair *@
     <script>
         $(function () {
-            // --- ROYAL DESIGN: Menu Color Overrides for Visibility ---
-
-            // 1. Ensure all standard menu links are white for visibility on the dark background
+            // Navbar menu colors
             $(".activeul a").addClass('text-white');
-
-            // 2. Highlight 'Admin' link in Gold/Yellow
             $(".activeul a:contains('Admin')").removeClass('text-white').addClass('text-warning fw-bold');
-
-            // 3. Highlight a 'Danger' action (e.g., Logout) in Red
             $(".activeul a:contains('Logout')").removeClass('text-white').addClass('text-danger fw-bold');
-
-            // 4. Highlight the Category Management link specifically, overriding the text-white above
             $(".admin-category-link a").removeClass('text-white').addClass('text-warning fw-bold');
-
-            // 5. Ensure Identity Links are light
             $("#login-link, #register-link").addClass('text-white');
-        });
 
-        // Functionality preserved: Active Nav Item Script
-        $(".activeul li a").filter(function () {
-            return this.href == location.href
-        }).parent().addClass("active");
+            // Highlight active menu item
+            $(".activeul li a").filter(function () { return this.href == location.href; }).parent().addClass("active");
+        });
     </script>
 </body>
 </html>
