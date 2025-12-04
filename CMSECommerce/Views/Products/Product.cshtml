@@ -1,5 +1,6 @@
 ﻿@model Product
 
+
 @{
     ViewData["Title"] = Model.Name;
 
@@ -28,157 +29,318 @@
 
 <div class="container py-4">
 
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb bg-light rounded p-2">
-            <li class="breadcrumb-item">
-                <a asp-controller="Home" asp-action="Index" class="text-decoration-none">Home</a>
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item small">
+                <a asp-controller="Products" asp-action="Index" class="text-amazon-link text-decoration-none">All Products</a>
             </li>
-            <li class="breadcrumb-item">
-                <a href="/products" class="text-decoration-none">Products</a>
-            </li>
-            <li class="breadcrumb-item active fw-bold" aria-current="page">@Model.Name</li>
+            @if (Model.Category != null)
+            {
+                <li class="breadcrumb-item small">
+                    <a asp-controller="Products" asp-action="Index" asp-route-slug="@Model.Category.Slug" class="text-amazon-link text-decoration-none">@Model.Category.Name</a>
+                </li>
+            }
+            <li class="breadcrumb-item active small text-muted" aria-current="page">@Model.Name</li>
         </ol>
     </nav>
 
     <div class="row">
 
-        <!-- LEFT COLUMN — Images -->
-        <div class="col-lg-6 mb-4">
+        <div class="col-lg-5 mb-4 product-image-section">
 
-            <div class="border rounded p-3 shadow-sm bg-white text-center">
+            <div class="main-image-container border rounded p-3 shadow-sm bg-white text-center">
                 <img id="mainImage"
                      src="@allImages.First()"
-                     class="img-fluid"
-                     style="max-height:480px; object-fit:contain;" />
+                     class="img-fluid product-main-img"
+                     alt="@Model.Name" />
             </div>
 
             @if (allImages.Count > 1)
             {
-                <div class="row g-2 mt-3">
+                <div class="row g-2 mt-3 thumbnail-gallery">
                     @foreach (var img in allImages)
                     {
-                        <div class="col-3 col-sm-2">
+                        <div class="col-3 col-sm-2 col-md-3 col-lg-2">
                             <img src="@img"
                                  class="img-fluid rounded border thumb-img"
                                  data-img="@img"
-                                 style="height:60px; object-fit:cover; cursor:pointer;" />
+                                 alt="Product thumbnail" />
                         </div>
                     }
                 </div>
             }
         </div>
 
-        <!-- RIGHT COLUMN — Product Info -->
-        <div class="col-lg-6">
+        <div class="col-lg-4 mb-4 product-details-section">
 
-            <h2 class="fw-bold mb-3">@Model.Name</h2>
+            <h1 class="h3 fw-bold mb-1 product-title">@Model.Name</h1>
 
-            <!-- Stars -->
-            <div class="text-warning mb-2">
+            @if (Model.Category != null)
+            {
+                <div class="mb-2 small">
+                    Category: <a asp-controller="Products" asp-action="Index" asp-route-slug="@Model.Category.Slug" class="text-amazon-link text-decoration-none">@Model.Category.Name</a>
+                </div>
+            }
+            
+            <hr class="my-2" />
+
+            <div class="star-rating mb-2">
                 <i class="fas fa-star"></i><i class="fas fa-star"></i>
                 <i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
                 <i class="far fa-star"></i>
-                <span class="text-muted small ms-2">(128 ratings)</span>
+                <span class="text-amazon-link small ms-2">(128 ratings)</span>
             </div>
 
-            <!-- Price -->
-            <h1 class="text-primary fw-bolder mb-4">@Model.Price.ToString("C2")</h1>
+            <div class="price-box my-3 p-3 rounded bg-light-amazon">
+                <span class="price-label text-danger fw-bold me-2">Price:</span>
+                <span class="price-value fw-bolder">@Model.Price.ToString("C2")</span>
+            </div>
+            
+            <hr class="my-3" />
 
-            <!-- Add to Cart -->
-            <form asp-controller="Cart" asp-action="Add" method="post">
-                <input type="hidden" name="id" value="@Model.Id" />
-
-                <div class="d-flex align-items-center mb-3">
-                    <label class="fw-bold me-3">Qty:</label>
-
-                    <input type="number"
-                           name="quantity"
-                           value="1"
-                           min="1"
-                           max="@Model.StockQuantity"
-                           class="form-control text-center"
-                           style="width:85px;"
-                           @(isInStock ? "" : "disabled") />
+            <div class="description-highlights">
+                <h4 class="h6 fw-bold text-dark">About this item:</h4>
+                <div class="small">
+                    
+                    @Html.Raw(Model.Description.Length > 200 ? Model.Description.Substring(0, 200) + "..." : Model.Description)
                 </div>
+            </div>
+            
+        </div>
 
-                @if (isInStock)
-                {
-                    <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
-                        <i class="fas fa-cart-plus me-1"></i> Add to Cart
-                    </button>
+        <div class="col-lg-3">
+            <div class="buy-box border rounded p-3 bg-white shadow-sm @(isInStock ? "in-stock-box" : "out-of-stock-box")">
 
-                    <a asp-controller="Cart" asp-action="Index"
-                       class="btn btn-outline-success btn-lg w-100">
-                        <i class="fas fa-shopping-cart me-1"></i> View Cart
-                    </a>
-                }
-                else
-                {
-                    <button class="btn btn-danger btn-lg w-100" disabled>
-                        Out of Stock
-                    </button>
-                }
-            </form>
+                <h4 class="price-value-box fw-bolder mb-3">@Model.Price.ToString("C2")</h4>
 
-            <!-- Stock Info -->
-            <p class="mt-3">
-                @if (isInStock)
-                {
-                    <span class="text-success fw-bold">In Stock</span>
-                    <span class="text-muted">(@Model.StockQuantity available)</span>
-                }
-                else
-                {
-                    <span class="text-danger fw-bold">Out of Stock</span>
-                }
-            </p>
+                <p class="stock-info fw-bold mb-3">
+                    @if (isInStock)
+                    {
+                        <span class="text-success">In Stock.</span>
+                        <span class="text-muted small d-block">Ships from Vepari.</span>
+                    }
+                    else
+                    {
+                        <span class="text-danger">Temporarily out of stock.</span>
+                    }
+                </p>
 
-            <ul class="list-unstyled small text-muted">
-                <li><i class="fas fa-truck me-2 text-info"></i> Free Shipping over ₹1500</li>
-                <li><i class="fas fa-shield-alt me-2 text-info"></i> Secure Checkout</li>
-                <li><i class="fas fa-undo me-2 text-info"></i> 7-Day Return Policy</li>
-            </ul>
+                <form asp-controller="Cart" asp-action="Add" method="post">
+                    <input type="hidden" name="id" value="@Model.Id" />
 
+                    <div class="d-flex align-items-center mb-3">
+                        <label class="fw-bold me-3 small text-muted">Qty:</label>
+                        <select name="quantity" class="form-select form-select-sm w-auto" style="min-width: 80px;" @(isInStock ? "" : "disabled")>
+                            @for (int i = 1; i <= Math.Min(10, Model.StockQuantity); i++)
+                            {
+                                <option value="@i">@i</option>
+                            }
+                            @if (Model.StockQuantity > 10)
+                            {
+                                <option value="10+">10+</option>
+                            }
+                        </select>
+                    </div>
+
+                    @if (isInStock)
+                    {
+                        <button type="submit" class="btn btn-amazon-yellow btn-lg w-100 mb-2">
+                            <i class="fas fa-cart-plus me-1"></i> Add to Cart
+                        </button>
+
+                        <a asp-controller="Cart" asp-action="Index"
+                           class="btn btn-amazon-orange-outline btn-lg w-100">
+                            <i class="fas fa-shopping-cart me-1"></i> View Cart
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn btn-danger btn-lg w-100" disabled>
+                            Out of Stock
+                        </button>
+                    }
+                </form>
+
+                <ul class="list-unstyled small text-muted mt-3 pt-3 border-top">
+                    <li><i class="fas fa-truck me-2 text-muted"></i> Eligible for **Free Shipping**</li>
+                    <li><i class="fas fa-lock me-2 text-muted"></i> Secure transaction</li>
+                    <li><i class="fas fa-box-open me-2 text-muted"></i> **7-Day Return** Policy</li>
+                </ul>
+
+            </div>
         </div>
     </div>
 
     <hr class="my-5" />
 
-    <!-- DESCRIPTION -->
-    <h3 class="fw-bold mb-3">Product Description</h3>
-    <div class="text-dark">
-        @Html.Raw(Model.Description)
+    <div class="row">
+        <div class="col-lg-9">
+            <h3 class="fw-bold mb-3">Product Description and Details</h3>
+            <div class="text-dark product-full-description">
+                @Html.Raw(Model.Description)
+            </div>
+        </div>
     </div>
 
 </div>
 
 @section Scripts {
 
-    <!-- Thumbnail Click -->
     <script>
         document.querySelectorAll('.thumb-img').forEach(img => {
             img.addEventListener('click', function () {
                 document.getElementById('mainImage').src = this.dataset.img;
 
                 document.querySelectorAll('.thumb-img').forEach(t => {
-                    t.style.border = '1px solid #ddd';
+                    t.classList.remove('active-thumb');
                 });
 
-                this.style.border = '2px solid #0d6efd';
+                this.classList.add('active-thumb');
             });
+        });
+        
+        // Set initial active state for first thumbnail
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstThumb = document.querySelector('.thumb-img');
+            if(firstThumb) {
+                firstThumb.classList.add('active-thumb');
+            }
         });
     </script>
 
-    <!-- CSS FIXES -->
+}
+
+@section Styles {
     <style>
-        @@media (max-width: 576px) {
-            #mainImage {
-                max-height: 300px !important;
+        /* --- AMAZON COLOR PALETTE --- */
+        :root {
+            --amazon-price-red: #B12704;
+            --amazon-yellow-action: #FFD814;
+            --amazon-yellow-action-hover: #F7CA00;
+            --amazon-link-teal: #007185;
+            --amazon-link-teal-hover: #005666;
+            --amazon-star-gold: #ffa41c;
+            --amazon-background-light: #f7f7ff;
+        }
+
+        .text-amazon-link {
+            color: var(--amazon-link-teal) !important;
+        }
+
+        .bg-light-amazon {
+            background-color: var(--amazon-background-light) !important;
+        }
+
+        /* --- PRODUCT DETAILS LAYOUT --- */
+        .product-main-img {
+            max-height: 480px;
+            object-fit: contain;
+            width: 100%;
+        }
+
+        .main-image-container {
+            border: 1px solid #ddd !important;
+        }
+
+        /* Thumbnails */
+        .thumb-img {
+            height: 60px;
+            object-fit: contain;
+            cursor: pointer;
+            border: 1px solid #ddd !important;
+            transition: border-color 0.1s ease;
+            padding: 2px;
+        }
+        
+        .active-thumb {
+            border: 2px solid var(--amazon-link-teal) !important;
+            box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--amazon-link-teal);
+        }
+        
+        /* Stars */
+        .star-rating i {
+            color: var(--amazon-star-gold);
+        }
+
+        .product-title {
+            color: #0F1111;
+        }
+
+        /* --- PRICE AND BUY BOX --- */
+        .price-box {
+            font-size: 1.5rem;
+            color: var(--amazon-price-red);
+        }
+
+        .price-value {
+            font-size: 1.8rem;
+        }
+
+        .price-value-box {
+            color: var(--amazon-price-red) !important;
+            font-size: 1.7rem !important;
+        }
+
+        .buy-box {
+            border-color: #ddd !important;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+        }
+
+        .in-stock-box .stock-info {
+            color: #008000;
+        }
+
+        /* Add to Cart Button (Primary Amazon Yellow) */
+        .btn-amazon-yellow {
+            background-color: var(--amazon-yellow-action) !important;
+            border-color: #FCD200 !important;
+            color: #0F1111 !important;
+            font-weight: 700;
+            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
+        }
+
+            .btn-amazon-yellow:hover {
+                background-color: var(--amazon-yellow-action-hover) !important;
             }
 
-            .thumb-img {
-                height: 50px !important;
+        /* View Cart/Buy Now Button (Secondary Outline) */
+        .btn-amazon-orange-outline {
+            background: #fff;
+            border: 1px solid #D5D9DD !important;
+            color: #0F1111 !important;
+            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
+            font-weight: 700;
+        }
+        
+            .btn-amazon-orange-outline:hover {
+                background-color: #F7FAFA !important;
+                border-color: #adb1b8 !important;
+            }
+
+        /* --- STICKY BUY BOX (Desktop) --- */
+        @@media (min-width: 992px) {
+            .buy-box {
+                position: sticky;
+                top: 20px; /* Adjust as needed for header height */
+            }
+        }
+
+        /* --- MOBILE ADJUSTMENTS --- */
+        @@media (max-width: 991px) {
+            .product-image-section {
+                order: 1;
+            }
+
+            .product-details-section {
+                order: 2;
+            }
+
+            .buy-box {
+                order: 3;
+            }
+            
+            .product-main-img {
+                max-height: 350px;
             }
         }
     </style>
