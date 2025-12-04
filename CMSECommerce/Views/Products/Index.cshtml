@@ -1,4 +1,5 @@
-﻿@model IEnumerable<Product>
+﻿
+@model IEnumerable<Product>
 @* Assuming Product has Id, Name, Slug, Image, Price, Category properties *@
 
 @{
@@ -12,28 +13,27 @@
     var pageRange = ViewBag.PageRange ?? 3;
 }
 
-<div class="container py-5">
+<div class="container py-4">
 
-    <!-- PAGE HEADER -->
-    <div class="row mb-4">
+    <div class="row mb-3">
         <div class="col-12">
-            <h1 class="display-5 fw-bold text-dark">
+            <h1 class="h3 fw-bold text-dark mb-1">
                 @if (!string.IsNullOrEmpty(categoryName))
                 {
-                    <i class="fas fa-tags me-3 text-primary"></i>
+                    <span class="text-amazon-teal">Results in </span> 
                     @categoryName
                 }
                 else
                 {
-                    <i class="fas fa-store me-2"></i>
-                    @ViewData["Title"]
-                }
+                    <span class="text-amazon-teal">Featured </span>
+                    
+                                }
             </h1>
 
-            <p class="text-muted lead small mb-0">
+            <p class="text-muted small mb-0">
                 @if (!string.IsNullOrEmpty(currentSearchTerm))
                 {
-                    <span><i class="fas fa-search me-1"></i> Showing results for: <strong>"@currentSearchTerm"</strong></span>
+                    <span>Showing results for: <strong class="text-dark">"@currentSearchTerm"</strong></span>
                 }
                 else
                 {
@@ -43,24 +43,23 @@
         </div>
     </div>
 
-    <hr class="mb-5" />
+    <hr class="mb-4" />
 
     <div class="row g-4 product-card-grid">
         <div class="col-lg-12">
 
-            <!-- SEARCH + SORT -->
-            <div class="row mb-4 align-items-end">
+            <div class="row mb-4 align-items-end p-3 border rounded shadow-sm bg-white">
                 <div class="col-md-7">
-                    <label for="searchTermInput" class="form-label fw-bold text-dark small mb-1 text-uppercase">Search Products:</label>
-                    <form asp-controller="Products" asp-action="Index" method="get" class="d-flex input-group">
+                    <label for="searchTermInput" class="form-label fw-bold text-dark small mb-1">Filter Search:</label>
+                    <form asp-controller="Products" asp-action="Index" method="get" class="d-flex input-group input-group-sm">
                         <input type="hidden" name="slug" value="@currentCategorySlug" />
                         <input type="hidden" name="p" value="1" />
                         <input type="hidden" name="sortOrder" value="@sortOrder" />
 
-                        <input type="text" name="searchTerm" id="searchTermInput" class="form-control"
-                               placeholder="e.g., monitor, keyboard" value="@currentSearchTerm" />
+                        <input type="text" name="searchTerm" id="searchTermInput" class="form-control form-control-sm"
+                               placeholder="Refine results..." value="@currentSearchTerm" />
 
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-amazon-search">
                             <i class="fas fa-search"></i>
                         </button>
                     </form>
@@ -69,8 +68,7 @@
                 <div class="col-md-5 mt-3 mt-md-0 d-flex justify-content-end align-items-end">
                     <label for="sortDropdown" class="form-label me-2 mb-0 small text-dark fw-bold">Sort By:</label>
 
-                    @* Render options WITHOUT inline C# selected logic; initial value set by JS below *@
-                    <select id="sortDropdown" class="form-select form-select-sm w-auto shadow-sm">
+                    <select id="sortDropdown" class="form-select form-select-sm w-auto shadow-none border-secondary">
                         <option value="default">Default</option>
                         <option value="price-asc">Price: Low to High</option>
                         <option value="price-desc">Price: High to Low</option>
@@ -79,15 +77,13 @@
                 </div>
             </div>
 
-            <!-- RESULTS COUNT -->
-            <div class="d-flex justify-content-start align-items-center mb-4 p-3 border-bottom bg-light rounded-top shadow-sm">
+            <div class="d-flex justify-content-start align-items-center mb-4 p-2 bg-light rounded shadow-sm border">
                 <h2 class="h6 text-muted mb-0">
-                    Showing @Model.Count() items on page @currentPage of @totalPages
+                    <i class="fas fa-filter me-2"></i> Showing @Model.Count() items on page @currentPage of @totalPages
                 </h2>
             </div>
 
-            <!-- PRODUCT GRID -->
-            <div class="row g-4">
+            <div class="row g-3">
                 @if (!Model.Any())
                 {
                     <div class="col-12">
@@ -95,7 +91,7 @@
                             <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning"></i>
                             <h4 class="alert-heading">No Products Found!</h4>
                             <p>We couldn't find any items matching your current criteria.</p>
-                            <a asp-controller="Products" asp-action="Index" class="btn btn-primary mt-3"><i class="fas fa-undo me-2"></i> Browse All Products</a>
+                            <a asp-controller="Products" asp-action="Index" class="btn btn-amazon-yellow mt-3"><i class="fas fa-undo me-2"></i> Browse All Products</a>
                         </div>
                     </div>
                 }
@@ -132,7 +128,7 @@
                                     <i class="far fa-star"></i>
                                 </div>
 
-                                <p class="card-text price-text text-danger fw-bolder fs-4 mt-auto mb-2">
+                                <p class="card-text price-text fw-bolder fs-4 mt-auto mb-2">
                                     @item.Price.ToString("C2")
                                 </p>
 
@@ -153,7 +149,6 @@
                 }
             </div>
 
-            <!-- PAGINATION -->
             @if (totalPages > 1)
             {
                 <div class="d-flex w-100 justify-content-center mt-5">
@@ -202,7 +197,9 @@
                 }
 
                 if (queryParts.length > 0) {
-                    url += "?" + queryParts.join("&");
+                    // Check if URL already has query parameters (unlikely if starting from basePath)
+                    const separator = url.includes('?') ? '&' : '?';
+                    url += separator + queryParts.join("&");
                 }
 
                 return url;
@@ -235,25 +232,38 @@
             });
         })();
     </script>
-
 }
 
 @section Styles {
     <style>
-        /* AMAZON-LIKE STYLES (Hybrid) */
+        /* Define Amazon-like Colors */
+        :root {
+            --amazon-orange-accent: #FF9900;
+            --amazon-price-red: #B12704;
+            --amazon-yellow-button: #FFD814;
+            --amazon-yellow-button-hover: #F7CA00;
+            --amazon-link-teal: #007185;
+            --amazon-search-yellow: #FEBD69;
+        }
+
+        .text-amazon-teal {
+            color: var(--amazon-link-teal) !important;
+        }
+
+        /* --- PRODUCT CARD STYLES --- */
         .product-card {
             border: 1px solid #d5d9d9 !important;
             border-radius: 12px;
             background: #fff;
-            transition: box-shadow .18s ease, transform .18s ease;
+            transition: box-shadow .18s ease, border-color .18s ease;
             display: flex;
             flex-direction: column;
+            overflow: hidden; /* Ensures rounded corners look right */
         }
 
             .product-card:hover {
-                box-shadow: 0 8px 30px rgba(0,0,0,.12);
-                transform: translateY(-3px);
-                border-color: #007185 !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,.1);
+                border-color: var(--amazon-link-teal) !important;
             }
 
         .product-image-wrapper {
@@ -264,6 +274,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
         }
 
         .product-img {
@@ -278,7 +289,7 @@
         }
 
         .product-category-link {
-            color: #007185 !important;
+            color: var(--amazon-link-teal) !important;
             font-size: 0.80rem;
             font-weight: 600;
             text-transform: uppercase;
@@ -296,47 +307,64 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
             line-height: 1.3;
-            height: 2.6em;
+            height: 2.6em; /* Set a fixed height for consistency */
             color: #0F1111 !important;
             text-decoration: none;
             font-weight: 600;
         }
 
         .star-rating i {
-            color: #ffa41c;
+            color: #ffa41c; /* Amazon Star Gold */
             margin-right: 2px;
         }
 
         .price-text {
-            color: #B12704 !important;
+            color: var(--amazon-price-red) !important;
             font-size: 1.5rem !important;
             font-weight: 700 !important;
-            font-family: "Amazon Ember", Arial, sans-serif;
+            font-family: "Amazon Ember", Arial, sans-serif; /* Ideal Amazon Font Family */
         }
 
+        /* --- BUTTONS --- */
+
+        /* Add to Cart Button (Primary Yellow) */
         .btn-amazon-yellow {
-            background-color: #FFD814 !important;
+            background-color: var(--amazon-yellow-button) !important;
             border-color: #FCD200 !important;
             color: #0F1111 !important;
             font-weight: 700;
-            box-shadow: none;
+            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
         }
 
             .btn-amazon-yellow:hover {
-                background-color: #F7CA00 !important;
+                background-color: var(--amazon-yellow-button-hover) !important;
             }
 
+        /* View Cart Button (Secondary Outline) */
         .btn-amazon-outline {
-            border: 1px solid #007185 !important;
-            color: #007185 !important;
+            border: 1px solid var(--amazon-link-teal) !important;
+            color: var(--amazon-link-teal) !important;
             background: transparent;
             font-weight: 700;
         }
 
             .btn-amazon-outline:hover {
                 background-color: #E7F2F5 !important;
+                border-color: #005666 !important;
             }
 
+        /* Search Button */
+        .btn-amazon-search {
+            background-color: var(--amazon-search-yellow) !important;
+            border: none;
+            color: #111;
+        }
+
+            .btn-amazon-search:hover {
+                background-color: #F3A847 !important;
+            }
+
+        /* --- GRID & LAYOUT --- */
         .product-card .card-body {
             display: flex;
             flex-direction: column;
@@ -344,7 +372,7 @@
             padding: 1rem;
         }
 
-        /* Make grid tighter on small screens */
+        /* Responsive Adjustments */
         @@media (max-width: 576px) {
             .product-image-wrapper {
                 height: 160px;

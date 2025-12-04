@@ -60,7 +60,7 @@ namespace CMSECommerce.Controllers
             if (!string.IsNullOrWhiteSpace(searchFilter))
             {
                 // Filter by product name containing the search term
-                products = products.Where(x => x.Name.Contains(searchFilter));
+                products = products.Where(x => x.Name.ToLower().Contains(searchTerm.ToLower()));
             }
 
             // --- 4. Apply Sorting ---

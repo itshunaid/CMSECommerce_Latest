@@ -20,16 +20,21 @@
         </li>
     }
     // 2. PUBLIC/CONTENT PAGES LINKS (Standard Menu Items)
-    else
-    {
+    else if (item.Title != "Home")
+    {         
+               
         <li class="nav-item">
             <a class="nav-link text-dark fw-medium mx-1" 
                asp-controller="Pages" 
                asp-action="Index" 
                asp-route-slug="@item.Slug">
-                @item.Title
+               
+                    @item.Title
+                
+                
             </a>
         </li>
+                
     }
 }
 
