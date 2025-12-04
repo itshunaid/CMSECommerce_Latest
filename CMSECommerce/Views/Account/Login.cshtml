@@ -1,117 +1,183 @@
 ﻿@model LoginViewModel
 
 @{
-    ViewData["Title"] = "Log In";
+    ViewData["Title"] = "Sign-In";
     const string controllerName = "Account";
-    const string primaryColor = "#146eb4"; // Amazon blue
 }
 
-<div class="container py-5">
-    <div class="row justify-content-center align-items-center">
+<div class="amazon-login-page py-5">
+    
+    <div class="container d-flex justify-content-center overflow-hidden">
 
-        <!-- Left panel (Info/Promotions) -->
-        <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-start pe-5">
-            <h1 class="display-5 fw-bold mb-3 text-dark">Welcome Back</h1>
-            <p class="text-muted mb-4">
-                Access your account to track orders, manage your wishlist, and explore new deals every day.
-            </p>
-            <ul class="list-unstyled text-muted">
-                <li class="mb-2"><i class="fas fa-check-circle me-2" style="color:@primaryColor;"></i> Track your orders</li>
-                <li class="mb-2"><i class="fas fa-check-circle me-2" style="color:@primaryColor;"></i> Personalized recommendations</li>
-                <li class="mb-2"><i class="fas fa-check-circle me-2" style="color:@primaryColor;"></i> Save your favorite products</li>
-            </ul>
-        </div>
+        <div class="col-lg-10 col-xl-8">
 
-        <!-- Right panel (Login Form) -->
-        <div class="col-lg-5 col-md-8 col-sm-10">
             
+            <div class="row justify-content-center align-items-center">
 
-            <div class="card p-5 border-0 rounded-3 shadow-sm bg-white auth-card">
-                <h2 class="h4 fw-bold mb-4 text-dark text-center">Sign-In</h2>
+                
+                <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-start pe-4 me-auto">
+                    <h1 class="display-5 fw-bold mb-3 text-amazon-dark">Welcome</h1>
+                    <p class="text-muted mb-4 small">
+                        Access your account to track orders, manage your wishlist, and explore deals.
+                    </p>
+                    <ul class="list-unstyled text-muted small">
+                        <li class="mb-2"><i class="fas fa-check-circle me-2 text-amazon-link"></i> Track your orders</li>
+                        <li class="mb-2"><i class="fas fa-check-circle me-2 text-amazon-link"></i> Personalized recommendations</li>
+                        <li class="mb-2"><i class="fas fa-check-circle me-2 text-amazon-link"></i> Save your favorite products</li>
+                    </ul>
+                </div>
 
-                <form method="post" asp-controller="@controllerName" asp-action="Login" role="form" title="User Login Form">
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                
+                <div class="col-lg-5 col-md-8 col-sm-10">
 
-                    <div class="form-floating mb-3">
-                        <input asp-for="UserName" class="form-control" placeholder="Username or Email" autofocus />
-                        <label asp-for="UserName"><i class="fas fa-user me-2"></i> Email or mobile phone number</label>
-                        <span asp-validation-for="UserName" class="text-danger small mt-1 d-block"></span>
-                    </div>
+                    <div class="amazon-form-box p-4 border rounded shadow-sm bg-white">
+                        <h2 class="h3 fw-bold mb-4 text-amazon-dark">Sign-In</h2>
 
-                    <div class="form-floating mb-3">
-                        <input asp-for="Password" type="password" class="form-control" placeholder="Password" />
-                        <label asp-for="Password"><i class="fas fa-lock me-2"></i> Password</label>
-                        <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
-                    </div>
+                        <form method="post" asp-controller="@controllerName" asp-action="Login" role="form" title="User Login Form">
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger small p-2" role="alert"></div>
 
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        @if (Model.GetType().GetProperty("RememberMe") != null)
-                        {
-                            <div class="form-check">
-                                <input class="form-check-input form-check-input-a11y" type="checkbox" asp-for="RememberMe">
-                                <label class="form-check-label small text-muted" asp-for="RememberMe">Keep me signed in</label>
+                            <div class="form-group mb-3">
+                                <label asp-for="UserName" class="form-label fw-bold small text-amazon-dark mb-1">
+                                    User Name
+                                </label>
+                                <input asp-for="UserName" class="form-control amazon-input-field" autofocus />
+                                <span asp-validation-for="UserName" class="text-danger small mt-1 d-block"></span>
                             </div>
-                        }
-                        <a asp-controller="@controllerName" asp-action="ForgotPassword" class="small fw-semibold text-decoration-none" style="color:@primaryColor;">Forgot your password?</a>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="Password" class="form-label fw-bold small text-amazon-dark mb-1">
+                                    Password
+                                </label>
+                                <input asp-for="Password" type="password" class="form-control amazon-input-field" />
+                                <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                @if (Model.GetType().GetProperty("RememberMe") != null)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input amazon-checkbox" type="checkbox" asp-for="RememberMe">
+                                        <label class="form-check-label small text-muted" asp-for="RememberMe">Keep me signed in</label>
+                                    </div>
+                                }
+                                <a asp-controller="@controllerName" asp-action="ForgotPassword" class="small fw-semibold text-decoration-none text-amazon-link">
+                                    Forgot your password?
+                                </a>
+                            </div>
+
+                            <input type="hidden" asp-for="ReturnUrl" />
+
+                            <div class="d-grid mb-4">
+                                <button type="submit" class="btn btn-amazon-checkout w-100 fw-bold">
+                                    Continue
+                                </button>
+                            </div>
+
+                        </form>
+
                     </div>
 
-                    <input type="hidden" asp-for="ReturnUrl" />
-
-                    <div class="d-grid mb-4">
-                        <button type="submit" class="btn btn-primary btn-lg fw-bold" style="background-color:@primaryColor; border-color:@primaryColor;">
-                            Sign-In
-                        </button>
-                    </div>
-
-                    <div class="text-center border-top pt-3 mt-3">
-                        <p class="mb-0 small">
-                            New to Amazon?
-                            <a asp-controller="@controllerName" asp-action="Register" class="fw-semibold text-decoration-none" style="color:@primaryColor;">Create your account</a>
+                
+                    <div class="text-center mt-4">
+                        <p class="small text-muted mb-3">
+                            New to CMSECommerce?
                         </p>
+                        <a asp-controller="@controllerName" asp-action="Register"
+                           class="btn btn-amazon-secondary w-75 fw-bold">
+                            Create account
+                        </a>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
-
     </div>
 </div>
 
 @section Styles {
     <style>
-        .auth-card {
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        /* --- AMAZON COLOR PALETTE --- */
+        :root {
+            --amazon-dark-text: #0F1111;
+            --amazon-yellow-action: #FFD814;
+            --amazon-yellow-action-hover: #F7CA00;
+            --amazon-link-teal: #007185;
+            --amazon-link-teal-hover: #C7511F; /* Amazon Orange Hover */
+            --amazon-light-button-bg: #f0f2f2;
+            --amazon-light-button-border: #c9c9c9;
+            --amazon-page-bg: #f7f7f7;
         }
 
-            .auth-card:hover {
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                transform: translateY(-2px);
+        .amazon-login-page {
+            background-color: var(--amazon-page-bg);
+            min-height: 80vh;
+        }
+
+        .text-amazon-dark {
+            color: var(--amazon-dark-text);
+        }
+
+        .text-amazon-link {
+            color: var(--amazon-link-teal) !important;
+        }
+
+            .text-amazon-link:hover {
+                color: var(--amazon-link-teal-hover) !important;
             }
 
-        .form-control:focus {
-            border-color: @primaryColor;
-            box-shadow: 0 0 0 0.25rem rgba(20,110,180,0.25);
+        /* Central Form Box Styling */
+        .amazon-form-box {
+            border-color: #ddd !important;
+            background-color: #fff;
         }
 
-        .form-check-input-a11y:focus {
-            box-shadow: 0 0 0 0.25rem rgba(20,110,180,0.25);
-            border-color: @primaryColor;
-            outline: 0;
+        /* Input Field Styling (Subtle Amazon look) */
+        .amazon-input-field {
+            height: 31px;
+            padding: 3px 7px;
+            font-size: 14px;
+            border-radius: 3px;
+            border: 1px solid #a6a6a6;
+            box-shadow: 0 1px 0 rgba(0,0,0,.04);
         }
 
-        .btn-primary:hover {
-            background-color: #0f5ba3;
-            border-color: #0f5ba3;
+            .amazon-input-field:focus {
+                border-color: #e77600; /* Amazon orange focus border */
+                box-shadow: 0 0 3px 2px rgba(228,121,17,.5);
+            }
+
+        /* Primary Action Button (Continue) - Amazon Yellow */
+        .btn-amazon-checkout {
+            background-color: var(--amazon-yellow-action) !important;
+            border-color: #FCD200 !important;
+            color: var(--amazon-dark-text) !important;
+            font-weight: 700;
+            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
+            border-radius: 7px !important;
+            height: 35px; /* Standard button height */
+            line-height: 1.2;
+            font-size: 13px;
         }
 
-        /* Left panel text colors */
-        .col-lg-6 h1,
-        .col-lg-6 p,
-        .col-lg-6 ul li {
-            color: #111;
+            .btn-amazon-checkout:hover {
+                background-color: var(--amazon-yellow-action-hover) !important;
+            }
+
+        /* Secondary Action Button (Create Account) - Amazon Light Grey */
+        .btn-amazon-secondary {
+            background-color: var(--amazon-light-button-bg) !important;
+            border: 1px solid var(--amazon-light-button-border) !important;
+            color: var(--amazon-dark-text) !important;
+            border-radius: 7px !important;
+            box-shadow: 0 1px 2px rgba(15, 17, 17, 0.15);
+            height: 35px;
+            line-height: 1.2;
+            font-size: 13px;
         }
 
-        
+            .btn-amazon-secondary:hover {
+                background-color: #e0e0e0 !important;
+                border-color: #a2a2a2 !important;
+            }
     </style>
 }
 

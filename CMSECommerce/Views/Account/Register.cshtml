@@ -4,115 +4,222 @@
     ViewData["Title"] = "Create Account";
 }
 
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-10 col-lg-8">
-            <h1 class="display-5 fw-bold text-center mb-4">Create Your Account</h1>
+<div class="amazon-login-page py-4">
+    <div class="container d-flex justify-content-center">
 
-            <div class="card shadow-lg border-0 rounded-3">
-                <div class="card-body p-5">
+        <div class="col-lg-5 col-md-7 col-sm-10">
 
-                    <form asp-action="Register" method="post">
+          
+            <div class="amazon-form-box p-4 border rounded shadow-sm bg-white">
+                <h1 class="h3 fw-bold mb-4 text-amazon-dark">Create account</h1>
 
-                        <!-- Validation Summary -->
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                <form asp-action="Register" method="post">
 
-                        <!-- ACCOUNT DETAILS -->
-                        <h4 class="mb-3 text-primary">Account Details</h4>
-                        <hr class="mt-0 mb-4" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger small p-2" role="alert"></div>
 
-                        <div class="form-floating mb-3">
-                            <input asp-for="UserName" class="form-control" placeholder="Choose a Username" />
-                            <label asp-for="UserName">Username</label>
-                            <span asp-validation-for="UserName" class="text-danger small"></span>
+                    
+
+                   
+                    <div class="form-group mb-3">
+                        <label asp-for="UserName" class="form-label fw-bold small text-amazon-dark mb-1">
+                            User name
+                        </label>
+                        <input asp-for="UserName" class="form-control amazon-input-field" />
+                        <span asp-validation-for="UserName" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                  
+                    <div class="form-group mb-3">
+                        <label asp-for="Email" class="form-label fw-bold small text-amazon-dark mb-1">
+                            Email
+                        </label>
+                        <input type="email" asp-for="Email" class="form-control amazon-input-field" />
+                        <span asp-validation-for="Email" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                   
+                    <div class="form-group mb-3">
+                        <label asp-for="PhoneNumber" class="form-label fw-bold small text-amazon-dark mb-1">
+                            Mobile Number
+                        </label>
+                        <input asp-for="PhoneNumber" class="form-control amazon-input-field" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                 
+                    <div class="form-group mb-3">
+                        <label asp-for="Password" class="form-label fw-bold small text-amazon-dark mb-1">
+                            Password
+                        </label>
+                        <input asp-for="Password" type="password" class="form-control amazon-input-field" placeholder="At least 6 characters" />
+                        <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
+                        <div class="small text-muted mt-1">
+                            <i class="fas fa-info-circle me-1"></i> Passwords must be at least 6 characters.
                         </div>
+                    </div>
 
-                        <div class="form-floating mb-3">
-                            <input type="email" asp-for="Email" class="form-control" placeholder="name@example.com" />
-                            <label asp-for="Email">Email Address</label>
-                            <span asp-validation-for="Email" class="text-danger small"></span>
-                        </div>
+                   
+                    <div class="form-group mb-4">
+                        <label asp-for="ConfirmPassword" class="form-label fw-bold small text-amazon-dark mb-1">
+                            Re-enter password
+                        </label>
+                        <input asp-for="ConfirmPassword" type="password" class="form-control amazon-input-field" />
+                        <span asp-validation-for="ConfirmPassword" class="text-danger small mt-1 d-block"></span>
+                    </div>
 
-                        <div class="form-floating mb-3">
-                            <input asp-for="PhoneNumber" class="form-control" placeholder="e.g., (555) 555-1234" />
-                            <label asp-for="PhoneNumber">Mobile Number</label>
-                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
-                        </div>
+                    <hr class="mb-4" />
 
-                        <div class="form-floating mb-3">
-                            <input asp-for="Password" type="password" class="form-control" placeholder="Password" />
-                            <label asp-for="Password">Password</label>
-                            <span asp-validation-for="Password" class="text-danger small"></span>
-                        </div>
+                  
+                    <h4 class="h5 fw-bold mb-3 text-amazon-dark">Shipping Address</h4>
 
-                        <div class="form-floating mb-4">
-                            <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Confirm Password" />
-                            <label asp-for="ConfirmPassword">Confirm Password</label>
-                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
-                        </div>
+                   
+                    <div class="form-group mb-3">
+                        <label asp-for="StreetAddress" class="form-label fw-bold small text-amazon-dark mb-1">
+                            Street Address
+                        </label>
+                        <input asp-for="StreetAddress" class="form-control amazon-input-field" />
+                        <span asp-validation-for="StreetAddress" class="text-danger small mt-1 d-block"></span>
+                    </div>
 
-                        <!-- SHIPPING ADDRESS -->
-                        <h4 class="mb-3 mt-5 text-primary">Shipping Address</h4>
-                        <hr class="mt-0 mb-4" />
-
-                        <div class="form-floating mb-3">
-                            <input asp-for="StreetAddress" class="form-control" placeholder="123 Main St" />
-                            <label asp-for="StreetAddress">Street Address</label>
-                            <span asp-validation-for="StreetAddress" class="text-danger small"></span>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-floating mb-3">
-                                    <input asp-for="City" class="form-control" placeholder="New York" />
-                                    <label asp-for="City">City</label>
-                                    <span asp-validation-for="City" class="text-danger small"></span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating mb-3">
-                                    <input asp-for="State" class="form-control" placeholder="NY" />
-                                    <label asp-for="State">State/Province</label>
-                                    <span asp-validation-for="State" class="text-danger small"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-floating mb-4">
-                                    <input asp-for="PostalCode" class="form-control" placeholder="10001" />
-                                    <label asp-for="PostalCode">Postal Code</label>
-                                    <span asp-validation-for="PostalCode" class="text-danger small"></span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating mb-4">
-                                    <input asp-for="Country" class="form-control" placeholder="USA" />
-                                    <label asp-for="Country">Country</label>
-                                    <span asp-validation-for="Country" class="text-danger small"></span>
-                                </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                          
+                            <div class="form-group mb-3">
+                                <label asp-for="City" class="form-label fw-bold small text-amazon-dark mb-1">City</label>
+                                <input asp-for="City" class="form-control amazon-input-field" />
+                                <span asp-validation-for="City" class="text-danger small mt-1 d-block"></span>
                             </div>
                         </div>
-
-                        <!-- SUBMIT BUTTON -->
-                        <div class="d-grid mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg fw-bold">
-                                <i class="fas fa-user-plus me-2"></i> Register
-                            </button>
+                        <div class="col-md-6">
+                          
+                            <div class="form-group mb-3">
+                                <label asp-for="State" class="form-label fw-bold small text-amazon-dark mb-1">State/Province</label>
+                                <input asp-for="State" class="form-control amazon-input-field" />
+                                <span asp-validation-for="State" class="text-danger small mt-1 d-block"></span>
+                            </div>
                         </div>
-                    </form>
+                    </div>
 
-                    <!-- LOGIN LINK -->
-                    <p class="text-center mt-4 mb-0 small text-muted">
-                        Already have an account?
-                        <a asp-controller="Account" asp-action="Login" class="text-decoration-none">Log In here</a>.
+                    <div class="row">
+                        <div class="col-md-6">
+                       
+                            <div class="form-group mb-4">
+                                <label asp-for="PostalCode" class="form-label fw-bold small text-amazon-dark mb-1">Postal Code</label>
+                                <input asp-for="PostalCode" class="form-control amazon-input-field" />
+                                <span asp-validation-for="PostalCode" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                        
+                            <div class="form-group mb-4">
+                                <label asp-for="Country" class="form-label fw-bold small text-amazon-dark mb-1">Country</label>
+                                <input asp-for="Country" class="form-control amazon-input-field" />
+                                <span asp-validation-for="Country" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                  
+                    <div class="d-grid mt-2 mb-3">
+                        <button type="submit" class="btn btn-amazon-checkout w-100 fw-bold">
+                            Create your CMSECommerce account
+                        </button>
+                    </div>
+
+                
+                    <p class="small text-muted mb-4">
+                        By creating an account, you agree to CMSECommerce's <a href="#" class="text-amazon-link">Conditions of Use</a> and <a href="#" class="text-amazon-link">Privacy Notice</a>.
                     </p>
-                </div>
+
+                    <hr />
+
+                 
+                    <p class="text-center mt-3 mb-0 small text-muted">
+                        Already have an account?
+                        <a asp-controller="Account" asp-action="Login" class="text-amazon-link fw-semibold">Sign in</a>.
+                    </p>
+
+                </form>
+
             </div>
         </div>
     </div>
 </div>
+
+@section Styles {
+    <style>
+        /* --- AMAZON COLOR PALETTE --- */
+        :root {
+            --amazon-dark-text: #0F1111;
+            --amazon-yellow-action: #FFD814;
+            --amazon-yellow-action-hover: #F7CA00;
+            --amazon-link-teal: #007185;
+            --amazon-link-teal-hover: #C7511F; /* Amazon Orange Hover */
+            --amazon-page-bg: #f7f7f7;
+        }
+
+        .amazon-login-page {
+            background-color: var(--amazon-page-bg);
+            min-height: 100vh;
+        }
+
+        .text-amazon-dark {
+            color: var(--amazon-dark-text);
+        }
+
+        .text-amazon-link {
+            color: var(--amazon-link-teal) !important;
+        }
+
+            .text-amazon-link:hover {
+                color: var(--amazon-link-teal-hover) !important;
+            }
+
+        /* Central Form Box Styling */
+        .amazon-form-box {
+            max-width: 400px;
+            border-color: #ddd !important;
+            background-color: #fff;
+            margin-top: 20px;
+        }
+
+        /* Input Field Styling (Subtle Amazon look) */
+        .amazon-input-field {
+            height: 31px;
+            padding: 3px 7px;
+            font-size: 14px;
+            border-radius: 3px;
+            border: 1px solid #a6a6a6;
+            box-shadow: 0 1px 0 rgba(0,0,0,.04);
+        }
+
+            .amazon-input-field:focus {
+                border-color: #e77600; /* Amazon orange focus border */
+                box-shadow: 0 0 3px 2px rgba(228,121,17,.5);
+            }
+
+        /* Primary Action Button (Continue) - Amazon Yellow */
+        .btn-amazon-checkout {
+            background-color: var(--amazon-yellow-action) !important;
+            border-color: #FCD200 !important;
+            color: var(--amazon-dark-text) !important;
+            font-weight: 700;
+            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
+            border-radius: 7px !important;
+            height: 35px; /* Standard button height */
+            line-height: 1.2;
+            font-size: 13px;
+        }
+
+            .btn-amazon-checkout:hover {
+                background-color: var(--amazon-yellow-action-hover) !important;
+            }
+
+        .form-label {
+            margin-bottom: 2px;
+        }
+    </style>
+}
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
