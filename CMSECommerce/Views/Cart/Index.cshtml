@@ -1,191 +1,204 @@
 ﻿@model CartViewModel
 
+
 @{
     ViewData["Title"] = "Shopping Cart";
     var hasOutOfStockItems = Model.CartItems.Any(x => x.IsOutOfStock);
 }
 
-<div class="container my-4 amazon-cart">
+<div class="container my-4 amazon-cart-page">
 
     @if (Model.CartItems.Any())
     {
-        <!-- PAGE TITLE -->
-        <h2 class="fw-bold mb-4">Shopping Cart</h2>
+        <h2 class="fw-bold mb-4 border-bottom pb-2">Shopping Cart</h2>
 
-        <div class="row">
+        <div class="row g-4">
 
-            <!-- LEFT COLUMN : CART ITEMS -->
             <div class="col-lg-8">
 
                 @if (hasOutOfStockItems)
                 {
-                    <div class="alert alert-danger d-flex align-items-center mb-4 rounded-3">
-                        <i class="bi bi-exclamation-octagon-fill fs-4 me-3"></i>
-                        <span><b>Stock Alert:</b> Some items exceed available stock. Please adjust quantity.</span>
+                    <div class="alert alert-danger d-flex align-items-center mb-4 rounded-3 p-3 stock-alert-box">
+                        <i class="fas fa-exclamation-triangle fs-4 me-3"></i>
+                        <span class="fw-bold">Stock Alert:</span>
+                        <span class="ms-1">Some items exceed available stock. Please adjust quantity before checkout.</span>
                     </div>
                 }
+                else
+                {
+                    <div class="alert alert-success d-flex align-items-center mb-4 rounded-3 p-2 small border-0 bg-success-subtle">
+                        <i class="fas fa-check-circle me-2 text-success"></i>
+                        Your order is eligible for **FREE Shipping**.
+                    </div>
+                }
+
+                @* --- START: Added Login/Checkout Prompt for Main Column --- *@
+                @if (!User.Identity.IsAuthenticated)
+                {
+                    <p class="text-center small text-muted mb-2">Login to secure your order</p>
+
+                    <a asp-area="Identity" asp-controller="Account" asp-action="Login"
+                       asp-route-ReturnUrl="@Url.Action("Index", "Cart", new { Area = "" })"
+                       class="btn btn-amazon-checkout btn-lg w-100 fw-bold">
+                        Proceed to Checkout
+                    </a>
+                }
+                @* --- END: Added Login/Checkout Prompt for Main Column --- *@
 
                 @foreach (var item in Model.CartItems)
                 {
-                    var dangerClass = item.IsOutOfStock ? "border-danger bg-danger-subtle" : "border-light";
+                    var dangerClass = item.IsOutOfStock ? "item-out-of-stock" : "";
 
-                    <div class="card border rounded-3 mb-3 shadow-sm @dangerClass">
+                    <div class="card border rounded-3 mb-3 shadow-sm cart-item-card @dangerClass">
 
-                        <div class="card-body p-3">
+                        <div class="card-body p-4">
 
-                            <div class="row g-3 align-items-center">
+                            <div class="row g-3">
 
-                                <!-- IMAGE -->
                                 <div class="col-3 col-sm-2">
-                                    <img src="/media/products/@item.Image"
-                                         class="img-fluid rounded"
-                                         alt="@item.ProductName">
+                                    <a asp-controller="Products" asp-action="Product" asp-route-slug="@item.ProductSlug">
+                                        <img src="/media/products/@item.Image"
+                                             class="img-fluid rounded"
+                                             alt="@item.ProductName">
+                                    </a>
                                 </div>
 
-                                <!-- DETAILS -->
-                                <div class="col-9 col-sm-6">
+                                <div class="col-9 col-sm-7">
 
-                                    <h6 class="fw-bold mb-1">@item.ProductName</h6>
-
-                                    <p class="text-muted small mb-2">
-                                        Price: <span class="fw-bold text-dark">@item.Price.ToString("C2")</span>
-                                    </p>
+                                    <h6 class="fw-bold mb-1 item-name-link">
+                                        <a asp-controller="Products" asp-action="Product" asp-route-slug="@item.ProductSlug" class="text-amazon-link text-decoration-none">
+                                            @item.ProductName
+                                        </a>
+                                    </h6>
 
                                     @if (item.IsOutOfStock)
                                     {
-                                        <p class="text-danger small fw-bold">⚠ Quantity exceeds stock limit</p>
+                                        <p class="text-danger small fw-bold mb-1">⚠ Quantity exceeds stock limit</p>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-success small fw-bold mb-1">In Stock</p>
                                     }
 
-                                    <!-- QUANTITY DROPDOWN LIKE AMAZON -->
-                                    <form method="post" asp-action="UpdateQuantity" class="d-inline">
-                                        <select name="quantity"
-                                                class="form-select form-select-sm d-inline-block w-auto"
-                                                onchange="this.form.submit()">
-                                            @for (int q = 1; q <= 10; q++)
-                                            {
-                                                if (q == item.Quantity)
+                                    <div class="d-flex align-items-center mt-2">
+                                        <span class="small text-muted me-2">Qty:</span>
+                                        <form method="post" asp-action="UpdateQuantity" class="d-inline">
+                                            <select name="quantity"
+                                                    class="form-select form-select-sm d-inline-block cart-qty-select"
+                                                    onchange="this.form.submit()">
+                                                @for (int q = 1; q <= 10; q++)
                                                 {
-                                                    <option value="@q" selected>@q</option>
+                                                    <option value="@q" selected="@(q == item.Quantity)">@q</option>
                                                 }
-                                                else
-                                                {
-                                                    <option value="@q">@q</option>
-                                                }
-                                            }
-                                        </select>
-                                        <input type="hidden" name="id" value="@item.ProductId" />
-                                    </form>
 
-                                    <a asp-action="Remove" asp-route-id="@item.ProductId"
-                                       class="text-danger small ms-3 text-decoration-none">
-                                        Delete
-                                    </a>
+                                                @if (item.Quantity > 10)
+                                                {
+                                                    <option value="@item.Quantity" selected>@item.Quantity (Current)</option>
+                                                }
+                                            </select>
+                                            <input type="hidden" name="id" value="@item.ProductId" />
+                                        </form>
+
+                                        <span class="text-muted mx-3">|</span>
+
+                                        <a asp-action="Remove" asp-route-id="@item.ProductId"
+                                           class="text-amazon-link small text-decoration-none remove-link">
+                                            Delete
+                                        </a>
+                                    </div>
 
                                 </div>
 
-                                <!-- PRICE (RIGHT ALIGNED LIKE AMAZON) -->
-                                <div class="col-12 col-sm-4 text-end">
+                                <div class="col-12 col-sm-3 text-end">
                                     @{
                                         var total = item.Price * item.Quantity;
                                     }
-                                    <h5 class="fw-bold text-success">@total.ToString("C2")</h5>
+                                    <h5 class="fw-bold item-total-price">@total.ToString("C2")</h5>
                                 </div>
 
                             </div>
-
+                        </div>
+                        <div class="card-footer text-end p-2 bg-white border-0">
+                            <p class="small text-muted mb-0">Unit Price: @item.Price.ToString("C2")</p>
                         </div>
 
                     </div>
                 }
 
-                <a asp-controller="Home" asp-action="Index"
-                   class="btn btn-outline-primary rounded-pill px-4 mt-3">
-                    Continue Shopping
-                </a>
-
+                <div class="text-end border-top pt-3 mt-4">
+                    <span class="fw-bold fs-5 me-2">Subtotal (@Model.CartItems.Count items):</span>
+                    <span class="fw-bold fs-4 text-dark total-summary">@Model.GrandTotal.ToString("C2")</span>
+                </div>
             </div>
 
-            <!-- RIGHT SIDE SUMMARY -->
             <div class="col-lg-4">
+                <div class="buy-box border rounded-3 p-3 shadow-sm sticky-top">
 
-                <div class="card shadow-sm border-0 rounded-3 sticky-top" style="top: 20px;">
+                    <p class="fw-bold text-success mb-2 small text-center">
+                        <i class="fas fa-check-circle me-1"></i> Your order is eligible for Free Delivery.
+                    </p>
 
-                    <div class="card-body p-4">
-
-                        <h5 class="fw-bold mb-3">Order Summary</h5>
-
-                        <div class="d-flex justify-content-between mb-3">
-                            <span class="fw-semibold">Items:</span>
-                            <span class="fw-bold">@Model.CartItems.Count</span>
-                        </div>
-
-                        <div class="d-flex justify-content-between border-top pt-3">
-                            <span class="fw-bold fs-5">Total:</span>
-                            <span class="fw-bold fs-4 text-success">@Model.GrandTotal.ToString("C2")</span>
-                        </div>
-
-                        <hr />
-
-                        <!-- LOGIN STATUS -->
-                        @if (!User.Identity.IsAuthenticated)
-                        {
-                            <p class="text-center small text-muted mb-2">Log in to continue</p>
-
-                            <a asp-area="Identity" asp-controller="Account" asp-action="Login"
-                               asp-route-ReturnUrl="@Url.Action("Index", "Cart")"
-                               class="btn btn-warning btn-lg w-100 rounded-pill fw-bold text-dark">
-                                Login to Checkout
-                            </a>
-                        }
-                        else
-                        {
-                            <p class="text-success text-center small fw-bold">
-                                Logged in as @User.Identity.Name
-                            </p>
-
-                            <form asp-controller="Orders" asp-action="Create" method="post">
-                                <button type="submit"
-                                        class="btn btn-warning btn-lg w-100 rounded-pill fw-bold text-dark"
-                                        @(hasOutOfStockItems ? "disabled" : "")>
-                                    Proceed to Buy
-                                </button>
-                            </form>
-
-                            @if (hasOutOfStockItems)
-                            {
-                                <div class="alert alert-danger small mt-2 text-center py-2">
-                                    Fix stock issues to continue.
-                                </div>
-                            }
-                        }
-
-                        <a asp-action="Clear"
-                           class="btn btn-outline-danger mt-3 w-100 rounded-pill">
-                            Clear Cart
-                        </a>
-
+                    <div class="text-center mb-3">
+                        <span class="subtotal-label me-2">Subtotal (@Model.CartItems.Count items):</span>
+                        <span class="fw-bold fs-4 price-value-box">@Model.GrandTotal.ToString("C2")</span>
                     </div>
 
+                    <hr class="my-3" />
+
+                    @if (!User.Identity.IsAuthenticated)
+                    {
+                        <p class="text-center small text-muted mb-2">Login to secure your order</p>
+
+                        <a asp-area="Identity" asp-page="/Account/Login"
+                           asp-route-ReturnUrl="@Url.Action("Index", "Cart", new { Area = "" })"
+                           class="btn btn-amazon-checkout btn-lg w-100 fw-bold">
+                            Proceed to Checkout
+                        </a>
+                    }
+                    else
+                    {
+                        <form asp-controller="Orders" asp-action="Create" method="post">
+                            <button type="submit"
+                                    class="btn btn-amazon-checkout btn-lg w-100 fw-bold"
+                                    @(hasOutOfStockItems ? "disabled" : "")>
+                                Proceed to Buy
+                            </button>
+                        </form>
+
+                        @if (hasOutOfStockItems)
+                        {
+                            <div class="alert alert-danger small mt-2 text-center py-2">
+                                Fix stock issues to enable checkout.
+                            </div>
+                        }
+                    }
+
+                    <div class="text-center mt-3 small">
+                        <a asp-action="Clear" class="text-amazon-link text-decoration-none">Clear Cart</a>
+                    </div>
                 </div>
 
+                <a asp-controller="Products" asp-action="Index"
+                   class="btn btn-outline-secondary w-100 rounded-pill px-4 mt-3 small">
+                    <i class="fas fa-chevron-left me-2"></i> Continue Shopping
+                </a>
             </div>
 
         </div>
     }
     else
     {
-        <!-- EMPTY CART AMAZON STYLE -->
-        <div class="text-center py-5 bg-light rounded border shadow-sm">
+        <div class="text-center py-5 bg-white rounded border shadow-sm empty-cart-box">
 
-            <i class="bi bi-cart-x display-1 text-warning"></i>
+            <i class="fas fa-shopping-cart display-1 text-muted mb-3"></i>
 
-            <h3 class="fw-bold mt-3">Your Amazon-style Cart is Empty</h3>
+            <h3 class="fw-bold">Your Shopping Cart is Empty</h3>
 
-            <p class="text-muted">Browse products and add them to your cart.</p>
+            <p class="text-muted">Prices and availability subject to change.</p>
 
             <a asp-controller="Products" asp-action="Index"
-               class="btn btn-warning btn-lg rounded-pill fw-bold text-dark px-4">
-                Shop Now
+               class="btn btn-amazon-checkout btn-lg rounded-pill fw-bold px-5">
+                Go to the Products Page
             </a>
 
         </div>
@@ -193,19 +206,121 @@
 
 </div>
 
-<style>
-    /* Amazon Theme Enhancements */
-    .amazon-cart .card {
-        border-radius: 12px !important;
-    }
-    .amazon-cart select {
-        min-width: 60px;
-    }
-    .amazon-cart .btn-warning {
-        background-color: #FFD814;
-        border-color: #FCD200;
-    }
-    .amazon-cart .btn-warning:hover {
-        background-color: #F7CA00;
-    }
-</style>
+@section Styles {
+    @* The Styles section remains unchanged *@
+    <style>
+        /* --- AMAZON COLOR PALETTE --- */
+        :root {
+            --amazon-price-red: #B12704;
+            --amazon-yellow-action: #FFD814;
+            --amazon-yellow-action-hover: #F7CA00;
+            --amazon-link-teal: #007185;
+            --amazon-link-teal-hover: #005666;
+            --amazon-background-light: #f3f3f3;
+        }
+
+        .amazon-cart-page {
+            background-color: #fff; /* White background for the main content */
+        }
+
+        .text-amazon-link {
+            color: var(--amazon-link-teal) !important;
+        }
+
+            .text-amazon-link:hover {
+                color: var(--amazon-link-teal-hover) !important;
+                text-decoration: underline !important;
+            }
+
+        /* --- CART ITEMS LAYOUT --- */
+        .cart-item-card {
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+        }
+
+        /* Out of Stock visual warning */
+        .item-out-of-stock {
+            border: 2px solid var(--amazon-price-red) !important;
+            background-color: #fff8f8;
+        }
+
+        .item-name-link a {
+            color: #0F1111;
+        }
+
+        .item-total-price {
+            color: var(--amazon-price-red) !important;
+            font-size: 1.25rem !important;
+        }
+
+        /* Quantity Dropdown Styling (Amazon look) */
+        .cart-qty-select {
+            background-color: #f0f2f2;
+            border-radius: 7px;
+            border: 1px solid #c9c9c9;
+            box-shadow: 0 1px 2px rgba(15, 17, 17, 0.15);
+            min-width: 80px;
+            padding: 4px 10px;
+        }
+
+        /* --- SUMMARY/BUY BOX --- */
+        .buy-box {
+            border: 1px solid #ccc !important;
+            background-color: #fcfcfc;
+        }
+
+            .buy-box .price-value-box {
+                color: var(--amazon-price-red) !important;
+                font-size: 1.5rem !important;
+            }
+
+        .subtotal-label {
+            font-size: 0.95rem;
+        }
+
+        .total-summary {
+            color: var(--amazon-price-red) !important;
+        }
+
+        /* Checkout Button (Amazon Yellow) */
+        .btn-amazon-checkout {
+            background-color: var(--amazon-yellow-action) !important;
+            border-color: #FCD200 !important;
+            color: #0F1111 !important;
+            font-weight: 700;
+            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
+            border-radius: 7px !important; /* Slightly squared for cart buttons */
+        }
+
+            .btn-amazon-checkout:hover:not(:disabled) {
+                background-color: var(--amazon-yellow-action-hover) !important;
+            }
+
+            .btn-amazon-checkout:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+
+        /* Sticky box needs top adjustment if header is fixed */
+        .sticky-top {
+            top: 20px;
+        }
+
+        /* Empty Cart Box */
+        .empty-cart-box {
+            background-color: #fcfcfc !important;
+            border-color: #ddd !important;
+        }
+
+        /* Responsive Adjustments */
+        @@media (max-width: 576px) {
+            .cart-qty-select {
+                min-width: 65px;
+            }
+
+            .item-total-price {
+                font-size: 1.1rem !important;
+            }
+        }
+    </style>
+}

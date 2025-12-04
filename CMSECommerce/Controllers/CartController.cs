@@ -13,30 +13,44 @@ namespace CMSECommerce.Controllers
 
         public IActionResult Index()
         {
+            // 1. Retrieve cart from session
             List<CartItem> cart = HttpContext.Session.GetJson<List<CartItem>>("Cart") ?? [];
 
-            // 🛠️ START: Stock Check Logic
+            if (cart.Count == 0)
+            {
+                // Handle empty cart early
+                return View(new CartViewModel { CartItems = [], GrandTotal = 0 });
+            }
 
-            // 1. Get a list of all Product IDs in the cart
+            // 2. Get a list of all Product IDs in the cart
             IEnumerable<int> productIds = cart.Select(c => c.ProductId).ToList();
 
-            // 2. Fetch the corresponding Products and their StockQuantity from the database
-            //    We use ToDictionary for fast lookup by ProductId later.
-            Dictionary<int, int> productStocks = _context.Products
+            // 3. Fetch Product Data and Stock Quantity from the database in one query
+            //    We fetch Id, StockQuantity, Image, and Slug.
+            var productData = _context.Products
                 .Where(p => productIds.Contains(p.Id))
-                .ToDictionary(p => p.Id, p => p.StockQuantity);
+                .Select(p => new
+                {
+                    p.Id,
+                    p.StockQuantity,
+                    p.Image,     // <-- ADDED: Product Image
+                    p.Slug       // <-- ADDED: Product Slug
+                })
+                .ToDictionary(p => p.Id); // Dictionary for fast lookup
 
-            // 3. Iterate through the cart items and check stock
+            // 4. Iterate through the cart items, validate stock, and update metadata
             foreach (var item in cart)
             {
-                if (productStocks.TryGetValue(item.ProductId, out int availableStock))
+                if (productData.TryGetValue(item.ProductId, out var productDetails))
                 {
-                    // Check if the requested cart quantity exceeds available stock
-                    if (item.Quantity > availableStock)
+                    // Update CartItem metadata (Slug and Image)
+                    item.Image = productDetails.Image;     // <-- UPDATED
+                    item.ProductSlug = productDetails.Slug; // <-- UPDATED
+
+                    // Stock Check Logic
+                    if (item.Quantity > productDetails.StockQuantity)
                     {
                         item.IsOutOfStock = true;
-                        // Optionally, you might want to cap the quantity to the available stock
-                        // item.Quantity = availableStock; 
                     }
                     else
                     {
@@ -45,21 +59,19 @@ namespace CMSECommerce.Controllers
                 }
                 else
                 {
-                    // If the product doesn't exist in the database (e.g., deleted), 
-                    // treat it as out of stock.
+                    // Product no longer exists in DB
                     item.IsOutOfStock = true;
+                    // Optionally remove the item, but setting IsOutOfStock is safer for UX
                 }
             }
 
-            // 🛠️ END: Stock Check Logic
-
-            // 4. Update the session cart with the modified items (including IsOutOfStock status)
+            // 5. Update the session cart with the modified items (including metadata and IsOutOfStock status)
             HttpContext.Session.SetJson("Cart", cart);
 
+            // 6. Create and return the ViewModel
             CartViewModel cartVM = new()
             {
                 CartItems = cart,
-                // GrandTotal calculation remains the same
                 GrandTotal = cart.Sum(x => x.Price * x.Quantity)
             };
 
