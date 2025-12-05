@@ -1,5 +1,6 @@
 ﻿using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
@@ -8,8 +9,10 @@ namespace CMSECommerce.Controllers
 {
     public class ProductsController(
         DataContext context,
-        IWebHostEnvironment webHostEnvironment) : Controller
+        IWebHostEnvironment webHostEnvironment,
+        UserManager<IdentityUser> userManager) : Controller
     {
+        private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly DataContext _context = context;
         private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
 
@@ -100,7 +103,7 @@ namespace CMSECommerce.Controllers
                                                                           // 🌟 NECESSARY CHANGE: Eagerly load reviews 🌟
                                                 .Include(x => x.Reviews)
                                                 .FirstOrDefaultAsync();
-
+           
             if (product == null) return RedirectToAction("Index");
 
             string galleryDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + product.Id.ToString());

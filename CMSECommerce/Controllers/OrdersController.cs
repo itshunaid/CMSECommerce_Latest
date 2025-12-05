@@ -34,6 +34,15 @@ namespace CMSECommerce.Controllers
 
             // Fetch current user details
             var user = await _signInManager.UserManager.GetUserAsync(User);
+            // 1. Safely retrieve the UserProfile object
+            var userProfile = await _context.UserProfiles
+                .Where(x => x.UserId == user.Id)
+                .FirstOrDefaultAsync();
+
+            // 2. Check if the profile exists and concatenate the names
+            string fullName = userProfile != null
+                ? userProfile.FirstName + " " + userProfile.LastName
+                : "Unknown User"; // Handle the null case
 
             // Scenario 2: Unauthenticated User (should be rare if [Authorize] is used, but safe to check)
             if (user == null)
@@ -90,7 +99,7 @@ namespace CMSECommerce.Controllers
                 // 1. Create the Order header
                 Order order = new Order
                 {
-                    UserName = User.Identity.Name,
+                    UserName = fullName+" ("+User.Identity.Name+")",
                     PhoneNumber = user.PhoneNumber,
                     GrandTotal = cart.Sum(x => x.Price * x.Quantity)
                 };

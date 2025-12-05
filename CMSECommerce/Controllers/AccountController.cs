@@ -707,13 +707,25 @@ namespace CMSECommerce.Controllers
             var finalUserList = await Task.WhenAll(userListTasks);
 
             // 4. ⭐ Implementation of the Filter: Exclude users who are in the "Admin" role.
-            var filteredUserList = finalUserList
-                                       .Where(u => u.CurrentRole != "Admin")
+            List<ProfileUpdateViewModel> filteredUserList = new();
+            if(User.IsInRole("Admin"))
+            {
+                filteredUserList = finalUserList                                       
                                        .OrderBy(u => u.UserName) // Optional: Add sorting
                                        .ToList();
+            }
+            else
+            {
+                filteredUserList = finalUserList
+                                      .Where(u => u.CurrentRole != "Admin")
+                                      .OrderBy(u => u.UserName) // Optional: Add sorting
+                                      .ToList();
+            }
 
-            // Note: Consider a dedicated, lighter ViewModel if ProfileUpdateViewModel is too heavy.
-            return View(filteredUserList);
+
+
+                // Note: Consider a dedicated, lighter ViewModel if ProfileUpdateViewModel is too heavy.
+                return View(filteredUserList);
         }
         /// <summary>
         /// Displays the full details of a specific user by their ID.
