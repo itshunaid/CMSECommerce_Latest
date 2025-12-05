@@ -1,4 +1,6 @@
-﻿@model Product
+﻿@using Microsoft.AspNetCore.Html
+@using System.Linq 
+@model Product
 
 
 @{
@@ -25,6 +27,48 @@
         allImages.Add(defaultImagePath);
 
     bool isInStock = Model.StockQuantity > 0;
+
+    // --- USING ACTUAL MODEL PROPERTIES ---
+    // These now correctly reference the calculated properties defined in the Product model
+    double averageRating = Model.AverageRating;
+    int ratingCount = Model.RatingCount;
+    bool userIsAuthenticated = User.Identity.IsAuthenticated;
+
+    // FIX: Remove mock data and correctly handle the Review collection.
+    // We use Model.Reviews directly, ordering by date, and use the empty collection
+    // pattern to handle null/empty reviews without a type error.
+    // The iteration loop in the HTML will automatically access properties based on the Review class.
+    var reviewsToDisplay = Model.Reviews?
+        .OrderByDescending(r => r.DateCreated)
+        .AsEnumerable()
+        ?? Enumerable.Empty<Review>();
+
+    // --- END ASSUMPTIONS ---
+
+    // Helper function to render star icons based on rating
+    Func<double, IHtmlContent> RenderStars = (rating) =>
+    {
+        var content = new HtmlContentBuilder();
+        for (int i = 1; i <= 5; i++)
+        {
+            if (rating >= i)
+            {
+                // Full star
+                content.AppendHtml("<i class='fas fa-star'></i>");
+            }
+            else if (rating > i - 1 && rating < i)
+            {
+                // Half star
+                content.AppendHtml("<i class='fas fa-star-half-alt'></i>");
+            }
+            else
+            {
+                // Empty star
+                content.AppendHtml("<i class='far fa-star'></i>");
+            }
+        }
+        return content;
+    };
 }
 
 <div class="container py-4">
@@ -81,31 +125,31 @@
                     Category: <a asp-controller="Products" asp-action="Index" asp-route-slug="@Model.Category.Slug" class="text-amazon-link text-decoration-none">@Model.Category.Name</a>
                 </div>
             }
-            
+
             <hr class="my-2" />
 
             <div class="star-rating mb-2">
-                <i class="fas fa-star"></i><i class="fas fa-star"></i>
-                <i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
-                <i class="far fa-star"></i>
-                <span class="text-amazon-link small ms-2">(128 ratings)</span>
+                @* Use corrected averageRating variable *@
+                @RenderStars(averageRating)
+                @* Use corrected ratingCount variable *@
+                <a href="#reviews-section" class="text-amazon-link small ms-2 review-link">(@ratingCount ratings)</a>
             </div>
 
             <div class="price-box my-3 p-3 rounded bg-light-amazon">
                 <span class="price-label text-danger fw-bold me-2">Price:</span>
                 <span class="price-value fw-bolder">@Model.Price.ToString("C2")</span>
             </div>
-            
+
             <hr class="my-3" />
 
             <div class="description-highlights">
                 <h4 class="h6 fw-bold text-dark">About this item:</h4>
                 <div class="small">
-                    
+
                     @Html.Raw(Model.Description.Length > 200 ? Model.Description.Substring(0, 200) + "..." : Model.Description)
                 </div>
             </div>
-            
+
         </div>
 
         <div class="col-lg-3">
@@ -162,9 +206,9 @@
                 </form>
 
                 <ul class="list-unstyled small text-muted mt-3 pt-3 border-top">
-                    <li><i class="fas fa-truck me-2 text-muted"></i> Eligible for **Free Shipping**</li>
+                    <li><i class="fas fa-truck me-2 text-muted"></i> Eligible for Free Shipping</li>
                     <li><i class="fas fa-lock me-2 text-muted"></i> Secure transaction</li>
-                    <li><i class="fas fa-box-open me-2 text-muted"></i> **7-Day Return** Policy</li>
+                    <li><i class="fas fa-box-open me-2 text-muted"></i> 7-Day Return Policy</li>
                 </ul>
 
             </div>
@@ -182,6 +226,87 @@
         </div>
     </div>
 
+    <hr class="my-5" id="reviews-section" />
+
+    <div class="row">
+        <div class="col-lg-9">
+            <h3 class="fw-bold mb-4">Customer Reviews</h3>
+
+            @if (userIsAuthenticated)
+            {
+                <div class="add-review-section mb-5 p-4 border rounded bg-light-amazon">
+                    <h4 class="h5 fw-bold mb-3">Write a Customer Review</h4>
+                    <form asp-controller="Reviews" asp-action="AddReview" method="post">
+                        <input type="hidden" name="ProductId" value="@Model.Id" />
+
+                        <div class="mb-3">
+                            <label for="rating" class="form-label fw-bold small">Overall Rating:</label>
+                            <div id="rating-stars" class="rating-input d-flex">
+                                @* Star radio buttons for rating input (1 to 5) - uses RTL trick in CSS *@
+                                @for (int i = 5; i >= 1; i--)
+                                {
+                                    <input type="radio" id="star@(i)" name="Rating" value="@i" required />
+                                    <label for="star@(i)" title="@(i) stars" class="fas fa-star"></label>
+                                }
+                            </div>
+                        </div>
+
+                        @* Added Title Input field as per Review Model update *@
+                        <div class="mb-3">
+                            <label for="title" class="form-label fw-bold small">Review Headline/Title:</label>
+                            <input type="text" class="form-control" id="title" name="Title" maxlength="100" placeholder="E.g., Great value for money!" required />
+                        </div>
+
+
+                        <div class="mb-3">
+                            <label for="comment" class="form-label fw-bold small">Add a written review:</label>
+                            <textarea class="form-control" id="comment" name="Comment" rows="3" maxlength="1000" placeholder="What did you like or dislike?" required></textarea>
+                            <div class="form-text small">Maximum 1000 characters.</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-amazon-yellow mt-2">
+                            <i class="fas fa-pen-to-square me-1"></i> Submit Review
+                        </button>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info" role="alert">
+                    Please <a asp-controller="Account" asp-action="Login" asp-route-ReturnUrl="@Context.Request.Path" class="alert-link text-amazon-link">log in</a> to submit a rating and review.
+                </div>
+            }
+
+            @* Use .Count() on the fixed reviewsToDisplay variable *@
+            <h4 class="h5 fw-bold mb-3">All Reviews (@reviewsToDisplay.Count() total)</h4>
+
+            <div class="review-list mt-3">
+                @if (reviewsToDisplay.Any())
+                {
+                    @* Use the correctly-typed reviewsToDisplay variable *@
+                    @foreach (var review in reviewsToDisplay)
+                    {
+                        <div class="review-item border rounded p-3 mb-3 bg-white shadow-sm">
+                            <div class="d-flex align-items-center mb-1">
+                                @* Display review rating *@
+                                <div class="star-rating me-3 small">
+                                    @RenderStars((double)review.Rating)
+                                </div>
+                                <span class="fw-bold">@review.Title</span>
+                            </div>
+                            @* Use correctly-typed properties, no need for (DateTime) cast *@
+                            <p class="small text-muted mb-2">Reviewed by **@review.UserName** on @review.DateCreated.ToString("d MMMM yyyy")</p>
+                            <p class="mb-0">@review.Comment</p>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted">There are no customer reviews yet. Be the first to review!</p>
+                }
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -198,12 +323,21 @@
                 this.classList.add('active-thumb');
             });
         });
-        
+
         // Set initial active state for first thumbnail
         document.addEventListener('DOMContentLoaded', () => {
             const firstThumb = document.querySelector('.thumb-img');
             if(firstThumb) {
                 firstThumb.classList.add('active-thumb');
+            }
+
+            // Smooth scroll to reviews section when clicking the rating count link
+            const reviewLink = document.querySelector('.review-link');
+            if (reviewLink) {
+                reviewLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.getElementById('reviews-section').scrollIntoView({ behavior: 'smooth' });
+                });
             }
         });
     </script>
@@ -251,12 +385,12 @@
             transition: border-color 0.1s ease;
             padding: 2px;
         }
-        
+
         .active-thumb {
             border: 2px solid var(--amazon-link-teal) !important;
             box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--amazon-link-teal);
         }
-        
+
         /* Stars */
         .star-rating i {
             color: var(--amazon-star-gold);
@@ -311,7 +445,7 @@
             box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
             font-weight: 700;
         }
-        
+
             .btn-amazon-orange-outline:hover {
                 background-color: #F7FAFA !important;
                 border-color: #adb1b8 !important;
@@ -338,10 +472,43 @@
             .buy-box {
                 order: 3;
             }
-            
+
             .product-main-img {
                 max-height: 350px;
             }
         }
+
+        /* --- NEW RATING INPUT STYLES --- */
+        .rating-input {
+            direction: rtl; /* Makes stars display right-to-left for easier CSS hover/check logic */
+            unicode-bidi: isolate;
+        }
+
+            .rating-input > input {
+                display: none; /* Hide the radio buttons */
+            }
+
+            .rating-input > label {
+                color: #ddd; /* Default star color (unfilled) */
+                font-size: 1.5rem;
+                padding: 0 2px;
+                cursor: pointer;
+                transition: color 0.1s;
+            }
+
+                /* Filling stars on hover/check */
+                .rating-input > input:checked ~ label,
+                .rating-input > label:hover,
+                .rating-input > label:hover ~ label {
+                    color: var(--amazon-star-gold); /* Filled star color */
+                }
+
+                    /* Ensures the stars are filled up to the selected one */
+                    .rating-input > input:checked + label:hover,
+                    .rating-input > input:checked ~ label:hover,
+                    .rating-input > input:checked ~ label:hover ~ label,
+                    .rating-input > label:hover ~ input:checked ~ label {
+                        color: var(--amazon-star-gold);
+                    }
     </style>
 }

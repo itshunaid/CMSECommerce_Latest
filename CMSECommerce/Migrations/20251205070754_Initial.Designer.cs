@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMSECommerce.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20251201092638_Initial")]
+    [Migration("20251205070754_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -241,6 +241,9 @@ namespace CMSECommerce.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("StockQuantity")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
@@ -257,7 +260,8 @@ namespace CMSECommerce.Migrations
                             Name = "Apples",
                             Price = 1.50m,
                             Slug = "apples",
-                            Status = 1
+                            Status = 1,
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -268,7 +272,8 @@ namespace CMSECommerce.Migrations
                             Name = "Grapefruit",
                             Price = 2m,
                             Slug = "grapefruit",
-                            Status = 1
+                            Status = 1,
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -279,7 +284,8 @@ namespace CMSECommerce.Migrations
                             Name = "Grapes",
                             Price = 1.80m,
                             Slug = "grapes",
-                            Status = 1
+                            Status = 1,
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -290,7 +296,8 @@ namespace CMSECommerce.Migrations
                             Name = "Oranges",
                             Price = 1.50m,
                             Slug = "oranges",
-                            Status = 1
+                            Status = 1,
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -301,7 +308,8 @@ namespace CMSECommerce.Migrations
                             Name = "Blue shirt",
                             Price = 7.99m,
                             Slug = "blue-shirt",
-                            Status = 1
+                            Status = 1,
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -312,7 +320,8 @@ namespace CMSECommerce.Migrations
                             Name = "Red shirt",
                             Price = 8.99m,
                             Slug = "red-shirt",
-                            Status = 1
+                            Status = 1,
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -323,7 +332,8 @@ namespace CMSECommerce.Migrations
                             Name = "Green shirt",
                             Price = 9.99m,
                             Slug = "green-shirt",
-                            Status = 1
+                            Status = 1,
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -334,8 +344,47 @@ namespace CMSECommerce.Migrations
                             Name = "Pink shirt",
                             Price = 10.99m,
                             Slug = "pink-shirt",
-                            Status = 1
+                            Status = 1,
+                            StockQuantity = 0
                         });
+                });
+
+            modelBuilder.Entity("CMSECommerce.Models.Review", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserName")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.SubscriberRequest", b =>
@@ -388,6 +437,12 @@ namespace CMSECommerce.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("FirstName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LastName")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -438,6 +493,10 @@ namespace CMSECommerce.Migrations
                     b.Property<string>("FacebookUrl")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("GpayQRCodePath")
                         .HasColumnType("TEXT");
 
@@ -451,6 +510,13 @@ namespace CMSECommerce.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("InstagramUrl")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsImageApproved")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LinkedInUrl")
@@ -684,6 +750,17 @@ namespace CMSECommerce.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("CMSECommerce.Models.Review", b =>
+                {
+                    b.HasOne("CMSECommerce.Models.Product", "Product")
+                        .WithMany("Reviews")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("CMSECommerce.Models.UserProfile", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
@@ -742,6 +819,11 @@ namespace CMSECommerce.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("CMSECommerce.Models.Product", b =>
+                {
+                    b.Navigation("Reviews");
                 });
 #pragma warning restore 612, 618
         }

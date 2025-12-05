@@ -1,13 +1,11 @@
 ﻿using CMSECommerce.Infrastructure;
+using CMSECommerce.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Linq; // Ensure this is included for LINQ methods
+using System.Linq;
 
 namespace CMSECommerce.Controllers
 {
-    // Ensure you have models for Product, Category, and the ProductStatus enum
-    // (These are assumed to exist in CMSECommerce.Models and are required for the code to compile)
-
     public class ProductsController(
         DataContext context,
         IWebHostEnvironment webHostEnvironment) : Controller
@@ -15,8 +13,7 @@ namespace CMSECommerce.Controllers
         private readonly DataContext _context = context;
         private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
 
-        // The Index action handles category filtering (slug), searching (searchTerm), 
-        // pagination (p), and sorting (sortOrder).
+        // The Index action handles category filtering, searching, pagination, and sorting.
         public async Task<IActionResult> Index(
             string slug = "",
             int p = 1,
@@ -28,7 +25,6 @@ namespace CMSECommerce.Controllers
             ViewBag.PageRange = pageSize;
 
             // 1. Start with all approved products
-            // IQueryable allows deferred execution; filters and sorting will be translated to SQL before fetching.
             IQueryable<Product> products = _context.Products
                 .Where(x => x.Status == Models.ProductStatus.Approved);
 
@@ -64,12 +60,11 @@ namespace CMSECommerce.Controllers
             }
 
             // --- 4. Apply Sorting ---
-            // Use a switch expression for cleaner sorting logic
             products = sortOrder switch
             {
-                // RESOLUTION: Cast Price (decimal) to double for SQLite sorting
-                "price-asc" => products.OrderBy(x => (double)x.Price),       // Price: Low to High
-                "price-desc" => products.OrderByDescending(x => (double)x.Price),  // Price: High to Low
+                // RESOLUTION: Cast Price (decimal) to double for SQLite sorting (if required by provider)
+                "price-asc" => products.OrderBy(x => (double)x.Price),     // Price: Low to High
+                "price-desc" => products.OrderByDescending(x => (double)x.Price), // Price: High to Low
 
                 // Existing sorting for other fields remains the same
                 "name-asc" => products.OrderBy(x => x.Name),
@@ -78,7 +73,6 @@ namespace CMSECommerce.Controllers
             ViewBag.SortOrder = sortOrder;
 
             // --- 5. Calculate Total Pages (Fetch Count) ---
-            // Count must be run AFTER all filtering and searching, but BEFORE paging (Skip/Take).
             int totalProducts = await products.CountAsync();
             ViewBag.TotalPages = (int)Math.Ceiling((decimal)totalProducts / pageSize);
 
@@ -97,13 +91,15 @@ namespace CMSECommerce.Controllers
             return View(pagedProducts);
         }
 
-        // --- Product Detail Page (No changes needed, but included for completeness) ---
+        // --- Product Detail Page ---
         public async Task<IActionResult> Product(string slug = "")
         {
             Product product = await _context.Products
-                                            .Where(x => x.Slug == slug)
-                                            .Include(x => x.Category) // Include category
-                                            .FirstOrDefaultAsync();
+                                                .Where(x => x.Slug == slug)
+                                                .Include(x => x.Category) // Include category
+                                                                          // 🌟 NECESSARY CHANGE: Eagerly load reviews 🌟
+                                                .Include(x => x.Reviews)
+                                                .FirstOrDefaultAsync();
 
             if (product == null) return RedirectToAction("Index");
 

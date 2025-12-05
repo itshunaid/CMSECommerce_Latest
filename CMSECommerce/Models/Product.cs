@@ -58,5 +58,45 @@ namespace CMSECommerce.Models
         // ✅ Computed property: in stock status
         [NotMapped]
         public bool InStock => StockQuantity > 0;
+
+        public ICollection<Review> Reviews { get; set; } // To display existing reviews
+
+        // New Calculated Properties (Use [NotMapped] if not storing in DB)
+        [NotMapped]
+        public double AverageRating => Reviews != null && Reviews.Any() ? Reviews.Average(r => r.Rating) : 0;
+
+        [NotMapped]
+        public int RatingCount => Reviews?.Count ?? 0;
+    }
+
+    public class Review
+    {
+        public int Id { get; set; }
+
+        // Foreign Key to the Product
+        public int ProductId { get; set; }
+        public Product Product { get; set; } // Navigation property back to Product
+
+        // The User/AppUser ID of the reviewer
+        public string UserId { get; set; }
+        // public AppUser User { get; set; } // Navigation property to your Identity User model (recommended)
+
+        [Required(ErrorMessage = "Please select a rating.")]
+        [Range(1, 5, ErrorMessage = "Rating must be between 1 and 5.")]
+        public int Rating { get; set; } // 1 to 5
+
+        [Required(ErrorMessage = "Please provide a title.")]
+        [StringLength(100, ErrorMessage = "Title cannot exceed 100 characters.")]
+        public string Title { get; set; } // Added Title property
+
+        [Required(ErrorMessage = "Please enter your review comment.")]
+        [StringLength(1000, ErrorMessage = "Comment cannot exceed 1000 characters.")]
+        public string Comment { get; set; }
+
+        [DataType(DataType.DateTime)]
+        public DateTime DateCreated { get; set; } = DateTime.Now;
+
+        // Display name of the user (can be pulled from the related User object)
+        public string UserName { get; set; }
     }
 }

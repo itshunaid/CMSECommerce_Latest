@@ -163,6 +163,8 @@ namespace CMSECommerce.Migrations
                 {
                     Id = table.Column<string>(type: "TEXT", nullable: false),
                     UserName = table.Column<string>(type: "TEXT", nullable: false),
+                    FirstName = table.Column<string>(type: "TEXT", nullable: true),
+                    LastName = table.Column<string>(type: "TEXT", nullable: true),
                     Email = table.Column<string>(type: "TEXT", nullable: false),
                     Password = table.Column<string>(type: "TEXT", nullable: false),
                     ConfirmPassword = table.Column<string>(type: "TEXT", nullable: false),
@@ -292,8 +294,11 @@ namespace CMSECommerce.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     UserId = table.Column<string>(type: "TEXT", nullable: true),
+                    FirstName = table.Column<string>(type: "TEXT", nullable: false),
+                    LastName = table.Column<string>(type: "TEXT", nullable: false),
                     ITSNumber = table.Column<string>(type: "TEXT", nullable: true),
                     ProfileImagePath = table.Column<string>(type: "TEXT", nullable: true),
+                    IsImageApproved = table.Column<bool>(type: "INTEGER", nullable: false),
                     About = table.Column<string>(type: "TEXT", nullable: true),
                     Profession = table.Column<string>(type: "TEXT", nullable: true),
                     ServicesProvided = table.Column<string>(type: "TEXT", nullable: true),
@@ -332,7 +337,8 @@ namespace CMSECommerce.Migrations
                     Image = table.Column<string>(type: "TEXT", nullable: true),
                     OwnerId = table.Column<string>(type: "TEXT", nullable: true),
                     Status = table.Column<int>(type: "INTEGER", nullable: false),
-                    RejectionReason = table.Column<string>(type: "TEXT", nullable: true)
+                    RejectionReason = table.Column<string>(type: "TEXT", nullable: true),
+                    StockQuantity = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -341,6 +347,31 @@ namespace CMSECommerce.Migrations
                         name: "FK_Products_Categories_CategoryId",
                         column: x => x.CategoryId,
                         principalTable: "Categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Reviews",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    ProductId = table.Column<int>(type: "INTEGER", nullable: false),
+                    UserId = table.Column<string>(type: "TEXT", nullable: true),
+                    Rating = table.Column<int>(type: "INTEGER", nullable: false),
+                    Title = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Comment = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: false),
+                    DateCreated = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UserName = table.Column<string>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Reviews", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Reviews_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -367,17 +398,17 @@ namespace CMSECommerce.Migrations
 
             migrationBuilder.InsertData(
                 table: "Products",
-                columns: new[] { "Id", "CategoryId", "Description", "Image", "Name", "OwnerId", "Price", "RejectionReason", "Slug", "Status" },
+                columns: new[] { "Id", "CategoryId", "Description", "Image", "Name", "OwnerId", "Price", "RejectionReason", "Slug", "Status", "StockQuantity" },
                 values: new object[,]
                 {
-                    { 1, 2, "Juicy apples", "apple1.jpg", "Apples", null, 1.50m, null, "apples", 1 },
-                    { 2, 2, "Juicy grapefruit", "grapefruit1.jpg", "Grapefruit", null, 2m, null, "grapefruit", 1 },
-                    { 3, 2, "Fresh grapes", "grapes1.jpg", "Grapes", null, 1.80m, null, "grapes", 1 },
-                    { 4, 2, "Fresh oranges", "orange1.jpg", "Oranges", null, 1.50m, null, "oranges", 1 },
-                    { 5, 1, "Nice blue t-shirt", "blue1.jpg", "Blue shirt", null, 7.99m, null, "blue-shirt", 1 },
-                    { 6, 1, "Nice red t-shirt", "red1.jpg", "Red shirt", null, 8.99m, null, "red-shirt", 1 },
-                    { 7, 1, "Nice green t-shirt", "green1.png", "Green shirt", null, 9.99m, null, "green-shirt", 1 },
-                    { 8, 1, "Nice pink t-shirt", "pink1.png", "Pink shirt", null, 10.99m, null, "pink-shirt", 1 }
+                    { 1, 2, "Juicy apples", "apple1.jpg", "Apples", null, 1.50m, null, "apples", 1, 0 },
+                    { 2, 2, "Juicy grapefruit", "grapefruit1.jpg", "Grapefruit", null, 2m, null, "grapefruit", 1, 0 },
+                    { 3, 2, "Fresh grapes", "grapes1.jpg", "Grapes", null, 1.80m, null, "grapes", 1, 0 },
+                    { 4, 2, "Fresh oranges", "orange1.jpg", "Oranges", null, 1.50m, null, "oranges", 1, 0 },
+                    { 5, 1, "Nice blue t-shirt", "blue1.jpg", "Blue shirt", null, 7.99m, null, "blue-shirt", 1, 0 },
+                    { 6, 1, "Nice red t-shirt", "red1.jpg", "Red shirt", null, 8.99m, null, "red-shirt", 1, 0 },
+                    { 7, 1, "Nice green t-shirt", "green1.png", "Green shirt", null, 9.99m, null, "green-shirt", 1, 0 },
+                    { 8, 1, "Nice pink t-shirt", "pink1.png", "Pink shirt", null, 10.99m, null, "pink-shirt", 1, 0 }
                 });
 
             migrationBuilder.CreateIndex(
@@ -423,6 +454,11 @@ namespace CMSECommerce.Migrations
                 column: "CategoryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Reviews_ProductId",
+                table: "Reviews",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserProfiles_UserId",
                 table: "UserProfiles",
                 column: "UserId");
@@ -459,7 +495,7 @@ namespace CMSECommerce.Migrations
                 name: "Pages");
 
             migrationBuilder.DropTable(
-                name: "Products");
+                name: "Reviews");
 
             migrationBuilder.DropTable(
                 name: "SubscriberRequests");
@@ -474,10 +510,13 @@ namespace CMSECommerce.Migrations
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "Categories");
+                name: "Products");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Categories");
         }
     }
 }
