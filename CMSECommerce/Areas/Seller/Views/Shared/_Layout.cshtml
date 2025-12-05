@@ -3,51 +3,181 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - CMSECommerce ADMIN</title>
+    <title>Seller Panel</title>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CMSECommerce.styles.css" asp-append-version="true" />
-    <!-- REQUIRED FIX: Place this in your <head> section (e.g., _Layout.cshtml) -->
+
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
           integrity="sha512-SnH5qT4u2P+m2XGqWb6F7O5gA9U3GzM/4eA1L3/T5E5iF5gD4/H1W9oG4fG9F3/N1F2d6C7d9C4dF5eA=="
           crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        :root {
+            /* Amazon Primary Colors */
+            --amz-navy: #131921; /* Header/Global Background */
+            --amz-navy-2: #232f3e; /* Secondary Bar/Menu */
+            --amz-orange: #ff9900; /* Highlight/Logo Accent */
+            --amz-yellow: #f3a847; /* Search Button */
+            --amz-bg-light: #eaeded; /* Light gray page background */
+        }
+
+        body {
+            background-color: var(--amz-bg-light);
+        }
+
+        /* --- 1. Header (Navbar) --- */
+        .amz-header-primary {
+            background-color: var(--amz-navy); /* Dark Navy Blue */
+            border: none;
+            box-shadow: none;
+            padding: 5px 0; /* Make it slightly shorter */
+        }
+
+            /* Logo/Brand */
+            .amz-header-primary .navbar-brand {
+                color: #fff; /* White text */
+                font-weight: 700;
+                letter-spacing: 0.5px;
+                padding: 0 10px;
+                display: flex;
+                align-items: center;
+                font-size: 1.5rem;
+            }
+
+            /* Links (text-white makes it white) */
+            .amz-header-primary .nav-link {
+                color: #fff !important;
+                font-size: 0.9rem;
+                padding: 8px 15px;
+                border: 1px solid transparent;
+            }
+
+                /* Links Hover Effect (Subtle glow/border) */
+                .amz-header-primary .nav-link:hover {
+                    border: 1px solid #fff;
+                    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5);
+                    border-radius: 3px;
+                }
+
+            /* Logout Link */
+            .amz-header-primary .nav-item .fa-sign-out-alt {
+                color: var(--amz-orange); /* Highlight logout icon */
+            }
+
+            /* Toggle Button (mobile) */
+            .amz-header-primary .navbar-toggler {
+                border-color: #fff;
+            }
+
+            .amz-header-primary .navbar-toggler-icon {
+                background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3e%3cpath stroke='rgba(255, 255, 255, 1)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+            }
+
+        /* --- 2. Search Bar Styling (Amazon Style) --- */
+        .amz-search-container {
+            flex-grow: 1;
+            max-width: 600px;
+            margin: 0 15px;
+            display: flex;
+        }
+
+        .amz-search-input {
+            width: 100%;
+            border: none;
+            padding: 7px 10px;
+            height: 40px;
+            border-radius: 4px 0 0 4px; /* Only round the left side */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1) inset;
+        }
+
+        .amz-search-button {
+            background-color: var(--amz-yellow); /* Amazon Search Button Yellow */
+            border: none;
+            color: var(--amz-navy);
+            height: 40px;
+            width: 45px;
+            border-radius: 0 4px 4px 0; /* Only round the right side */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .amz-search-button:hover {
+                background-color: var(--amz-orange);
+            }
+
+        /* --- 3. Main Content Area --- */
+        .container {
+            max-width: 1400px;
+        }
+
+        /* --- 4. Footer --- */
+        .amz-footer {
+            background-color: var(--amz-navy-2); /* Darker footer */
+            color: #ccc;
+            border-top: none;
+            padding: 10px 0;
+            margin-top: 20px;
+        }
+
+            .amz-footer a {
+                color: #fff;
+                text-decoration: none;
+            }
+
+                .amz-footer a:hover {
+                    color: var(--amz-orange);
+                    text-decoration: underline;
+                }
+    </style>
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-lg amz-header-primary">
             <div class="container-fluid">
-                <a class="navbar-brand" href="\Products\index" target="_blank">CMSECommerce</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                <a class="navbar-brand" href="\Products\Index" target="_blank">
+                    <i class="fas fa-box" style="color:var(--amz-orange); margin-right:5px;"></i>
+                    <span style="font-weight: 300;">S</span><span style="color:var(--amz-orange);">ELLER</span> Panel
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+                    
+
+
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a asp-area="Seller"
-                               asp-controller="Dashboard"
-                               asp-action="Index"
-                               class="nav-link text-dark">Dashboard</a>
+                            <a asp-area="Seller" asp-controller="Dashboard" asp-action="Index" class="nav-link">
+                                <i class="fas fa-home me-1"></i> Dashboard
+                            </a>
                         </li>
-                        
                         <li class="nav-item">
-                            <a asp-area="Seller"
-                               asp-controller="Products"
-                               asp-action="Index"
-                               class="nav-link text-dark">Products</a>
+                            <a asp-area="Seller" asp-controller="Products" asp-action="Index" class="nav-link">
+                                <i class="fas fa-cube me-1"></i> Products
+                            </a>
                         </li>
-                        
                     </ul>
-                    <ul class="navbar-nav flex-grow-1 justify-content-end">
+
+                    <ul class="navbar-nav justify-content-end">
                         @if (User.Identity.IsAuthenticated)
                         {
+                            <li class="nav-item d-flex align-items-center me-3">
+                                <span class="nav-link text-white" style="font-size:0.95rem;">
+                                    Hello, <span style="font-weight:600;">@User.Identity.Name</span>!
+                                </span>
+                            </li>
                             <li class="nav-item">
-                                <a asp-area=""
-                                   asp-controller="Account"
-                                   asp-action="Logout"
-                                   class="nav-link text-dark">
-                                    Log Out
+                                <a asp-area="" asp-controller="Account" asp-action="Logout" class="nav-link">
+                                    <i class="fas fa-sign-out-alt me-1"></i> Log Out
                                 </a>
                             </li>
                         }
@@ -63,9 +193,9 @@
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
+    <footer class="amz-footer">
         <div class="container">
-            &copy; 2024 - CMSECommerce - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            &copy; @DateTime.Now.Year - CMSECommerce - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

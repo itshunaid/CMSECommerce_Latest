@@ -1,60 +1,327 @@
-@model global::System.Collections.Generic.IEnumerable<global::CMSECommerce.Areas.Admin.Models.UserViewModel>
+﻿@model global::System.Collections.Generic.IEnumerable<global::CMSECommerce.Areas.Admin.Models.UserViewModel>
 
 @{
     ViewData["Title"] = "Users";
 }
 
-<h1>Users</h1>
+<style>
+    :root {
+        --amz-navy: #232f3e;
+        --amz-navy-2: #1e2a33;
+        --amz-orange: #febd69;
+        --amz-orange-2: #f3a847;
+        --amz-slate: #37475a;
+        --amz-green: #007600;
+        --amz-red: #b12704;
+        --amz-gray-100: #f8f9fa;
+        --amz-gray-200: #edf1f5;
+        --amz-gray-300: #dfe5ea;
+        --amz-gray-500: #6b7280;
+        --amz-border: #d8dadd;
+    }
 
-<p>
-    <a asp-action="Create" class="btn btn-primary">Create User</a>
-</p>
+    /* Top header bar */
+    .amz-header {
+        background: var(--amz-navy);
+        color: #fff;
+        padding: 16px 24px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+    .amz-header h1 {
+        font-size: 1.25rem;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        letter-spacing: .2px;
+    }
+    .amz-subtitle {
+        font-size: .875rem;
+        color: #cbd5e1;
+        margin-top: 2px;
+    }
 
-<table class="table table-striped table-bordered">
-    <thead>
-        <tr>
-            <th>Username</th>
-            <th>Email</th>
-            <th>PhoneNumber</th>
-            <th>Roles</th>
-            <th>Enabled</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var u in Model)
-        {
-            <tr>
-                <td>@u.UserName</td>
-                <td>@u.Email</td>
-                <td>@u.PhoneNumber</td>
-                <td>@string.Join(", ", u.Roles)</td>
-                <td>
-                    @* Display "Yes" if not locked out, "No" if locked out *@
-                    @(u.IsLockedOut ? "No" : "Yes")
-                </td>
-                <td class="d-flex justify-content-start align-items-center">
+    /* Buttons */
+    .btn-amz-primary {
+        background: var(--amz-orange);
+        color: #111;
+        border: 1px solid #e6a53a;
+        font-weight: 600;
+        padding: 8px 14px;
+        border-radius: 6px;
+    }
+    .btn-amz-primary:hover {
+        background: var(--amz-orange-2);
+        color: #111;
+    }
+    .btn-amz-secondary {
+        background: #fff;
+        color: var(--amz-slate);
+        border: 1px solid var(--amz-border);
+        padding: 6px 12px;
+        border-radius: 6px;
+    }
+    .btn-amz-secondary:hover {
+        background: var(--amz-gray-100);
+    }
+    .btn-amz-warning {
+        background: #fff4e6;
+        color: #8a5800;
+        border: 1px solid #ffd199;
+        padding: 6px 12px;
+        border-radius: 6px;
+    }
+    .btn-amz-warning:hover {
+        background: #ffe7c2;
+    }
+    .btn-amz-danger {
+        background: #fff1f0;
+        color: var(--amz-red);
+        border: 1px solid #f4c7c4;
+        padding: 6px 12px;
+        border-radius: 6px;
+    }
+    .btn-amz-danger:hover {
+        background: #ffe3e0;
+    }
 
-                    @* Edit Action: Standard GET link *@
-                    <a asp-action="Edit" asp-route-id="@u.Id" class="btn btn-sm btn-secondary me-2">Edit</a>
+    /* Card container */
+    .amz-card {
+        background: #fff;
+        border: 1px solid var(--amz-border);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .amz-card-header {
+        padding: 12px 16px;
+        background: var(--amz-gray-100);
+        border-bottom: 1px solid var(--amz-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .amz-card-body {
+        padding: 0;
+    }
 
-                    @* Enable/Disable Action: Standard GET link *@
-                    <a asp-action="EnableDisable" asp-route-id="@u.Id" class="btn btn-sm btn-warning me-2">
-                        @(u.IsLockedOut ? "Enable" : "Disable")
-                    </a>
+    /* Table styling */
+    .amz-table-wrap {
+        width: 100%;
+        overflow: auto;
+    }
+    table.amz-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    table.amz-table thead th {
+        background: var(--amz-navy-2);
+        color: #e5e7eb;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        padding: 10px 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: .75rem;
+        letter-spacing: .3px;
+    }
+    table.amz-table tbody td {
+        padding: 10px 12px;
+        border-top: 1px solid var(--amz-border);
+        vertical-align: middle;
+        font-size: .95rem;
+        color: #111;
+    }
+    table.amz-table tbody tr:hover {
+        background: var(--amz-gray-100);
+    }
 
-                    @* ?? Delete Action: MUST use a POST form for security and to resolve the 405 error *@
-                    <form asp-action="Delete" asp-route-id="@u.Id" method="post" class="m-0">
-                        @* CRITICAL: Include the Anti-Forgery Token *@
-                        @Html.AntiForgeryToken()
+    /* Badges */
+    .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: .75rem;
+        font-weight: 600;
+        border: 1px solid var(--amz-border);
+        background: #fff;
+        color: var(--amz-slate);
+        margin-right: 6px;
+        margin-bottom: 4px;
+    }
+    .badge-green {
+        color: var(--amz-green);
+        border-color: #bfe3bf;
+        background: #f0fff0;
+    }
+    .badge-red {
+        color: var(--amz-red);
+        border-color: #f4c7c4;
+        background: #fff5f4;
+    }
 
-                        <button type="submit" class="btn btn-sm btn-danger"
-                                onclick="return confirm('Are you sure you want to delete user @u.UserName? This action is irreversible and will remove all their data.');">
-                            Delete
-                        </button>
-                    </form>
-                </td>
-            </tr>
+    /* Actions cell */
+    .amz-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    /* Utility */
+    .amz-search {
+        max-width: 320px;
+        width: 100%;
+    }
+    .amz-input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid var(--amz-border);
+        border-radius: 6px;
+        font-size: .95rem;
+    }
+
+    /*media (max-width: 768px) {
+        .amz-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+        .amz-actions { gap: 6px; }
+        table.amz-table thead { display: none; }
+        table.amz-table, table.amz-table tbody, table.amz-table tr, table.amz-table td {
+            display: block; width: 100%;
         }
-    </tbody>
-</table>
+        table.amz-table tbody tr { padding: 8px 12px; border-top: 1px solid var(--amz-border); }
+        table.amz-table tbody td { padding: 6px 0; }
+        table.amz-table tbody td::before {
+            content: attr(data-label);
+            display: block;
+            font-size: .75rem;
+            color: var(--amz-gray-500);
+            margin-bottom: 2px;
+            text-transform: uppercase;
+        }
+    } */
+</style>
+
+<div class="amz-header">
+    <div>
+        <h1>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M16 11c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zM8 13c-3.866 0-7 3.134-7 7v2h12v-2c0-3.866-3.134-7-7-7zM16 13c-1.178 0-2.273.342-3.2.93 1.905 1.289 3.2 3.468 3.2 5.97v2h8v-2c0-3.866-3.134-7-8-7z" fill="#febd69"/>
+            </svg>
+            Users
+        </h1>
+        <div class="amz-subtitle">Manage accounts, roles, and access</div>
+    </div>
+    <div>
+        <a asp-action="Create" class="btn-amz-primary">➕ Create User</a>
+    </div>
+</div>
+
+<div class="amz-card">
+    <div class="amz-card-header">
+        <div class="amz-search">
+            <input id="userSearch" class="amz-input" type="text" placeholder="Search by username, email, role…" oninput="filterUsers()" />
+        </div>
+        <div class="d-flex" style="gap:8px;">
+            <button type="button" class="btn-amz-secondary" onclick="resetSearch()">Reset</button>
+        </div>
+    </div>
+    <div class="amz-card-body">
+        <div class="amz-table-wrap">
+            <table class="amz-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Roles</th>
+                        <th>Enabled</th>
+                        <th style="min-width:220px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTbody">
+                    @foreach (var u in Model)
+                    {
+                        <tr>
+                            <td data-label="Username">
+                                <strong>@u.UserName</strong><br />
+                                <small style="color:var(--amz-gray-500);">ID: @u.Id</small>
+                            </td>
+                            <td data-label="Email">
+                                <a href="mailto:@u.Email">@u.Email</a>
+                            </td>
+                            <td data-label="Phone">
+                                @u.PhoneNumber
+                            </td>
+                            <td data-label="Roles">
+                                @if (u.Roles != null && u.Roles.Any())
+                                {
+                                    foreach (var role in u.Roles)
+                                    {
+                                        <span class="badge">@role</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="badge">None</span>
+                                }
+                            </td>
+                            <td data-label="Enabled">
+                                @if (u.IsLockedOut)
+                                {
+                                    <span class="badge badge-red">No</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-green">Yes</span>
+                                }
+                            </td>
+                            <td class="amz-actions" data-label="Actions">
+                                <a asp-action="Edit" asp-route-id="@u.Id" class="btn-amz-secondary">Edit</a>
+
+                                <a asp-action="EnableDisable" asp-route-id="@u.Id" 
+                                   class="btn-amz-secondary @(u.IsLockedOut ? "btn-amz-warning" : "")">
+                                    @(u.IsLockedOut ? "Enable" : "Disable")
+                                </a>
+
+                                <form asp-action="Delete" asp-route-id="@u.Id" method="post" class="m-0">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-amz-danger"
+                                            onclick="return confirm('Are you sure you want to delete user @u.UserName? This action is irreversible and will remove all their data.');"
+                                            title="Delete user">
+                                        Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function filterUsers() {
+        const q = (document.getElementById('userSearch').value || '').toLowerCase();
+        const rows = document.querySelectorAll('#usersTbody tr');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(q) ? '' : 'none';
+        });
+    }
+    function resetSearch() {
+        const input = document.getElementById('userSearch');
+        input.value = '';
+        filterUsers();
+        input.focus();
+    }
+</script>
+
