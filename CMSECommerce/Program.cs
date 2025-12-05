@@ -11,12 +11,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-//builder.Services.AddDbContext<DataContext>(options =>
-//{
-//    options.UseSqlServer(builder.Configuration["ConnectionStrings:DbConnection"]);
-//});
-
-
 //Add your DbContext with the SQLite provider
 var connectionString = builder.Configuration.GetConnectionString("DbConnection");
 // ✅ CORRECT: This line tells EF Core to use the SQLite provider.
@@ -167,7 +161,9 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ... after app.UseAuthorization();
+// ----------------------------------------------------------------------
+// ROUTE CONFIGURATION CHANGES
+// ----------------------------------------------------------------------
 
 // 1. Area Routes (Highest Priority)
 app.MapControllerRoute(
@@ -175,34 +171,47 @@ app.MapControllerRoute(
     pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
 
 // 2. Specific Controller Routes (MUST come before the generic/default routes)
+
+// Route for product details (e.g., /products/product-slug-name)
 app.MapControllerRoute(
     name: "product",
     pattern: "products/product/{slug?}",
     defaults: new { controller = "Products", action = "Product" });
-// ... other specific product routes ...
 
+// Route for cart actions (e.g., /cart/add)
 app.MapControllerRoute(
     name: "cart",
     pattern: "cart/{action}/{id?}",
     defaults: new { controller = "Cart", action = "Index" });
 
-// ⭐ CRUCIAL: The account route must be placed here.
+// Route for account actions (e.g., /account/login)
 app.MapControllerRoute(
     name: "account",
     pattern: "account/{action}",
     defaults: new { controller = "Account", action = "Index" });
 
+// Route for orders actions (e.g., /orders/history)
 app.MapControllerRoute(
     name: "orders",
     pattern: "orders/{action}",
     defaults: new { controller = "Orders", action = "Index" });
 
-// 3. Default MVC Route (Handles / and /Home/Index)
+// ⭐ CHANGE 1: Main Shop Route (Optional, but good practice for clarity)
+// This handles /products/{slug} for categories and /products for the main shop.
+app.MapControllerRoute(
+    name: "products",
+    pattern: "products/{slug?}",
+    defaults: new { controller = "Products", action = "Index" });
+
+
+// 3. Default MVC Route (Lowest Priority Standard Route)
+// ⭐ CHANGE 2: Sets the Products controller as the default landing page.
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Products}/{action=Index}/{id?}");
 
 // 4. CMS Page Route (Catch-all - MUST BE LAST)
+// This will now only catch requests that don't match Areas, Cart, Account, Orders, or Products.
 app.MapControllerRoute(
     name: "pages",
     pattern: "{slug?}",
