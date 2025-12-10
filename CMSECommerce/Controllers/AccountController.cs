@@ -25,9 +25,17 @@ namespace CMSECommerce.Controllers
 
         private async Task UpdateOrderShippedStatus(string username)
         {
-            // 1. Get ALL Order IDs for the current user
+            if (string.IsNullOrWhiteSpace(username))
+                           {
+                return; // No username provided, exit early.
+            }
+
+            // The current 'username' variable is assumed to hold the case-insensitive username to match.
+            string usernameLower = username.ToLower();
+
+            // 1. Get ALL Order IDs for the current user (case-insensitive)
             var userOrderIds = await _context.Orders
-                .Where(o => o.UserName == username)
+                .Where(o => o.UserName.ToLower() == usernameLower) // Convert both sides to lowercase for comparison
                 .Select(o => o.Id)
                 .ToListAsync();
 
@@ -543,6 +551,8 @@ namespace CMSECommerce.Controllers
             //var userName = _userManager.GetUserName(User);
             //var userId = _sign_in_manager.UserManager.GetUserId(User);
             //var product = await _context.Products.Where(p => p.OwnerId == userId).FirstOrDefaultAsync();
+
+            
 
             Order order = await _context.Orders.Where(x => x.Id == id).FirstOrDefaultAsync();
 

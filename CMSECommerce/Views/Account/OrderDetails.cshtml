@@ -1,6 +1,13 @@
 ﻿@model OrderDetailsViewModel
 
 @{
+    if(Model.Order == null)
+    {
+        <div class="alert alert-warning" role="alert">
+            No order details found.
+        </div>
+        return;
+    }
     // Set the page title dynamically
     ViewData["Title"] = $"Order #{Model.Order.Id} Details";
 

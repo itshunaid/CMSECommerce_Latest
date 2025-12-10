@@ -3,7 +3,7 @@
 @using Microsoft.AspNetCore.Routing
 @using System.Globalization
 
-@model PagedList<Order> 
+@model PagedList<Order> 
 
 @{
     ViewData["Title"] = "Your Orders History";
@@ -49,11 +49,12 @@
         border-radius: 3px;
         box-shadow: 0 2px 5px rgba(255, 216, 20, 0.4);
     }
-    .btn-amazon-primary:hover {
-        background-color: #F7CA00;
-        border-color: #F2C200;
-        color: @amazonDarkBlue;
-    }
+
+        .btn-amazon-primary:hover {
+            background-color: #F7CA00;
+            border-color: #F2C200;
+            color: @amazonDarkBlue;
+        }
 
     .btn-amazon-secondary {
         background-color: #F0F2F2;
@@ -62,11 +63,12 @@
         font-weight: 500;
         border-radius: 3px;
     }
-    .btn-amazon-secondary:hover {
-        background-color: #E3E6E6;
-        border-color: #A2A6AC;
-        color: @amazonDarkBlue;
-    }
+
+        .btn-amazon-secondary:hover {
+            background-color: #E3E6E6;
+            border-color: #A2A6AC;
+            color: @amazonDarkBlue;
+        }
 
     /* Order Card Styling */
     .order-card {
@@ -77,9 +79,9 @@
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); /* Subtle shadow */
     }
 
-    .order-card:hover {
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Slightly more prominent on hover */
-    }
+        .order-card:hover {
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Slightly more prominent on hover */
+        }
 
     .order-header {
         background-color: #F7FAFA; /* Very light gray header */
@@ -90,11 +92,11 @@
         border-top-left-radius: 8px;
         border-top-right-radius: 8px;
     }
-    
-    .order-header h5 {
-        font-size: 18px;
-        color: @amazonDarkBlue;
-    }
+
+        .order-header h5 {
+            font-size: 18px;
+            color: @amazonDarkBlue;
+        }
 
     /* Status Text */
     .status-shipped {
@@ -116,11 +118,11 @@
         border: 1px solid #DDDDDD;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     }
-    
-    .filter-box .form-control-sm, .filter-box .form-select-sm {
-        border-radius: 3px;
-        border: 1px solid #AAAAAA;
-    }
+
+        .filter-box .form-control-sm, .filter-box .form-select-sm {
+            border-radius: 3px;
+            border: 1px solid #AAAAAA;
+        }
 
     /* Total Price Styling */
     .order-total-price {
@@ -128,17 +130,19 @@
         font-weight: 700;
         color: #B12704; /* Amazon's price red/dark orange */
     }
-    
+
     /* Pagination styling */
     .pagination .page-item.active .page-link {
         background-color: @amazonYellow;
         border-color: @amazonYellow;
         color: @amazonDarkBlue;
     }
+
     .pagination .page-item .page-link {
         color: @amazonLinkBlue;
         border: 1px solid #DDDDDD;
     }
+
     .pagination .page-item.disabled .page-link {
         color: #AAAAAA;
     }
@@ -152,7 +156,7 @@
 
     @* --- SEARCH/FILTER FORM --- *@
     <div class="filter-box">
-        <form asp-action="Index" method="get">
+        <form asp-action="MyOrders" method="get">
             <div class="row g-3 align-items-end">
 
                 @* Filter by Order ID *@
@@ -228,7 +232,7 @@
 
                 <div class="card-body">
                     <div class="row align-items-center">
-                        
+
                         <div class="col-md-3 mb-3 mb-md-0">
                             <h6 class="text-uppercase small mb-1" style="color:#555555;">Status</h6>
                             @if (item.Shipped)
@@ -240,45 +244,19 @@
                                 <p class="status-pending mb-0"><i class="fas fa-sync-alt me-1"></i> PENDING</p>
                             }
                         </div>
-                        
+
                         <div class="col-md-2 mb-3 mb-md-0">
                             <h6 class="text-uppercase small mb-1" style="color:#555555;">Total</h6>
                             <p class="order-total-price mb-0">@item.GrandTotal.ToString("C", new CultureInfo("en-IN"))</p>
                         </div>
-                        
+
                         <div class="col-md-4 mb-3 mb-md-0">
                             <h6 class="text-uppercase small mb-1" style="color:#555555;">Ship To</h6>
                             <p class="mb-0 fw-bold">@item.UserName</p>
                             <p class="small text-muted mb-0">@item.PhoneNumber</p>
                         </div>
-                        
+
                         <div class="col-md-3 text-md-end d-flex flex-column align-items-md-end justify-content-center">
-
-                            @* Status Update Button (Admin/User Management) *@
-                            @if (item.Shipped)
-                            {
-                                @* Form to mark as Pending (Shipped = false) *@
-                                <form asp-action="ShippedStatus" method="post" class="mb-2">
-                                    <input type="hidden" name="id" value="@item.Id" />
-                                    <input type="hidden" name="shipped" value="false" />
-                                    <button type="submit" class="btn btn-amazon-secondary btn-sm text-decoration-none border-0">
-                                        <i class="fas fa-undo me-1"></i> Mark as Pending
-                                    </button>
-                                </form>
-                            }
-                            else
-                            {
-                                @* Form to mark as Shipped (Shipped = true) *@
-                                <form asp-action="ShippedStatus" method="post" class="mb-2">
-                                    <input type="hidden" name="id" value="@item.Id" />
-                                    <input type="hidden" name="shipped" value="true" />
-                                    <button type="submit" class="btn btn-amazon-primary btn-sm text-decoration-none">
-                                        <i class="fas fa-truck me-1"></i> Mark as Shipped
-                                    </button>
-                                </form>
-                            }
-
-                          
                             <a asp-area="" asp-controller="Account" asp-action="OrderDetails" asp-route-id="@item.Id"
                                class="btn btn-link btn-sm text-decoration-none" style="color: @amazonLinkBlue; font-weight: 500;">
                                 View Order Details
@@ -289,37 +267,37 @@
             </div>
         }
 
-        <hr class="mt-4" style="border-top: 1px solid #DDDDDD;"/>
+        <hr class="mt-4" style="border-top: 1px solid #DDDDDD;" />
 
-       
 
-        
-            var controllerName = ViewContext.RouteData.Values["Controller"].ToString();
-            var actionName = ViewContext.RouteData.Values["Action"].ToString();
 
-            // 1. Define RouteValueDictionary to hold the filter values
-            var routeValues = new RouteValueDictionary
-            {
-                { "orderId", currentOrderId },
-                { "status", currentStatus },
-                { "minTotal", currentMinTotal },
-                { "maxTotal", currentMaxTotal },
-                { "minDate", currentMinDate },
-                { "maxDate", currentMaxDate }
-            };
 
-            // 2. Rectification: Convert to the IDictionary<string, string> type required by asp-all-route-data
-            IDictionary<string, string> routeDataForTagHelper = routeValues.ToDictionary(
-            kvp => kvp.Key,
-            kvp => kvp.Value?.ToString()
-            );
+        var controllerName = ViewContext.RouteData.Values["Controller"].ToString();
+        var actionName = ViewContext.RouteData.Values["Action"].ToString();
 
-            // Calculation for the "Displaying Orders X to Y" text
-            int startItem = (Model.PageIndex - 1) * pageSize + 1;
-            int endItem = Model.PageIndex * pageSize;
-            if (endItem > Model.TotalCount) { endItem = Model.TotalCount; }
-            if (Model.TotalCount == 0) { startItem = 0; }
-        
+        // 1. Define RouteValueDictionary to hold the filter values
+        var routeValues = new RouteValueDictionary
+        {
+        { "orderId", currentOrderId },
+        { "status", currentStatus },
+        { "minTotal", currentMinTotal },
+        { "maxTotal", currentMaxTotal },
+        { "minDate", currentMinDate },
+        { "maxDate", currentMaxDate }
+        };
+
+        // 2. Rectification: Convert to the IDictionary<string, string> type required by asp-all-route-data
+        IDictionary<string, string> routeDataForTagHelper = routeValues.ToDictionary(
+        kvp => kvp.Key,
+        kvp => kvp.Value?.ToString()
+        );
+
+        // Calculation for the "Displaying Orders X to Y" text
+        int startItem = (Model.PageIndex - 1) * pageSize + 1;
+        int endItem = Model.PageIndex * pageSize;
+        if (endItem > Model.TotalCount) { endItem = Model.TotalCount; }
+        if (Model.TotalCount == 0) { startItem = 0; }
+
 
 
         <nav aria-label="Page navigation" class="d-flex justify-content-between align-items-center mb-5">
@@ -334,11 +312,11 @@
                     @{
                         routeDataForTagHelper["page"] = (Model.PageIndex - 1).ToString();
                     }
-                    <a class="page-link"  
-                        asp-controller="@controllerName"  
-                        asp-action="@actionName"  
-                        asp-all-route-data="routeDataForTagHelper"  
-                        aria-label="Previous">
+                    <a class="page-link"   
+                       asp-controller="@controllerName"   
+                       asp-action="@actionName"   
+                       asp-all-route-data="routeDataForTagHelper"   
+                       aria-label="Previous">
                         <span aria-hidden="true">&laquo; Previous</span>
                     </a>
                 </li>
@@ -350,10 +328,10 @@
                         @{
                             routeDataForTagHelper["page"] = i.ToString();
                         }
-                        <a class="page-link"  
-                            asp-controller="@controllerName"  
-                            asp-action="@actionName"  
-                            asp-all-route-data="routeDataForTagHelper">
+                        <a class="page-link"   
+                           asp-controller="@controllerName"   
+                           asp-action="@actionName"   
+                           asp-all-route-data="routeDataForTagHelper">
                             @i
                         </a>
                     </li>
@@ -364,11 +342,11 @@
                     @{
                         routeDataForTagHelper["page"] = (Model.PageIndex + 1).ToString();
                     }
-                    <a class="page-link"  
-                        asp-controller="@controllerName"  
-                        asp-action="@actionName"  
-                        asp-all-route-data="routeDataForTagHelper"  
-                        aria-label="Next">
+                    <a class="page-link"   
+                       asp-controller="@controllerName"   
+                       asp-action="@actionName"   
+                       asp-all-route-data="routeDataForTagHelper"   
+                       aria-label="Next">
                         Next &raquo;
                     </a>
                 </li>
