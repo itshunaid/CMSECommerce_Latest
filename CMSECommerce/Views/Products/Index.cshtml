@@ -1,16 +1,31 @@
 ﻿
-@model IEnumerable<Product>
-@* Assuming Product has Id, Name, Slug, Image, Price, Category properties *@
+@model ProductListViewModel
 
 @{
     ViewData["Title"] = "Vepari";
-    var categoryName = ViewBag.CategoryName as string;
-    var currentSearchTerm = ViewBag.CurrentSearchTerm as string;
+    
+    // Accessing properties via the View Model
+    var categoryName = Model.CategoryName;
+    var currentSearchTerm = Model.CurrentSearchTerm;
+    
+    // Keeping original ViewBags for properties not included in the simplified VM
     var currentCategorySlug = ViewBag.CategorySlug as string;
     var currentPage = (int)(ViewBag.PageNumber ?? 1);
     var totalPages = (int)(ViewBag.TotalPages ?? 1);
     var sortOrder = ViewBag.SortOrder as string ?? "default";
     var pageRange = ViewBag.PageRange ?? 3;
+    
+    // Logic to prepare the user lists from the View Model data
+    // Assuming ApplicationUser has an 'IsOnline' boolean property.
+    var onlineUsers = Model.AllUsers
+        .Where(dto => dto.IsOnline)
+        .OrderBy(dto => dto.User.UserName) // Access original user properties via dto.User
+        .ToList();
+
+    var offlineUsers = Model.AllUsers
+        .Where(dto => !dto.IsOnline)
+        .OrderBy(dto => dto.User.UserName)
+        .ToList();
 }
 
 <div class="container py-4">
@@ -45,8 +60,9 @@
 
     <hr class="mb-4" />
 
-    <div class="row g-4 product-card-grid">
-        <div class="col-lg-12">
+    <div class="row g-4"> 
+        
+        <div class="col-lg-9">
 
             <div class="row mb-4 align-items-end p-3 border rounded shadow-sm bg-white">
                 <div class="col-md-7">
@@ -79,12 +95,14 @@
 
             <div class="d-flex justify-content-start align-items-center mb-4 p-2 bg-light rounded shadow-sm border">
                 <h2 class="h6 text-muted mb-0">
-                    <i class="fas fa-filter me-2"></i> Showing @Model.Count() items on page @currentPage of @totalPages
+                    Use Model.Products.Count()
+                    <i class="fas fa-filter me-2"></i> Showing @Model.Products.Count() items on page @currentPage of @totalPages
                 </h2>
             </div>
 
-            <div class="row g-3">
-                @if (!Model.Any())
+            <div class="row g-3 product-card-grid"> 
+                
+                @if (!Model.Products.Any())
                 {
                     <div class="col-12">
                         <div class="alert alert-info text-center border-0 shadow-sm py-5" role="alert">
@@ -96,9 +114,10 @@
                     </div>
                 }
 
-                @foreach (var item in Model)
+              
+                @foreach (var item in Model.Products)
                 {
-                    <div class="col-xxl-3 col-xl-4 col-lg-4 col-md-4 col-sm-6 d-flex align-items-stretch">
+                    <div class="col-xxl-4 col-xl-4 col-lg-6 col-md-6 col-sm-6 d-flex align-items-stretch">
                         <div class="card product-card w-100 rounded-3 shadow-sm">
                             <a asp-action="Product" asp-route-slug="@item.Slug" class="d-block product-image-wrapper">
                                 <img src="/media/products/@item.Image" class="card-img-top product-img" alt="@item.Name" loading="lazy" />
@@ -162,6 +181,53 @@
                 </div>
             }
         </div>
+        
+        <div class="col-lg-3 d-none d-lg-block">
+            <div class="user-list-sidebar">
+                <div class="p-3 border rounded shadow-sm bg-white sticky-top" style="top: 20px;">
+                    <h5 class="fw-bold text-dark mb-3">
+                        <i class="fas fa-users me-2 text-amazon-teal"></i> User Status
+                    </h5>
+
+                    <div class="mb-4">
+                        <h6 class="fw-semibold text-success mb-2">
+                            <i class="fas fa-circle text-success me-1" style="font-size: 0.6rem;"></i> Online Users (@onlineUsers.Count)
+                        </h6>
+                        <ul class="list-unstyled small ps-3 border-start border-3 border-success">
+                            @foreach (var user in onlineUsers)
+                            {
+                                <li class="mb-1"><a href="#" class="text-decoration-none text-dark fw-medium">@user.User.Email</a></li>
+                            }
+                            @if (!onlineUsers.Any())
+                            {
+                                <li class="text-muted fst-italic">No users currently online.</li>
+                            }
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h6 class="fw-semibold text-muted mb-2">
+                            <i class="fas fa-circle text-secondary me-1" style="font-size: 0.6rem;"></i> Offline Users (@offlineUsers.Count)
+                        </h6>
+                        <ul class="list-unstyled small ps-3 border-start border-3 border-secondary">
+                            @foreach (var user in offlineUsers.Take(10))
+                            {
+                                <li class="text-muted mb-1">@user.User.Email</li>
+                            }
+                             @if (offlineUsers.Count > 10)
+                            {
+                                <li class="text-muted mt-2">... and @(offlineUsers.Count - 10) more.</li>
+                            }
+                            @if (!offlineUsers.Any() && !onlineUsers.Any())
+                            {
+                                <li class="text-muted fst-italic">No users found.</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
     </div>
 </div>
 

@@ -1,5 +1,7 @@
-﻿using CMSECommerce.Infrastructure;
+﻿using CMSECommerce.DTOs;
+using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
+using CMSECommerce.Models.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,18 +20,22 @@ namespace CMSECommerce.Controllers
 
         // The Index action handles category filtering, searching, pagination, and sorting.
         public async Task<IActionResult> Index(
-            string slug = "",
-            int p = 1,
-            string searchTerm = "",
-            string sortOrder = "")
+     string slug = "",
+     int p = 1,
+     string searchTerm = "",
+     string sortOrder = "")
         {
             // --- Paging Configuration ---
             int pageSize = 12;
-            ViewBag.PageRange = pageSize;
+            // NOTE: PageRange will be set in the View Model initializer
 
             // 1. Start with all approved products
             IQueryable<Product> products = _context.Products
                 .Where(x => x.Status == Models.ProductStatus.Approved);
+
+            // --- Initialize View Model Properties ---
+            string categoryName = null;
+            string categorySlug = "";
 
             // --- 2. Apply Category Filter ---
             if (!string.IsNullOrWhiteSpace(slug))
@@ -44,55 +50,109 @@ namespace CMSECommerce.Controllers
 
                 // Filter by category ID
                 products = products.Where(x => x.CategoryId == category.Id);
-                ViewBag.CategoryName = category.Name; // Set name for view display
-                ViewBag.CategorySlug = slug;
+                categoryName = category.Name; // Capture for VM
+                categorySlug = slug;         // Capture for VM
             }
-            else
-            {
-                ViewBag.CategorySlug = ""; // Main shop page
-            }
+            // ELSE: categorySlug remains "" for main shop page
 
             // --- 3. Apply Search Term Filter ---
             string searchFilter = searchTerm?.Trim();
-            ViewBag.CurrentSearchTerm = searchFilter;
 
             if (!string.IsNullOrWhiteSpace(searchFilter))
             {
                 // Filter by product name containing the search term
-                products = products.Where(x => x.Name.ToLower().Contains(searchTerm.ToLower()));
+                products = products.Where(x => x.Name.ToLower().Contains(searchFilter.ToLower()));
             }
 
             // --- 4. Apply Sorting ---
             products = sortOrder switch
             {
-                // RESOLUTION: Cast Price (decimal) to double for SQLite sorting (if required by provider)
-                "price-asc" => products.OrderBy(x => (double)x.Price),     // Price: Low to High
-                "price-desc" => products.OrderByDescending(x => (double)x.Price), // Price: High to Low
-
-                // Existing sorting for other fields remains the same
+                "price-asc" => products.OrderBy(x => (double)x.Price),
+                "price-desc" => products.OrderByDescending(x => (double)x.Price),
                 "name-asc" => products.OrderBy(x => x.Name),
                 _ => products.OrderByDescending(x => x.Id),
             };
-            ViewBag.SortOrder = sortOrder;
+            // sortOrder is already captured
 
             // --- 5. Calculate Total Pages (Fetch Count) ---
             int totalProducts = await products.CountAsync();
-            ViewBag.TotalPages = (int)Math.Ceiling((decimal)totalProducts / pageSize);
+            int totalPages = (int)Math.Ceiling((decimal)totalProducts / pageSize);
 
             // --- 6. Validate Page Number ---
             if (p < 1) p = 1;
-            if (p > (int)ViewBag.TotalPages && totalProducts > 0) p = (int)ViewBag.TotalPages;
-            ViewBag.PageNumber = p;
+            if (p > totalPages && totalProducts > 0) p = totalPages;
+            int pageNumber = p;
 
             // --- 7. Apply Paging and Execute Query ---
             List<Product> pagedProducts = await products
                 .Include(x => x.Category) // Eager load category data
-                .Skip((p - 1) * pageSize)
+                .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            return View(pagedProducts);
+
+
+            // --- 8. Fetch User List (Required for the sidebar) ---
+            // a) Fetch all users
+            var fetchedUsers = await _userManager.Users.ToListAsync();
+
+            // b) Fetch all current statuses from the new table
+            var statuses = await _context.UserStatuses
+                .ToDictionaryAsync(s => s.UserId, s => s.IsOnline);
+
+            // c) Combine data into DTOs
+            var userStatusDtos = fetchedUsers.Select(user => new UserStatusDto
+            {
+                User = user,
+                // Lookup status: Default to false if no entry is found (user never logged in)
+                IsOnline = statuses.GetValueOrDefault(user.Id, false)
+            }).ToList();
+
+            // Mocking the IsOnline status lookup:
+            // **CRITICAL:** In a real app, this data must come from a separate source
+            // (e.g., a SignalR connection service, a Redis cache, or a dedicated Status table)
+
+            var userStatusMap = GetRealTimeUserStatuses(fetchedUsers); // Example method call
+
+            
+            // --- 9. Create and return the View Model ---
+            var viewModel = new ProductListViewModel
+            {
+                Products = pagedProducts,
+
+                // Product Metadata (From Paging/Filtering Logic)
+                CategoryName = categoryName,
+                CategorySlug = categorySlug,
+                CurrentSearchTerm = searchFilter,
+                SortOrder = sortOrder,
+                PageNumber = pageNumber,
+                TotalPages = totalPages,
+                PageRange = pageSize, // Reusing pageSize as the PageRange value
+
+                // User List Data (for the sidebar)
+                AllUsers = userStatusDtos
+            };
+
+            return View(viewModel);
         }
+
+
+        // Example implementation for fetching status (This depends entirely on your real status tracking logic)
+        private Dictionary<string, bool> GetRealTimeUserStatuses(List<IdentityUser> users)
+        {
+            // This method would connect to your real-time status service (e.g., a SignalR Hub list, Redis cache)
+            // For demonstration, we'll mock some data based on user IDs
+            var statusMap = new Dictionary<string, bool>();
+
+            foreach (var user in users)
+            {
+                // Example logic: make every user with an odd ID offline
+                bool isUserOnline = (int.Parse(user.Id.Substring(0, 1)) % 2 == 0);
+                statusMap.Add(user.Id, isUserOnline);
+            }
+            return statusMap;
+        }
+
 
         // --- Product Detail Page ---
         public async Task<IActionResult> Product(string slug = "")

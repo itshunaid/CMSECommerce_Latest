@@ -521,30 +521,84 @@ namespace CMSECommerce.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(LoginViewModel loginVM)
         {
+            // The ReturnUrl should be handled here to prevent null reference if not provided.
+            string returnUrl = loginVM.ReturnUrl ?? "/";
+
             if (ModelState.IsValid)
             {
+                // 1. Attempt to find the user by UserName (since you are using FindByNameAsync)
+                // Note: You had a duplicate 'var user' declaration here and inconsistency with loginVM.UserName and input.Email later.
                 var user = await _userManager.FindByNameAsync(loginVM.UserName);
 
-                Microsoft.AspNetCore.Identity.SignInResult result = await _sign_in_manager.PasswordSignInAsync(loginVM.UserName, loginVM.Password, false, false);
-
-                if (result.Succeeded)
+                // Ensure user exists before proceeding, otherwise PasswordSignInAsync might throw an exception if the manager is configured to check existence.
+                if (user == null)
                 {
-                    return Redirect(loginVM.ReturnUrl ?? "/");
+                    ModelState.AddModelError(string.Empty, "Invalid username or password.");
+                    return View(loginVM);
                 }
 
-                ModelState.AddModelError("", "Invalid username or password");
+                // 2. Attempt the sign-in using the user's username
+                Microsoft.AspNetCore.Identity.SignInResult result =
+                    await _sign_in_manager.PasswordSignInAsync(loginVM.UserName, loginVM.Password, false, false);
+
+                // Use result.Succeeded to check for successful login
+                if (result.Succeeded)
+                {
+                    // --- USER STATUS TRACKING: SET ONLINE ---
+
+                    // 1. Get the status tracker for the successfully logged-in user
+                    var status = await _context.UserStatuses.FindAsync(user.Id);
+
+                    // 2. If no tracker exists, create one
+                    if (status == null)
+                    {
+                        status = new UserStatusTracker { UserId = user.Id };
+                        _context.UserStatuses.Add(status);
+                    }
+
+                    // 3. Update status to online and record activity time
+                    status.IsOnline = true;
+                    status.LastActivity = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+
+                    // 4. Redirect user to the intended URL
+                    return LocalRedirect(returnUrl);
+                }
+
+                // If login failed (e.g., bad password)
+                ModelState.AddModelError(string.Empty, "Invalid username or password.");
             }
 
+            // If ModelState is not valid or login failed
             return View(loginVM);
         }
 
         public async Task<IActionResult> Logout()
         {
-            await _sign_in_manager?.SignOutAsync();
+            // 1. Check if a user is currently logged in and get their ID before signing them out
+            string userId = _userManager.GetUserId(User);
+
+            // 2. Perform the sign-out operation
+            await _sign_in_manager.SignOutAsync();
+
+            if (userId != null)
+            {
+                // --- USER STATUS TRACKING: SET OFFLINE ---
+
+                // 3. Find the status tracker using the captured ID
+                var status = await _context.UserStatuses.FindAsync(userId);
+
+                // 4. Update status to offline
+                if (status != null)
+                {
+                    status.IsOnline = false;
+                    status.LastActivity = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+            }
 
             return Redirect("/");
         }
-
         public async Task<IActionResult> OrderDetails(int id)
         {
 

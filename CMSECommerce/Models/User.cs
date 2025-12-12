@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using Microsoft.AspNetCore.Identity;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace CMSECommerce.Models
@@ -59,5 +60,9 @@ namespace CMSECommerce.Models
 
         [Required]
         public string Country { get; set; }
+
+       
+
+       
     }
 }
