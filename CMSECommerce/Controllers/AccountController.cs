@@ -199,7 +199,7 @@ namespace CMSECommerce.Controllers
                 // ADDED FirstName and LastName
                 viewModel.FirstName = userProfile.FirstName;
                 viewModel.LastName = userProfile.LastName;
-
+                viewModel.IsProfileVisible = userProfile.IsProfileVisible;
                 viewModel.ITSNumber = userProfile.ITSNumber;
                 viewModel.About = userProfile.About;
                 viewModel.Profession = userProfile.Profession;
@@ -246,7 +246,7 @@ namespace CMSECommerce.Controllers
                 // ADDED FirstName and LastName
                 viewModel.FirstName = userProfile.FirstName;
                 viewModel.LastName = userProfile.LastName;
-
+                viewModel.IsProfileVisible = userProfile.IsProfileVisible;
                 viewModel.ITSNumber = userProfile.ITSNumber;
                 viewModel.About = userProfile.About;
                 viewModel.Profession = userProfile.Profession;
@@ -303,7 +303,7 @@ namespace CMSECommerce.Controllers
                 // ADDED FirstName and LastName
                 viewModel.FirstName = userProfile.FirstName;
                 viewModel.LastName = userProfile.LastName;
-
+                viewModel.IsProfileVisible=userProfile.IsProfileVisible;
                 viewModel.ITSNumber = userProfile.ITSNumber;
                 viewModel.About = userProfile.About;
                 viewModel.Profession = userProfile.Profession;
@@ -424,7 +424,7 @@ namespace CMSECommerce.Controllers
             // ADDED FirstName and LastName
             userProfile.FirstName = model.FirstName;
             userProfile.LastName = model.LastName;
-
+            userProfile.IsProfileVisible = model.IsProfileVisible;
             userProfile.ITSNumber = model.ITSNumber;
             userProfile.About = model.About;
             userProfile.Profession = model.Profession;
@@ -587,6 +587,7 @@ namespace CMSECommerce.Controllers
                 {
                     UserId = currentUser.Id,
                     RequestDate = System.DateTime.Now,
+                    UserName=currentUser.UserName,
                     // Assuming 'IsApproved' is set to false by default in the model
                     // and Status/Notes will be handled by the Admin.
                     Approved = false
@@ -706,6 +707,7 @@ namespace CMSECommerce.Controllers
                     LastName = profile?.LastName,
                     ITSNumber = profile?.ITSNumber,
                     Profession = profile?.Profession,
+                    IsProfileVisible=profile.IsProfileVisible,
                     // Assign the user's highest role, or "None"
                     CurrentRole = roles.FirstOrDefault() ?? "None"
                 };
@@ -720,14 +722,15 @@ namespace CMSECommerce.Controllers
             List<ProfileUpdateViewModel> filteredUserList = new();
             if(User.IsInRole("Admin"))
             {
-                filteredUserList = finalUserList                                       
+                filteredUserList = finalUserList
+                    .Where(u => u.IsProfileVisible)
                                        .OrderBy(u => u.UserName) // Optional: Add sorting
                                        .ToList();
             }
             else
             {
                 filteredUserList = finalUserList
-                                      .Where(u => u.CurrentRole != "Admin")
+                                      .Where(u => u.CurrentRole != "Admin" && u.IsProfileVisible)
                                       .OrderBy(u => u.UserName) // Optional: Add sorting
                                       .ToList();
             }
@@ -777,7 +780,7 @@ namespace CMSECommerce.Controllers
                 // ADDED FirstName and LastName
                 viewModel.FirstName = userProfile.FirstName;
                 viewModel.LastName = userProfile.LastName;
-
+                viewModel.IsProfileVisible = userProfile.IsProfileVisible;
                 viewModel.ITSNumber = userProfile.ITSNumber;
                 viewModel.About = userProfile.About;
                 viewModel.Profession = userProfile.Profession;

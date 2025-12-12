@@ -125,8 +125,18 @@
                         <input type="hidden" asp-for="ExistingPhonePeQRCodePath" />
                         <input type="hidden" asp-for="IsImageApproved" />
 
+                        @* <input type="hidden" asp-for="IsProfileVisible" value="false" /> *@
+                        <div class="form-check form-switch pt-2">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="IsProfileVisible" id="IsProfileVisibleSwitch" />
+                            <label class="form-check-label" for="IsProfileVisibleSwitch">
+                                <i class="fas fa-eye me-1"></i> Keep Profile Publicly Visible on <strong>Business Directory</strong>
+                            </label>
+                            <p class="text-muted small mt-1 mb-0">Uncheck this to hide your profile from public view across the site.</p>
+                        </div>
                         <h4 class="form-section-header-amazon"><i class="fas fa-user-circle me-2 text-amazon-link"></i> Account Details</h4>
+                     
                         <div class="row g-3 mb-4">
+                            
                             <div class="col-md-4 text-center">
                                 @if (Model.IsImageApproved == true && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
                                 {
@@ -142,7 +152,7 @@
                                 <input type="file" asp-for="ProfileImageUpload" class="form-control form-control-sm" />
                                 <span asp-validation-for="ProfileImageUpload" class="text-danger small"></span>
                             </div>
-
+                            
                             <div class="col-md-8">
                                 <div class="form-floating mb-3">
                                     <input asp-for="UserName" class="form-control" placeholder="Username" />
@@ -175,6 +185,8 @@
                                     <label asp-for="PhoneNumber"></label>
                                     <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
                                 </div>
+
+                                
                             </div>
                         </div>
 

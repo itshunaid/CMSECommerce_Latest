@@ -39,9 +39,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
             // Use the value from the parameter, which defaults to 6 if not passed
             // int pageSize = 6; // REMOVED: Now uses the parameter value
             int currentPage = pageNumber ?? 1;
-
+            ViewBag.AllProducts = true;
             // 2. Base Query
-            var products = _context.Products.Include(p => p.Category).AsQueryable();
+            var products = _context.Products.Where(p=> p.Status==ProductStatus.Approved).Include(p => p.Category).AsQueryable();
 
             // 3. Filtering (Case-Insensitive)
             if (!string.IsNullOrEmpty(SearchName))
@@ -114,6 +114,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
             // 1. Setup
             ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
             ViewBag.SelectedCategory = categoryId.ToString();
+            ViewBag.AllProducts = false;
 
             // Set Page Size
             int pageSize = 3;
@@ -416,7 +417,12 @@ namespace CMSECommerce.Areas.Admin.Controllers
             }
 
             TempData["Success"] = "Product has been approved.";
-            return RedirectToAction("Index");
+            var productsRequestCount = await _context.Products.Where(p => p.Status == ProductStatus.Pending || p.Status == ProductStatus.Rejected).CountAsync();
+            if(productsRequestCount==0)
+            {
+                return RedirectToAction("Index", "Dashboard");
+            }
+            return RedirectToAction("PendingProducts");
         }
 
         public async Task<IActionResult> Unapprove(int id)

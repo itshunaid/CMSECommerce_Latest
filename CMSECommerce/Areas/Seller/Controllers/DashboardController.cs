@@ -26,6 +26,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
         {
             var usersCount = await _userManager.Users.CountAsync();
             var productsCount = await _context.Products.Where(p=> p.OwnerId== _userManager.GetUserName(User)).CountAsync();
+            var lowProductsCount = await _context.Products.Where(p => p.OwnerId == _userManager.GetUserName(User) && p.StockQuantity==0).CountAsync();
             var ordersCount = await _context.OrderDetails.Where(p=> p.ProductOwner== _userManager.GetUserName(User) && p.IsProcessed==false).CountAsync();
             var isProcessedCount = await _context.OrderDetails.Where(p => p.ProductOwner == _userManager.GetUserName(User) && p.IsProcessed == true).CountAsync();
             var pendingRequests = await _context.SubscriberRequests.CountAsync(r => !r.Approved);
@@ -37,6 +38,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
             {
                 UsersCount = usersCount,
                 ProductsCount = productsCount,
+                LowProductsCount=lowProductsCount,
                 OrdersCount = ordersCount,
                 PendingSubscriberRequests = pendingRequests,
                 RecentOrders = recentOrders,

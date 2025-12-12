@@ -11,5 +11,6 @@ namespace CMSECommerce.Areas.Seller.Models
  public IEnumerable<Order> RecentOrders { get; set; }
         public int IsProcessedCount { get; set; }
         public int Categories { get;  set; }
+        public int LowProductsCount { get;  set; }
     }
 }

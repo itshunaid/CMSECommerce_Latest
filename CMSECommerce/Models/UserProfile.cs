@@ -37,7 +37,10 @@ namespace CMSECommerce.Models
 
         [Display(Name = "Image Approved")]
         public bool IsImageApproved { get; set; } = false; // Default to false (unapproved)
-
+        // NEW FIELD FOR PROFILE VISIBILITY
+        [Display(Name = "Keep Profile Visible")]
+        [Description("If checked, this profile will be publicly visible.")]
+        public bool IsProfileVisible { get; set; } = true; // Default to true (visible)
         // Bio and Profession
         [DataType(DataType.MultilineText)]
         public string About { get; set; }

@@ -1,20 +1,20 @@
 ﻿@model IEnumerable<CMSECommerce.Models.ViewModels.ProfileUpdateViewModel>
 
 @{
-    ViewData["Title"] = "Registered User List";
+    ViewData["Title"] = "Registered Seller List";
 }
 
 <div class="container mt-5">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="display-5 fw-bold text-dark"><i class="fas fa-users me-2"></i> Registered Users</h2>
+        <h2 class="display-5 fw-bold text-dark"><i class="fas fa-users me-2"></i> Registered Sellers</h2>
     </div>
 
     @if (!Model.Any())
     {
         <div class="alert alert-info py-3 shadow-sm" role="alert">
             <h4 class="alert-heading"><i class="fas fa-info-circle me-2"></i>No Users Found</h4>
-            <p class="mb-0">There are currently no registered users in the system to display.</p>
+            <p class="mb-0">There are currently no registered sellers in the system to display.</p>
         </div>
     }
     else
@@ -59,7 +59,7 @@
             </table>
         </div>
 
-        <p class="text-muted small mt-3">Total Registered Users: **@Model.Count()**</p>
+        <p class="text-muted small mt-3">Total Registered Sellers: @Model.Count()</p>
     }
 </div>
 

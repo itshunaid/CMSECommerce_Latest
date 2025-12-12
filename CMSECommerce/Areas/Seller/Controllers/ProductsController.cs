@@ -82,6 +82,65 @@ namespace CMSECommerce.Areas.Seller.Controllers
             return View(products);
         }
 
+       
+
+        public async Task<IActionResult> Inventory(int categoryId = 0, string search = "", string status = "", int p = 1)
+        {
+            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
+
+            ViewBag.SelectedCategory = categoryId.ToString();
+            ViewBag.CurrentSearch = search; // Pass search query to View for persistence
+            ViewBag.CurrentStatus = status; // Pass status filter to View for persistence
+
+            int pageSize = 3;
+            ViewBag.PageNumber = p;
+            ViewBag.PageRange = pageSize;
+
+            // Filter products by OwnerId (the current logged-in seller)
+            var currentUserId = _userManager.GetUserName(User);
+            var productsQuery = _context.Products.Where(x => x.OwnerId == currentUserId && x.StockQuantity==0);
+
+            // 1. Apply category filter
+            if (categoryId != 0)
+            {
+                productsQuery = productsQuery.Where(x => x.CategoryId == categoryId);
+            }
+
+            // 2. Apply search filter
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                string searchLower = search.ToLower();
+                productsQuery = productsQuery.Where(x =>
+                    x.Name.ToLower().Contains(searchLower) ||
+                    x.Description.ToLower().Contains(searchLower)
+                );
+            }
+
+            // 3. Apply status filter
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                // Parse the status string back into the enum
+                if (Enum.TryParse(status, true, out ProductStatus productStatus))
+                {
+                    productsQuery = productsQuery.Where(x => x.Status == productStatus);
+                }
+            }
+
+
+            ViewBag.TotalPages = (int)Math.Ceiling((decimal)await productsQuery.CountAsync() / pageSize);
+
+            List<Product> products =
+                        await productsQuery
+                        .Include(x => x.Category)
+                        .OrderByDescending(x => x.Id)
+                        .Skip((p - 1) * pageSize)
+                        .Take(pageSize)
+                        .ToListAsync();
+            ViewBag.ProductsCount = products.Count();
+            return View("Index",products);
+        }
+
+
         public IActionResult Create()
         {
             ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name");
@@ -166,6 +225,9 @@ namespace CMSECommerce.Areas.Seller.Controllers
 
             return View(product);
         }
+
+
+        
 
         [HttpPost]
         [ValidateAntiForgeryToken]

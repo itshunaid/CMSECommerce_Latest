@@ -94,7 +94,7 @@
     @* Low Stock Alert *@
     <div class="col-xl-3 col-md-6">
         @{
-            var lowStockCount = Model.ProductsCount > 2 ? 2 : 0;
+            var lowStockCount = Model.LowProductsCount;
             string lowStockClass = lowStockCount > 0 ? "linear-gradient(135deg,#e74a3b,#c0392b)" : "linear-gradient(135deg,#1cc88a,#17a673)";
         }
         <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background:@lowStockClass;">

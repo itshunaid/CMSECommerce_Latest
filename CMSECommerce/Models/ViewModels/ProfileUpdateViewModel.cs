@@ -1,5 +1,6 @@
 ﻿using CMSECommerce.Models;
 using Microsoft.AspNetCore.Http;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace CMSECommerce.Models.ViewModels
@@ -19,6 +20,11 @@ namespace CMSECommerce.Models.ViewModels
         public bool IsImageApproved { get; set; } = false;
 
         // --- UserProfile Fields ---
+
+        // NEW FIELD FOR PROFILE VISIBILITY
+        [Display(Name = "Keep Profile Visible")]
+        [Description("If checked, this profile will be publicly visible.")]
+        public bool IsProfileVisible { get; set; } = true; // Default to true (visible)
 
         // ID & Bio
         [Display(Name = "ITS Number")]

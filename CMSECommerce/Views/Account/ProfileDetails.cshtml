@@ -4,6 +4,12 @@
 @{
     ViewData["Title"] = "My Profile Overview";
     var loggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    // Helper to determine visibility status
+    var isVisible = Model.IsProfileVisible;
+    var visibilityClass = isVisible ? "text-success" : "text-danger";
+    var visibilityIcon = isVisible ? "fa-eye" : "fa-eye-slash";
+    var visibilityText = isVisible ? "Publicly Visible on Business Directory" : "Hidden from Business Directory";
 }
 
 <style>
@@ -178,7 +184,13 @@
                         <i class="fas fa-user-circle fa-5x text-secondary mb-3"></i>
                     }
 
-                    <h2 class="h4 fw-bold text-amazon-dark-blue mb-0">Hello, @Model.UserName</h2>
+                    <h2 class="h4 fw-bold text-amazon-dark-blue mb-0">
+                        Hello, @Model.UserName
+                        @* NEW: Status Badge in Header *@
+                        <span class="ms-2 badge @(isVisible ? "bg-success" : "bg-danger") fw-normal" style="font-size: 0.75rem;">
+                            <i class="fas @visibilityIcon me-1"></i> @visibilityText
+                        </span>
+                    </h2>
                     <p class="text-muted small">@Model.Profession</p>
                 </div>
 
@@ -218,9 +230,21 @@
                         <div class="tab-pane fade show active" id="account" role="tabpanel" aria-labelledby="account-tab">
                             <h5 class="text-amazon-dark-blue mb-3">Login and Contact</h5>
                             <dl class="detail-list border rounded px-3 py-2 bg-white">
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">Profile Visibility:</dt>
+                                    <dd class="col-sm-8">
+                                        <span class="@visibilityClass fw-bold">
+                                            <i class="fas @visibilityIcon me-1"></i> @visibilityText
+                                        </span>
+                                    </dd>
+                                </div>
                                 <div class="row"><dt class="col-sm-4 text-muted">Username:</dt><dd class="col-sm-8 fw-bold text-amazon-dark-blue">@Model.UserName</dd></div>
                                 <div class="row"><dt class="col-sm-4 text-muted">Email:</dt><dd class="col-sm-8"><a href="mailto:@Model.Email" class="text-link-amazon">@Model.Email</a></dd></div>
                                 <div class="row"><dt class="col-sm-4 text-muted">Phone:</dt><dd class="col-sm-8">@Model.PhoneNumber</dd></div>
+
+                               
+                              
+
                             </dl>
                             <h5 class="mt-4 text-amazon-dark-blue">About Me:</h5>
                             <div class="p-3 border rounded bg-white shadow-sm">@(!string.IsNullOrEmpty(Model.About) ? @Model.About : "<em class='text-muted small'>N/A</em>")</div>
@@ -244,7 +268,6 @@
                                         }
                                         else
                                         {
-
                                             <span>N/A</span>
                                         }
                                     </dd>
