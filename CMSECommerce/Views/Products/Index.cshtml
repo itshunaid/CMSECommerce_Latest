@@ -1,51 +1,48 @@
-﻿
-@model ProductListViewModel
+﻿@model ProductListViewModel
 
 @{
     ViewData["Title"] = "Vepari";
-    
-    // Accessing properties via the View Model
-    var categoryName = Model.CategoryName;
+
+    // Accessing properties via the View Model
+    var categoryName = Model.CategoryName;
     var currentSearchTerm = Model.CurrentSearchTerm;
-    
-    // Keeping original ViewBags for properties not included in the simplified VM
-    var currentCategorySlug = ViewBag.CategorySlug as string;
+
+    // Keeping original ViewBags for properties not included in the simplified VM
+    var currentCategorySlug = ViewBag.CategorySlug as string;
     var currentPage = (int)(ViewBag.PageNumber ?? 1);
     var totalPages = (int)(ViewBag.TotalPages ?? 1);
     var sortOrder = ViewBag.SortOrder as string ?? "default";
     var pageRange = ViewBag.PageRange ?? 3;
-    
-    // Logic to prepare the user lists from the View Model data
-    // Assuming ApplicationUser has an 'IsOnline' boolean property.
-    var onlineUsers = Model.AllUsers
-        .Where(dto => dto.IsOnline)
-        .OrderBy(dto => dto.User.UserName) // Access original user properties via dto.User
-        .ToList();
+
+    // Logic to prepare the user lists from the View Model data
+    var onlineUsers = Model.AllUsers
+    .Where(dto => dto.IsOnline)
+    .OrderBy(dto => dto.User.UserName)
+    .ToList();
 
     var offlineUsers = Model.AllUsers
-        .Where(dto => !dto.IsOnline)
-        .OrderBy(dto => dto.User.UserName)
-        .ToList();
+      .Where(dto => !dto.IsOnline)
+      .OrderBy(dto => dto.User.UserName)
+      .ToList();
 }
 
 <div class="container py-4">
 
     <div class="row mb-3">
         <div class="col-12">
-            <h1 class="h3 fw-bold text-dark mb-1">
+            <h1 class="h3 fw-bold text-dark mb-1 amazon-heading">
                 @if (!string.IsNullOrEmpty(categoryName))
                 {
-                    <span class="text-amazon-teal">Results in </span> 
+                    <span class="text-amazon-teal">Results in </span>
                     @categoryName
                 }
                 else
                 {
                     <span class="text-amazon-teal">Featured </span>
-                    
-                                }
+                }
             </h1>
 
-            <p class="text-muted small mb-0">
+            <p class="text-muted small mb-0 amazon-text">
                 @if (!string.IsNullOrEmpty(currentSearchTerm))
                 {
                     <span>Showing results for: <strong class="text-dark">"@currentSearchTerm"</strong></span>
@@ -60,20 +57,20 @@
 
     <hr class="mb-4" />
 
-    <div class="row g-4"> 
-        
+    <div class="row g-4">
+
         <div class="col-lg-9">
 
-            <div class="row mb-4 align-items-end p-3 border rounded shadow-sm bg-white">
+            <div class="row mb-4 align-items-end p-3 rounded shadow-sm bg-light border amazon-filter-bar">
                 <div class="col-md-7">
-                    <label for="searchTermInput" class="form-label fw-bold text-dark small mb-1">Filter Search:</label>
-                    <form asp-controller="Products" asp-action="Index" method="get" class="d-flex input-group input-group-sm">
+                    <label for="searchTermInput" class="form-label fw-bold text-dark small mb-1 amazon-text">Filter Search:</label>
+                    <form asp-controller="Products" asp-action="Index" method="get" class="d-flex input-group input-group-sm amazon-search-group">
                         <input type="hidden" name="slug" value="@currentCategorySlug" />
                         <input type="hidden" name="p" value="1" />
                         <input type="hidden" name="sortOrder" value="@sortOrder" />
 
-                        <input type="text" name="searchTerm" id="searchTermInput" class="form-control form-control-sm"
-                               placeholder="Refine results..." value="@currentSearchTerm" />
+                        <input type="text" name="searchTerm" id="searchTermInput" class="form-control form-control-sm amazon-search-input"
+                                               placeholder="Refine results..." value="@currentSearchTerm" />
 
                         <button type="submit" class="btn btn-amazon-search">
                             <i class="fas fa-search"></i>
@@ -81,10 +78,10 @@
                     </form>
                 </div>
 
-                <div class="col-md-5 mt-3 mt-md-0 d-flex justify-content-end align-items-end">
-                    <label for="sortDropdown" class="form-label me-2 mb-0 small text-dark fw-bold">Sort By:</label>
+                <div class="col-md-5 mt-3 mt-md-0 d-flex justify-content-end align-items-center">
+                    <label for="sortDropdown" class="form-label me-2 mb-0 small text-dark fw-bold amazon-text">Sort By:</label>
 
-                    <select id="sortDropdown" class="form-select form-select-sm w-auto shadow-none border-secondary">
+                    <select id="sortDropdown" class="form-select form-select-sm w-auto amazon-sort-dropdown">
                         <option value="default">Default</option>
                         <option value="price-asc">Price: Low to High</option>
                         <option value="price-desc">Price: High to Low</option>
@@ -93,15 +90,14 @@
                 </div>
             </div>
 
-            <div class="d-flex justify-content-start align-items-center mb-4 p-2 bg-light rounded shadow-sm border">
-                <h2 class="h6 text-muted mb-0">
-                    Use Model.Products.Count()
+            <div class="d-flex justify-content-start align-items-center mb-4 p-2 bg-light rounded shadow-sm border amazon-results-header">
+                <h2 class="h6 text-muted mb-0 amazon-text">
                     <i class="fas fa-filter me-2"></i> Showing @Model.Products.Count() items on page @currentPage of @totalPages
                 </h2>
             </div>
 
-            <div class="row g-3 product-card-grid"> 
-                
+            <div class="row g-3 product-card-grid">
+
                 @if (!Model.Products.Any())
                 {
                     <div class="col-12">
@@ -114,7 +110,7 @@
                     </div>
                 }
 
-              
+
                 @foreach (var item in Model.Products)
                 {
                     <div class="col-xxl-4 col-xl-4 col-lg-6 col-md-6 col-sm-6 d-flex align-items-stretch">
@@ -126,7 +122,7 @@
                             <div class="card-body d-flex flex-column p-3">
                                 @if (item.Category != null)
                                 {
-                                    <p class="card-text small mb-0">
+                                    <p class="card-text small mb-0 amazon-text">
                                         <a asp-action="Index" asp-route-slug="@item.Category.Slug" class="text-decoration-none product-category-link">
                                             @item.Category.Name
                                         </a>
@@ -153,12 +149,12 @@
 
                                 <div class="d-grid gap-2">
                                     <a asp-controller="Cart" asp-action="Add" asp-route-id="@item.Id"
-                                       class="btn btn-amazon-yellow w-100 text-uppercase fw-bold btn-sm" role="button">
+                                                           class="btn btn-amazon-yellow w-100 text-uppercase fw-bold btn-sm" role="button">
                                         <i class="fas fa-shopping-basket me-2"></i> Add to Cart
                                     </a>
 
                                     <a asp-controller="Cart" asp-action="Index"
-                                       class="btn btn-amazon-outline w-100 text-uppercase fw-bold btn-sm" role="button">
+                                                           class="btn btn-amazon-outline w-100 text-uppercase fw-bold btn-sm" role="button">
                                         <i class="fas fa-shopping-cart me-2"></i> View Cart
                                     </a>
                                 </div>
@@ -172,62 +168,66 @@
             {
                 <div class="d-flex w-100 justify-content-center mt-5">
                     <front-pagination page-count="@totalPages"
-                                      page-target="@currentCategorySlug"
-                                      page-number="@currentPage"
-                                      page-range="@pageRange"
-                                      current-search-term="@currentSearchTerm"
-                                      sort-order="@sortOrder">
+                                                         page-target="@currentCategorySlug"
+                                                         page-number="@currentPage"
+                                                         page-range="@pageRange"
+                                                         current-search-term="@currentSearchTerm"
+                                                         sort-order="@sortOrder">
                     </front-pagination>
                 </div>
             }
         </div>
-        
+
         <div class="col-lg-3 d-none d-lg-block">
             <div class="user-list-sidebar">
-                <div class="p-3 border rounded shadow-sm bg-white sticky-top" style="top: 20px;">
-                    <h5 class="fw-bold text-dark mb-3">
+                <div class="p-3 border rounded-3 shadow-sm bg-white sticky-top amazon-sidebar-card" style="top: 20px;">
+                    <h5 class="fw-bold text-dark mb-3 amazon-sidebar-title">
                         <i class="fas fa-users me-2 text-amazon-teal"></i> User Status
                     </h5>
 
                     <div class="mb-4">
-                        <h6 class="fw-semibold text-success mb-2">
+                        <h6 class="fw-semibold text-success mb-2 amazon-status-header">
                             <i class="fas fa-circle text-success me-1" style="font-size: 0.6rem;"></i> Online Users (@onlineUsers.Count)
                         </h6>
-                        <ul class="list-unstyled small ps-3 border-start border-3 border-success">
+                        <ul class="list-unstyled small ps-3 border-start border-3 border-success amazon-list">
                             @foreach (var user in onlineUsers)
                             {
-                                <li class="mb-1"><a href="#" class="text-decoration-none text-dark fw-medium">@user.User.Email</a></li>
+                                <li class="mb-1">
+                                    <a href="#" class="text-decoration-none text-dark fw-medium amazon-sidebar-link">
+                                        @user.User.Email
+                                    </a>
+                                </li>
                             }
                             @if (!onlineUsers.Any())
                             {
-                                <li class="text-muted fst-italic">No users currently online.</li>
+                                <li class="text-muted fst-italic amazon-text">No users currently online.</li>
                             }
                         </ul>
                     </div>
 
                     <div>
-                        <h6 class="fw-semibold text-muted mb-2">
+                        <h6 class="fw-semibold text-muted mb-2 amazon-status-header">
                             <i class="fas fa-circle text-secondary me-1" style="font-size: 0.6rem;"></i> Offline Users (@offlineUsers.Count)
                         </h6>
-                        <ul class="list-unstyled small ps-3 border-start border-3 border-secondary">
+                        <ul class="list-unstyled small ps-3 border-start border-3 border-secondary amazon-list">
                             @foreach (var user in offlineUsers.Take(10))
                             {
-                                <li class="text-muted mb-1">@user.User.Email</li>
+                                <li class="text-muted mb-1 amazon-text">@user.User.Email</li>
                             }
-                             @if (offlineUsers.Count > 10)
+                            @if (offlineUsers.Count > 10)
                             {
-                                <li class="text-muted mt-2">... and @(offlineUsers.Count - 10) more.</li>
+                                <li class="text-muted mt-2 amazon-text">... and @(offlineUsers.Count - 10) more.</li>
                             }
                             @if (!offlineUsers.Any() && !onlineUsers.Any())
                             {
-                                <li class="text-muted fst-italic">No users found.</li>
+                                <li class="text-muted fst-italic amazon-text">No users found.</li>
                             }
                         </ul>
                     </div>
                 </div>
             </div>
         </div>
-        
+
     </div>
 </div>
 
@@ -302,152 +302,238 @@
 
 @section Styles {
     <style>
+
         /* Define Amazon-like Colors */
-        :root {
-            --amazon-orange-accent: #FF9900;
-            --amazon-price-red: #B12704;
-            --amazon-yellow-button: #FFD814;
-            --amazon-yellow-button-hover: #F7CA00;
-            --amazon-link-teal: #007185;
-            --amazon-search-yellow: #FEBD69;
+                :root {
+                        --amazon-black: #0F1111;
+                        --amazon-gray-text: #565959;
+                        --amazon-price-red: #B12704;
+                        --amazon-yellow-button: #FFD814;
+                        --amazon-yellow-button-hover: #F7CA00;
+                        --amazon-link-teal: #007185;
+                        --amazon-link-teal-hover: #C7511F;
+                        --amazon-search-yellow: #FEBD69;
+                        --amazon-border-gray: #D5D9D9;
+
         }
 
-        .text-amazon-teal {
-            color: var(--amazon-link-teal) !important;
+        /* ------------------------------------------------ */
+        /* --- GLOBAL AMAZON FONT AND BASE TEXT STYLES ---- */
+        /* ------------------------------------------------ */
+        .amazon-text, .amazon-heading, .amazon-sidebar-title, .amazon-sidebar-link, .amazon-status-header {
+            font-family: Arial, sans-serif !important;
+            color: var(--amazon-black);
         }
+
+                .text-amazon-teal {
+                        color: var(--amazon-link-teal) !important;
+
+        }
+
+        /* General Links: Amazon often uses teal/blue for internal links */
+        a {
+            color: var(--amazon-link-teal);
+        }
+
+        .amazon-sidebar-link:hover {
+            color: var(--amazon-link-teal-hover) !important;
+            text-decoration: underline !important;
+        }
+
 
         /* --- PRODUCT CARD STYLES --- */
-        .product-card {
-            border: 1px solid #d5d9d9 !important;
-            border-radius: 12px;
-            background: #fff;
-            transition: box-shadow .18s ease, border-color .18s ease;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden; /* Ensures rounded corners look right */
+                .product-card {
+                        border: 1px solid var(--amazon-border-gray) !important;
+                        border-radius: 8px;
+                        background: #fff;
+                        transition: box-shadow .18s ease, border-color .18s ease;
+                        display: flex;
+                        flex-direction: column;
+                        overflow: hidden;
+
         }
 
-            .product-card:hover {
-                box-shadow: 0 4px 12px rgba(0,0,0,.1);
-                border-color: var(--amazon-link-teal) !important;
-            }
+                    .product-card:hover {
+                            box-shadow: 0 4px 12px rgba(0,0,0,.1);
+                            border-color: #FAFAFA !important;
+
+        }
+
+        /* ================================================= */
+        /* === STANDARD PRODUCT IMAGE SIZE IMPLEMENTATION === */
+        /* ================================================= */
 
         .product-image-wrapper {
             background: #fff;
             padding: 18px;
-            height: 220px;
+            /* Remove fixed height to enable aspect ratio trick */
+            /* height: 220px; */
+
+            position: relative;
+            width: 100%;
+            /* 4:3 Aspect Ratio (3 / 4 * 100% = 75%). For 1:1, use 100% */
+            padding-top: 75%;
             border-bottom: 1px solid #eee;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             overflow: hidden;
         }
 
         .product-img {
             object-fit: contain;
-            max-height: 100%;
-            max-width: 100%;
+            /* Position the image absolutely to fit the aspect ratio container */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 18px; /* Apply padding here instead of wrapper */
             transition: transform .25s ease;
         }
 
-        .product-card:hover .product-img {
-            transform: scale(1.06);
+                .product-card:hover .product-img {
+                        transform: scale(1.06);
+
+        }
+        /* ================================================= */
+        /* ================================================= */
+
+                .product-category-link {
+                        color: var(--amazon-link-teal) !important;
+                        font-size: 0.75rem;
+                        font-weight: 500;
+                        text-transform: none;
+                        letter-spacing: normal;
+
         }
 
-        .product-category-link {
-            color: var(--amazon-link-teal) !important;
-            font-size: 0.80rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }
-
-            .product-category-link:hover {
-                text-decoration: underline !important;
-            }
-
-        .product-name a {
-            font-size: 1.05rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            line-height: 1.3;
-            height: 2.6em; /* Set a fixed height for consistency */
-            color: #0F1111 !important;
+                .product-name a {
+                        font-size: 1rem;
+                        color: var(--amazon-black) !important;
+                        line-height: 1.25;
             text-decoration: none;
-            font-weight: 600;
+                        font-weight: 400;
+
         }
 
-        .star-rating i {
-            color: #ffa41c; /* Amazon Star Gold */
-            margin-right: 2px;
+        .product-name a:hover {
+            color: var(--amazon-link-teal) !important;
         }
 
-        .price-text {
-            color: var(--amazon-price-red) !important;
-            font-size: 1.5rem !important;
-            font-weight: 700 !important;
-            font-family: "Amazon Ember", Arial, sans-serif; /* Ideal Amazon Font Family */
+                .star-rating i {
+                        color: #ffa41c;
+
         }
+
+                .price-text {
+                        color: var(--amazon-price-red) !important;
+                        font-size: 1.4rem !important;
+                        font-weight: 700 !important;
+
+        }
+
 
         /* --- BUTTONS --- */
+                .btn-amazon-yellow {
+                        background-color: var(--amazon-yellow-button) !important;
+                        border: 1px solid #FCD200 !important;
+                        color: #0F1111 !important;
+                        font-weight: 400;
+                        box-shadow: 0 1px 0 rgba(255,255,255,.6) inset;
+            border-radius: 8px;
 
-        /* Add to Cart Button (Primary Yellow) */
-        .btn-amazon-yellow {
-            background-color: var(--amazon-yellow-button) !important;
-            border-color: #FCD200 !important;
-            color: #0F1111 !important;
-            font-weight: 700;
-            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
         }
 
-            .btn-amazon-yellow:hover {
-                background-color: var(--amazon-yellow-button-hover) !important;
-            }
+                    .btn-amazon-yellow:hover {
+                            background-color: var(--amazon-yellow-button-hover) !important;
 
-        /* View Cart Button (Secondary Outline) */
-        .btn-amazon-outline {
-            border: 1px solid var(--amazon-link-teal) !important;
-            color: var(--amazon-link-teal) !important;
-            background: transparent;
-            font-weight: 700;
         }
 
-            .btn-amazon-outline:hover {
-                background-color: #E7F2F5 !important;
-                border-color: #005666 !important;
-            }
+                .btn-amazon-outline {
+                        border: 1px solid var(--amazon-border-gray) !important;
+                        color: var(--amazon-black) !important;
+                        background: #F7F7F7;
+                        font-weight: 400;
+            border-radius: 8px;
 
-        /* Search Button */
+        }
+
+                    .btn-amazon-outline:hover {
+                            background-color: #EAEAEA !important;
+                            border-color: #ADADAD !important;
+
+        }
+
+        /* Search Input and Button Styling */
+        .amazon-search-group {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(15,17,17,.15);
+        }
+
+        .amazon-search-input.form-control {
+            border: 1px solid var(--amazon-border-gray);
+            border-right: none;
+            padding: 0.375rem 0.75rem;
+            height: 38px;
+            box-shadow: none !important;
+        }
+
         .btn-amazon-search {
             background-color: var(--amazon-search-yellow) !important;
             border: none;
             color: #111;
+            padding: 0.375rem 0.75rem;
+            width: 40px;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
             .btn-amazon-search:hover {
                 background-color: #F3A847 !important;
             }
 
-        /* --- GRID & LAYOUT --- */
-        .product-card .card-body {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 1rem;
+        /* --- SIDEBAR STYLES --- */
+        .amazon-sidebar-card {
+            border-radius: 8px !important;
+            border: 1px solid #e7e7e7 !important;
         }
 
-        /* Responsive Adjustments */
+        .amazon-sidebar-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+
+        .amazon-status-header {
+            font-size: 0.95rem;
+            margin-top: 10px;
+        }
+
+        .amazon-list li {
+            padding-left: 0.5rem;
+        }
+
+        .amazon-list a.amazon-sidebar-link {
+            font-size: 0.85rem;
+            color: var(--amazon-link-teal);
+            font-weight: 400;
+        }
+
+        /* Responsive Adjustments: Maintain square on small screens too (optional but recommended) */
         @@media (max-width: 576px) {
             .product-image-wrapper {
-                height: 160px;
-                padding: 12px;
+                padding-top: 100%; /* Switch to 1:1 on mobile */
             }
 
-            .price-text {
-                font-size: 1.25rem !important;
+            .product-img {
+                padding: 12px;
             }
         }
+
+
     </style>
 }
