@@ -11,6 +11,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+// Razor Pages (for Admin area settings page)
+builder.Services.AddRazorPages();
+
 // Add SignalR services for real-time communication
 builder.Services.AddSignalR();
 
@@ -178,6 +181,9 @@ app.UseAuthorization();
 
 // Register SignalR hub mapping
 app.MapHub<CMSECommerce.Hubs.ChatHub>("/chatHub");
+
+// Map Razor Pages (ensure area pages are reachable)
+app.MapRazorPages();
 
 // ----------------------------------------------------------------------
 // ROUTE CONFIGURATION CHANGES
