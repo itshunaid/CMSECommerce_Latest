@@ -2,21 +2,33 @@
 using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
 using CMSECommerce.Models.ViewModels;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.IO;
+using System;
 
 namespace CMSECommerce.Controllers
 {
-    public class ProductsController(
-        DataContext context,
-        IWebHostEnvironment webHostEnvironment,
-        UserManager<IdentityUser> userManager) : Controller
+    public class ProductsController : Controller
     {
-        private readonly UserManager<IdentityUser> _userManager = userManager;
-        private readonly DataContext _context = context;
-        private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly DataContext _context;
+        private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IUserStatusService _userStatusService;
+
+        public ProductsController(DataContext context, IWebHostEnvironment webHostEnvironment, UserManager<IdentityUser> userManager, IUserStatusService userStatusService)
+        {
+            _context = context;
+            _webHostEnvironment = webHostEnvironment;
+            _userManager = userManager;
+            _userStatusService = userStatusService;
+        }
 
         // The Index action handles category filtering, searching, pagination, and sorting.
         public async Task<IActionResult> Index(
@@ -93,28 +105,18 @@ namespace CMSECommerce.Controllers
 
 
             // ---8. Fetch User List (Required for the sidebar) ---
-            // a) Fetch all users
-            var fetchedUsers = await _userManager.Users.ToListAsync();
+            var currentUserId = _userManager.GetUserId(User);
 
-            // b) Fetch all current statuses from the new table
-            // Consider a user "online" only if the IsOnline flag is true AND LastActivity is recent
-            var statusEntities = await _context.UserStatuses.ToListAsync();
-            var recentThreshold = DateTime.UtcNow.AddMinutes(-5); // consider activity within last5 minutes
-            var statuses = statusEntities
-                .ToDictionary(s => s.UserId, s => (s.IsOnline && s.LastActivity >= recentThreshold));
+            var userStatusDtos = await _userStatusService.GetAllOtherUsersStatusAsync(currentUserId);
 
-            // c) Combine data into DTOs
-            var userStatusDtos = fetchedUsers.Select(user => new UserStatusDto
+            // Find current logged-in user info to display separately (do not show in lists)
+            IdentityUser currentUser = null;
+            if (!string.IsNullOrEmpty(currentUserId))
             {
-                User = user,
-                // Lookup status: Default to false if no entry is found (user never logged in)
-                IsOnline = statuses.GetValueOrDefault(user.Id, false)
-            }).ToList();
+                currentUser = await _userManager.FindByIdAsync(currentUserId);
+            }
 
-            // Note: GetRealTimeUserStatuses was a placeholder and is not used in production.
-            // Real online state comes from UserStatuses table and recent LastActivity check above.
-
-            // --- 9. Create and return the View Model ---
+            // ---9. Create and return the View Model ---
             var viewModel = new ProductListViewModel
             {
                 Products = pagedProducts,
@@ -129,7 +131,8 @@ namespace CMSECommerce.Controllers
                 PageRange = pageSize, // Reusing pageSize as the PageRange value
 
                 // User List Data (for the sidebar)
-                AllUsers = userStatusDtos
+                AllUsers = userStatusDtos,
+                CurrentUser = currentUser
             };
 
             return View(viewModel);

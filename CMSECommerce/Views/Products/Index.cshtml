@@ -208,6 +208,17 @@
                     </div>
 
                     <div id="user-list-view">
+                        @* Show current logged-in user separately if present *@
+                        @if (Model.CurrentUser != null)
+                        {
+                        <div class="mb-3 p-2 border rounded bg-white">
+                            <h6 class="fw-semibold text-dark mb-1 small">You</h6>
+                            <div class="small">
+                                <strong>@Model.CurrentUser.UserName</strong>
+                            </div>
+                        </div>
+                        }
+
                         <div class="mb-3">
                             <h6 class="fw-semibold text-primary mb-2 amazon-status-header">
                                 <i class="fas fa-bullhorn text-primary me-1"></i> Broadcast

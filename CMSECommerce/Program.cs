@@ -61,6 +61,15 @@ builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
 // Register custom SignalR IUserIdProvider
 builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, CMSECommerce.Services.NameUserIdProvider>();
 
+// Bind UserStatus options
+builder.Services.Configure<CMSECommerce.Services.UserStatusOptions>(builder.Configuration.GetSection("UserStatus"));
+
+// Register the user status service used by multiple pages
+builder.Services.AddScoped<CMSECommerce.Services.IUserStatusService, CMSECommerce.Services.UserStatusService>();
+
+// Background cleanup service to mark stale users offline
+builder.Services.AddHostedService<CMSECommerce.Services.UserStatusCleanupService>();
+
 builder.Services.Configure<RouteOptions>(options =>
 {
  options.LowercaseUrls = true;

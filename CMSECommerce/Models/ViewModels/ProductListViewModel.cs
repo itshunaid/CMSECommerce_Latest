@@ -1,5 +1,6 @@
 ﻿using CMSECommerce.DTOs;
 using Microsoft.AspNetCore.Identity;
+using System.Collections.Generic;
 
 namespace CMSECommerce.Models.ViewModels
 {
@@ -26,6 +27,7 @@ namespace CMSECommerce.Models.ViewModels
         // Optional: Only include if the count is needed separately from Products.Count()
         // public int TotalProducts { get; set; }
 
-
+        // Chat related
+        public IdentityUser CurrentUser { get; set; }
     }
 }
