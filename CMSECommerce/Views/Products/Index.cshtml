@@ -287,11 +287,13 @@
  <div class="card-header d-flex justify-content-between align-items-center py-2 px-3">
  <h6 id="floating-chat-title" class="mb-0 small fw-bold">Chat</h6>
  <div>
+ <button id="floating-chat-users-toggle" class="btn btn-sm btn-outline-primary me-1" title="Show Users" aria-pressed="false"><i class="fas fa-users"></i></button>
  <button id="floating-chat-minimize" class="btn btn-sm btn-outline-secondary me-1" title="Minimize"><i class="fas fa-minus"></i></button>
  <button id="floating-chat-close" class="btn btn-sm btn-outline-danger" title="Close"><i class="fas fa-times"></i></button>
  </div>
  </div>
  <div class="card-body p-2">
+ <div id="floating-user-list" class="mb-2 border rounded p-2 bg-white" style="display:none; max-height:220px; overflow-y:auto;"></div>
  <div id="floating-chat-messages" class="chat-messages mb-2 border rounded p-2 bg-white" style="height:220px; overflow-y:auto;"></div>
  <div class="input-group">
  <input type="text" id="floating-chat-input" class="form-control form-control-sm" placeholder="Type a message..." />
@@ -439,6 +441,59 @@
  chatMessages.scrollTop = chatMessages.scrollHeight;
  });
 
+                // Receive private message that triggers opening the chat window for recipient
+                connection.on("ReceivePrivateMessage", function (senderId, senderName, message) {
+                try {
+                    // If this client is the sender, we don't want to duplicate the self-message.
+                    const currentUser = '@User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value';
+                    if (currentUser && currentUser === senderId) {
+                        // This is our own message echoed by the server; ignore since sender already added locally
+                        return;
+                    }
+
+                    // Show unread badge on sender in user list
+                    const userEls = document.querySelectorAll('[data-user-id="' + senderId + '"]');
+                    userEls.forEach(el => {
+                        const li = el.closest('li');
+                        if (!li) return;
+                        if (!li.querySelector('.unread-badge')) {
+                            const badge = document.createElement('span');
+                            badge.className = 'badge bg-danger ms-2 unread-badge';
+                            badge.textContent = '1';
+                            li.querySelector('a').appendChild(badge);
+                        } else {
+                            // increment count
+                            const badge = li.querySelector('.unread-badge');
+                            badge.textContent = (parseInt(badge.textContent || '0') +1).toString();
+                        }
+                    });
+
+                    // If chat is already open with this sender, append message and mark read
+                    if (currentChatTargetId === senderId && !isGroupChat) {
+                        const incoming = `\n <div class="chat-message-item mb-1 small">\n <span class="fw-bold">${senderName}:</span> ${message}\n </div>`;
+                        const targetMessages = document.getElementById('floating-chat-messages') || chatMessages;
+                        if (targetMessages) {
+                            targetMessages.insertAdjacentHTML('beforeend', incoming);
+                            targetMessages.scrollTop = targetMessages.scrollHeight;
+                        }
+                        // mark messages read server-side
+                        try { connection.invoke('MarkMessagesRead', senderId); } catch(e) { console.error(e); }
+                    } else {
+                        // Auto-open the chat window for the recipient
+                        openChatWindow(senderId, senderName, false);
+                        // insert message in opened window
+                        const incoming = `\n <div class="chat-message-item mb-1 small">\n <span class="fw-bold">${senderName}:</span> ${message}\n </div>`;
+                        const targetMessages = document.getElementById('floating-chat-messages') || chatMessages;
+                        if (targetMessages) {
+                            targetMessages.insertAdjacentHTML('beforeend', incoming);
+                            targetMessages.scrollTop = targetMessages.scrollHeight;
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error handling ReceivePrivateMessage', err);
+                }
+                });
+
                 //3. UI MANAGEMENT FUNCTIONS
                 function openChatWindow(targetId, targetName, isGroup) {
                     currentChatTargetId = targetId;
@@ -463,6 +518,16 @@
                         connection.invoke('GetRecentMessages', isGroup ? targetId : targetId, isGroup).catch(e => console.error('GetRecentMessages error', e));
                     } catch (e) {
                         console.error(e);
+                    }
+
+                    // clear unread badge on UI and mark read server-side for private chats
+                    if (!isGroup) {
+                        const els = document.querySelectorAll('[data-user-id="' + targetId + '"]');
+                        els.forEach(el=>{
+                            const badge = el.querySelector('.unread-badge');
+                            if (badge) badge.remove();
+                        });
+                        try { connection.invoke('MarkMessagesRead', targetId); } catch(e) { console.error(e); }
                     }
                 }
 
@@ -592,25 +657,47 @@
                     } else if (currentChatTargetId && currentChatTargetId !== 'Global') {
                          // One-to-One (send to user by id)
                          connection.invoke("SendPrivateMessage", currentChatTargetId, message).catch(err => console.error(err.toString()));
+                         // Add local self message once
+                         const selfMessage = `\n <div class="chat-message-item self-message mb-1 small text-end">\n <span class="fw-bold text-amazon-teal">You:</span> ${message}\n </div>`;
+                         const targetMessages = document.getElementById('floating-chat-messages') || chatMessages;
+                         if (targetMessages) {
+                            targetMessages.insertAdjacentHTML('beforeend', selfMessage);
+                            targetMessages.scrollTop = targetMessages.scrollHeight;
+                         }
                     }
-
-                    // Add the message to the current user's window immediately (Self-message UX)
-                    const selfMessage = `
-                         <div class="chat-message-item self-message mb-1 small text-end">
-                             <span class="fw-bold text-amazon-teal">You:</span> ${message}
-                         </div>`;
-                    const targetMessages = document.getElementById('floating-chat-messages') || chatMessages;
-                    if (targetMessages) {
-                        targetMessages.insertAdjacentHTML('beforeend', selfMessage);
-                        targetMessages.scrollTop = targetMessages.scrollHeight;
-                    }
-
-                    if (actualChatInput) actualChatInput.value = ''; // Clear input
                 }
 
                 // ===============================================
                 // =========== CHAT CLIENT LOGIC END =============
                 // ===============================================
+
+                // Floating user list toggle inside modal
+                const usersToggle = document.getElementById('floating-chat-users-toggle');
+                const floatingUserList = document.getElementById('floating-user-list');
+                if (usersToggle && floatingUserList) {
+                    usersToggle.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const pressed = usersToggle.getAttribute('aria-pressed') === 'true';
+                        if (pressed) {
+                            // hide user list, show messages
+                            floatingUserList.style.display = 'none';
+                            if (document.getElementById('floating-chat-messages')) document.getElementById('floating-chat-messages').style.display = 'block';
+                            usersToggle.setAttribute('aria-pressed', 'false');
+                        } else {
+                            // populate user list from sidebar view
+                            const sidebarView = document.getElementById('user-list-view');
+                            if (sidebarView) {
+                                // clone the inner HTML so event delegation still works
+                                floatingUserList.innerHTML = sidebarView.innerHTML;
+                            } else {
+                                floatingUserList.innerHTML = '<div class="small text-muted">No users available.</div>';
+                            }
+                            floatingUserList.style.display = 'block';
+                            if (document.getElementById('floating-chat-messages')) document.getElementById('floating-chat-messages').style.display = 'none';
+                            usersToggle.setAttribute('aria-pressed', 'true');
+                        }
+                    });
+                }
 
             });
         })();

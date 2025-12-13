@@ -29,6 +29,8 @@ namespace CMSECommerce.Infrastructure
                 b.HasKey(x => x.Id);
                 b.Property(x => x.MessageContent).IsRequired();
                 b.Property(x => x.Timestamp).HasDefaultValueSql("CURRENT_TIMESTAMP");
+                b.Property(x => x.IsRead).HasDefaultValue(false);
+                b.HasIndex(x => new { x.RecipientId, x.IsRead });
             });
 
             modelBuilder.Entity<Category>().HasData(

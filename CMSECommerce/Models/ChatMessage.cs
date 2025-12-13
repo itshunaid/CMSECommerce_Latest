@@ -23,5 +23,8 @@ namespace CMSECommerce.Models
         public string MessageContent { get; set; }
 
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+        // Whether the recipient has read this message (only meaningful for private messages)
+        public bool IsRead { get; set; } = false;
     }
 }

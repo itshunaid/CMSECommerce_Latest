@@ -58,6 +58,9 @@ builder.Services.AddAuthorization(options =>
 // register email sender
 builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
 
+// Register custom SignalR IUserIdProvider
+builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, CMSECommerce.Services.NameUserIdProvider>();
+
 builder.Services.Configure<RouteOptions>(options =>
 {
  options.LowercaseUrls = true;

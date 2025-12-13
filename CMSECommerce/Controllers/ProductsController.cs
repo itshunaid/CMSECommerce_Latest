@@ -92,13 +92,16 @@ namespace CMSECommerce.Controllers
 
 
 
-            // --- 8. Fetch User List (Required for the sidebar) ---
+            // ---8. Fetch User List (Required for the sidebar) ---
             // a) Fetch all users
             var fetchedUsers = await _userManager.Users.ToListAsync();
 
             // b) Fetch all current statuses from the new table
-            var statuses = await _context.UserStatuses
-                .ToDictionaryAsync(s => s.UserId, s => s.IsOnline);
+            // Consider a user "online" only if the IsOnline flag is true AND LastActivity is recent
+            var statusEntities = await _context.UserStatuses.ToListAsync();
+            var recentThreshold = DateTime.UtcNow.AddMinutes(-5); // consider activity within last5 minutes
+            var statuses = statusEntities
+                .ToDictionary(s => s.UserId, s => (s.IsOnline && s.LastActivity >= recentThreshold));
 
             // c) Combine data into DTOs
             var userStatusDtos = fetchedUsers.Select(user => new UserStatusDto
@@ -108,13 +111,9 @@ namespace CMSECommerce.Controllers
                 IsOnline = statuses.GetValueOrDefault(user.Id, false)
             }).ToList();
 
-            // Mocking the IsOnline status lookup:
-            // **CRITICAL:** In a real app, this data must come from a separate source
-            // (e.g., a SignalR connection service, a Redis cache, or a dedicated Status table)
+            // Note: GetRealTimeUserStatuses was a placeholder and is not used in production.
+            // Real online state comes from UserStatuses table and recent LastActivity check above.
 
-            var userStatusMap = GetRealTimeUserStatuses(fetchedUsers); // Example method call
-
-            
             // --- 9. Create and return the View Model ---
             var viewModel = new ProductListViewModel
             {
@@ -134,23 +133,6 @@ namespace CMSECommerce.Controllers
             };
 
             return View(viewModel);
-        }
-
-
-        // Example implementation for fetching status (This depends entirely on your real status tracking logic)
-        private Dictionary<string, bool> GetRealTimeUserStatuses(List<IdentityUser> users)
-        {
-            // This method would connect to your real-time status service (e.g., a SignalR Hub list, Redis cache)
-            // For demonstration, we'll mock some data based on user IDs
-            var statusMap = new Dictionary<string, bool>();
-
-            foreach (var user in users)
-            {
-                // Example logic: make every user with an odd ID offline
-                bool isUserOnline = (int.Parse(user.Id.Substring(0, 1)) % 2 == 0);
-                statusMap.Add(user.Id, isUserOnline);
-            }
-            return statusMap;
         }
 
 
