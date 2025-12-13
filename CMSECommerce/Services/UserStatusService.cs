@@ -14,26 +14,41 @@ namespace CMSECommerce.Services
  {
  Task<List<UserStatusDto>> GetAllOtherUsersStatusAsync(string excludeUserId = null);
  Task UpdateActivityAsync(string userId);
+ Task SetOfflineAsync(string userId);
+ Task<(int onlineThreshold, int cleanupThreshold)> GetThresholdsAsync();
  }
 
  public class UserStatusService : IUserStatusService
  {
  private readonly DataContext _context;
  private readonly UserManager<IdentityUser> _userManager;
- private readonly int _onlineThresholdMinutes;
+ private readonly int _defaultOnlineThresholdMinutes;
+ private readonly int _defaultCleanupThresholdMinutes;
 
  public UserStatusService(DataContext context, UserManager<IdentityUser> userManager, IConfiguration config)
  {
  _context = context;
  _userManager = userManager;
- _onlineThresholdMinutes = config?.GetValue<int>("UserStatus:OnlineThresholdMinutes") ??5;
+ _defaultOnlineThresholdMinutes = config?.GetValue<int>("UserStatus:OnlineThresholdMinutes") ??5;
+ _defaultCleanupThresholdMinutes = config?.GetValue<int>("UserStatus:CleanupThresholdMinutes") ??60;
+ }
+
+ public async Task<(int onlineThreshold, int cleanupThreshold)> GetThresholdsAsync()
+ {
+ var setting = await _context.UserStatusSettings.FirstOrDefaultAsync();
+ if (setting != null)
+ {
+ return (setting.OnlineThresholdMinutes, setting.CleanupThresholdMinutes);
+ }
+ return (_defaultOnlineThresholdMinutes, _defaultCleanupThresholdMinutes);
  }
 
  public async Task<List<UserStatusDto>> GetAllOtherUsersStatusAsync(string excludeUserId = null)
  {
  var fetchedUsers = await _userManager.Users.ToListAsync();
  var statusEntities = await _context.UserStatuses.ToListAsync();
- var recentThreshold = DateTime.UtcNow.AddMinutes(-_onlineThresholdMinutes);
+ var thresholds = await GetThresholdsAsync();
+ var recentThreshold = DateTime.UtcNow.AddMinutes(-thresholds.onlineThreshold);
  var statuses = statusEntities.ToDictionary(s => s.UserId, s => (s.IsOnline && s.LastActivity >= recentThreshold));
 
  var userStatusDtos = fetchedUsers
@@ -63,6 +78,19 @@ namespace CMSECommerce.Services
  _context.UserStatuses.Update(status);
  }
  await _context.SaveChangesAsync();
+ }
+
+ public async Task SetOfflineAsync(string userId)
+ {
+ if (string.IsNullOrEmpty(userId)) return;
+ var status = await _context.UserStatuses.FindAsync(userId);
+ if (status != null)
+ {
+ status.IsOnline = false;
+ status.LastActivity = DateTime.UtcNow;
+ _context.UserStatuses.Update(status);
+ await _context.SaveChangesAsync();
+ }
  }
  }
 }

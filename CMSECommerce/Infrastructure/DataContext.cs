@@ -17,6 +17,7 @@ namespace CMSECommerce.Infrastructure
         public DbSet<SubscriberRequest> SubscriberRequests { get; set; }
 
         public DbSet<UserStatusTracker> UserStatuses { get; set; }
+        public DbSet<UserStatusSetting> UserStatusSettings { get; set; }
         public DbSet<CMSECommerce.Models.ChatMessage> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using CMSECommerce.Models; // Ensure this is present for UserProfile
 using System.IO; // Required for Path, FileStream, Directory
 using Microsoft.AspNetCore.Hosting; // Required for IWebHostEnvironment
+using CMSECommerce.Services;
 
 namespace CMSECommerce.Controllers
 {
@@ -14,12 +15,14 @@ namespace CMSECommerce.Controllers
             DataContext dataContext,
             UserManager<IdentityUser> userManager,
             SignInManager<IdentityUser> signInManager,
-            IWebHostEnvironment webHostEnvironment) : Controller
+            IWebHostEnvironment webHostEnvironment,
+            IUserStatusService userStatusService) : Controller
     {
         private DataContext _context = dataContext;
         private UserManager<IdentityUser> _userManager = userManager;
         private SignInManager<IdentityUser> _sign_in_manager = signInManager;
         private IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
+        private readonly IUserStatusService _userStatusService = userStatusService;
 
         // ... (UpdateOrderShippedStatus method remains the same) ...
 

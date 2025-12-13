@@ -1,0 +1,23 @@
+@page
+@model CMSECommerce.Areas.Admin.Pages.UserStatusSettingsModel
+@{
+ ViewData["Title"] = "User Status Settings";
+}
+<div class="container py-4">
+ <h2>User Status Settings</h2>
+ @if (TempData["Success"] != null)
+ {
+ <div class="alert alert-success">@TempData["Success"]</div>
+ }
+ <form method="post">
+ <div class="mb-3">
+ <label class="form-label">Online Threshold (minutes)</label>
+ <input asp-for="OnlineThresholdMinutes" class="form-control" />
+ </div>
+ <div class="mb-3">
+ <label class="form-label">Cleanup Threshold (minutes)</label>
+ <input asp-for="CleanupThresholdMinutes" class="form-control" />
+ </div>
+ <button type="submit" class="btn btn-primary">Save</button>
+ </form>
+</div>

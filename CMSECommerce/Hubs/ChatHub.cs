@@ -6,6 +6,8 @@ using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using CMSECommerce.Services;
+using Microsoft.Extensions.Logging;
 
 namespace CMSECommerce.Hubs
 {
@@ -13,19 +15,55 @@ namespace CMSECommerce.Hubs
  public class ChatHub : Hub
  {
  private readonly DataContext _context;
- public ChatHub(DataContext context)
+ private readonly IUserStatusService _userStatusService;
+ private readonly ILogger<ChatHub> _logger;
+ public ChatHub(DataContext context, IUserStatusService userStatusService, ILogger<ChatHub> logger)
  {
  _context = context;
+ _userStatusService = userStatusService;
+ _logger = logger;
  }
 
- public override Task OnConnectedAsync()
+ public override async Task OnConnectedAsync()
  {
- return base.OnConnectedAsync();
+ try
+ {
+ var userId = Context.UserIdentifier ?? Context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+ if (!string.IsNullOrEmpty(userId))
+ {
+ await _userStatusService.UpdateActivityAsync(userId);
+ }
+ }
+ catch (Exception ex)
+ {
+ _logger.LogError(ex, "Error updating activity on connect");
+ }
+ await base.OnConnectedAsync();
  }
 
- public override Task OnDisconnectedAsync(Exception exception)
+ public override async Task OnDisconnectedAsync(Exception exception)
  {
- return base.OnDisconnectedAsync(exception);
+ try
+ {
+ var userId = Context.UserIdentifier ?? Context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+ if (!string.IsNullOrEmpty(userId))
+ {
+ // Mark offline on disconnect
+ await _userStatusService.UpdateActivityAsync(userId); // ensure LastActivity updated
+ var status = await _context.UserStatuses.FindAsync(userId);
+ if (status != null)
+ {
+ status.IsOnline = false;
+ status.LastActivity = DateTime.UtcNow;
+ await _context.SaveChangesAsync();
+ }
+ }
+ }
+ catch (Exception ex)
+ {
+ _logger.LogError(ex, "Error updating activity on disconnect");
+ }
+ await base.OnDisconnectedAsync(exception);
  }
 
  // Broadcast to everyone (one-to-all)
