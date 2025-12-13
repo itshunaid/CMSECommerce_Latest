@@ -3,27 +3,27 @@
 @{
     ViewData["Title"] = "Vepari";
 
-    // Accessing properties via the View Model
-    var categoryName = Model.CategoryName;
+    // Accessing properties via the View Model
+    var categoryName = Model.CategoryName;
     var currentSearchTerm = Model.CurrentSearchTerm;
 
-    // Keeping original ViewBags for properties not included in the simplified VM
-    var currentCategorySlug = ViewBag.CategorySlug as string;
+    // Keeping original ViewBags for properties not included in the simplified VM
+    var currentCategorySlug = ViewBag.CategorySlug as string;
     var currentPage = (int)(ViewBag.PageNumber ?? 1);
     var totalPages = (int)(ViewBag.TotalPages ?? 1);
     var sortOrder = ViewBag.SortOrder as string ?? "default";
     var pageRange = ViewBag.PageRange ?? 3;
 
-    // Logic to prepare the user lists from the View Model data
-    var onlineUsers = Model.AllUsers
-    .Where(dto => dto.IsOnline)
-    .OrderBy(dto => dto.User.UserName)
-    .ToList();
+    // Logic to prepare the user lists from the View Model data
+    var onlineUsers = Model.AllUsers
+        .Where(dto => dto.IsOnline)
+        .OrderBy(dto => dto.User.UserName)
+        .ToList();
 
     var offlineUsers = Model.AllUsers
-      .Where(dto => !dto.IsOnline)
-      .OrderBy(dto => dto.User.UserName)
-      .ToList();
+        .Where(dto => !dto.IsOnline)
+        .OrderBy(dto => dto.User.UserName)
+        .ToList();
 }
 
 <div class="container py-4">
@@ -70,7 +70,7 @@
                         <input type="hidden" name="sortOrder" value="@sortOrder" />
 
                         <input type="text" name="searchTerm" id="searchTermInput" class="form-control form-control-sm amazon-search-input"
-                                               placeholder="Refine results..." value="@currentSearchTerm" />
+                               placeholder="Refine results..." value="@currentSearchTerm" />
 
                         <button type="submit" class="btn btn-amazon-search">
                             <i class="fas fa-search"></i>
@@ -149,12 +149,12 @@
 
                                 <div class="d-grid gap-2">
                                     <a asp-controller="Cart" asp-action="Add" asp-route-id="@item.Id"
-                                                           class="btn btn-amazon-yellow w-100 text-uppercase fw-bold btn-sm" role="button">
+                                       class="btn btn-amazon-yellow w-100 text-uppercase fw-bold btn-sm" role="button">
                                         <i class="fas fa-shopping-basket me-2"></i> Add to Cart
                                     </a>
 
                                     <a asp-controller="Cart" asp-action="Index"
-                                                           class="btn btn-amazon-outline w-100 text-uppercase fw-bold btn-sm" role="button">
+                                       class="btn btn-amazon-outline w-100 text-uppercase fw-bold btn-sm" role="button">
                                         <i class="fas fa-shopping-cart me-2"></i> View Cart
                                     </a>
                                 </div>
@@ -168,11 +168,11 @@
             {
                 <div class="d-flex w-100 justify-content-center mt-5">
                     <front-pagination page-count="@totalPages"
-                                                         page-target="@currentCategorySlug"
-                                                         page-number="@currentPage"
-                                                         page-range="@pageRange"
-                                                         current-search-term="@currentSearchTerm"
-                                                         sort-order="@sortOrder">
+                                      page-target="@currentCategorySlug"
+                                      page-number="@currentPage"
+                                      page-range="@pageRange"
+                                      current-search-term="@currentSearchTerm"
+                                      sort-order="@sortOrder">
                     </front-pagination>
                 </div>
             }
@@ -182,48 +182,83 @@
             <div class="user-list-sidebar">
                 <div class="p-3 border rounded-3 shadow-sm bg-white sticky-top amazon-sidebar-card" style="top: 20px;">
                     <h5 class="fw-bold text-dark mb-3 amazon-sidebar-title">
-                        <i class="fas fa-users me-2 text-amazon-teal"></i> User Status
+                        <i class="fas fa-comments me-2 text-amazon-teal"></i> Chat Hub
                     </h5>
 
-                    <div class="mb-4">
-                        <h6 class="fw-semibold text-success mb-2 amazon-status-header">
-                            <i class="fas fa-circle text-success me-1" style="font-size: 0.6rem;"></i> Online Users (@onlineUsers.Count)
-                        </h6>
-                        <ul class="list-unstyled small ps-3 border-start border-3 border-success amazon-list">
-                            @foreach (var user in onlineUsers)
-                            {
-                                <li class="mb-1">
-                                    <a href="#" class="text-decoration-none text-dark fw-medium amazon-sidebar-link">
-                                        @user.User.Email
-                                    </a>
-                                </li>
-                            }
-                            @if (!onlineUsers.Any())
-                            {
-                                <li class="text-muted fst-italic amazon-text">No users currently online.</li>
-                            }
-                        </ul>
+                    <div id="chat-window-container" class="border rounded p-2 mb-3 bg-light" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 id="chat-target-name" class="fw-bold text-dark mb-0 small text-truncate"></h6>
+                            <button id="close-chat-btn" class="btn btn-sm btn-outline-danger py-0 px-1 ms-2" title="Close Chat">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        <div id="chat-messages" class="chat-messages mb-2 border rounded p-2 bg-white" style="height: 150px; overflow-y: auto;">
+                        </div>
+
+                        <div class="input-group input-group-sm">
+                            <input type="text" id="chat-input" class="form-control" placeholder="Type a message..." />
+                            <button id="send-btn" class="btn btn-amazon-search" type="button">Send</button>
+                        </div>
                     </div>
 
-                    <div>
-                        <h6 class="fw-semibold text-muted mb-2 amazon-status-header">
-                            <i class="fas fa-circle text-secondary me-1" style="font-size: 0.6rem;"></i> Offline Users (@offlineUsers.Count)
-                        </h6>
-                        <ul class="list-unstyled small ps-3 border-start border-3 border-secondary amazon-list">
-                            @foreach (var user in offlineUsers.Take(10))
-                            {
-                                <li class="text-muted mb-1 amazon-text">@user.User.Email</li>
-                            }
-                            @if (offlineUsers.Count > 10)
-                            {
-                                <li class="text-muted mt-2 amazon-text">... and @(offlineUsers.Count - 10) more.</li>
-                            }
-                            @if (!offlineUsers.Any() && !onlineUsers.Any())
-                            {
-                                <li class="text-muted fst-italic amazon-text">No users found.</li>
-                            }
-                        </ul>
+                    <div id="user-list-view">
+                        <div class="mb-3">
+                            <h6 class="fw-semibold text-primary mb-2 amazon-status-header">
+                                <i class="fas fa-bullhorn text-primary me-1"></i> Broadcast
+                            </h6>
+                            <p>
+                                <a href="#" id="group-chat-link" class="text-decoration-none text-dark fw-bold amazon-sidebar-link">
+                                    <i class="fas fa-users me-1"></i> Join Global Chat
+                                </a>
+                            </p>
+                        </div>
+                        <hr class="mb-3" />
+
+
+                        <div class="mb-4">
+                            <h6 class="fw-semibold text-success mb-2 amazon-status-header">
+                                <i class="fas fa-circle text-success me-1" style="font-size: 0.6rem;"></i> Online Users (@onlineUsers.Count)
+                            </h6>
+                            <ul class="list-unstyled small ps-3 border-start border-3 border-success amazon-list">
+                                @foreach (var userDto in onlineUsers)
+                                {
+                                    @* Use data attributes for user ID and name to simplify JS interaction *@
+                                    <li class="mb-1">
+                                        <a href="#" class="text-decoration-none text-dark fw-medium amazon-sidebar-link start-chat-btn"
+                                           data-user-id="@userDto.User.Id" data-user-name="@userDto.User.UserName">
+                                            @userDto.User.UserName
+                                        </a>
+                                    </li>
+                                }
+                                @if (!onlineUsers.Any())
+                                {
+                                    <li class="text-muted fst-italic amazon-text">No users currently online.</li>
+                                }
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h6 class="fw-semibold text-muted mb-2 amazon-status-header">
+                                <i class="fas fa-circle text-secondary me-1" style="font-size: 0.6rem;"></i> Offline Users (@offlineUsers.Count)
+                            </h6>
+                            <ul class="list-unstyled small ps-3 border-start border-3 border-secondary amazon-list">
+                                @foreach (var userDto in offlineUsers.Take(10))
+                                {
+                                    <li class="text-muted mb-1 amazon-text">@userDto.User.UserName</li>
+                                }
+                                @if (offlineUsers.Count > 10)
+                                {
+                                    <li class="text-muted mt-2 amazon-text">... and @(offlineUsers.Count - 10) more.</li>
+                                }
+                                @if (!offlineUsers.Any() && !onlineUsers.Any())
+                                {
+                                    <li class="text-muted fst-italic amazon-text">No users found.</li>
+                                }
+                            </ul>
+                        </div>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -232,6 +267,8 @@
 </div>
 
 @section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.js"></script>
+
     <script>
         (function () {
             // Safely pass server-side vars to JS
@@ -245,7 +282,6 @@
                 let url = basePath;
                 let queryParts = [];
 
-                // Attach slug to path (clean URLs)
                 if (slug && slug.length > 0) {
                     url = url.replace(/\/$/, '') + "/" + encodeURIComponent(slug);
                 }
@@ -263,7 +299,6 @@
                 }
 
                 if (queryParts.length > 0) {
-                    // Check if URL already has query parameters (unlikely if starting from basePath)
                     const separator = url.includes('?') ? '&' : '?';
                     url += separator + queryParts.join("&");
                 }
@@ -271,10 +306,10 @@
                 return url;
             }
 
-            // Apply initial sort order to dropdown (Razor-safe)
             document.addEventListener("DOMContentLoaded", function () {
                 var sortDropdown = document.getElementById("sortDropdown");
 
+                // Handle Sorting Logic
                 if (sortDropdown && currentSortOrder) {
                     sortDropdown.value = currentSortOrder;
                 }
@@ -282,8 +317,6 @@
                 if (sortDropdown) {
                     sortDropdown.addEventListener("change", function () {
                         var selected = sortDropdown.value;
-
-                        // Reset to page 1 when sorting
                         var newUrl = buildUrl(
                             productsIndexUrl,
                             currentCategorySlug,
@@ -291,10 +324,126 @@
                             selected,
                             1
                         );
-
                         window.location.href = newUrl;
                     });
                 }
+
+                // ===============================================
+                // =========== CHAT CLIENT LOGIC START ===========
+                // ===============================================
+
+                const chatWindowContainer = document.getElementById('chat-window-container');
+                const userListView = document.getElementById('user-list-view');
+                const chatMessages = document.getElementById('chat-messages');
+                const chatInput = document.getElementById('chat-input');
+                const sendBtn = document.getElementById('send-btn');
+                const closeChatBtn = document.getElementById('close-chat-btn');
+                const groupChatLink = document.getElementById('group-chat-link');
+                const chatTargetName = document.getElementById('chat-target-name');
+
+                // State variables for chat routing
+                let currentChatTargetId = null;
+                let isGroupChat = false;
+
+                // 1. SIGNALR CONNECTION
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/chatHub")
+                    .withAutomaticReconnect()
+                    .build();
+
+                connection.start().catch(err => console.error("SignalR Connection Error: " + err.toString()));
+
+                // 2. RECEIVE MESSAGE HANDLER
+                connection.on("ReceiveMessage", function (senderName, message) {
+                    const encodedMsg = `
+                        <div class="chat-message-item mb-1 small">
+                             <span class="fw-bold">${senderName}:</span> ${message}
+                        </div>`;
+
+                    chatMessages.insertAdjacentHTML('beforeend', encodedMsg);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+
+                // 3. UI MANAGEMENT FUNCTIONS
+                function openChatWindow(targetId, targetName, isGroup) {
+                    currentChatTargetId = targetId;
+                    isGroupChat = isGroup;
+
+                    chatTargetName.textContent = isGroup ? 'Global Chat (Broadcast)' : `Chatting with: ${targetName}`;
+                    chatMessages.innerHTML = ''; // Clear previous messages
+                    chatWindowContainer.style.display = 'block';
+                    userListView.style.display = 'none';
+                    chatInput.focus();
+                }
+
+                function closeChatWindow() {
+                    currentChatTargetId = null;
+                    isGroupChat = false;
+                    chatWindowContainer.style.display = 'none';
+                    userListView.style.display = 'block';
+                    chatInput.value = '';
+                }
+
+                // 4. EVENT LISTENERS
+
+                // One-to-One Chat Listener
+                document.querySelectorAll('.start-chat-btn').forEach(button => {
+                    button.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const userId = this.getAttribute('data-user-id');
+                        const userName = this.getAttribute('data-user-name');
+                        openChatWindow(userId, userName, false);
+                    });
+                });
+
+                // One-to-Many Chat Listener (Global)
+                groupChatLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openChatWindow(null, 'Global', true);
+                });
+
+                // Close Button Listener
+                closeChatBtn.addEventListener('click', closeChatWindow);
+
+                // Send Button / Enter Key Listener
+                sendBtn.addEventListener('click', sendMessage);
+                chatInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        sendMessage();
+                    }
+                });
+
+                // 5. SEND MESSAGE FUNCTION
+                function sendMessage() {
+                    const message = chatInput.value.trim();
+                    if (message.length === 0 || connection.state !== signalR.HubConnectionState.Connected) {
+                        return;
+                    }
+
+                    if (isGroupChat) {
+                         // One-to-Many
+                         connection.invoke("SendMessageToAll", message).catch(err => console.error(err.toString()));
+
+                    } else if (currentChatTargetId) {
+                         // One-to-One
+                         connection.invoke("SendPrivateMessage", currentChatTargetId, message).catch(err => console.error(err.toString()));
+                    }
+
+                    // Add the message to the current user's window immediately (Self-message UX)
+                    const selfMessage = `
+                         <div class="chat-message-item self-message mb-1 small text-end">
+                             <span class="fw-bold text-amazon-teal">You:</span> ${message}
+                         </div>`;
+                    chatMessages.insertAdjacentHTML('beforeend', selfMessage);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                    chatInput.value = ''; // Clear input
+                }
+
+                // ===============================================
+                // =========== CHAT CLIENT LOGIC END =============
+                // ===============================================
+
             });
         })();
     </script>
@@ -302,19 +451,17 @@
 
 @section Styles {
     <style>
-
         /* Define Amazon-like Colors */
-                :root {
-                        --amazon-black: #0F1111;
-                        --amazon-gray-text: #565959;
-                        --amazon-price-red: #B12704;
-                        --amazon-yellow-button: #FFD814;
-                        --amazon-yellow-button-hover: #F7CA00;
-                        --amazon-link-teal: #007185;
-                        --amazon-link-teal-hover: #C7511F;
-                        --amazon-search-yellow: #FEBD69;
-                        --amazon-border-gray: #D5D9D9;
-
+        :root {
+            --amazon-black: #0F1111;
+            --amazon-gray-text: #565959;
+            --amazon-price-red: #B12704;
+            --amazon-yellow-button: #FFD814;
+            --amazon-yellow-button-hover: #F7CA00;
+            --amazon-link-teal: #007185;
+            --amazon-link-teal-hover: #C7511F;
+            --amazon-search-yellow: #FEBD69;
+            --amazon-border-gray: #D5D9D9;
         }
 
         /* ------------------------------------------------ */
@@ -325,9 +472,8 @@
             color: var(--amazon-black);
         }
 
-                .text-amazon-teal {
-                        color: var(--amazon-link-teal) !important;
-
+        .text-amazon-teal {
+            color: var(--amazon-link-teal) !important;
         }
 
         /* General Links: Amazon often uses teal/blue for internal links */
@@ -340,24 +486,21 @@
             text-decoration: underline !important;
         }
 
-
         /* --- PRODUCT CARD STYLES --- */
-                .product-card {
-                        border: 1px solid var(--amazon-border-gray) !important;
-                        border-radius: 8px;
-                        background: #fff;
-                        transition: box-shadow .18s ease, border-color .18s ease;
-                        display: flex;
-                        flex-direction: column;
-                        overflow: hidden;
-
+        .product-card {
+            border: 1px solid var(--amazon-border-gray) !important;
+            border-radius: 8px;
+            background: #fff;
+            transition: box-shadow .18s ease, border-color .18s ease;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
-                    .product-card:hover {
-                            box-shadow: 0 4px 12px rgba(0,0,0,.1);
-                            border-color: #FAFAFA !important;
-
-        }
+            .product-card:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,.1);
+                border-color: #FAFAFA !important;
+            }
 
         /* ================================================= */
         /* === STANDARD PRODUCT IMAGE SIZE IMPLEMENTATION === */
@@ -366,12 +509,9 @@
         .product-image-wrapper {
             background: #fff;
             padding: 18px;
-            /* Remove fixed height to enable aspect ratio trick */
-            /* height: 220px; */
-
             position: relative;
             width: 100%;
-            /* 4:3 Aspect Ratio (3 / 4 * 100% = 75%). For 1:1, use 100% */
+            /* 4:3 Aspect Ratio (3 / 4 * 100% = 75%). Ensures uniform height. */
             padding-top: 75%;
             border-bottom: 1px solid #eee;
             overflow: hidden;
@@ -389,78 +529,68 @@
             transition: transform .25s ease;
         }
 
-                .product-card:hover .product-img {
-                        transform: scale(1.06);
-
+        .product-card:hover .product-img {
+            transform: scale(1.06);
         }
         /* ================================================= */
         /* ================================================= */
 
-                .product-category-link {
-                        color: var(--amazon-link-teal) !important;
-                        font-size: 0.75rem;
-                        font-weight: 500;
-                        text-transform: none;
-                        letter-spacing: normal;
-
-        }
-
-                .product-name a {
-                        font-size: 1rem;
-                        color: var(--amazon-black) !important;
-                        line-height: 1.25;
-            text-decoration: none;
-                        font-weight: 400;
-
-        }
-
-        .product-name a:hover {
+        .product-category-link {
             color: var(--amazon-link-teal) !important;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: none;
+            letter-spacing: normal;
         }
 
-                .star-rating i {
-                        color: #ffa41c;
-
+        .product-name a {
+            font-size: 1rem;
+            color: var(--amazon-black) !important;
+            line-height: 1.25;
+            text-decoration: none;
+            font-weight: 400;
         }
 
-                .price-text {
-                        color: var(--amazon-price-red) !important;
-                        font-size: 1.4rem !important;
-                        font-weight: 700 !important;
+            .product-name a:hover {
+                color: var(--amazon-link-teal) !important;
+            }
 
+        .star-rating i {
+            color: #ffa41c;
         }
 
+        .price-text {
+            color: var(--amazon-price-red) !important;
+            font-size: 1.4rem !important;
+            font-weight: 700 !important;
+        }
 
         /* --- BUTTONS --- */
-                .btn-amazon-yellow {
-                        background-color: var(--amazon-yellow-button) !important;
-                        border: 1px solid #FCD200 !important;
-                        color: #0F1111 !important;
-                        font-weight: 400;
-                        box-shadow: 0 1px 0 rgba(255,255,255,.6) inset;
+        .btn-amazon-yellow {
+            background-color: var(--amazon-yellow-button) !important;
+            border: 1px solid #FCD200 !important;
+            color: #0F1111 !important;
+            font-weight: 400;
+            box-shadow: 0 1px 0 rgba(255,255,255,.6) inset;
             border-radius: 8px;
-
         }
 
-                    .btn-amazon-yellow:hover {
-                            background-color: var(--amazon-yellow-button-hover) !important;
+            .btn-amazon-yellow:hover {
+                background-color: var(--amazon-yellow-button-hover) !important;
+            }
 
-        }
-
-                .btn-amazon-outline {
-                        border: 1px solid var(--amazon-border-gray) !important;
-                        color: var(--amazon-black) !important;
-                        background: #F7F7F7;
-                        font-weight: 400;
+        .btn-amazon-outline {
+            border: 1px solid var(--amazon-border-gray) !important;
+            color: var(--amazon-black) !important;
+            background: #F7F7F7;
+            font-weight: 400;
             border-radius: 8px;
-
         }
 
-                    .btn-amazon-outline:hover {
-                            background-color: #EAEAEA !important;
-                            border-color: #ADADAD !important;
-
-        }
+            .btn-amazon-outline:hover {
+                background-color: #EAEAEA !important;
+                border-color: #ADADAD !important;
+            }
 
         /* Search Input and Button Styling */
         .amazon-search-group {
@@ -523,7 +653,31 @@
             font-weight: 400;
         }
 
-        /* Responsive Adjustments: Maintain square on small screens too (optional but recommended) */
+        /* Chat Specific Styles */
+        .chat-messages {
+            border: 1px solid #ccc;
+            padding: 8px;
+            background-color: #f9f9f9;
+            font-size: 0.85rem;
+            line-height: 1.3;
+            max-height: 300px;
+        }
+
+        .chat-message-item {
+            word-wrap: break-word;
+            color: var(--amazon-gray-text);
+        }
+
+        .self-message {
+            color: var(--amazon-black);
+        }
+
+            .self-message .fw-bold {
+                color: var(--amazon-link-teal) !important;
+            }
+
+
+        /* Responsive Adjustments */
         @@media (max-width: 576px) {
             .product-image-wrapper {
                 padding-top: 100%; /* Switch to 1:1 on mobile */
@@ -533,7 +687,5 @@
                 padding: 12px;
             }
         }
-
-
     </style>
 }
