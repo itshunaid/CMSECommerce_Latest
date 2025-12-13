@@ -116,7 +116,7 @@
                     <div class="col-xxl-4 col-xl-4 col-lg-6 col-md-6 col-sm-6 d-flex align-items-stretch">
                         <div class="card product-card w-100 rounded-3 shadow-sm">
                             <a asp-action="Product" asp-route-slug="@item.Slug" class="d-block product-image-wrapper">
-                                <img src="/media/products/@item.Image" class="card-img-top product-img" alt="@item.Name" loading="lazy" />
+                                <img src="/media/products/@item.Image" class="card-img-top product-img" alt="@item.Name" loading="lazy" onerror="this.onerror=null;this.src='/media/products/noimage.png';" />
                             </a>
 
                             <div class="card-body d-flex flex-column p-3">
@@ -200,6 +200,11 @@
                             <input type="text" id="chat-input" class="form-control" placeholder="Type a message..." />
                             <button id="send-btn" class="btn btn-amazon-search" type="button">Send</button>
                         </div>
+
+                        <!-- Group management controls (dynamic) -->
+                        <div id="group-controls" class="mt-2" style="display: none;">
+                            <!-- Content populated by JS based on chat state -->
+                        </div>
                     </div>
 
                     <div id="user-list-view">
@@ -208,7 +213,7 @@
                                 <i class="fas fa-bullhorn text-primary me-1"></i> Broadcast
                             </h6>
                             <p>
-                                <a href="#" id="group-chat-link" class="text-decoration-none text-dark fw-bold amazon-sidebar-link">
+                                <a href="javascript:void(0);" id="group-chat-link" class="text-decoration-none text-dark fw-bold amazon-sidebar-link">
                                     <i class="fas fa-users me-1"></i> Join Global Chat
                                 </a>
                             </p>
@@ -225,7 +230,7 @@
                                 {
                                     @* Use data attributes for user ID and name to simplify JS interaction *@
                                     <li class="mb-1">
-                                        <a href="#" class="text-decoration-none text-dark fw-medium amazon-sidebar-link start-chat-btn"
+                                        <a href="javascript:void(0);" class="text-decoration-none text-dark fw-medium amazon-sidebar-link start-chat-btn"
                                            data-user-id="@userDto.User.Id" data-user-name="@userDto.User.UserName">
                                             @userDto.User.UserName
                                         </a>
@@ -240,16 +245,21 @@
 
                         <div>
                             <h6 class="fw-semibold text-muted mb-2 amazon-status-header">
-                                <i class="fas fa-circle text-secondary me-1" style="font-size: 0.6rem;"></i> Offline Users (@offlineUsers.Count)
+                                <i class="fas fa-circle text-secondary me-1" style="font-size:0.6rem;"></i> Offline Users (@offlineUsers.Count)
                             </h6>
                             <ul class="list-unstyled small ps-3 border-start border-3 border-secondary amazon-list">
                                 @foreach (var userDto in offlineUsers.Take(10))
                                 {
-                                    <li class="text-muted mb-1 amazon-text">@userDto.User.UserName</li>
+                                    <li class="mb-1">
+                                        <a href="javascript:void(0);" class="text-muted text-decoration-none amazon-sidebar-link start-chat-btn"
+                                           data-user-id="@userDto.User.Id" data-user-name="@userDto.User.UserName" title="Start chat (user offline)">
+                                            @userDto.User.UserName <small class="text-secondary ms-1">(offline)</small>
+                                        </a>
+                                    </li>
                                 }
-                                @if (offlineUsers.Count > 10)
+                                @if (offlineUsers.Count >10)
                                 {
-                                    <li class="text-muted mt-2 amazon-text">... and @(offlineUsers.Count - 10) more.</li>
+                                    <li class="text-muted mt-2 amazon-text">... and @(offlineUsers.Count -10) more.</li>
                                 }
                                 @if (!offlineUsers.Any() && !onlineUsers.Any())
                                 {
@@ -266,10 +276,54 @@
     </div>
 </div>
 
-@section Scripts {
-    <script src="~/lib/microsoft/signalr/dist/browser/signalr.js"></script>
+<!-- Floating Chat Toggle (always visible) -->
+<button id="open-chat-toggle" title="Open Chat" class="btn btn-amazon-teal floating-chat-btn">
+ <i class="fas fa-comments"></i>
+</button>
 
-    <script>
+<!-- Floating Chat Modal (hidden by default) -->
+<div id="floating-chat-modal" style="display:none; position:fixed; right:20px; bottom:80px; width:320px; max-width:90%; z-index:1100;">
+ <div class="card shadow-lg">
+ <div class="card-header d-flex justify-content-between align-items-center py-2 px-3">
+ <h6 id="floating-chat-title" class="mb-0 small fw-bold">Chat</h6>
+ <div>
+ <button id="floating-chat-minimize" class="btn btn-sm btn-outline-secondary me-1" title="Minimize"><i class="fas fa-minus"></i></button>
+ <button id="floating-chat-close" class="btn btn-sm btn-outline-danger" title="Close"><i class="fas fa-times"></i></button>
+ </div>
+ </div>
+ <div class="card-body p-2">
+ <div id="floating-chat-messages" class="chat-messages mb-2 border rounded p-2 bg-white" style="height:220px; overflow-y:auto;"></div>
+ <div class="input-group">
+ <input type="text" id="floating-chat-input" class="form-control form-control-sm" placeholder="Type a message..." />
+ <button id="floating-chat-send" class="btn btn-amazon-search btn-sm" type="button">Send</button>
+ </div>
+ </div>
+ </div>
+</div>
+
+@section Scripts {
+ <script>
+ // Ensure the floating chat button triggers the Group Chat link (works even when sidebar is hidden)
+ document.addEventListener('DOMContentLoaded', function () {
+ var openChatBtn = document.getElementById('open-chat-toggle');
+ var groupLink = document.getElementById('group-chat-link');
+ if (openChatBtn && groupLink) {
+ openChatBtn.addEventListener('click', function (e) {
+ e.preventDefault();
+ try {
+ groupLink.click();
+ } catch (err) {
+ console.error('Unable to open chat:', err);
+ }
+ });
+ }
+ });
+ </script>
+
+ <!-- Use local SignalR client bundle (path present in wwwroot/lib/microsoft-signalr) -->
+ <script src="~/lib/microsoft-signalr/signalr.js"></script>
+
+ <script>
         (function () {
             // Safely pass server-side vars to JS
             const currentCategorySlug = @Html.Raw(Json.Serialize(currentCategorySlug ?? ""));
@@ -282,11 +336,11 @@
                 let url = basePath;
                 let queryParts = [];
 
-                if (slug && slug.length > 0) {
+                if (slug && slug.length >0) {
                     url = url.replace(/\/$/, '') + "/" + encodeURIComponent(slug);
                 }
 
-                if (searchTerm && searchTerm.length > 0) {
+                if (searchTerm && searchTerm.length >0) {
                     queryParts.push("searchTerm=" + encodeURIComponent(searchTerm));
                 }
 
@@ -294,11 +348,11 @@
                     queryParts.push("sortOrder=" + encodeURIComponent(sortOrder));
                 }
 
-                if (page && page > 1) {
+                if (page && page >1) {
                     queryParts.push("p=" + page);
                 }
 
-                if (queryParts.length > 0) {
+                if (queryParts.length >0) {
                     const separator = url.includes('?') ? '&' : '?';
                     url += separator + queryParts.join("&");
                 }
@@ -332,20 +386,33 @@
                 // =========== CHAT CLIENT LOGIC START ===========
                 // ===============================================
 
-                const chatWindowContainer = document.getElementById('chat-window-container');
-                const userListView = document.getElementById('user-list-view');
-                const chatMessages = document.getElementById('chat-messages');
-                const chatInput = document.getElementById('chat-input');
-                const sendBtn = document.getElementById('send-btn');
-                const closeChatBtn = document.getElementById('close-chat-btn');
+                // Prefer floating modal if available, fall back to sidebar container
+                const chatWindowContainer = document.getElementById('floating-chat-modal') || document.getElementById('chat-window-container');
+                const chatMessages = document.getElementById('floating-chat-messages') || document.getElementById('chat-messages');
+                const chatInput = document.getElementById('floating-chat-input') || document.getElementById('chat-input');
+                const sendBtn = document.getElementById('floating-chat-send') || document.getElementById('send-btn');
+                const closeChatBtn = document.getElementById('floating-chat-close') || document.getElementById('close-chat-btn');
                 const groupChatLink = document.getElementById('group-chat-link');
-                const chatTargetName = document.getElementById('chat-target-name');
+                const chatTargetName = document.getElementById('floating-chat-title') || document.getElementById('chat-target-name');
+                const userListView = document.getElementById('user-list-view');
+
+                // Group UI area (create if needed inside the modal)
+                let groupControls = document.getElementById('group-controls');
+                if (!groupControls && chatWindowContainer) {
+                    groupControls = document.createElement('div');
+                    groupControls.id = 'group-controls';
+                    groupControls.className = 'mt-2';
+                    if (chatMessages && chatWindowContainer.contains(chatMessages)) {
+                        chatWindowContainer.insertBefore(groupControls, chatMessages);
+                    }
+                }
 
                 // State variables for chat routing
                 let currentChatTargetId = null;
                 let isGroupChat = false;
+                let currentGroupName = null;
 
-                // 1. SIGNALR CONNECTION
+                //1. SIGNALR CONNECTION
                 const connection = new signalR.HubConnectionBuilder()
                     .withUrl("/chatHub")
                     .withAutomaticReconnect()
@@ -353,79 +420,146 @@
 
                 connection.start().catch(err => console.error("SignalR Connection Error: " + err.toString()));
 
-                // 2. RECEIVE MESSAGE HANDLER
+                //2. RECEIVE MESSAGE HANDLER
                 connection.on("ReceiveMessage", function (senderName, message) {
                     const encodedMsg = `
                         <div class="chat-message-item mb-1 small">
                              <span class="fw-bold">${senderName}:</span> ${message}
                         </div>`;
 
-                    chatMessages.insertAdjacentHTML('beforeend', encodedMsg);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    if (chatMessages) {
+                        chatMessages.insertAdjacentHTML('beforeend', encodedMsg);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
                 });
 
-                // 3. UI MANAGEMENT FUNCTIONS
+                //3. UI MANAGEMENT FUNCTIONS
                 function openChatWindow(targetId, targetName, isGroup) {
                     currentChatTargetId = targetId;
                     isGroupChat = isGroup;
 
-                    chatTargetName.textContent = isGroup ? 'Global Chat (Broadcast)' : `Chatting with: ${targetName}`;
-                    chatMessages.innerHTML = ''; // Clear previous messages
-                    chatWindowContainer.style.display = 'block';
-                    userListView.style.display = 'none';
-                    chatInput.focus();
+                    if (chatTargetName) chatTargetName.textContent = isGroup ? `Group: ${targetName}` : `Chatting with: ${targetName}`;
+
+                    if (chatMessages) chatMessages.innerHTML = ''; // Clear previous messages
+
+                    // show floating modal if present, otherwise show sidebar container
+                    if (document.getElementById('floating-chat-modal')) {
+                        document.getElementById('floating-chat-modal').style.display = 'block';
+                    } else if (chatWindowContainer) {
+                        chatWindowContainer.style.display = 'block';
+                        if (userListView) userListView.style.display = 'none';
+                    }
+
+                    if (chatInput) chatInput.focus();
+
+                    // Group controls
+                    if (isGroup) {
+                        currentGroupName = targetName;
+                        if (groupControls) {
+                            groupControls.style.display = 'block';
+                            groupControls.innerHTML = `
+                                <div class="d-flex gap-2 align-items-center mb-2">
+                                    <button id="leave-group-btn" class="btn btn-sm btn-outline-danger">Leave Group</button>
+                                    <button id="invite-member-btn" class="btn btn-sm btn-outline-primary">Invite Member</button>
+                                </div>
+                            `;
+
+                            document.getElementById('leave-group-btn').addEventListener('click', function () {
+                                connection.invoke('LeaveGroup', currentGroupName).catch(e => console.error(e));
+                                closeChatWindow();
+                            });
+
+                            document.getElementById('invite-member-btn').addEventListener('click', function () {
+                                const memberId = prompt('Enter the user id to invite:');
+                                if (memberId && memberId.length >0) {
+                                    connection.invoke('SendMessageToGroup', currentGroupName, `Invitation sent to user ${memberId}`).catch(e => console.error(e));
+                                }
+                            });
+                        }
+                    } else {
+                        if (groupControls) groupControls.style.display = 'none';
+                    }
                 }
 
                 function closeChatWindow() {
                     currentChatTargetId = null;
                     isGroupChat = false;
-                    chatWindowContainer.style.display = 'none';
-                    userListView.style.display = 'block';
-                    chatInput.value = '';
+                    if (document.getElementById('floating-chat-modal')) {
+                        document.getElementById('floating-chat-modal').style.display = 'none';
+                    } else if (chatWindowContainer) {
+                        chatWindowContainer.style.display = 'none';
+                        if (userListView) userListView.style.display = 'block';
+                    }
+                    if (chatInput) chatInput.value = '';
+                    if (groupControls) groupControls.innerHTML = '';
                 }
 
-                // 4. EVENT LISTENERS
+                //4. EVENT LISTENERS
 
                 // One-to-One Chat Listener
-                document.querySelectorAll('.start-chat-btn').forEach(button => {
-                    button.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        const userId = this.getAttribute('data-user-id');
-                        const userName = this.getAttribute('data-user-name');
-                        openChatWindow(userId, userName, false);
-                    });
+                // document.querySelectorAll('.start-chat-btn').forEach(button => {
+                // button.addEventListener('click', function (e) {
+                // e.preventDefault();
+                // const userId = this.getAttribute('data-user-id');
+                // const userName = this.getAttribute('data-user-name');
+                // openChatWindow(userId, userName, false);
+                // });
+                // });
+                // Use event delegation so dynamically added elements still work and to avoid default anchor navigation
+                document.addEventListener('click', function (e) {
+                    const btn = e.target.closest && e.target.closest('.start-chat-btn');
+                    if (!btn) return;
+                    e.preventDefault();
+                    const userId = btn.getAttribute('data-user-id');
+                    const userName = btn.getAttribute('data-user-name');
+                    openChatWindow(userId, userName, false);
                 });
 
                 // One-to-Many Chat Listener (Global)
-                groupChatLink.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    openChatWindow(null, 'Global', true);
+                if (groupChatLink) {
+                    groupChatLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        // join a default global group called 'Global'
+                        connection.invoke('JoinGroup', 'Global').catch(err => console.error(err));
+                        openChatWindow('Global', 'Global', true);
+                    });
+                }
+
+                // Floating modal controls
+                const floatingClose = document.getElementById('floating-chat-close');
+                const floatingMinimize = document.getElementById('floating-chat-minimize');
+                if (floatingClose) floatingClose.addEventListener('click', closeChatWindow);
+                if (floatingMinimize) floatingMinimize.addEventListener('click', function () {
+                    const modal = document.getElementById('floating-chat-modal');
+                    if (modal) modal.style.display = 'none';
                 });
 
-                // Close Button Listener
-                closeChatBtn.addEventListener('click', closeChatWindow);
+                // Close Button Listener (sidebar fallback)
+                if (closeChatBtn && !document.getElementById('floating-chat-modal')) closeChatBtn.addEventListener('click', closeChatWindow);
 
                 // Send Button / Enter Key Listener
-                sendBtn.addEventListener('click', sendMessage);
-                chatInput.addEventListener('keypress', function (e) {
+                const actualSendBtn = document.getElementById('floating-chat-send') || sendBtn;
+                const actualChatInput = document.getElementById('floating-chat-input') || chatInput;
+                if (actualSendBtn) actualSendBtn.addEventListener('click', sendMessage);
+                if (actualChatInput) actualChatInput.addEventListener('keypress', function (e) {
                     if (e.key === 'Enter') {
                         sendMessage();
                     }
                 });
 
-                // 5. SEND MESSAGE FUNCTION
+                //5. SEND MESSAGE FUNCTION
                 function sendMessage() {
-                    const message = chatInput.value.trim();
-                    if (message.length === 0 || connection.state !== signalR.HubConnectionState.Connected) {
+                    const message = (document.getElementById('floating-chat-input') || chatInput).value.trim();
+                    if (message.length ===0 || connection.state !== signalR.HubConnectionState.Connected) {
                         return;
                     }
 
-                    if (isGroupChat) {
-                         // One-to-Many
-                         connection.invoke("SendMessageToAll", message).catch(err => console.error(err.toString()));
+                    if (isGroupChat && currentGroupName) {
+                         // One-to-Group
+                         connection.invoke("SendMessageToGroup", currentGroupName, message).catch(err => console.error(err.toString()));
 
-                    } else if (currentChatTargetId) {
-                         // One-to-One
+                    } else if (currentChatTargetId && currentChatTargetId !== 'Global') {
+                         // One-to-One (send to user by id)
                          connection.invoke("SendPrivateMessage", currentChatTargetId, message).catch(err => console.error(err.toString()));
                     }
 
@@ -434,10 +568,13 @@
                          <div class="chat-message-item self-message mb-1 small text-end">
                              <span class="fw-bold text-amazon-teal">You:</span> ${message}
                          </div>`;
-                    chatMessages.insertAdjacentHTML('beforeend', selfMessage);
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    const targetMessages = document.getElementById('floating-chat-messages') || chatMessages;
+                    if (targetMessages) {
+                        targetMessages.insertAdjacentHTML('beforeend', selfMessage);
+                        targetMessages.scrollTop = targetMessages.scrollHeight;
+                    }
 
-                    chatInput.value = ''; // Clear input
+                    if (actualChatInput) actualChatInput.value = ''; // Clear input
                 }
 
                 // ===============================================
@@ -451,6 +588,28 @@
 
 @section Styles {
     <style>
+        /* Floating chat button */
+        .floating-chat-btn {
+ position: fixed;
+ right:20px;
+ bottom:20px;
+ z-index:1050;
+ width:50px;
+ height:50px;
+ border-radius:50%;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ box-shadow:04px12px rgba(0,0,0,.15);
+ color: #fff;
+ background: linear-gradient(180deg,#007185,#005a5f);
+ border: none;
+ }
+ .floating-chat-btn .fas { font-size:1.1rem; }
+
+ /* Floating modal overrides */
+ #floating-chat-modal .card { width:100%; }
+
         /* Define Amazon-like Colors */
         :root {
             --amazon-black: #0F1111;
