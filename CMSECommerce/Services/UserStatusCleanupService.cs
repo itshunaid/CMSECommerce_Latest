@@ -31,7 +31,7 @@ namespace CMSECommerce.Services
 
  protected override async Task ExecuteAsync(CancellationToken stoppingToken)
  {
- _logger.LogInformation("UserStatusCleanupService started with cleanup minutes: {Minutes}", _options.CleanupThresholdMinutes);
+ _logger.LogInformation("UserStatusCleanupService started");
 
  while (!stoppingToken.IsCancellationRequested)
  {
@@ -41,7 +41,11 @@ namespace CMSECommerce.Services
  {
  var context = scope.ServiceProvider.GetRequiredService<DataContext>();
 
- var cutoff = DateTime.UtcNow.AddMinutes(-_options.CleanupThresholdMinutes);
+ // Read thresholds from DB if present, otherwise fallback to config/options
+ var dbSetting = await context.UserStatusSettings.AsNoTracking().FirstOrDefaultAsync(stoppingToken);
+ int cleanupMinutes = dbSetting?.CleanupThresholdMinutes ?? _options.CleanupThresholdMinutes;
+
+ var cutoff = DateTime.UtcNow.AddMinutes(-cleanupMinutes);
 
  var stale = await context.UserStatuses.Where(s => s.LastActivity < cutoff && s.IsOnline).ToListAsync(stoppingToken);
  if (stale.Any())
@@ -54,14 +58,22 @@ namespace CMSECommerce.Services
  await context.SaveChangesAsync(stoppingToken);
  _logger.LogInformation("Marked {Count} stale user statuses offline older than {Cutoff}", stale.Count, cutoff);
  }
+
+ // Determine delay for next run: use DB cleanupMinutes if present
+ var delayMinutes = Math.Max(1, cleanupMinutes);
+ await Task.Delay(TimeSpan.FromMinutes(delayMinutes), stoppingToken);
  }
+ }
+ catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+ {
+ // shutdown requested
  }
  catch (Exception ex)
  {
  _logger.LogError(ex, "Error during UserStatusCleanupService run");
+ // Sleep briefly before retrying after an error
+ await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
  }
-
- await Task.Delay(TimeSpan.FromMinutes(Math.Max(1, _options.CleanupThresholdMinutes)), stoppingToken);
  }
  }
  }
