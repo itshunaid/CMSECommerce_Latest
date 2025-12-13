@@ -213,7 +213,7 @@
                                 <i class="fas fa-bullhorn text-primary me-1"></i> Broadcast
                             </h6>
                             <p>
-                                <a href="javascript:void(0);" id="group-chat-link" class="text-decoration-none text-dark fw-bold amazon-sidebar-link">
+                                <a href="javascript:void(0);" id="group-chat-link" role="button" tabindex="0" class="text-decoration-none text-dark fw-bold amazon-sidebar-link">
                                     <i class="fas fa-users me-1"></i> Join Global Chat
                                 </a>
                             </p>
@@ -230,7 +230,7 @@
                                 {
                                     @* Use data attributes for user ID and name to simplify JS interaction *@
                                     <li class="mb-1">
-                                        <a href="javascript:void(0);" class="text-decoration-none text-dark fw-medium amazon-sidebar-link start-chat-btn"
+                                        <a href="javascript:void(0);" role="button" tabindex="0" class="text-decoration-none text-dark fw-medium amazon-sidebar-link start-chat-btn"
                                            data-user-id="@userDto.User.Id" data-user-name="@userDto.User.UserName">
                                             @userDto.User.UserName
                                         </a>
@@ -251,7 +251,7 @@
                                 @foreach (var userDto in offlineUsers.Take(10))
                                 {
                                     <li class="mb-1">
-                                        <a href="javascript:void(0);" class="text-muted text-decoration-none amazon-sidebar-link start-chat-btn"
+                                        <a href="javascript:void(0);" role="button" tabindex="0" class="text-muted text-decoration-none amazon-sidebar-link start-chat-btn"
                                            data-user-id="@userDto.User.Id" data-user-name="@userDto.User.UserName" title="Start chat (user offline)">
                                             @userDto.User.UserName <small class="text-secondary ms-1">(offline)</small>
                                         </a>
@@ -302,24 +302,6 @@
 </div>
 
 @section Scripts {
- <script>
- // Ensure the floating chat button triggers the Group Chat link (works even when sidebar is hidden)
- document.addEventListener('DOMContentLoaded', function () {
- var openChatBtn = document.getElementById('open-chat-toggle');
- var groupLink = document.getElementById('group-chat-link');
- if (openChatBtn && groupLink) {
- openChatBtn.addEventListener('click', function (e) {
- e.preventDefault();
- try {
- groupLink.click();
- } catch (err) {
- console.error('Unable to open chat:', err);
- }
- });
- }
- });
- </script>
-
  <!-- Use local SignalR client bundle (path present in wwwroot/lib/microsoft-signalr) -->
  <script src="~/lib/microsoft-signalr/signalr.js"></script>
 
@@ -433,6 +415,30 @@
                     }
                 });
 
+                connection.on("LoadHistory", function (messages) {
+ // messages: [{ SenderName, MessageContent, Timestamp }, ...] or camelCase
+ if (!chatMessages) return;
+ chatMessages.innerHTML = '';
+ messages.forEach(m => {
+ const sender = m.SenderName || m.senderName || m.sender || 'Unknown';
+ const content = m.MessageContent || m.messageContent || m.message || '';
+ const rawTime = m.Timestamp || m.timestamp || m.Time || m.time || null;
+ let timeText = '';
+ if (rawTime) {
+ const dt = new Date(rawTime);
+ if (!isNaN(dt.getTime())) {
+ timeText = dt.toLocaleString();
+ }
+ }
+
+ const timeHtml = timeText ? `<div class="small text-muted">${timeText}</div>` : '';
+ const msgHtml = `\n <div class="chat-message-item mb-1 small">\n <div><span class="fw-bold">${sender}:</span> ${content}</div>\n ${timeHtml}\n </div>`;
+
+ chatMessages.insertAdjacentHTML('beforeend', msgHtml);
+ });
+ chatMessages.scrollTop = chatMessages.scrollHeight;
+ });
+
                 //3. UI MANAGEMENT FUNCTIONS
                 function openChatWindow(targetId, targetName, isGroup) {
                     currentChatTargetId = targetId;
@@ -452,32 +458,11 @@
 
                     if (chatInput) chatInput.focus();
 
-                    // Group controls
-                    if (isGroup) {
-                        currentGroupName = targetName;
-                        if (groupControls) {
-                            groupControls.style.display = 'block';
-                            groupControls.innerHTML = `
-                                <div class="d-flex gap-2 align-items-center mb-2">
-                                    <button id="leave-group-btn" class="btn btn-sm btn-outline-danger">Leave Group</button>
-                                    <button id="invite-member-btn" class="btn btn-sm btn-outline-primary">Invite Member</button>
-                                </div>
-                            `;
-
-                            document.getElementById('leave-group-btn').addEventListener('click', function () {
-                                connection.invoke('LeaveGroup', currentGroupName).catch(e => console.error(e));
-                                closeChatWindow();
-                            });
-
-                            document.getElementById('invite-member-btn').addEventListener('click', function () {
-                                const memberId = prompt('Enter the user id to invite:');
-                                if (memberId && memberId.length >0) {
-                                    connection.invoke('SendMessageToGroup', currentGroupName, `Invitation sent to user ${memberId}`).catch(e => console.error(e));
-                                }
-                            });
-                        }
-                    } else {
-                        if (groupControls) groupControls.style.display = 'none';
+                    // Request recent history from server
+                    try {
+                        connection.invoke('GetRecentMessages', isGroup ? targetId : targetId, isGroup).catch(e => console.error('GetRecentMessages error', e));
+                    } catch (e) {
+                        console.error(e);
                     }
                 }
 
@@ -514,6 +499,26 @@
                     const userName = btn.getAttribute('data-user-name');
                     openChatWindow(userId, userName, false);
                 });
+                
+                // Keyboard accessibility for start-chat-btn and group link (Enter/Space)
+                document.addEventListener('keydown', function (e) {
+                    if (!e.key) return;
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        const active = document.activeElement;
+                        if (!active) return;
+                        if (active.classList && active.classList.contains('start-chat-btn')) {
+                            e.preventDefault();
+                            const userId = active.getAttribute('data-user-id');
+                            const userName = active.getAttribute('data-user-name');
+                            openChatWindow(userId, userName, false);
+                        }
+                        if (active.id === 'group-chat-link') {
+                            e.preventDefault();
+                            connection.invoke('JoinGroup', 'Global').catch(err => console.error(err));
+                            openChatWindow('Global', 'Global', true);
+                        }
+                    }
+                });
 
                 // One-to-Many Chat Listener (Global)
                 if (groupChatLink) {
@@ -522,6 +527,32 @@
                         // join a default global group called 'Global'
                         connection.invoke('JoinGroup', 'Global').catch(err => console.error(err));
                         openChatWindow('Global', 'Global', true);
+                    });
+                }
+
+                // Floating chat toggle (mobile) - wire into same logic so sidebar visibility doesn't matter
+                var openChatBtn = document.getElementById('open-chat-toggle');
+                if (openChatBtn) {
+                    openChatBtn.setAttribute('role', 'button');
+                    openChatBtn.setAttribute('aria-label', 'Open Chat');
+                    openChatBtn.setAttribute('tabindex', '0');
+                    openChatBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        // If group link exists, use it; otherwise directly join and open global
+                        if (groupChatLink) {
+                          try {
+                            groupChatLink.click();
+                            return;
+                          } catch (err) { /* fallthrough */ }
+                        }
+                        connection.invoke('JoinGroup', 'Global').catch(err => console.error(err));
+                        openChatWindow('Global', 'Global', true);
+                    });
+                    openChatBtn.addEventListener('keydown', function (e) {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openChatBtn.click();
+                      }
                     });
                 }
 
@@ -846,5 +877,34 @@
                 padding: 12px;
             }
         }
+
+        /* Mobile friendly chat modal and floating button */
+        @@media (max-width:767.98px) {
+  .floating-chat-btn {
+    width:60px !important;
+    height:60px !important;
+    right:16px !important;
+    bottom:16px !important;
+    z-index:3000 !important;
+  }
+
+  #floating-chat-modal {
+    right:0 !important;
+    left:0 !important;
+    bottom:0 !important;
+    width:100% !important;
+    max-width:100% !important;
+    border-radius:0 !important;
+    margin:0 !important;
+  }
+
+  #floating-chat-modal .card-body {
+    padding:0.5rem !important;
+  }
+
+  #floating-chat-messages {
+    height:50vh !important;
+  }
+}
     </style>
 }

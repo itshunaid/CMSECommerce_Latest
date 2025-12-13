@@ -1,19 +1,27 @@
 ﻿// Models/ChatMessage.cs
 using System;
-using Microsoft.AspNetCore.Identity;
-using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
+
 namespace CMSECommerce.Models
 {
 
     public class ChatMessage
     {
+        [Key]
         public int Id { get; set; }
+
         public string SenderId { get; set; }
-        // Assuming IdentityUser is used for Sender/Recipient
-        public IdentityUser Sender { get; set; }
-        public string RecipientId { get; set; } // Null for public chat
-        public IdentityUser Recipient { get; set; }
+        public string SenderName { get; set; }
+
+        // For private messages, RecipientId is set. Null for broadcasts/groups
+        public string RecipientId { get; set; }
+
+        // For group messages, GroupName is set
+        public string GroupName { get; set; }
+
+        [Required]
         public string MessageContent { get; set; }
-        public DateTime Timestamp { get; set; }
+
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }
 }
