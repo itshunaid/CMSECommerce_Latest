@@ -4,7 +4,7 @@ namespace CMSECommerce.DTOs
 {
     // In a ViewModels folder or similar location
 
-    public class UserStatusDto
+    public class UserStatusDTO
     {
         // Holds the original user data (e.g., Id, Email, UserName)
         public IdentityUser User { get; set; }

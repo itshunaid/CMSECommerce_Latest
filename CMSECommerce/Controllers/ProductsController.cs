@@ -3,120 +3,141 @@ using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
 using CMSECommerce.Models.ViewModels;
 using CMSECommerce.Services;
+using Microsoft.AspNetCore.Hosting; // Correct using for IWebHostEnvironment
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration; // Not used, but kept for completeness
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.IO;
 using System;
+using CMSECommerce.DTOs;
+
+// NOTE: It is recommended to inject ILogger in a real application for logging exceptions.
 
 namespace CMSECommerce.Controllers
 {
-    public class ProductsController : Controller
+    // Injecting dependencies in the primary constructor (C# 12 feature, or standard convention)
+    public class ProductsController(
+        DataContext context,
+        IWebHostEnvironment webHostEnvironment,
+        UserManager<IdentityUser> userManager,
+        IUserStatusService userStatusService
+    ) : Controller
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly DataContext _context;
-        private readonly IWebHostEnvironment _webHostEnvironment;
-        private readonly IUserStatusService _userStatusService;
-
-        public ProductsController(DataContext context, IWebHostEnvironment webHostEnvironment, UserManager<IdentityUser> userManager, IUserStatusService userStatusService)
-        {
-            _context = context;
-            _webHostEnvironment = webHostEnvironment;
-            _userManager = userManager;
-            _userStatusService = userStatusService;
-        }
+        private readonly DataContext _context = context;
+        private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
+        private readonly UserManager<IdentityUser> _userManager = userManager;
+        private readonly IUserStatusService _userStatusService = userStatusService;
 
         // The Index action handles category filtering, searching, pagination, and sorting.
         public async Task<IActionResult> Index(
-     string slug = "",
-     int p = 1,
-     string searchTerm = "",
-     string sortOrder = "")
+            string slug = "",
+            int p = 1,
+            string searchTerm = "",
+            string sortOrder = "")
         {
             // --- Paging Configuration ---
             int pageSize = 12;
-            // NOTE: PageRange will be set in the View Model initializer
-
-            // 1. Start with all approved products
-            IQueryable<Product> products = _context.Products
-                .Where(x => x.Status == Models.ProductStatus.Approved);
-
-            // --- Initialize View Model Properties ---
-            string categoryName = null;
-            string categorySlug = "";
-
-            // --- 2. Apply Category Filter ---
-            if (!string.IsNullOrWhiteSpace(slug))
-            {
-                // Retrieve the category to get its ID and Name
-                Category category = await _context.Categories
-                    .Where(x => x.Slug == slug)
-                    .FirstOrDefaultAsync();
-
-                if (category == null)
-                    return RedirectToAction("Index"); // Redirect if category is invalid
-
-                // Filter by category ID
-                products = products.Where(x => x.CategoryId == category.Id);
-                categoryName = category.Name; // Capture for VM
-                categorySlug = slug;         // Capture for VM
-            }
-            // ELSE: categorySlug remains "" for main shop page
-
-            // --- 3. Apply Search Term Filter ---
-            string searchFilter = searchTerm?.Trim();
-
-            if (!string.IsNullOrWhiteSpace(searchFilter))
-            {
-                // Filter by product name containing the search term
-                products = products.Where(x => x.Name.ToLower().Contains(searchFilter.ToLower()));
-            }
-
-            // --- 4. Apply Sorting ---
-            products = sortOrder switch
-            {
-                "price-asc" => products.OrderBy(x => (double)x.Price),
-                "price-desc" => products.OrderByDescending(x => (double)x.Price),
-                "name-asc" => products.OrderBy(x => x.Name),
-                _ => products.OrderByDescending(x => x.Id),
-            };
-            // sortOrder is already captured
-
-            // --- 5. Calculate Total Pages (Fetch Count) ---
-            int totalProducts = await products.CountAsync();
-            int totalPages = (int)Math.Ceiling((decimal)totalProducts / pageSize);
-
-            // --- 6. Validate Page Number ---
-            if (p < 1) p = 1;
-            if (p > totalPages && totalProducts > 0) p = totalPages;
             int pageNumber = p;
 
-            // --- 7. Apply Paging and Execute Query ---
-            List<Product> pagedProducts = await products
-                .Include(x => x.Category) // Eager load category data
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-
-
-            // ---8. Fetch User List (Required for the sidebar) ---
-            var currentUserId = _userManager.GetUserId(User);
-
-            var userStatusDtos = await _userStatusService.GetAllOtherUsersStatusAsync(currentUserId);
-
-            // Find current logged-in user info to display separately (do not show in lists)
+            // Initialize view model variables outside the try block for scope
+            string categoryName = null;
+            string categorySlug = "";
+            string searchFilter = searchTerm?.Trim();
+            int totalProducts = 0;
+            int totalPages = 1;
+            List<Product> pagedProducts = new List<Product>();
             IdentityUser currentUser = null;
-            if (!string.IsNullOrEmpty(currentUserId))
+            List<UserStatusDTO> userStatusDtos = new List<UserStatusDTO>();
+
+            try
             {
-                currentUser = await _userManager.FindByIdAsync(currentUserId);
+                // 1. Start with all approved products
+                IQueryable<Product> products = _context.Products
+                    .Where(x => x.Status == Models.ProductStatus.Approved)
+                    .AsNoTracking(); // Use AsNoTracking for read-only query optimization
+
+                // --- 2. Apply Category Filter ---
+                if (!string.IsNullOrWhiteSpace(slug))
+                {
+                    // Retrieve the category to get its ID and Name
+                    Category category = await _context.Categories
+                        .Where(x => x.Slug == slug)
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync();
+
+                    if (category == null)
+                    {
+                        // Invalid slug, but treat it as the main index page to prevent error
+                        TempData["Error"] = $"Category '{slug}' was not found.";
+                        return RedirectToAction("Index");
+                    }
+
+                    // Filter by category ID
+                    products = products.Where(x => x.CategoryId == category.Id);
+                    categoryName = category.Name; // Capture for VM
+                    categorySlug = slug;         // Capture for VM
+                }
+
+                // --- 3. Apply Search Term Filter ---
+                if (!string.IsNullOrWhiteSpace(searchFilter))
+                {
+                    // Filter by product name containing the search term
+                    products = products.Where(x => x.Name.ToLower().Contains(searchFilter.ToLower()));
+                }
+
+                // --- 4. Apply Sorting ---
+                products = sortOrder switch
+                {
+                    "price-asc" => products.OrderBy(x => (double)x.Price),
+                    "price-desc" => products.OrderByDescending(x => (double)x.Price),
+                    "name-asc" => products.OrderBy(x => x.Name),
+                    _ => products.OrderByDescending(x => x.Id), // Default sort by ID
+                };
+
+                // --- 5. Calculate Total Pages (Fetch Count) ---
+                totalProducts = await products.CountAsync();
+                totalPages = (int)Math.Ceiling((decimal)totalProducts / pageSize);
+
+                // --- 6. Validate Page Number ---
+                if (pageNumber < 1) pageNumber = 1;
+                if (pageNumber > totalPages && totalProducts > 0) pageNumber = totalPages;
+
+                // --- 7. Apply Paging and Execute Query ---
+                pagedProducts = await products
+                    .Include(x => x.Category) // Eager load category data
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                // ---8. Fetch User List (Required for the sidebar) ---
+                var currentUserId = _userManager.GetUserId(User);
+
+                // Safely call the service
+                if (!string.IsNullOrEmpty(currentUserId))
+                {
+                    userStatusDtos = await _userStatusService.GetAllOtherUsersStatusAsync(currentUserId);
+                    currentUser = await _userManager.FindByIdAsync(currentUserId);
+                }
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Log database errors
+                // _logger.LogError(dbEx, "Database error in Products Index action.");
+                TempData["Error"] = "A database error occurred while fetching products. Please try again later.";
+            }
+            catch (Exception ex)
+            {
+                // Log general exceptions
+                // _logger.LogError(ex, "Unexpected error in Products Index action.");
+                TempData["Error"] = "An unexpected error occurred while loading the product list.";
             }
 
-            // ---9. Create and return the View Model ---
+            // --- 9. Create and return the View Model ---
+            // This is outside the try-catch to ensure the view renders even on failure (with empty data)
             var viewModel = new ProductListViewModel
             {
                 Products = pagedProducts,
@@ -142,22 +163,69 @@ namespace CMSECommerce.Controllers
         // --- Product Detail Page ---
         public async Task<IActionResult> Product(string slug = "")
         {
-            Product product = await _context.Products
-                                                .Where(x => x.Slug == slug)
-                                                .Include(x => x.Category) // Include category
-                                                                          // 🌟 NECESSARY CHANGE: Eagerly load reviews 🌟
-                                                .Include(x => x.Reviews)
-                                                .FirstOrDefaultAsync();
-           
-            if (product == null) return RedirectToAction("Index");
-
-            string galleryDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + product.Id.ToString());
-
-            if (Directory.Exists(galleryDir))
+            if (string.IsNullOrWhiteSpace(slug))
             {
-                product.GalleryImages = Directory.EnumerateFiles(galleryDir).Select(x => Path.GetFileName(x));
+                TempData["Error"] = "Invalid product identifier.";
+                return RedirectToAction("Index");
             }
 
+            Product product = null;
+
+            try
+            {
+                product = await _context.Products
+                    .Where(x => x.Slug == slug)
+                    .Include(x => x.Category)
+                    .Include(x => x.Reviews)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync();
+
+                if (product == null)
+                {
+                    TempData["Warning"] = $"The product with slug '{slug}' was not found.";
+                    return RedirectToAction("Index");
+                }
+
+                // Only load gallery images if the product is found
+                string galleryDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + product.Id.ToString());
+
+                // Safely check and enumerate files
+                if (Directory.Exists(galleryDir))
+                {
+                    // Use a simple try/catch for the file operation, as it's separate from the DB
+                    try
+                    {
+                        product.GalleryImages = Directory.EnumerateFiles(galleryDir).Select(x => Path.GetFileName(x)).ToList();
+                    }
+                    catch (IOException ioEx)
+                    {
+                        // Log file system errors but allow the product page to load without gallery
+                        // _logger.LogError(ioEx, "File system error loading product gallery for ID {ProductId}.", product.Id);
+                        product.GalleryImages = new List<string>();
+                        TempData["Warning"] = "Could not load all image files for this product.";
+                    }
+                }
+                else
+                {
+                    product.GalleryImages = new List<string>();
+                }
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Log database errors
+                // _logger.LogError(dbEx, "Database error in Products Product detail action for slug {Slug}.", slug);
+                TempData["Error"] = "A database error occurred while fetching product details. Please try again later.";
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                // Log general exceptions
+                // _logger.LogError(ex, "Unexpected error in Products Product detail action for slug {Slug}.", slug);
+                TempData["Error"] = "An unexpected error occurred while loading the product page.";
+                return RedirectToAction("Index");
+            }
+
+            // Return the view with the product data
             return View(product);
         }
     }

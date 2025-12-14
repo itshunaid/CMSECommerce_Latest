@@ -12,7 +12,7 @@ namespace CMSECommerce.Models.ViewModels
 
         // 2. Data needed for the new sidebar user list
         // Replace 'ApplicationUser' with your actual Identity User class name
-        public IEnumerable<UserStatusDto> AllUsers { get; set; }       
+        public IEnumerable<UserStatusDTO> AllUsers { get; set; }       
 
         // --- Product-Related Metadata (replacing ViewBags) ---
         public string CategoryName { get; set; }      // Replaces ViewBag.CategoryName

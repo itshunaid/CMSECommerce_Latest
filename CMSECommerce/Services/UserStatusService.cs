@@ -12,7 +12,7 @@ namespace CMSECommerce.Services
 {
  public interface IUserStatusService
  {
- Task<List<UserStatusDto>> GetAllOtherUsersStatusAsync(string excludeUserId = null);
+ Task<List<UserStatusDTO>> GetAllOtherUsersStatusAsync(string excludeUserId = null);
  Task UpdateActivityAsync(string userId);
  Task SetOfflineAsync(string userId);
  Task<(int onlineThreshold, int cleanupThreshold)> GetThresholdsAsync();
@@ -43,7 +43,7 @@ namespace CMSECommerce.Services
  return (_defaultOnlineThresholdMinutes, _defaultCleanupThresholdMinutes);
  }
 
- public async Task<List<UserStatusDto>> GetAllOtherUsersStatusAsync(string excludeUserId = null)
+ public async Task<List<UserStatusDTO>> GetAllOtherUsersStatusAsync(string excludeUserId = null)
  {
  var fetchedUsers = await _userManager.Users.ToListAsync();
  var statusEntities = await _context.UserStatuses.ToListAsync();
@@ -53,7 +53,7 @@ namespace CMSECommerce.Services
 
  var userStatusDtos = fetchedUsers
  .Where(u => u != null && u.Id != excludeUserId)
- .Select(user => new UserStatusDto
+ .Select(user => new UserStatusDTO
  {
  User = user,
  IsOnline = statuses.GetValueOrDefault(user.Id, false)

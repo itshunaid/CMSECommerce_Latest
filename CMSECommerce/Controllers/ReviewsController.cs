@@ -4,10 +4,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System;
+using System.Threading.Tasks;
 
 namespace CMSECommerce.Controllers
 {
     // Inject the database context
+    // It is highly recommended to also inject ILogger<ReviewsController> for production logging.
     public class ReviewsController(DataContext context) : Controller
     {
         private readonly DataContext _context = context;
@@ -19,52 +22,86 @@ namespace CMSECommerce.Controllers
         {
             // 1. Get current logged-in user details (assuming ASP.NET Core Identity)
             string userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            string userName = User.FindFirstValue(ClaimTypes.GivenName) ?? User.Identity.Name; // Use username or fallback
+            // Use GetUserName() from UserManager if available, or fallback as shown:
+            string userName = User.FindFirstValue(ClaimTypes.GivenName) ?? User.Identity.Name;
 
+            // Basic checks for required fields
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["Error"] = "Authentication error: You must be logged in to submit a review.";
+                return RedirectToAction("Index", "Products");
+            }
+
+            // Populate required Review properties
             review.UserId = userId;
             review.UserName = userName;
             review.DateCreated = DateTime.Now;
 
-            // 2. Validate the incoming Review model
-            if (ModelState.IsValid)
+            // Initialize product variable for use in both try/catch and redirect logic
+            Product product = null;
+
+            try
             {
-                // Ensure ProductId is valid and the product exists before saving
-                var product = await _context.Products.FindAsync(review.ProductId);
-                if (product == null)
+                // 2. Validate the incoming Review model
+                if (!ModelState.IsValid)
                 {
-                    ModelState.AddModelError("", "Product not found.");
-                    // Fall through to return to the product page with an error
+                    TempData["Error"] = "Review submission failed. Please ensure your rating and comments are valid.";
+                    // Skip to product retrieval block to handle redirect
                 }
                 else
                 {
+                    // Ensure ProductId is valid and the product exists before saving
+                    product = await _context.Products
+                        .AsNoTracking() // Read-only query
+                        .FirstOrDefaultAsync(p => p.Id == review.ProductId);
+
+                    if (product == null)
+                    {
+                        TempData["Error"] = "Cannot submit review: The target product was not found.";
+                        return RedirectToAction("Index", "Products");
+                    }
+
                     // 3. Save the new review
                     _context.Reviews.Add(review);
                     await _context.SaveChangesAsync();
 
-                    TempData["Success"] = "Your review was submitted successfully!";
+                    TempData["Success"] = "Your review was submitted successfully and is awaiting approval.";
 
                     // Redirect back to the product's detail page (using the product's slug)
                     return RedirectToAction("Product", "Products", new { slug = product.Slug });
                 }
             }
-
-            // If validation failed or product wasn't found, you need to load the product 
-            // and return to its detail view to show errors.
-            var productForReturn = await _context.Products
-                                                .Include(p => p.Reviews) // Eager load reviews
-                                                .Include(p => p.Category)
-                                                .FirstOrDefaultAsync(p => p.Id == review.ProductId);
-
-            if (productForReturn != null)
+            catch (DbUpdateException dbEx)
             {
-                // You may want to pass the product back to the view, or handle errors differently.
-                // For simplicity here, we redirect to prevent a crash, but a full solution
-                // would return the model to the original view with validation errors.
-                TempData["Error"] = "Review submission failed. Please check your rating and comments.";
-                return RedirectToAction("Product", "Products", new { slug = productForReturn.Slug });
+                // Log the database exception (in a real app, use ILogger)
+                // _logger.LogError(dbEx, "Database error saving review for ProductId: {ProductId}", review.ProductId);
+                TempData["Error"] = "A database error occurred while saving your review. Please try again.";
+            }
+            catch (Exception ex)
+            {
+                // Log general runtime exception
+                // _logger.LogError(ex, "Unexpected error saving review for ProductId: {ProductId}", review.ProductId);
+                TempData["Error"] = "An unexpected error occurred during review submission.";
             }
 
-            // Final fallback if we can't find the product
+            // --- Fallback/Error Redirection Logic ---
+            // If an error occurred or ModelState was invalid, we need to find the product to redirect to its page.
+            if (product == null && review.ProductId > 0)
+            {
+                // Try to retrieve the product just for the slug
+                product = await _context.Products
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == review.ProductId);
+            }
+
+            // Redirect back to the product page or the shop index
+            if (product != null)
+            {
+                // Redirect back to the product page so the user can see their error message
+                return RedirectToAction("Product", "Products", new { slug = product.Slug });
+            }
+
+            // Final fallback if the product ID was invalid or we couldn't retrieve it
             return RedirectToAction("Index", "Products");
         }
     }
