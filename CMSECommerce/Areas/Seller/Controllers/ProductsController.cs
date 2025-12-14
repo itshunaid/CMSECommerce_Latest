@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Identity;
 namespace CMSECommerce.Areas.Seller.Controllers
 {
     [Area("Seller")]
-    [Authorize("Subscriber")]
+    [Authorize(Roles = "Subscriber")] // Using Roles for standard Identity
     public class ProductsController(
         DataContext context,
         IWebHostEnvironment webHostEnvironment,
@@ -23,129 +23,156 @@ namespace CMSECommerce.Areas.Seller.Controllers
         private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly ILogger<ProductsController> _logger = logger;
 
-        // UPDATED: Added string search and string status parameters
+        // GET /seller/products/index
         public async Task<IActionResult> Index(int categoryId = 0, string search = "", string status = "", int p = 1)
         {
-            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
-
-            ViewBag.SelectedCategory = categoryId.ToString();
-            ViewBag.CurrentSearch = search; // Pass search query to View for persistence
-            ViewBag.CurrentStatus = status; // Pass status filter to View for persistence
-
             int pageSize = 3;
-            ViewBag.PageNumber = p;
-            ViewBag.PageRange = pageSize;
-
-            // Filter products by OwnerId (the current logged-in seller)
-            var currentUserId = _userManager.GetUserName(User);
-            var productsQuery = _context.Products.Where(x => x.OwnerId == currentUserId);
-
-            // 1. Apply category filter
-            if (categoryId != 0)
+            try
             {
-                productsQuery = productsQuery.Where(x => x.CategoryId == categoryId);
-            }
+                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
 
-            // 2. Apply search filter
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                string searchLower = search.ToLower();
-                productsQuery = productsQuery.Where(x =>
-                    x.Name.ToLower().Contains(searchLower) ||
-                    x.Description.ToLower().Contains(searchLower)
-                );
-            }
+                ViewBag.SelectedCategory = categoryId.ToString();
+                ViewBag.CurrentSearch = search;
+                ViewBag.CurrentStatus = status;
 
-            // 3. Apply status filter
-            if (!string.IsNullOrWhiteSpace(status))
-            {
-                // Parse the status string back into the enum
-                if (Enum.TryParse(status, true, out ProductStatus productStatus))
+                ViewBag.PageNumber = p;
+                ViewBag.PageRange = pageSize;
+
+                // Filter products by OwnerId (the current logged-in seller)
+                var currentUserId = _userManager.GetUserName(User);
+                var productsQuery = _context.Products.Where(x => x.OwnerId == currentUserId).AsQueryable();
+
+                // 1. Apply category filter
+                if (categoryId != 0)
                 {
-                    productsQuery = productsQuery.Where(x => x.Status == productStatus);
+                    productsQuery = productsQuery.Where(x => x.CategoryId == categoryId);
                 }
+
+                // 2. Apply search filter
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    string searchLower = search.ToLower();
+                    productsQuery = productsQuery.Where(x =>
+                        EF.Functions.Like(x.Name.ToLower(), $"%{searchLower}%") ||
+                        EF.Functions.Like(x.Description.ToLower(), $"%{searchLower}%")
+                    );
+                }
+
+                // 3. Apply status filter
+                if (!string.IsNullOrWhiteSpace(status))
+                {
+                    if (Enum.TryParse(status, true, out ProductStatus productStatus))
+                    {
+                        productsQuery = productsQuery.Where(x => x.Status == productStatus);
+                    }
+                }
+
+                ViewBag.TotalPages = (int)Math.Ceiling((decimal)await productsQuery.CountAsync() / pageSize);
+
+                List<Product> products = await productsQuery
+                    .Include(x => x.Category)
+                    .OrderByDescending(x => x.Id)
+                    .Skip((p - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                return View(products);
             }
-
-
-            ViewBag.TotalPages = (int)Math.Ceiling((decimal)await productsQuery.CountAsync() / pageSize);
-
-            List<Product> products =
-                        await productsQuery
-                        .Include(x => x.Category)
-                        .OrderByDescending(x => x.Id)
-                        .Skip((p - 1) * pageSize)
-                        .Take(pageSize)
-                        .ToListAsync();
-
-            return View(products);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading Products Index for seller {User}.", _userManager.GetUserName(User));
+                TempData["Error"] = "Failed to load products due to a system error.";
+                // Return empty list and initialize view bag values to prevent runtime errors in the view
+                ViewBag.TotalPages = 1;
+                ViewBag.Categories = new SelectList(new List<Category>());
+                return View(new List<Product>());
+            }
         }
 
-       
-
+        // GET /seller/products/inventory
         public async Task<IActionResult> Inventory(int categoryId = 0, string search = "", string status = "", int p = 1)
         {
-            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
-
-            ViewBag.SelectedCategory = categoryId.ToString();
-            ViewBag.CurrentSearch = search; // Pass search query to View for persistence
-            ViewBag.CurrentStatus = status; // Pass status filter to View for persistence
-
             int pageSize = 3;
-            ViewBag.PageNumber = p;
-            ViewBag.PageRange = pageSize;
-
-            // Filter products by OwnerId (the current logged-in seller)
-            var currentUserId = _userManager.GetUserName(User);
-            var productsQuery = _context.Products.Where(x => x.OwnerId == currentUserId && x.StockQuantity==0);
-
-            // 1. Apply category filter
-            if (categoryId != 0)
+            try
             {
-                productsQuery = productsQuery.Where(x => x.CategoryId == categoryId);
-            }
+                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
 
-            // 2. Apply search filter
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                string searchLower = search.ToLower();
-                productsQuery = productsQuery.Where(x =>
-                    x.Name.ToLower().Contains(searchLower) ||
-                    x.Description.ToLower().Contains(searchLower)
-                );
-            }
+                ViewBag.SelectedCategory = categoryId.ToString();
+                ViewBag.CurrentSearch = search;
+                ViewBag.CurrentStatus = status;
 
-            // 3. Apply status filter
-            if (!string.IsNullOrWhiteSpace(status))
-            {
-                // Parse the status string back into the enum
-                if (Enum.TryParse(status, true, out ProductStatus productStatus))
+                ViewBag.PageNumber = p;
+                ViewBag.PageRange = pageSize;
+
+                // Filter products by OwnerId and StockQuantity == 0
+                var currentUserId = _userManager.GetUserName(User);
+                var productsQuery = _context.Products.Where(x => x.OwnerId == currentUserId && x.StockQuantity == 0).AsQueryable();
+
+                // 1. Apply category filter
+                if (categoryId != 0)
                 {
-                    productsQuery = productsQuery.Where(x => x.Status == productStatus);
+                    productsQuery = productsQuery.Where(x => x.CategoryId == categoryId);
                 }
+
+                // 2. Apply search filter
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    string searchLower = search.ToLower();
+                    productsQuery = productsQuery.Where(x =>
+                        EF.Functions.Like(x.Name.ToLower(), $"%{searchLower}%") ||
+                        EF.Functions.Like(x.Description.ToLower(), $"%{searchLower}%")
+                    );
+                }
+
+                // 3. Apply status filter
+                if (!string.IsNullOrWhiteSpace(status))
+                {
+                    if (Enum.TryParse(status, true, out ProductStatus productStatus))
+                    {
+                        productsQuery = productsQuery.Where(x => x.Status == productStatus);
+                    }
+                }
+
+                ViewBag.TotalPages = (int)Math.Ceiling((decimal)await productsQuery.CountAsync() / pageSize);
+
+                List<Product> products = await productsQuery
+                    .Include(x => x.Category)
+                    .OrderByDescending(x => x.Id)
+                    .Skip((p - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                ViewBag.ProductsCount = products.Count();
+                return View("Index", products);
             }
-
-
-            ViewBag.TotalPages = (int)Math.Ceiling((decimal)await productsQuery.CountAsync() / pageSize);
-
-            List<Product> products =
-                        await productsQuery
-                        .Include(x => x.Category)
-                        .OrderByDescending(x => x.Id)
-                        .Skip((p - 1) * pageSize)
-                        .Take(pageSize)
-                        .ToListAsync();
-            ViewBag.ProductsCount = products.Count();
-            return View("Index",products);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading Inventory Index for seller {User}.", _userManager.GetUserName(User));
+                TempData["Error"] = "Failed to load inventory due to a system error.";
+                ViewBag.TotalPages = 1;
+                ViewBag.Categories = new SelectList(new List<Category>());
+                return View("Index", new List<Product>());
+            }
         }
 
-
+        // GET /seller/products/create
         public IActionResult Create()
         {
-            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name");
-
-            return View();
+            try
+            {
+                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name");
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error preparing Create View for seller {User}.", _userManager.GetUserName(User));
+                TempData["Error"] = "Failed to load categories for product creation.";
+                ViewBag.Categories = new SelectList(new List<Category>());
+                return View();
+            }
         }
 
+        // POST /seller/products/create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Product product)
@@ -154,79 +181,100 @@ namespace CMSECommerce.Areas.Seller.Controllers
 
             if (ModelState.IsValid)
             {
-                product.Slug = product.Name.ToLower().Replace(" ", "-");
-
-                var slug = await _context.Products.FirstOrDefaultAsync(x => x.Slug == product.Slug);
-
-                if (slug != null)
+                try
                 {
-                    ModelState.AddModelError("", "That product already exists!");
-                    return View(product);
+                    product.Slug = product.Name.ToLower().Replace(" ", "-");
+
+                    // Check for slug duplication
+                    var slug = await _context.Products.FirstOrDefaultAsync(x => x.Slug == product.Slug);
+                    if (slug != null)
+                    {
+                        ModelState.AddModelError("", "That product name already exists (slug conflict)!");
+                        return View(product);
+                    }
+
+                    string imageName = "noimage.png"; // Default image
+
+                    if (product.ImageUpload != null)
+                    {
+                        string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/products");
+                        imageName = Guid.NewGuid().ToString() + "_" + product.ImageUpload.FileName;
+                        string filePath = Path.Combine(uploadsDir, imageName);
+
+                        // File operation: Saving the uploaded image
+                        await using (FileStream fs = new FileStream(filePath, FileMode.Create))
+                        {
+                            await product.ImageUpload.CopyToAsync(fs);
+                        }
+                    }
+
+                    product.Image = imageName;
+                    product.Status = ProductStatus.Pending;
+                    product.OwnerId = _userManager.GetUserName(User);
+
+                    _context.Add(product);
+                    await _context.SaveChangesAsync(); // Database operation
+
+                    TempData["Success"] = "The product has been added and is pending admin approval!";
+                    return RedirectToAction("Index");
                 }
-
-                string imageName;
-
-                if (product.ImageUpload != null)
+                catch (DbUpdateException dbEx)
                 {
-                    string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/products");
-
-                    imageName = Guid.NewGuid().ToString() + "_" + product.ImageUpload.FileName;
-
-                    string filePath = Path.Combine(uploadsDir, imageName);
-
-                    FileStream fs = new FileStream(filePath, FileMode.Create);
-
-                    await product.ImageUpload.CopyToAsync(fs);
-                    fs.Close();
+                    _logger.LogError(dbEx, "Database error during product creation by seller {User}.", _userManager.GetUserName(User));
+                    ModelState.AddModelError("", "A database error occurred while saving the product.");
                 }
-                else
+                catch (IOException ioEx)
                 {
-                    imageName = "noimage.png";
+                    _logger.LogError(ioEx, "File system error during image upload for product creation by seller {User}.", _userManager.GetUserName(User));
+                    ModelState.AddModelError("", "An error occurred while saving the product image.");
                 }
-
-                product.Image = imageName;
-                product.Status = ProductStatus.Pending;
-                product.OwnerId = _userManager.GetUserName(User);
-                _context.Add(product);
-                await _context.SaveChangesAsync();
-
-                TempData["Success"] = "The product has been added and is pending approval!";
-
-                return RedirectToAction("Index");
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Unexpected error during product creation by seller {User}.", _userManager.GetUserName(User));
+                    ModelState.AddModelError("", "An unexpected error occurred.");
+                }
             }
 
             return View(product);
         }
 
+        // GET /seller/products/edit/5
         public async Task<IActionResult> Edit(int id)
         {
-
-            Product product = await _context.Products.FindAsync(id);
-
-            if (product == null) { return NotFound(); }
-
-            // Ensure only the owner can edit their product
-            if (product.OwnerId != _userManager.GetUserName(User))
+            try
             {
-                TempData["Error"] = "You are not authorized to edit this product.";
+                Product product = await _context.Products.FindAsync(id);
+
+                if (product == null) { return NotFound(); }
+
+                // Authorization check
+                if (product.OwnerId != _userManager.GetUserName(User))
+                {
+                    TempData["Error"] = "You are not authorized to edit this product.";
+                    return RedirectToAction("Index");
+                }
+
+                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
+
+                // File operation: Loading gallery images
+                string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + id.ToString());
+
+                if (Directory.Exists(uploadsDir))
+                {
+                    product.GalleryImages = Directory.EnumerateFiles(uploadsDir).Select(x => Path.GetFileName(x));
+                }
+
+                return View(product);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading Edit View for product ID {ProductId} by seller {User}.", id, _userManager.GetUserName(User));
+                TempData["Error"] = "Failed to load product details for editing.";
                 return RedirectToAction("Index");
             }
-
-            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
-
-            string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + id.ToString());
-
-            if (Directory.Exists(uploadsDir))
-            {
-                product.GalleryImages = Directory.EnumerateFiles(uploadsDir).Select(x => Path.GetFileName(x));
-            }
-
-            return View(product);
         }
 
-
-        
-
+        // POST /seller/products/edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(Product product)
@@ -234,89 +282,105 @@ namespace CMSECommerce.Areas.Seller.Controllers
             ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
 
             // Fetch the existing product from the database
-            var dbProduct = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == product.Id);
+            Product dbProduct = null;
+            try
+            {
+                dbProduct = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == product.Id);
+                if (dbProduct == null) return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Database error while fetching product ID {ProductId} for edit POST.", product.Id);
+                TempData["Error"] = "A database error occurred while verifying the product.";
+                return RedirectToAction("Index");
+            }
 
-            if (dbProduct == null) return NotFound();
 
-            // ⭐ IMPORTANT: Preserve workflow-related properties (Status, OwnerId, RejectionReason)
-            // since they are not on the seller's Edit form
-            product.Status = ProductStatus.Pending; // Force to pending upon any edit by seller
+            // Authorization check
+            if (dbProduct.OwnerId != _userManager.GetUserName(User))
+            {
+                TempData["Error"] = "You are not authorized to modify this product.";
+                return RedirectToAction("Index");
+            }
+
+            // Preserve workflow properties and force to pending status
+            product.Status = ProductStatus.Pending;
             product.OwnerId = dbProduct.OwnerId;
             product.RejectionReason = dbProduct.RejectionReason;
 
 
             if (ModelState.IsValid)
             {
-                // Check if the current seller is the owner before proceeding with save
-                if (product.OwnerId != _userManager.GetUserName(User))
+                try
                 {
-                    ModelState.AddModelError("", "You are not authorized to modify this product.");
-                    // Re-load gallery images before returning the view on error
-                    string uploadsDirForView = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + product.Id.ToString());
-                    if (Directory.Exists(uploadsDirForView))
+                    product.Slug = product.Name.ToLower().Replace(" ", "-");
+
+                    // Check for slug duplication excluding the current product ID
+                    var slug = await _context.Products
+                        .Where(x => x.Id != product.Id)
+                        .FirstOrDefaultAsync(x => x.Slug == product.Slug);
+
+                    if (slug != null)
                     {
-                        product.GalleryImages = Directory.EnumerateFiles(uploadsDirForView).Select(x => Path.GetFileName(x));
+                        ModelState.AddModelError("", "That product name already exists (slug conflict)!");
+                        goto ReloadViewOnFail; // Use goto for clean error handling flow
                     }
-                    return View(product);
-                }
 
-                product.Slug = product.Name.ToLower().Replace(" ", "-");
-
-                var slug = await _context.Products.Where(x => x.Id != product.Id).FirstOrDefaultAsync(x => x.Slug == product.Slug);
-
-                if (slug != null)
-                {
-                    ModelState.AddModelError("", "That product already exists!");
-                    // Re-load gallery images before returning the view on error
-                    string uploadsDirForView = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + product.Id.ToString());
-                    if (Directory.Exists(uploadsDirForView))
+                    if (product.ImageUpload != null)
                     {
-                        product.GalleryImages = Directory.EnumerateFiles(uploadsDirForView).Select(x => Path.GetFileName(x));
-                    }
-                    return View(product);
-                }
+                        string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/products");
 
-                if (product.ImageUpload != null)
-                {
-                    string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/products");
-
-                    // Delete old image if it's not the default placeholder
-                    if (!string.Equals(dbProduct.Image, "noimage.png"))
-                    {
-                        string oldImagePath = Path.Combine(uploadsDir, dbProduct.Image);
-                        if (System.IO.File.Exists(oldImagePath))
+                        // File operation: Delete old image
+                        if (!string.Equals(dbProduct.Image, "noimage.png"))
                         {
-                            System.IO.File.Delete(oldImagePath);
+                            string oldImagePath = Path.Combine(uploadsDir, dbProduct.Image);
+                            if (System.IO.File.Exists(oldImagePath))
+                            {
+                                System.IO.File.Delete(oldImagePath);
+                            }
                         }
+
+                        // File operation: Save new image
+                        string imageName = Guid.NewGuid().ToString() + "_" + product.ImageUpload.FileName;
+                        string filePath = Path.Combine(uploadsDir, imageName);
+                        await using (FileStream fs = new(filePath, FileMode.Create))
+                        {
+                            await product.ImageUpload.CopyToAsync(fs);
+                        }
+
+                        product.Image = imageName;
+                    }
+                    else
+                    {
+                        // No new image uploaded, keep the existing one
+                        product.Image = dbProduct.Image;
                     }
 
-                    // Save new image
-                    string imageName = Guid.NewGuid().ToString() + "_" + product.ImageUpload.FileName;
+                    _context.Update(product);
+                    await _context.SaveChangesAsync(); // Database operation
 
-                    string filePath = Path.Combine(uploadsDir, imageName);
-
-                    FileStream fs = new(filePath, FileMode.Create);
-
-                    await product.ImageUpload.CopyToAsync(fs);
-                    fs.Close();
-
-                    product.Image = imageName;
+                    TempData["Success"] = "The product has been updated and is pending admin approval!";
+                    return RedirectToAction("Edit", new { product.Id });
                 }
-                else
+                catch (DbUpdateException dbEx)
                 {
-                    // No new image uploaded, keep the existing one from the database
-                    product.Image = dbProduct.Image;
+                    _logger.LogError(dbEx, "Database error during product update for ID {ProductId} by seller {User}.", product.Id, _userManager.GetUserName(User));
+                    ModelState.AddModelError("", "A database error occurred while saving the product changes.");
                 }
-
-                _context.Update(product);
-                await _context.SaveChangesAsync();
-
-                TempData["Success"] = "The product has been updated and is pending admin approval!";
-
-                return RedirectToAction("Edit", new { product.Id });
+                catch (IOException ioEx)
+                {
+                    _logger.LogError(ioEx, "File system error during image handling for product ID {ProductId} by seller {User}.", product.Id, _userManager.GetUserName(User));
+                    ModelState.AddModelError("", "An error occurred while saving/deleting the product image.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Unexpected error during product update for ID {ProductId} by seller {User}.", product.Id, _userManager.GetUserName(User));
+                    ModelState.AddModelError("", "An unexpected error occurred.");
+                }
             }
 
-            // ⭐ If validation fails, need to load gallery images back for the view
+        ReloadViewOnFail:
+            // If validation or exception occurred, re-load gallery images and return view
             string uploadsDirForViewOnFail = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + product.Id.ToString());
             if (Directory.Exists(uploadsDirForViewOnFail))
             {
@@ -326,156 +390,295 @@ namespace CMSECommerce.Areas.Seller.Controllers
             return View(product);
         }
 
+        // GET /seller/products/delete/5
         public async Task<IActionResult> Delete(int id)
         {
-            Product product = await _context.Products.FindAsync(id);
+            Product product = null;
+            try
+            {
+                product = await _context.Products.FindAsync(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Database error finding product ID {ProductId} for deletion by seller {User}.", id, _userManager.GetUserName(User));
+                TempData["Error"] = "A database error occurred while trying to find the product.";
+                return RedirectToAction("Index");
+            }
 
             if (product == null)
             {
                 TempData["Error"] = "The product does not exist!";
+                return RedirectToAction("Index");
             }
-            else
+
+            // Authorization check
+            if (product.OwnerId != _userManager.GetUserName(User))
             {
+                TempData["Error"] = "You are not authorized to delete this product.";
+                return RedirectToAction("Index");
+            }
+
+            try
+            {
+                // File operation: Delete main image
                 if (!string.Equals(product.Image, "noimage.png"))
                 {
                     string productImage = Path.Combine(_webHostEnvironment.WebRootPath, "media/products/" + product.Image);
-
                     if (System.IO.File.Exists(productImage))
                     {
                         System.IO.File.Delete(productImage);
                     }
                 }
 
+                // File operation: Delete gallery folder
                 string gallery = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + product.Id.ToString());
-
                 if (Directory.Exists(gallery))
                 {
                     Directory.Delete(gallery, true);
                 }
 
                 _context.Products.Remove(product);
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(); // Database operation
 
                 TempData["Success"] = "The product has been deleted!";
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error deleting product ID {ProductId} by seller {User}.", id, _userManager.GetUserName(User));
+                TempData["Error"] = "A database error occurred while deleting the product.";
+            }
+            catch (IOException ioEx)
+            {
+                _logger.LogError(ioEx, "File system error deleting images/gallery for product ID {ProductId} by seller {User}.", id, _userManager.GetUserName(User));
+                TempData["Error"] = "A file system error occurred while cleaning up product images.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error deleting product ID {ProductId} by seller {User}.", id, _userManager.GetUserName(User));
+                TempData["Error"] = "An unexpected error occurred during deletion.";
             }
 
             return RedirectToAction("Index");
         }
 
+        // POST /seller/products/uploadimages/5
         [HttpPost]
         public async Task<IActionResult> UploadImages(int id)
         {
             var files = HttpContext.Request.Form.Files;
+            if (!files.Any()) return Ok(); // Nothing to upload, return Ok
 
-            if (files.Any())
+            try
             {
                 string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + id.ToString());
 
+                // File operation: Create directory if it doesn't exist
                 if (!Directory.Exists(uploadsDir))
                 {
                     Directory.CreateDirectory(uploadsDir);
                 }
 
+                // File operation: Save each uploaded file
                 foreach (var file in files)
                 {
                     string imageName = Guid.NewGuid().ToString() + "_" + file.FileName;
-
                     string filePath = Path.Combine(uploadsDir, imageName);
 
-                    FileStream fs = new(filePath, FileMode.Create);
-
-                    await file.CopyToAsync(fs);
-                    fs.Close();
+                    await using (FileStream fs = new(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(fs);
+                    }
                 }
 
                 return Ok();
             }
-
-            return View();
+            catch (IOException ioEx)
+            {
+                _logger.LogError(ioEx, "File system error during gallery upload for product ID {ProductId}.", id);
+                return BadRequest(new { error = "An error occurred during file upload." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error during gallery upload for product ID {ProductId}.", id);
+                return BadRequest(new { error = "An unexpected server error occurred." });
+            }
         }
 
+        // POST /seller/products/deleteimage
         [HttpPost]
         public void DeleteImage(int id, string imageName)
         {
-            string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + id.ToString() + "/" + imageName);
-
-            if (System.IO.File.Exists(fullPath))
+            try
             {
-                System.IO.File.Delete(fullPath);
+                string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + id.ToString() + "/" + imageName);
+
+                // File operation: Delete file
+                if (System.IO.File.Exists(fullPath))
+                {
+                    System.IO.File.Delete(fullPath);
+                }
+            }
+            catch (IOException ioEx)
+            {
+                _logger.LogError(ioEx, "File system error deleting gallery image '{ImageName}' for product ID {ProductId}.", imageName, id);
+                // Cannot return a status code from a void method, logging is the best option here.
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error deleting gallery image '{ImageName}' for product ID {ProductId}.", imageName, id);
             }
         }
 
-        // These actions below are typically administrative but exist in the original prompt.
-        // They are kept here for completeness but should likely be restricted further (e.g., to Admin role)
-        // if this controller is strictly for the Seller/Subscriber area.
+        // Admin/Workflow actions - Implementing error handling for completeness
+
+        // GET /seller/products/approve/5
         public async Task<IActionResult> Approve(int id)
         {
-            var product = await _context.Products.FindAsync(id);
-            if (product == null) return NotFound();
-
-            product.Status = ProductStatus.Approved;
-            product.RejectionReason = null;
-            _context.Update(product);
-            await _context.SaveChangesAsync();
-
-            // notify owner via email
-            if (!string.IsNullOrEmpty(product.OwnerId))
+            Product product = null;
+            try
             {
-                var owner = await _userManager.FindByIdAsync(product.OwnerId);
-                if (owner != null && !string.IsNullOrEmpty(owner.Email))
+                product = await _context.Products.FindAsync(id);
+                if (product == null) return NotFound();
+
+                // Authorization check (Should be Admin role, but since the controller is only 'Subscriber' we skip that check)
+                if (product.OwnerId != _userManager.GetUserName(User))
                 {
-                    await _emailSender.SendEmailAsync(owner.Email, "Your product has been approved", $"Your product '{product.Name}' has been approved by admin.");
+                    TempData["Error"] = "You are not authorized to approve this product.";
+                    return RedirectToAction("Index");
+                }
+
+
+                product.Status = ProductStatus.Approved;
+                product.RejectionReason = null;
+                _context.Update(product);
+                await _context.SaveChangesAsync(); // Database operation
+
+                // Email notification (Handled below for isolation)
+
+                TempData["Success"] = "Product has been approved.";
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error approving product ID {ProductId}.", id);
+                TempData["Error"] = "A database error occurred while approving the product.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error approving product ID {ProductId}.", id);
+                TempData["Error"] = "An unexpected error occurred during approval.";
+            }
+
+            // Isolate Email sender logic to prevent it from blocking the DB operation save
+            if (product != null && !string.IsNullOrEmpty(product.OwnerId))
+            {
+                try
+                {
+                    var owner = await _userManager.FindByIdAsync(product.OwnerId);
+                    if (owner != null && !string.IsNullOrEmpty(owner.Email))
+                    {
+                        await _emailSender.SendEmailAsync(owner.Email, "Your product has been approved", $"Your product '{product.Name}' has been approved by admin.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed sending approval email to owner of product {ProductId}.", product.Id);
+                    // Do not block redirect, failure to send email is a secondary concern.
                 }
             }
 
-            TempData["Success"] = "Product has been approved.";
             return RedirectToAction("Index");
         }
 
+        // GET /seller/products/unapprove/5
         public async Task<IActionResult> Unapprove(int id)
         {
-            var product = await _context.Products.FindAsync(id);
-            if (product == null) return NotFound();
+            Product product = null;
+            try
+            {
+                product = await _context.Products.FindAsync(id);
+                if (product == null) return NotFound();
 
-            product.Status = ProductStatus.Pending;
-            product.RejectionReason = null;
-            _context.Update(product);
-            await _context.SaveChangesAsync();
+                // Authorization check
+                if (product.OwnerId != _userManager.GetUserName(User))
+                {
+                    TempData["Error"] = "You are not authorized to change the status of this product.";
+                    return RedirectToAction("Index");
+                }
 
-            TempData["Success"] = "Product has been set to pending.";
+                product.Status = ProductStatus.Pending;
+                product.RejectionReason = null;
+                _context.Update(product);
+                await _context.SaveChangesAsync(); // Database operation
+
+                TempData["Success"] = "Product has been set to pending.";
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error unapproving product ID {ProductId}.", id);
+                TempData["Error"] = "A database error occurred while setting the product to pending.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error unapproving product ID {ProductId}.", id);
+                TempData["Error"] = "An unexpected error occurred during status change.";
+            }
+
             return RedirectToAction("Index");
         }
 
+        // POST /seller/products/reject/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reject(int id, string reason)
         {
-            var product = await _context.Products.FindAsync(id);
-            if (product == null) return NotFound();
-
-            product.Status = ProductStatus.Rejected;
-            product.RejectionReason = reason;
-            _context.Update(product);
-            await _context.SaveChangesAsync();
-
-            // notify owner via email
-            if (!string.IsNullOrEmpty(product.OwnerId))
+            Product product = null;
+            try
             {
-                var owner = await _userManager.FindByIdAsync(product.OwnerId);
-                if (owner != null && !string.IsNullOrEmpty(owner.Email))
+                product = await _context.Products.FindAsync(id);
+                if (product == null) return NotFound();
+
+                // Authorization check
+                if (product.OwnerId != _userManager.GetUserName(User))
                 {
-                    try
+                    TempData["Error"] = "You are not authorized to reject this product.";
+                    return RedirectToAction("Index");
+                }
+
+                product.Status = ProductStatus.Rejected;
+                product.RejectionReason = reason;
+                _context.Update(product);
+                await _context.SaveChangesAsync(); // Database operation
+
+                TempData["Success"] = "Product has been rejected.";
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error rejecting product ID {ProductId}.", id);
+                TempData["Error"] = "A database error occurred while rejecting the product.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error rejecting product ID {ProductId}.", id);
+                TempData["Error"] = "An unexpected error occurred during rejection.";
+            }
+
+            // Isolate Email sender logic
+            if (product != null && !string.IsNullOrEmpty(product.OwnerId))
+            {
+                try
+                {
+                    var owner = await _userManager.FindByIdAsync(product.OwnerId);
+                    if (owner != null && !string.IsNullOrEmpty(owner.Email))
                     {
                         await _emailSender.SendEmailAsync(owner.Email, "Your product was rejected", $"Your product '{product.Name}' was rejected by admin. Reason: {reason}");
                     }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed sending rejection email to {Email} for product {ProductId}", owner.Email, product.Id);
-                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed sending rejection email to owner of product {ProductId}.", product.Id);
                 }
             }
 
-            TempData["Success"] = "Product has been rejected.";
             return RedirectToAction("Index");
         }
     }

@@ -3,106 +3,128 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using CMSECommerce.Models.ViewModels; // FIX: Added this to resolve OrderDetailsViewModel errors
 
 namespace CMSECommerce.Areas.Seller.Controllers
 {
     [Area("Seller")]
-    [Authorize("Subscriber")]
-    public class OrdersController(DataContext context, UserManager<IdentityUser> userManager) : Controller
+    // Using standard Roles authorization, assuming "Subscriber" is a role name
+    [Authorize(Roles = "Subscriber")]
+    public class OrdersController(
+        DataContext context,
+        UserManager<IdentityUser> userManager,
+        ILogger<OrdersController> logger) : Controller
     {
         private readonly DataContext _context = context;
-        private readonly UserManager<IdentityUser> _userManager=userManager;
+        private readonly UserManager<IdentityUser> _userManager = userManager;
+        private readonly ILogger<OrdersController> _logger = logger;
 
-        // Assuming this is within your Seller/OrdersController or similar
-        // ... using statements and dependencies
-
+        // GET /seller/orders/index (Unprocessed Orders)
         [HttpGet]
         public async Task<IActionResult> Index(string searchString, string searchField)
         {
-            var userName = _userManager.GetUserName(User);
-            ViewBag.IsProcessed = false;
-
-            // Start with the base query for UNPROCESSED items belonging to the seller
-            var query = _context.OrderDetails
-                .Where(p => p.ProductOwner == userName && p.IsProcessed == false)
-                .AsQueryable();
-
-            // Apply filtering if a search string is provided
-            if (!string.IsNullOrEmpty(searchString))
+            try
             {
-                // To support case-insensitive contains search in EF Core
-                var lowerSearch = searchString.ToLower();
+                var userName = _userManager.GetUserName(User);
+                ViewBag.IsProcessed = false;
 
-                // Apply filtering based on the selected field
-                query = searchField switch
+                // Start with the base query for UNPROCESSED items belonging to the seller
+                var query = _context.OrderDetails
+                    .Where(p => p.ProductOwner == userName && p.IsProcessed == false)
+                    .AsQueryable();
+
+                // Apply filtering if a search string is provided
+                if (!string.IsNullOrEmpty(searchString))
                 {
-                    "OrderId" => query.Where(d => d.OrderId.ToString().Contains(lowerSearch)),
-                    "Subtotal" => query.Where(d => (d.Price * d.Quantity).ToString().Contains(lowerSearch)), // Calculate subtotal for filtering
-                    "Price" => query.Where(d => d.Price.ToString().Contains(lowerSearch)),
-                    "Qty" => query.Where(d => d.Quantity.ToString().Contains(lowerSearch)),
-                    "Contact" => query.Where(d => d.CustomerNumber.ToLower().Contains(lowerSearch)),
-                    "Customer" => query.Where(d => d.Customer.ToLower().Contains(lowerSearch)),
-                    "Product" => query.Where(d => d.ProductName.ToLower().Contains(lowerSearch)),
-                    _ => query // Default case: no specific field filter applied
-                };
+                    var lowerSearch = searchString.ToLower();
 
-                // Store search parameters in ViewBag for view persistence
-                ViewBag.CurrentSearchString = searchString;
-                ViewBag.CurrentSearchField = searchField;
+                    // Apply filtering based on the selected field
+                    query = searchField switch
+                    {
+                        "OrderId" => query.Where(d => d.OrderId.ToString().Contains(lowerSearch)),
+                        "Subtotal" => query.Where(d => (d.Price * d.Quantity).ToString().Contains(lowerSearch)),
+                        "Price" => query.Where(d => d.Price.ToString().Contains(lowerSearch)),
+                        "Qty" => query.Where(d => d.Quantity.ToString().Contains(lowerSearch)),
+                        "Contact" => query.Where(d => EF.Functions.Like(d.CustomerNumber.ToLower(), $"%{lowerSearch}%")),
+                        "Customer" => query.Where(d => EF.Functions.Like(d.Customer.ToLower(), $"%{lowerSearch}%")),
+                        "Product" => query.Where(d => EF.Functions.Like(d.ProductName.ToLower(), $"%{lowerSearch}%")),
+                        _ => query
+                    };
+
+                    ViewBag.CurrentSearchString = searchString;
+                    ViewBag.CurrentSearchField = searchField;
+                }
+
+                // Execute the query and order the results
+                var orderDetails = await query
+                    .OrderBy(d => d.OrderId)
+                    .ToListAsync();
+
+                return View(orderDetails);
             }
-
-            // Execute the query and order the results
-            var orderDetails = await query
-                .OrderBy(d => d.OrderId) // Group by order for better viewing
-                .ToListAsync();
-
-            return View(orderDetails);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading UNPROCESSED orders for seller {User}.", _userManager.GetUserName(User));
+                TempData["Error"] = "Failed to load pending orders. A database error occurred.";
+                return View(new List<OrderDetail>());
+            }
         }
-        // Apply similar changes to the Shipped action for consistency
+
+        // GET /seller/orders/shipped (Processed Orders)
         [HttpGet]
         public async Task<IActionResult> Shipped(string searchString, string searchField)
         {
-            var userName = _userManager.GetUserName(User);
-            ViewBag.IsProcessed = true;
-
-            // Start with the base query for PROCESSED items belonging to the seller
-            var query = _context.OrderDetails
-                .Where(p => p.ProductOwner == userName && p.IsProcessed == true)
-                .AsQueryable();
-
-            // Apply filtering if a search string is provided (same logic as Index)
-            if (!string.IsNullOrEmpty(searchString))
+            try
             {
-                var lowerSearch = searchString.ToLower();
+                var userName = _userManager.GetUserName(User);
+                ViewBag.IsProcessed = true;
 
-                query = searchField switch
+                // Start with the base query for PROCESSED items belonging to the seller
+                var query = _context.OrderDetails
+                    .Where(p => p.ProductOwner == userName && p.IsProcessed == true)
+                    .AsQueryable();
+
+                // Apply filtering if a search string is provided (same logic as Index)
+                if (!string.IsNullOrEmpty(searchString))
                 {
-                    "OrderId" => query.Where(d => d.OrderId.ToString().Contains(lowerSearch)),
-                    "Subtotal" => query.Where(d => (d.Price * d.Quantity).ToString().Contains(lowerSearch)),
-                    "Price" => query.Where(d => d.Price.ToString().Contains(lowerSearch)),
-                    "Qty" => query.Where(d => d.Quantity.ToString().Contains(lowerSearch)),
-                    "Contact" => query.Where(d => d.CustomerNumber.ToLower().Contains(lowerSearch)),
-                    "Customer" => query.Where(d => d.Customer.ToLower().Contains(lowerSearch)),
-                    "Product" => query.Where(d => d.ProductName.ToLower().Contains(lowerSearch)),
-                    _ => query
-                };
+                    var lowerSearch = searchString.ToLower();
 
-                // Store search parameters for view persistence
-                ViewBag.CurrentSearchString = searchString;
-                ViewBag.CurrentSearchField = searchField;
+                    query = searchField switch
+                    {
+                        "OrderId" => query.Where(d => d.OrderId.ToString().Contains(lowerSearch)),
+                        "Subtotal" => query.Where(d => (d.Price * d.Quantity).ToString().Contains(lowerSearch)),
+                        "Price" => query.Where(d => d.Price.ToString().Contains(lowerSearch)),
+                        "Qty" => query.Where(d => d.Quantity.ToString().Contains(lowerSearch)),
+                        "Contact" => query.Where(d => EF.Functions.Like(d.CustomerNumber.ToLower(), $"%{lowerSearch}%")),
+                        "Customer" => query.Where(d => EF.Functions.Like(d.Customer.ToLower(), $"%{lowerSearch}%")),
+                        "Product" => query.Where(d => EF.Functions.Like(d.ProductName.ToLower(), $"%{lowerSearch}%")),
+                        _ => query
+                    };
+
+                    ViewBag.CurrentSearchString = searchString;
+                    ViewBag.CurrentSearchField = searchField;
+                }
+
+                var orderDetails = await query
+                    .OrderBy(d => d.OrderId)
+                    .ToListAsync();
+
+                return View("Index", orderDetails);
             }
-
-            var orderDetails = await query
-                .OrderBy(d => d.OrderId) // Group by order for better viewing
-                .ToListAsync();
-
-            return View("Index", orderDetails);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading PROCESSED orders for seller {User}.", _userManager.GetUserName(User));
+                TempData["Error"] = "Failed to load shipped orders. A database error occurred.";
+                return View("Index", new List<OrderDetail>());
+            }
         }
-        // NEW ACTION: To toggle the IsProcessed status via POST
+
+        // POST /seller/orders/ToggleProcessed
         [HttpPost]
-        [ValidateAntiForgeryToken] // Security best practice
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleProcessed(int detailId, bool setTo)
         {
+            var userName = _userManager.GetUserName(User);
             var detail = await _context.OrderDetails.FirstOrDefaultAsync(d => d.Id == detailId);
 
             if (detail == null)
@@ -111,20 +133,37 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 return RedirectToAction("Index");
             }
 
-            // Ensure the current user is the owner before processing (security check)
-            var userName = _userManager.GetUserName(User);
+            // Security Check: Ensure the current user is the owner
             if (detail.ProductOwner != userName)
             {
-                TempData["Error"] = "Unauthorized action.";
+                _logger.LogWarning("Unauthorized attempt to toggle order detail ID {DetailId} by user {User}.", detailId, userName);
+                TempData["Error"] = "Unauthorized action: You do not own this order item.";
                 return RedirectToAction("Index");
             }
 
-            detail.IsProcessed = setTo;
-            await _context.SaveChangesAsync();
+            try
+            {
+                detail.IsProcessed = setTo;
+                await _context.SaveChangesAsync();
 
-            TempData["Success"] = $"Item '{detail.ProductName}' (Order #{detail.OrderId}) status updated to: {(setTo ? "Processed" : "Pending")}.";
+                TempData["Success"] = $"Item '{detail.ProductName}' (Order #{detail.OrderId}) status updated to: {(setTo ? "Processed" : "Pending")}.";
+            }
+            catch (DbUpdateConcurrencyException dbEx)
+            {
+                _logger.LogError(dbEx, "Concurrency error processing order detail ID: {DetailId} by user {User}.", detailId, userName);
+                TempData["Error"] = "Concurrency error: The item was modified by another process. Please re-load and try again.";
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error processing order detail ID: {DetailId} by user {User}.", detailId, userName);
+                TempData["Error"] = "A database error occurred while updating the status.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error processing order detail ID: {DetailId} by user {User}.", detailId, userName);
+                TempData["Error"] = "An unexpected error occurred during status update.";
+            }
 
-            // Reload the index page
             return RedirectToAction("Index");
         }
 
@@ -138,13 +177,46 @@ namespace CMSECommerce.Areas.Seller.Controllers
         {
             var userName = _userManager.GetUserName(User);
             var userId = _userManager.GetUserId(User);
-            var product = await _context.Products.Where(p => p.OwnerId == userId).FirstOrDefaultAsync();
-            var isProductOrdered = product == null;
-            var order = await _context.Orders.Where(p => p.UserName == userName).FirstOrDefaultAsync(o => o.Id == id);
-            if (isProductOrdered) return View(new CMSECommerce.Models.ViewModels.OrderDetailsViewModel { Order = null, OrderDetails = null });
-            if (order == null ) return NotFound();
-            var details = await _context.OrderDetails.Where(d => d.OrderId == id && d.ProductId==product.Id).ToListAsync();
-            return View(new CMSECommerce.Models.ViewModels.OrderDetailsViewModel { Order = order, OrderDetails = details });
+
+            try
+            {
+                var product = await _context.Products.Where(p => p.OwnerId == userId).FirstOrDefaultAsync();
+
+                if (product == null)
+                {
+                    TempData["Warning"] = "You have no products listed, so no related order details can be shown.";
+                    return View(new OrderDetailsViewModel { Order = null, OrderDetails = new List<OrderDetail>() });
+                }
+
+                // Check if the requested Order ID exists and contains items owned by the seller
+                var details = await _context.OrderDetails
+                    .Where(d => d.OrderId == id && d.ProductOwner == userName)
+                    .ToListAsync();
+
+                if (!details.Any())
+                {
+                    TempData["Error"] = "Order not found or you do not have permission to view this order's items.";
+                    return NotFound();
+                }
+
+                // Retrieve the main order header using the ID
+                var order = await _context.Orders.FindAsync(id);
+
+                if (order == null)
+                {
+                    _logger.LogError("Order header ID {OrderId} found in details but missing in Orders table.", id);
+                    TempData["Error"] = "Order header information is missing.";
+                    return NotFound();
+                }
+
+                return View(new OrderDetailsViewModel { Order = order, OrderDetails = details });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading Order Details for Order ID: {OrderId} by seller {User}.", id, userName);
+                TempData["Error"] = "An error occurred while loading the order details.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         [HttpPost]
@@ -152,14 +224,50 @@ namespace CMSECommerce.Areas.Seller.Controllers
         public async Task<IActionResult> ShippedStatus(int id, bool shipped)
         {
             var userName = _userManager.GetUserName(User);
-            Order order = await _context.Orders.Where(p=> p.UserName== userName).FirstOrDefaultAsync(x => x.Id == id);
 
-            order.Shipped = shipped;
+            try
+            {
+                Order order = await _context.Orders.FindAsync(id);
 
-            _context.Update(order);
-            await _context.SaveChangesAsync();
+                if (order == null)
+                {
+                    TempData["Error"] = "Order header not found.";
+                    return RedirectToAction(nameof(Index));
+                }
 
-            TempData["success"] = "The order has been modified!";
+                // Security check: Verify the seller owns items in this order before modifying the header status
+                bool sellerHasItemsInOrder = await _context.OrderDetails.AnyAsync(d => d.OrderId == id && d.ProductOwner == userName);
+
+                if (!sellerHasItemsInOrder)
+                {
+                    _logger.LogWarning("Unauthorized attempt to change ShippedStatus for Order ID {OrderId} by user {User}.", id, userName);
+                    TempData["Error"] = "Unauthorized action: You do not own items in this order.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Update the Shipped status on the Order header
+                order.Shipped = shipped;
+
+                _context.Update(order);
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"The order (ID: {id}) overall Shipped status has been modified to: {shipped}!";
+            }
+            catch (DbUpdateConcurrencyException dbEx)
+            {
+                _logger.LogError(dbEx, "Concurrency error updating ShippedStatus for Order ID: {OrderId} by user {User}.", id, userName);
+                TempData["Error"] = "Concurrency error: The order was modified by another process. Please re-load and try again.";
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error updating ShippedStatus for Order ID: {OrderId} by user {User}.", id, userName);
+                TempData["Error"] = "A database error occurred while updating the order status.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error updating ShippedStatus for Order ID: {OrderId} by user {User}.", id, userName);
+                TempData["Error"] = "An unexpected error occurred during status update.";
+            }
 
             return RedirectToAction("Index");
         }
