@@ -1,118 +1,145 @@
 ﻿using CMSECommerce.Infrastructure;
+using CMSECommerce.Models; // Assuming Order and OrderDetail are here
 using CMSECommerce.Models.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Collections.Generic;
+using System.Linq;
+using System;
+using System.Threading.Tasks;
+// using Microsoft.Extensions.Logging; // Include this if logging is required
 
 namespace CMSECommerce.Controllers
 {
+    // Injecting dependencies in the primary constructor (C# 12 feature)
     public class OrdersController(
-                        DataContext context,
-                         UserManager<IdentityUser> userManager,
-                        SignInManager<IdentityUser> signInManager) : Controller
+                                 DataContext context,
+                                 UserManager<IdentityUser> userManager,
+                                 SignInManager<IdentityUser> signInManager
+                                 /*, ILogger<OrdersController> logger */) : Controller
     {
         private readonly DataContext _context = context;
-        private SignInManager<IdentityUser> _signInManager = signInManager;
-        private UserManager<IdentityUser> _userManager = userManager;
+        private readonly SignInManager<IdentityUser> _signInManager = signInManager;
+        private readonly UserManager<IdentityUser> _userManager = userManager;
+        // private readonly ILogger<OrdersController> _logger = logger; // Uncomment if logging is enabled
 
         public IActionResult Index()
-        {           
-           
-            return View(); 
+        {
+            return View();
         }
 
-       public async Task<IActionResult> MyOrders(
-       int? page,
-       string orderId,
-       string status,
-       decimal? minTotal,
-       decimal? maxTotal,
-       DateTime? minDate,
-       DateTime? maxDate)
+        public async Task<IActionResult> MyOrders(
+        int? page,
+        string orderId,
+        string status,
+        decimal? minTotal,
+        decimal? maxTotal,
+        DateTime? minDate,
+        DateTime? maxDate)
         {
-            var userName = _userManager.GetUserName(User);
-            // 1. Setup Pagination and Filtering Defaults
-            int pageSize = 10;
-            int pageNumber = page ?? 1; // Default to page 1
-
-            // The current 'username' variable is assumed to hold the case-insensitive username to match.
-            string usernameLower = userName.ToLower();
-
-          
-
-            // Start with all orders for the current user
-            var orders = _context.Orders.OrderByDescending(x => x.Id).Where(o=> o.UserName.ToLower().Contains(usernameLower)).AsQueryable();
-
-            // 2. Apply Filters to the Query
-
-            // Filter by Order ID
-            if (!string.IsNullOrEmpty(orderId))
+            if (!User.Identity.IsAuthenticated)
             {
-                // Assuming Order Id (Id) is an integer, we filter based on a partial match or exact match. 
-                // If it's a long integer, you might use ToString() and Contains().
-                if (int.TryParse(orderId, out int id))
+                TempData["Error"] = "You must be logged in to view your orders.";
+                return RedirectToAction("Login", "Account", new { area = "Identity" });
+            }
+
+            try
+            {
+                var userName = _userManager.GetUserName(User);
+                // 1. Setup Pagination and Filtering Defaults
+                int pageSize = 10;
+                int pageNumber = page ?? 1; // Default to page 1
+
+                // The current 'username' variable is assumed to hold the case-insensitive username to match.
+                string usernameLower = userName.ToLower();
+
+
+                // Start with all orders for the current user
+                // NOTE: Use FindAsync or similar if User has UserId property, otherwise use AsQueryable()
+                var orders = _context.Orders
+                                     .OrderByDescending(x => x.Id)
+                                     .Where(o => o.UserName.ToLower().Contains(usernameLower))
+                                     .AsQueryable();
+
+                // 2. Apply Filters to the Query
+                // Filter by Order ID
+                if (!string.IsNullOrEmpty(orderId))
                 {
-                    orders = orders.Where(o => o.Id == id);
+                    if (int.TryParse(orderId, out int id))
+                    {
+                        orders = orders.Where(o => o.Id == id);
+                    }
                 }
-            }
 
-            // Filter by Status (Shipped property is a boolean)
-            if (!string.IsNullOrEmpty(status))
-            {
-                if (status.Equals("Shipped", StringComparison.OrdinalIgnoreCase))
+                // Filter by Status (Shipped property is a boolean)
+                if (!string.IsNullOrEmpty(status))
                 {
-                    orders = orders.Where(o => o.Shipped == true);
+                    if (status.Equals("Shipped", StringComparison.OrdinalIgnoreCase))
+                    {
+                        orders = orders.Where(o => o.Shipped == true);
+                    }
+                    else if (status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+                    {
+                        orders = orders.Where(o => o.Shipped == false);
+                    }
                 }
-                else if (status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+
+                // Filter by Total Range
+                if (minTotal.HasValue)
                 {
-                    orders = orders.Where(o => o.Shipped == false);
+                    orders = orders.Where(o => o.GrandTotal >= minTotal.Value);
                 }
-            }
+                if (maxTotal.HasValue)
+                {
+                    orders = orders.Where(o => o.GrandTotal <= maxTotal.Value);
+                }
 
-            // Filter by Total Range
-            if (minTotal.HasValue)
+                // Filter by Date Range
+                if (minDate.HasValue)
+                {
+                    orders = orders.Where(o => o.DateTime.Date >= minDate.Value.Date);
+                }
+                if (maxDate.HasValue)
+                {
+                    // Filter orders placed on or before the max date
+                    orders = orders.Where(o => o.DateTime.Date <= maxDate.Value.Date);
+                }
+
+                // 3. Store Current Filter Values for the View (used for form persistence and pagination links)
+                ViewData["CurrentOrderId"] = orderId;
+                ViewData["CurrentStatus"] = status;
+                ViewData["CurrentMinTotal"] = minTotal?.ToString();
+                ViewData["CurrentMaxTotal"] = maxTotal?.ToString();
+                ViewData["CurrentMinDate"] = minDate?.ToString("yyyy-MM-dd");
+                ViewData["CurrentMaxDate"] = maxDate?.ToString("yyyy-MM-dd");
+
+                // 4. Execute Query and Apply Pagination
+                var count = await orders.CountAsync();
+                var items = await orders
+                    .OrderByDescending(o => o.DateTime) // Always sort for consistent pagination
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                // Create the PagedList instance (assuming you have this custom ViewModel)
+                var pagedList = new PagedList<Order>(items, count, pageNumber, pageSize);
+
+                return View(pagedList);
+            }
+            catch (DbUpdateException dbEx)
             {
-                orders = orders.Where(o => o.GrandTotal >= minTotal.Value);
+                // _logger.LogError(dbEx, "Database error while fetching orders for user {Username}.", _userManager.GetUserName(User));
+                TempData["Error"] = "We encountered a database error while retrieving your orders. Please try again later.";
+                return View(new PagedList<Order>(new List<Order>(), 0, page ?? 1, 10)); // Return empty list on failure
             }
-            if (maxTotal.HasValue)
+            catch (Exception ex)
             {
-                orders = orders.Where(o => o.GrandTotal <= maxTotal.Value);
+                // _logger.LogError(ex, "Unexpected error in MyOrders action for user {Username}.", _userManager.GetUserName(User));
+                TempData["Error"] = "An unexpected error occurred while loading your order history.";
+                return RedirectToAction("Index", "Home");
             }
-
-            // Filter by Date Range
-            if (minDate.HasValue)
-            {
-                // Use Date to filter orders placed on or after the min date
-                orders = orders.Where(o => o.DateTime.Date >= minDate.Value.Date);
-            }
-            if (maxDate.HasValue)
-            {
-                // Use Date to filter orders placed on or before the max date
-                // Note: Add one day to maxDate to include all orders on that last day
-                orders = orders.Where(o => o.DateTime.Date <= maxDate.Value.Date);
-            }
-
-            // 3. Store Current Filter Values for the View (used for form persistence and pagination links)
-            ViewData["CurrentOrderId"] = orderId;
-            ViewData["CurrentStatus"] = status;
-            ViewData["CurrentMinTotal"] = minTotal?.ToString();
-            ViewData["CurrentMaxTotal"] = maxTotal?.ToString();
-            ViewData["CurrentMinDate"] = minDate?.ToString("yyyy-MM-dd"); // Format for HTML date input
-            ViewData["CurrentMaxDate"] = maxDate?.ToString("yyyy-MM-dd"); // Format for HTML date input
-
-            // 4. Execute Query and Apply Pagination
-            var count = await orders.CountAsync();
-            var items = await orders
-                .OrderByDescending(o => o.DateTime) // Always sort for consistent pagination
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            // Create the PagedList instance (assuming you have this custom ViewModel)
-            var pagedList = new PagedList<Order>(items, count, pageNumber, pageSize);
-
-            return View(pagedList);
         }
 
 
@@ -130,8 +157,14 @@ namespace CMSECommerce.Controllers
                 return RedirectToAction("Index", "Cart");
             }
 
-            // Fetch current user details
+            // Scenario 2: Unauthenticated User
             var user = await _signInManager.UserManager.GetUserAsync(User);
+            if (user == null)
+            {
+                TempData["Error"] = "You must be logged in to place an order.";
+                return RedirectToAction("Login", "Account", new { area = "Identity" }); // Redirect to login page
+            }
+
             // 1. Safely retrieve the UserProfile object
             var userProfile = await _context.UserProfiles
                 .Where(x => x.UserId == user.Id)
@@ -140,14 +173,10 @@ namespace CMSECommerce.Controllers
             // 2. Check if the profile exists and concatenate the names
             string fullName = userProfile != null
                 ? userProfile.FirstName + " " + userProfile.LastName
-                : "Unknown User"; // Handle the null case
+                : User.Identity.Name; // Fallback to Identity Username
 
-            // Scenario 2: Unauthenticated User (should be rare if [Authorize] is used, but safe to check)
-            if (user == null)
-            {
-                TempData["Error"] = "You must be logged in to place an order.";
-                return RedirectToAction("Login", "Account"); // Redirect to login page
-            }
+            // Use a database transaction to ensure atomicity (all or nothing)
+            await using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
@@ -157,6 +186,7 @@ namespace CMSECommerce.Controllers
                 var productIds = cart.Select(item => item.ProductId).ToList();
 
                 // Fetch all required Product entities from the database, tracking them for update
+                // Use .Include(p => p.StockQuantity) if StockQuantity is in a related entity, but here it seems direct.
                 var products = await _context.Products
                                              .Where(p => productIds.Contains(p.Id))
                                              .ToListAsync();
@@ -180,14 +210,15 @@ namespace CMSECommerce.Controllers
                     else
                     {
                         // Product missing (deleted from store)
-                        stockIssues.Add($"Product ID {item.ProductId} ({item.ProductName}) is no longer available in the store.");
+                        stockIssues.Add($"Product ID {item.ProductId} ({item.ProductName}) is no longer available in the store. Please remove it from your cart.");
                     }
                 }
 
                 if (stockIssues.Any())
                 {
                     // Abort the transaction and notify the user of specific shortages
-                    TempData["Error"] = "Order failed due to critical stock shortages. Please review and adjust the following items: <br/>- " + string.Join("<br/>- ", stockIssues);
+                    await transaction.RollbackAsync();
+                    TempData["Error"] = "Order failed due to critical issues. Please review and adjust the following items: <br/>- " + string.Join("<br/>- ", stockIssues);
                     return RedirectToAction("Index", "Cart");
                 }
 
@@ -197,9 +228,11 @@ namespace CMSECommerce.Controllers
                 // 1. Create the Order header
                 Order order = new Order
                 {
-                    UserName = fullName+" ("+User.Identity.Name+")",
+                    // Use a combination of full name and unique username for clarity
+                    UserName = $"{fullName} ({User.Identity.Name})",
                     PhoneNumber = user.PhoneNumber,
-                    GrandTotal = cart.Sum(x => x.Price * x.Quantity)
+                    GrandTotal = cart.Sum(x => x.Price * x.Quantity),
+                    DateTime = DateTime.UtcNow // Set creation time
                 };
 
                 _context.Add(order);
@@ -215,7 +248,8 @@ namespace CMSECommerce.Controllers
 
                     // 🛠️ CORE LOGIC: Subtract the ordered quantity from the stock
                     product.StockQuantity -= item.Quantity;
-                    _context.Update(product); // Mark the product as modified
+                    // Note: Since 'products' was fetched using ToListAsync(), EF Core is already tracking it.
+                    // _context.Update(product) is technically optional here but harmless.
 
                     // Create the OrderDetail entry
                     OrderDetail orderDetail = new()
@@ -226,8 +260,9 @@ namespace CMSECommerce.Controllers
                         Quantity = item.Quantity,
                         Price = item.Price,
                         Image = item.Image,
-                        ProductOwner = item.ProductOwner,
-                        Customer = user.UserName,
+                        // Assuming these properties exist on OrderDetail, otherwise adjust
+                        ProductOwner = item.ProductOwner ?? "N/A",
+                        Customer = User.Identity.Name,
                         CustomerNumber = user.PhoneNumber
                     };
 
@@ -235,26 +270,33 @@ namespace CMSECommerce.Controllers
                 }
 
                 // 3. Save all Order Details and Stock Quantity updates
-                // All changes (OrderDetail inserts and Product updates) are saved in one batch.
                 await _context.SaveChangesAsync();
+
+                // Commit the transaction only if SaveChangesAsync succeeded
+                await transaction.CommitAsync();
 
                 // 4. Success: Clear the cart and notify the user
                 HttpContext.Session.Remove("Cart");
-                TempData["Success"] = $"Your order (ID: {orderId}) has been placed successfully!";
-                ViewBag.OrderId = orderId;
-                if (ViewBag.OrderId != 0)
-                {
-                    return RedirectToAction("OrderDetails", "Account", new { id = orderId });
-                }
-                return RedirectToAction("Index", "Orders"); // Redirect to the user's order history/details
+                TempData["Success"] = $"Your order (ID: {orderId}) has been placed successfully! A confirmation has been sent.";
+
+                // Redirect to the Order Details page
+                return RedirectToAction("OrderDetails", "Account", new { area = "Identity", id = orderId });
             }
-            // Scenario 4: Database or General Exception Error
+            // Scenario 4A: Database error during SaveChanges (e.g., concurrency, constraint violation)
+            catch (DbUpdateException dbEx)
+            {
+                await transaction.RollbackAsync();
+                // _logger.LogError(dbEx, "DbUpdateException occurred while placing order for user {Username}.", User.Identity.Name);
+                TempData["Error"] = "A database error prevented the order from being placed. This may be a temporary issue or a data conflict. Please try again.";
+                return RedirectToAction("Index", "Cart");
+            }
+            // Scenario 4B: General Exception Error
             catch (Exception ex)
             {
-                // Log the detailed exception (e.g., using ILogger)
-                // _logger.LogError(ex, "Error placing order for user {Username}", User.Identity.Name);
+                await transaction.RollbackAsync();
+                // _logger.LogError(ex, "Unexpected error occurred while placing order for user {Username}", User.Identity.Name);
 
-                TempData["Error"] = "An unexpected error occurred while processing your order. Please try again or contact support.";
+                TempData["Error"] = "An unexpected error occurred while processing your order. The transaction was cancelled. Please try again or contact support.";
                 return RedirectToAction("Index", "Cart"); // Redirect back to cart or an error page
             }
         }
