@@ -1,13 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using System;
-using System.Threading.Tasks;
 using CMSECommerce.Infrastructure;
-using CMSECommerce.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
 using CMSECommerce.Services;
-using Microsoft.Extensions.Logging;
 
 namespace CMSECommerce.Hubs
 {

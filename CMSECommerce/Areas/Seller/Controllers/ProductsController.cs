@@ -5,8 +5,6 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Identity;
-using CMSECommerce.Models;
-using Microsoft.Extensions.Logging;
 
 namespace CMSECommerce.Areas.Seller.Controllers
 {

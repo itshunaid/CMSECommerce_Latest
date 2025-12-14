@@ -1,5 +1,4 @@
 ﻿// Models/ChatMessage.cs
-using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace CMSECommerce.Models

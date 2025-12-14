@@ -1,13 +1,7 @@
 ﻿using CMSECommerce.Infrastructure;
-using CMSECommerce.Models;
 using CMSECommerce.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System;
-using Microsoft.Extensions.Primitives; // Needed for StringValues access
 
 namespace CMSECommerce.Controllers
 {

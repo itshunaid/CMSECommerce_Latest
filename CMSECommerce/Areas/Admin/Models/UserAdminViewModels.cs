@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace CMSECommerce.Areas.Admin.Models
 {
     public class UserViewModel

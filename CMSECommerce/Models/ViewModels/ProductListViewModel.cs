@@ -1,6 +1,5 @@
 ﻿using CMSECommerce.DTOs;
 using Microsoft.AspNetCore.Identity;
-using System.Collections.Generic;
 
 namespace CMSECommerce.Models.ViewModels
 {

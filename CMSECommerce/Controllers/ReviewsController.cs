@@ -1,11 +1,8 @@
 ﻿using CMSECommerce.Infrastructure;
-using CMSECommerce.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using System;
-using System.Threading.Tasks;
 
 namespace CMSECommerce.Controllers
 {

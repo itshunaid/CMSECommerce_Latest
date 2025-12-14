@@ -3,12 +3,6 @@ using CMSECommerce.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
-using System.Linq;
-using System.Threading.Tasks;
-using CMSECommerce.Models; // Need this for Order, PagedList<Order>
-using System;
-using System.Collections.Generic; // For initializing lists on error
 
 namespace CMSECommerce.Areas.Admin.Controllers
 {

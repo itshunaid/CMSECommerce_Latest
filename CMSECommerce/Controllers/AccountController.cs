@@ -4,9 +4,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using CMSECommerce.Models; // Ensure this is present for UserProfile
-using System.IO; // Required for Path, FileStream, Directory
-using Microsoft.AspNetCore.Hosting; // Required for IWebHostEnvironment
 using CMSECommerce.Services;
 
 namespace CMSECommerce.Controllers

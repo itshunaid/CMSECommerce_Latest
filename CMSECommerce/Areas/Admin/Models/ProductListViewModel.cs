@@ -13,5 +13,6 @@
         // Sorting Properties
         public string CurrentSortOrder { get; set; }
         public int CurrentPageSize { get;  set; }
+        public string CurrentSearchStatus { get; set; }
     }
 }

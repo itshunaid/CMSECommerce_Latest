@@ -1,230 +1,319 @@
 ﻿using CMSECommerce.Areas.Admin.Models; // Assumed namespace for ViewModels
 using CMSECommerce.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic; // Required for List
-using System.Linq; // Required for Select and FirstOrDefault
 
 namespace CMSECommerce.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    // 🔴 RECTIFIED: Changed [Authorize("Admin")] to [Authorize(Roles = "Admin")]
-    // assuming 'Admin' is a role name, which is the standard Identity authorization pattern.
-    [Authorize(Roles = "Admin")]    
-    public class UsersController : Controller
+    [Authorize(Roles = "Admin")]
+    public class UsersController(
+        UserManager<IdentityUser> userManager,
+        RoleManager<IdentityRole> roleManager,
+        DataContext context,
+        IWebHostEnvironment webHostEnvironment,
+        ILogger<UsersController> logger) : Controller
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
-        private readonly DataContext _context;
-        private IWebHostEnvironment _webHostEnvironment;
-        // private readonly DataContext _context; // Inject DataContext if needed here
-
-        // 🔴 RECTIFIED: Optional - Use primary constructor syntax (C# 12) for cleaner injection, 
-        // though the current constructor is perfectly valid.
-        public UsersController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, DataContext context, IWebHostEnvironment webHostEnvironment)
-        {
-            _userManager = userManager;
-            _roleManager = roleManager;
-            _context = context;
-            _webHostEnvironment = webHostEnvironment;
-        }
+        private readonly UserManager<IdentityUser> _userManager = userManager;
+        private readonly RoleManager<IdentityRole> _roleManager = roleManager;
+        private readonly DataContext _context = context;
+        private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
+        private readonly ILogger<UsersController> _logger = logger;
 
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var users = await _userManager.Users.ToListAsync();
-            // 🔴 RECTIFIED: Ensure UserViewModel is referenced by 'using CMSECommerce.Areas.Admin.Models;'
-            var model = new List<UserViewModel>();
-
-            foreach (var u in users)
+            try
             {
-                var roles = await _userManager.GetRolesAsync(u);
-                var isLocked = await _userManager.IsLockedOutAsync(u);
-                model.Add(new UserViewModel { Id = u.Id, UserName = u.UserName, Email = u.Email,PhoneNumber=u.PhoneNumber, Roles = roles, IsLockedOut = isLocked });
-            }
+                var users = await _userManager.Users.AsNoTracking().ToListAsync();
+                var model = new List<UserViewModel>();
 
-            return View(model);
+                foreach (var u in users)
+                {
+                    // Identity operation
+                    var roles = await _userManager.GetRolesAsync(u);
+                    var isLocked = await _userManager.IsLockedOutAsync(u);
+
+                    model.Add(new UserViewModel
+                    {
+                        Id = u.Id,
+                        UserName = u.UserName,
+                        Email = u.Email,
+                        PhoneNumber = u.PhoneNumber,
+                        Roles = roles,
+                        IsLockedOut = isLocked
+                    });
+                }
+                return View(model);
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error retrieving user list in Index.");
+                TempData["error"] = "A database error occurred while loading the user list.";
+                return View(new List<UserViewModel>());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error retrieving user list in Index.");
+                TempData["error"] = "An unexpected error occurred while loading users.";
+                return View(new List<UserViewModel>());
+            }
         }
 
-        
         public async Task<IActionResult> EnableDisable(string id)
         {
             if (string.IsNullOrEmpty(id)) return NotFound();
             var user = await _userManager.FindByIdAsync(id);
-            if (user == null) return NotFound();
-
-            var isLocked = await _userManager.IsLockedOutAsync(user);
-
-            // 🔴 RECTIFIED: Check if the user is already locked out before trying to reset the lockout end date. 
-            // Also, consider calling ResetAccessFailedCountAsync if the lockout was due to failed attempts.
-            if (isLocked)
+            if (user == null)
             {
-                await _userManager.SetLockoutEndDateAsync(user, null);
-                // Optionally: await _userManager.ResetAccessFailedCountAsync(user);
+                TempData["error"] = $"User with ID {id} not found.";
+                return NotFound();
             }
-            else
+
+            try
             {
-                // Note: DateTimeOffset.MaxValue is correct for permanent lock out.
-                await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+                var isLocked = await _userManager.IsLockedOutAsync(user);
+
+                if (isLocked)
+                {
+                    // Enable user
+                    await _userManager.SetLockoutEndDateAsync(user, null);
+                    await _userManager.ResetAccessFailedCountAsync(user);
+                    TempData["success"] = $"User '{user.UserName}' has been enabled.";
+                }
+                else
+                {
+                    // Disable (Lock out) user permanently
+                    await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+                    TempData["warning"] = $"User '{user.UserName}' has been permanently locked out.";
+                }
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error enabling/disabling user ID: {UserId}", id);
+                TempData["error"] = "Error updating user's lock status. Please check logs.";
+            }
+
             return RedirectToAction(nameof(Index));
         }
 
-        public async Task<IActionResult> Create()
+        public IActionResult Create()
         {
-            // 🔴 RECTIFIED: Ensure the RoleManager has access to roles via 'using System.Linq;'
-            ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
+            try
+            {
+                ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving roles for Create view.");
+                TempData["error"] = "Error loading roles for the creation form.";
+                ViewBag.Roles = new List<string>(); // Provide empty list to prevent crash
+            }
             return View();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(CreateUserModel model) // Ensure CreateUserModel is referenced
+        public async Task<IActionResult> Create(CreateUserModel model)
         {
-            if (ModelState.IsValid)
+            try
             {
-                var user = new IdentityUser { UserName = model.UserName, Email = model.Email, EmailConfirmed = true };
-                var result = await _userManager.CreateAsync(user, model.Password);
-                if (result.Succeeded)
+                if (ModelState.IsValid)
                 {
-                    if (!string.IsNullOrWhiteSpace(model.Role))
+                    var user = new IdentityUser { UserName = model.UserName, Email = model.Email, EmailConfirmed = true, PhoneNumber = model.PhoneNumber };
+                    var result = await _userManager.CreateAsync(user, model.Password);
+
+                    if (result.Succeeded)
                     {
-                        // 🔴 Logic for adding role is correct here
-                        if (await _roleManager.RoleExistsAsync(model.Role))
-                            await _userManager.AddToRoleAsync(user, model.Role);
+                        if (!string.IsNullOrWhiteSpace(model.Role))
+                        {
+                            if (await _roleManager.RoleExistsAsync(model.Role))
+                            {
+                                var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
+                                if (!roleResult.Succeeded)
+                                {
+                                    _logger.LogError("Identity error adding role {Role} to user {UserName}. Errors: {Errors}",
+                                        model.Role, model.UserName, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+                                    TempData["warning"] = $"User created, but failed to assign role: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}";
+                                    return RedirectToAction(nameof(Index)); // Continue to Index but with warning
+                                }
+                            }
+                        }
+                        TempData["success"] = $"User '{model.UserName}' created successfully.";
+                        return RedirectToAction(nameof(Index));
                     }
 
-                    return RedirectToAction(nameof(Index));
+                    // Handle Identity creation errors
+                    foreach (var e in result.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, e.Description);
+                    }
                 }
-                foreach (var e in result.Errors)
-                    ModelState.AddModelError(string.Empty, e.Description);
             }
-            ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error during user creation for user: {UserName}", model.UserName);
+                ModelState.AddModelError(string.Empty, "An unexpected error occurred during user creation.");
+            }
+
+            // Reload roles if the view is returned due to validation/error
+            try
+            {
+                ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reloading roles after failed user creation.");
+                ViewBag.Roles = new List<string>();
+            }
+
             return View(model);
         }
 
         public async Task<IActionResult> Edit(string id)
         {
             if (string.IsNullOrEmpty(id)) return NotFound();
-            var user = await _userManager.FindByIdAsync(id);
-            if (user == null) return NotFound();
 
-            var roles = await _userManager.GetRolesAsync(user);
-            // Ensure EditUserModel is referenced
-            var model = new EditUserModel { Id = user.Id, UserName = user.UserName, Email = user.Email, PhoneNumber=user.PhoneNumber, Role = roles.FirstOrDefault() };
-            ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
-            return View(model);
+            try
+            {
+                var user = await _userManager.FindByIdAsync(id);
+                if (user == null)
+                {
+                    TempData["error"] = "User not found.";
+                    return NotFound();
+                }
+
+                var roles = await _userManager.GetRolesAsync(user);
+
+                var model = new EditUserModel
+                {
+                    Id = user.Id,
+                    UserName = user.UserName,
+                    Email = user.Email,
+                    PhoneNumber = user.PhoneNumber,
+                    Role = roles.FirstOrDefault()
+                };
+
+                ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading user ID: {UserId} for editing.", id);
+                TempData["error"] = "Failed to load user details for editing.";
+                return RedirectToAction(nameof(Index));
+            }
         }
-
-        // Assuming your controller has the DataContext injected:
-        // private readonly DataContext _context; 
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(EditUserModel model)
         {
-            if (!ModelState.IsValid)
+            // Reload roles immediately for failed path
+            try
             {
                 ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reloading roles during user edit postback.");
+                ViewBag.Roles = new List<string>();
+            }
+
+            if (!ModelState.IsValid)
+            {
                 return View(model);
             }
 
             var user = await _userManager.FindByIdAsync(model.Id);
             if (user == null) return NotFound();
 
-            // Store the current roles BEFORE the user object is updated
-            var currentRoles = await _userManager.GetRolesAsync(user);
-
-            // Update user details
-            user.UserName = model.UserName;
-            user.Email = model.Email;
-            user.PhoneNumber = model.PhoneNumber;
-            var updateResult = await _userManager.UpdateAsync(user);
-
-            if (!updateResult.Succeeded)
+            try
             {
-                foreach (var e in updateResult.Errors)
-                    ModelState.AddModelError(string.Empty, e.Description);
-                ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
-                return View(model);
-            }
+                // Store the current roles BEFORE the user object is updated
+                var currentRoles = await _userManager.GetRolesAsync(user);
 
-            // --- Role Update Logic ---
+                // Update user details
+                user.UserName = model.UserName;
+                user.Email = model.Email;
+                user.PhoneNumber = model.PhoneNumber;
+                var updateResult = await _userManager.UpdateAsync(user);
 
-            // 1. Check if the user should have a new role (model.Role) 
-            if (!string.IsNullOrWhiteSpace(model.Role) && !currentRoles.Contains(model.Role))
-            {
-                // Remove all current roles and add the new one.
-                await _userManager.RemoveFromRolesAsync(user, currentRoles);
-                if (await _roleManager.RoleExistsAsync(model.Role))
-                    await _userManager.AddToRoleAsync(user, model.Role);
-            }
-            // 2. Check if a role was removed (model.Role is null/empty but currentRoles exist)
-            else if (string.IsNullOrWhiteSpace(model.Role) && currentRoles.Count > 0)
-            {
-                // remove all roles if none selected
-                await _userManager.RemoveFromRolesAsync(user, currentRoles);
-            }
-            // 3. If model.Role is already currentRoles.FirstOrDefault(), do nothing.
-
-            // -------------------------------------------------------------------------
-            // ⭐ NEW LOGIC: Check for Subscriber Role Revocation 
-            // -------------------------------------------------------------------------
-            bool wasSubscriber = currentRoles.Contains("Subscriber");
-            bool isSubscriberNow = await _userManager.IsInRoleAsync(user, "Subscriber");
-
-            if (wasSubscriber && !isSubscriberNow)
-            {
-                // The user was a Subscriber but is no longer one (e.g., changed to Customer or Admin)
-                var revokedRequest = await _context.SubscriberRequests
-                    .Where(r => r.UserId == user.Id && r.Approved == true) // Find the previously approved request
-                    .OrderByDescending(r => r.RequestDate)
-                    .FirstOrDefaultAsync();
-
-                if (revokedRequest != null)
+                if (!updateResult.Succeeded)
                 {
-                    revokedRequest.Approved = false; // Set to rejected/revoked status
-                    revokedRequest.ApprovalDate = DateTime.Now; // Update process date
-                    revokedRequest.AdminNotes = $"Subscription revoked by Admin on {DateTime.Now.ToShortDateString()}. Role changed to {model.Role ?? "None"}.";
-
-                    _context.Update(revokedRequest);
-                    await _context.SaveChangesAsync();
-                }
-                TempData["warning"] = $"Subscription status for {user.UserName} has been revoked and the request updated.";
-            }
-            // -------------------------------------------------------------------------
-
-
-            // change password if provided
-            if (!string.IsNullOrWhiteSpace(model.NewPassword))
-            {
-                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-                var passResult = await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
-                if (!passResult.Succeeded)
-                {
-                    foreach (var e in passResult.Errors)
+                    foreach (var e in updateResult.Errors)
                         ModelState.AddModelError(string.Empty, e.Description);
-                    ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
                     return View(model);
                 }
+
+                // --- Role Update Logic ---
+                if (!string.IsNullOrWhiteSpace(model.Role) && !currentRoles.Contains(model.Role))
+                {
+                    await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                    if (await _roleManager.RoleExistsAsync(model.Role))
+                        await _userManager.AddToRoleAsync(user, model.Role);
+                }
+                else if (string.IsNullOrWhiteSpace(model.Role) && currentRoles.Count > 0)
+                {
+                    await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                }
+                // --- End Role Update Logic ---
+
+                // ⭐ NEW LOGIC: Check for Subscriber Role Revocation 
+                bool wasSubscriber = currentRoles.Contains("Subscriber");
+                bool isSubscriberNow = await _userManager.IsInRoleAsync(user, "Subscriber");
+
+                if (wasSubscriber && !isSubscriberNow)
+                {
+                    var revokedRequest = await _context.SubscriberRequests
+                        .Where(r => r.UserId == user.Id && r.Approved == true)
+                        .OrderByDescending(r => r.RequestDate)
+                        .FirstOrDefaultAsync();
+
+                    if (revokedRequest != null)
+                    {
+                        revokedRequest.Approved = false;
+                        revokedRequest.ApprovalDate = DateTime.Now;
+                        revokedRequest.AdminNotes = $"Subscription revoked by Admin on {DateTime.Now.ToShortDateString()}. Role changed to {model.Role ?? "None"}.";
+
+                        _context.Update(revokedRequest);
+                        await _context.SaveChangesAsync(); // Database operation
+                        TempData["warning"] = $"Subscription status for {user.UserName} has been revoked and the request updated.";
+                    }
+                }
+                // --- End Subscriber Role Revocation ---
+
+                // Change password if provided
+                if (!string.IsNullOrWhiteSpace(model.NewPassword))
+                {
+                    var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                    var passResult = await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
+                    if (!passResult.Succeeded)
+                    {
+                        foreach (var e in passResult.Errors)
+                            ModelState.AddModelError(string.Empty, e.Description);
+                        return View(model);
+                    }
+                }
+
+                TempData["success"] = $"User {user.UserName} updated successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error updating user ID: {UserId}", model.Id);
+                ModelState.AddModelError(string.Empty, "A database error occurred while updating the user record.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error updating user ID: {UserId}", model.Id);
+                ModelState.AddModelError(string.Empty, "An unexpected error occurred during user update.");
             }
 
-            TempData["success"] = $"User {user.UserName} updated successfully.";
-            return RedirectToAction(nameof(Index));
+            return View(model);
         }
-
-        //[HttpPost, ActionName("Delete")]
-        //[ValidateAntiForgeryToken]
-        //public async Task<IActionResult> DeleteConfirmed(string id)
-        //{
-        //    var user = await _userManager.FindByIdAsync(id);
-        //    if (user == null) return NotFound();
-        //    await _userManager.DeleteAsync(user);
-        //    return RedirectToAction(nameof(Index));
-        //}
 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
@@ -237,51 +326,80 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // --- 1. Find and Delete Dependent Records (CRITICAL STEP) ---
+            string userName = user.UserName;
 
-            // a. Delete UserProfile (Requires UserId for lookup)
-            var userProfile = await _context.UserProfiles
-                .FirstOrDefaultAsync(p => p.UserId == id);
-
-            if (userProfile != null)
+            try
             {
-                // 1a. Delete associated physical files (images/QRCodes)
-                // You should re-use your file deletion helper logic here, as defined in your previous DeleteProfileData action.
+                // --- 1. Find and Delete Dependent Records (CRITICAL STEP) ---
 
-                // Example: Delete Profile Image file
-                if (!string.IsNullOrEmpty(userProfile.ProfileImagePath))
+                // a. Delete UserProfile
+                var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == id);
+
+                if (userProfile != null)
                 {
-                    // Assuming you have access to _webHostEnvironment
-                    string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, userProfile.ProfileImagePath.TrimStart('/'));
-                    if (System.IO.File.Exists(fullPath)) System.IO.File.Delete(fullPath);
+                    // Delete associated physical files (Image/QRCode)
+                    if (!string.IsNullOrEmpty(userProfile.ProfileImagePath))
+                    {
+                        string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, userProfile.ProfileImagePath.TrimStart('/'));
+                        if (System.IO.File.Exists(fullPath))
+                        {
+                            System.IO.File.Delete(fullPath); // File System Operation
+                        }
+                    }
+
+                    _context.UserProfiles.Remove(userProfile);
                 }
 
-                _context.UserProfiles.Remove(userProfile);
+                // b. Delete Address records (Assuming they link directly to UserId)
+                var userAddresses = await _context.Addresses.Where(a => a.UserId == id).ToListAsync();
+                _context.Addresses.RemoveRange(userAddresses);
+
+                // c. Delete SubscriberRequests
+                var subscriberRequests = await _context.SubscriberRequests.Where(r => r.UserId == id).ToListAsync();
+                _context.SubscriberRequests.RemoveRange(subscriberRequests);
+
+                // d. Delete Product records (Assuming products have an OwnerId/UserId field)
+                // Depending on your model, you might need to handle product files/gallery too.
+                // Assuming Product.OwnerId is the UserId (string)
+                var userProducts = await _context.Products.Where(p => p.OwnerId == user.UserName).ToListAsync();
+                // **WARNING:** Deleting products may require file system cleanup of images/gallery. 
+                // This is a complex dependency that should be handled explicitly.
+                _context.Products.RemoveRange(userProducts);
+
+                // Save changes to delete custom records from your DataContext
+                await _context.SaveChangesAsync(); // Database operation
+
+                // --- 2. Delete the IdentityUser ---
+                IdentityResult result = await _userManager.DeleteAsync(user); // Identity operation
+
+                if (result.Succeeded)
+                {
+                    TempData["success"] = $"User '{userName}' and all associated data deleted successfully.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Handle Identity Manager errors (e.g., if roles/claims removal failed)
+                string errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                _logger.LogError("Identity error deleting user {UserName}. Errors: {Errors}", userName, errors);
+                TempData["error"] = $"Error deleting core user record: {errors}";
             }
-
-            // b. Delete Address records (Requires UserId for lookup)
-            var userAddresses = await _context.Addresses
-                .Where(a => a.UserId == id)
-                .ToListAsync();
-
-            _context.Addresses.RemoveRange(userAddresses);
-
-            // c. Save changes to delete custom records from your DataContext
-            // This removes the foreign key constraint preventing the IdentityUser deletion.
-            await _context.SaveChangesAsync();
-
-            // --- 2. Delete the IdentityUser ---
-            IdentityResult result = await _userManager.DeleteAsync(user);
-
-            if (result.Succeeded)
+            catch (DbUpdateException dbEx)
             {
-                TempData["success"] = $"User '{user.UserName}' and all associated data deleted successfully.";
-                return RedirectToAction(nameof(Index));
+                _logger.LogError(dbEx, "Database error deleting user ID: {UserId} and associated records.", id);
+                TempData["error"] = "A database error occurred while deleting the user. Ensure all foreign key constraints are handled.";
+            }
+            catch (IOException ioEx)
+            {
+                _logger.LogError(ioEx, "File system error during user deletion for ID: {UserId}", id);
+                TempData["error"] = "File error occurred while deleting user profile data. The user was not deleted from the database.";
+                // Re-throw or return if you want to stop the Identity deletion
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error deleting user ID: {UserId}", id);
+                TempData["error"] = "An unexpected error occurred during user deletion.";
             }
 
-            // Handle Identity Manager errors (e.g., if roles/claims removal failed)
-            string errors = string.Join(", ", result.Errors.Select(e => e.Description));
-            TempData["error"] = $"Error deleting core user record: {errors}";
             return RedirectToAction(nameof(Index));
         }
     }

@@ -1,19 +1,10 @@
 ﻿using CMSECommerce.DTOs;
 using CMSECommerce.Infrastructure;
-using CMSECommerce.Models;
 using CMSECommerce.Models.ViewModels;
 using CMSECommerce.Services;
-using Microsoft.AspNetCore.Hosting; // Correct using for IWebHostEnvironment
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration; // Not used, but kept for completeness
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.IO;
-using System;
-using CMSECommerce.DTOs;
 
 // NOTE: It is recommended to inject ILogger in a real application for logging exceptions.
 

@@ -2,9 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using CMSECommerce.Infrastructure;
 using Microsoft.AspNetCore.Identity;
-using System.Threading.Tasks;
 using CMSECommerce.Areas.Seller.Models;
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
 
 namespace CMSECommerce.Areas.Seller.Controllers
