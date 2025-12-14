@@ -1,6 +1,13 @@
 ﻿using CMSECommerce.Infrastructure;
+using CMSECommerce.Models;
 using CMSECommerce.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System;
+using Microsoft.Extensions.Primitives; // Needed for StringValues access
 
 namespace CMSECommerce.Controllers
 {
@@ -8,159 +15,289 @@ namespace CMSECommerce.Controllers
     {
         private readonly DataContext _context = context;
 
-        // ⚠️ Assuming your controller has DataContext injected and stored in _context
-        // public DataContext _context;
+        // Note: ILogger<CartController> logger is often injected here for real-world logging
 
         public IActionResult Index()
         {
-            // 1. Retrieve cart from session
-            List<CartItem> cart = HttpContext.Session.GetJson<List<CartItem>>("Cart") ?? [];
-
-            if (cart.Count == 0)
+            List<CartItem> cart = [];
+            try
             {
-                // Handle empty cart early
-                return View(new CartViewModel { CartItems = [], GrandTotal = 0 });
-            }
+                // 1. Retrieve cart from session (Session Operation)
+                cart = HttpContext.Session.GetJson<List<CartItem>>("Cart") ?? [];
 
-            // 2. Get a list of all Product IDs in the cart
-            IEnumerable<int> productIds = cart.Select(c => c.ProductId).ToList();
-
-            // 3. Fetch Product Data and Stock Quantity from the database in one query
-            //    We fetch Id, StockQuantity, Image, and Slug.
-            var productData = _context.Products
-                .Where(p => productIds.Contains(p.Id))
-                .Select(p => new
+                if (cart.Count == 0)
                 {
-                    p.Id,
-                    p.StockQuantity,
-                    p.Image,     // <-- ADDED: Product Image
-                    p.Slug       // <-- ADDED: Product Slug
-                })
-                .ToDictionary(p => p.Id); // Dictionary for fast lookup
+                    return View(new CartViewModel { CartItems = [], GrandTotal = 0 });
+                }
 
-            // 4. Iterate through the cart items, validate stock, and update metadata
-            foreach (var item in cart)
-            {
-                if (productData.TryGetValue(item.ProductId, out var productDetails))
-                {
-                    // Update CartItem metadata (Slug and Image)
-                    item.Image = productDetails.Image;     // <-- UPDATED
-                    item.ProductSlug = productDetails.Slug; // <-- UPDATED
+                // 2. Get a list of all Product IDs in the cart
+                IEnumerable<int> productIds = cart.Select(c => c.ProductId).ToList();
 
-                    // Stock Check Logic
-                    if (item.Quantity > productDetails.StockQuantity)
+                // 3. Fetch Product Data and Stock Quantity from the database (Database Operation)
+                var productData = _context.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .Select(p => new
                     {
-                        item.IsOutOfStock = true;
+                        p.Id,
+                        p.StockQuantity,
+                        p.Image,
+                        p.Slug
+                    })
+                    .ToDictionary(p => p.Id);
+
+                // 4. Iterate through the cart items, validate stock, and update metadata
+                foreach (var item in cart)
+                {
+                    if (productData.TryGetValue(item.ProductId, out var productDetails))
+                    {
+                        item.Image = productDetails.Image;
+                        item.ProductSlug = productDetails.Slug;
+
+                        // Stock Check Logic
+                        if (item.Quantity > productDetails.StockQuantity)
+                        {
+                            item.IsOutOfStock = true;
+                            // Reset quantity to max stock if exceeding
+                            if (productDetails.StockQuantity > 0)
+                            {
+                                item.Quantity = productDetails.StockQuantity;
+                            }
+                            else
+                            {
+                                // If stock is zero, set quantity to 1 for display, but keep IsOutOfStock true
+                                // A more robust solution might remove items with zero stock entirely.
+                                item.Quantity = 1;
+                            }
+                            TempData["warning"] = $"Quantity for '{item.ProductName}' adjusted due to low stock.";
+                        }
+                        else
+                        {
+                            item.IsOutOfStock = false;
+                        }
                     }
                     else
                     {
-                        item.IsOutOfStock = false;
+                        // Product no longer exists in DB
+                        item.IsOutOfStock = true;
                     }
                 }
-                else
+
+                // 5. Update the session cart with the modified items (Session Operation)
+                HttpContext.Session.SetJson("Cart", cart);
+
+                // 6. Create and return the ViewModel
+                CartViewModel cartVM = new()
                 {
-                    // Product no longer exists in DB
-                    item.IsOutOfStock = true;
-                    // Optionally remove the item, but setting IsOutOfStock is safer for UX
-                }
+                    CartItems = cart,
+                    GrandTotal = cart.Sum(x => x.Price * x.Quantity)
+                };
+
+                return View(cartVM);
             }
-
-            // 5. Update the session cart with the modified items (including metadata and IsOutOfStock status)
-            HttpContext.Session.SetJson("Cart", cart);
-
-            // 6. Create and return the ViewModel
-            CartViewModel cartVM = new()
+            catch (DbUpdateException dbEx)
             {
-                CartItems = cart,
-                GrandTotal = cart.Sum(x => x.Price * x.Quantity)
-            };
-
-            return View(cartVM);
+                // Log the database error
+                // _logger.LogError(dbEx, "Database error while fetching product data for cart Index.");
+                TempData["error"] = "We couldn't verify product details due to a database issue. Please try refreshing.";
+                return View(new CartViewModel { CartItems = cart, GrandTotal = cart.Sum(x => x.Price * x.Quantity) });
+            }
+            catch (Exception ex)
+            {
+                // Log general session or unexpected errors
+                // _logger.LogError(ex, "Unexpected error in Cart Index action.");
+                TempData["error"] = "An error occurred while loading your shopping cart.";
+                return RedirectToAction("Index", "Home");
+            }
         }
 
         public async Task<IActionResult> Add(int id)
         {
-            Product product = await _context.Products.FindAsync(id);
+            Product product = null;
+            try
+            {
+                product = await _context.Products.FindAsync(id);
+            }
+            catch (Exception dbEx)
+            {
+                // _logger.LogError(dbEx, "Database error while looking up product ID {Id} for cart Add.", id);
+                TempData["error"] = "Failed to retrieve product details. Please try again.";
+                string safeReferer = Request.Headers.Referer.FirstOrDefault() ?? "/";
+                return Redirect(safeReferer);
+            }
 
             if (product == null) { return NotFound(); }
 
-            List<CartItem> cart = HttpContext.Session.GetJson<List<CartItem>>("Cart") ?? [];
-
-            CartItem cartItem = cart.Where(x => x.ProductId == id).FirstOrDefault();
-
-            if (cartItem == null)
+            try
             {
-                cart.Add(new CartItem(product));
+                List<CartItem> cart = HttpContext.Session.GetJson<List<CartItem>>("Cart") ?? [];
+                CartItem cartItem = cart.Where(x => x.ProductId == id).FirstOrDefault();
+
+                if (cartItem == null)
+                {
+                    cart.Add(new CartItem(product));
+                }
+                else
+                {
+                    cartItem.Quantity += 1;
+                }
+
+                HttpContext.Session.SetJson("Cart", cart);
+                TempData["success"] = "The product has been added!";
             }
-            else
+            catch (Exception sessionEx)
             {
-                cartItem.Quantity += 1;
+                // _logger.LogError(sessionEx, "Session error while adding product ID {Id} to cart.", id);
+                TempData["error"] = "An error occurred while saving the cart data.";
             }
 
-            HttpContext.Session.SetJson("Cart", cart);
-
-            TempData["success"] = "The product has been added!";
-
-            return Redirect(Request.Headers.Referer.ToString());
+            string finalReferer = Request.Headers.Referer.FirstOrDefault() ?? "/";
+            return Redirect(finalReferer);
         }
+
+        // --- NEW ACTION: Handle Quantity Change from Amazon-style Dropdown ---
+        [HttpPost]
+        public async Task<IActionResult> UpdateQuantity(int id, int quantity)
+        {
+            if (quantity <= 0)
+            {
+                // Use the existing Remove action if quantity is zero or less
+                return await Task.FromResult(Remove(id));
+            }
+
+            try
+            {
+                // 1. Get current cart and item
+                List<CartItem> cart = HttpContext.Session.GetJson<List<CartItem>>("Cart") ?? [];
+                CartItem cartItem = cart.Where(x => x.ProductId == id).FirstOrDefault();
+
+                if (cartItem == null)
+                {
+                    TempData["error"] = "Item not found in cart.";
+                    return RedirectToAction("Index");
+                }
+
+                // 2. Validate against stock
+                var product = await _context.Products.FindAsync(id);
+                if (product != null && quantity > product.StockQuantity)
+                {
+                    TempData["error"] = $"Cannot set quantity to {quantity}. Only {product.StockQuantity} are in stock for '{cartItem.ProductName}'.";
+                    cartItem.Quantity = product.StockQuantity; // Adjust quantity to max stock
+                }
+                else
+                {
+                    cartItem.Quantity = quantity; // Apply new quantity
+                }
+
+                // 3. Save cart
+                HttpContext.Session.SetJson("Cart", cart);
+                TempData["success"] = $"Quantity for '{cartItem.ProductName}' updated to {cartItem.Quantity}.";
+            }
+            catch (Exception ex)
+            {
+                // _logger.LogError(ex, "Error updating cart quantity for product ID {Id}.", id);
+                TempData["error"] = "A system error occurred while trying to update the quantity.";
+            }
+
+            return RedirectToAction("Index");
+        }
+
 
         public IActionResult Decrease(int id)
         {
-            List<CartItem> cart = HttpContext.Session.GetJson<List<CartItem>>("Cart");
-
-            CartItem cartItem = cart.Where(x => x.ProductId == id).FirstOrDefault();
-
-            if (cartItem.Quantity > 1)
+            try
             {
-                --cartItem.Quantity;
-            }
-            else
-            {
-                cart.RemoveAll(x => x.ProductId == id);
-            }
+                List<CartItem> cart = HttpContext.Session.GetJson<List<CartItem>>("Cart");
 
-            if (cart.Count == 0)
-            {
-                HttpContext.Session.Remove("Cart");
-            }
-            else
-            {
-                HttpContext.Session.SetJson("Cart", cart);
+                if (cart == null)
+                {
+                    TempData["info"] = "Your cart is empty.";
+                    return RedirectToAction("Index");
+                }
 
-            }
+                CartItem cartItem = cart.Where(x => x.ProductId == id).FirstOrDefault();
 
-            TempData["success"] = "The product has been removed!";
+                if (cartItem != null)
+                {
+                    if (cartItem.Quantity > 1)
+                    {
+                        --cartItem.Quantity;
+                    }
+                    else
+                    {
+                        cart.RemoveAll(x => x.ProductId == id);
+                    }
+                }
+
+                if (cart.Count == 0)
+                {
+                    HttpContext.Session.Remove("Cart");
+                }
+                else
+                {
+                    HttpContext.Session.SetJson("Cart", cart);
+                }
+
+                TempData["success"] = "The product quantity has been updated!";
+            }
+            catch (Exception ex)
+            {
+                // _logger.LogError(ex, "Session error in Cart Decrease action for product ID {Id}.", id);
+                TempData["error"] = "An error occurred while decreasing the item quantity.";
+            }
 
             return RedirectToAction("Index");
         }
 
         public IActionResult Remove(int id)
         {
-            List<CartItem> cart = HttpContext.Session.GetJson<List<CartItem>>("Cart");
-
-            cart.RemoveAll(x => x.ProductId == id);
-
-            if (cart.Count == 0)
+            try
             {
-                HttpContext.Session.Remove("Cart");
+                List<CartItem> cart = HttpContext.Session.GetJson<List<CartItem>>("Cart");
+
+                if (cart == null)
+                {
+                    TempData["info"] = "Your cart is already empty.";
+                    return RedirectToAction("Index");
+                }
+
+                cart.RemoveAll(x => x.ProductId == id);
+
+                if (cart.Count == 0)
+                {
+                    HttpContext.Session.Remove("Cart");
+                }
+                else
+                {
+                    HttpContext.Session.SetJson("Cart", cart);
+                }
+
+                TempData["success"] = "The product has been removed!";
             }
-            else
+            catch (Exception ex)
             {
-                HttpContext.Session.SetJson("Cart", cart);
-
+                // _logger.LogError(ex, "Session error in Cart Remove action for product ID {Id}.", id);
+                TempData["error"] = "An error occurred while removing the item.";
             }
-
-            TempData["success"] = "The product has been removed!";
 
             return RedirectToAction("Index");
         }
 
         public IActionResult Clear()
         {
-            HttpContext.Session.Remove("Cart");
+            try
+            {
+                HttpContext.Session.Remove("Cart");
+                TempData["success"] = "Your cart has been cleared!";
+            }
+            catch (Exception ex)
+            {
+                // _logger.LogError(ex, "Session error in Cart Clear action.");
+                TempData["error"] = "An error occurred while clearing the cart.";
+            }
 
-            return Redirect(Request.Headers.Referer.ToString());
+            // FIX: Safely access Referer header
+            string refererUrl = Request.Headers.Referer.FirstOrDefault() ?? "/";
+            return Redirect(refererUrl);
         }
     }
-
 }
