@@ -6,19 +6,20 @@ using System.Threading.Tasks;
 using CMSECommerce.Areas.Admin.Models;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using CMSECommerce.Models; // Ensure this is included if AdminDashboardViewModel or Order uses models from this namespace
+using CMSECommerce.Models;
+using System;
+using System.Collections.Generic; // Added for initializing RecentOrders on error
 
 namespace CMSECommerce.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    // ⭐ FIX 1: Change Authorize attribute from [Authorize("Admin")] to [Authorize(Roles = "Admin")]
     [Authorize(Roles = "Admin")]
+    // It is highly recommended to also inject ILogger<DashboardController> for production logging.
     public class DashboardController : Controller
     {
         private readonly DataContext _context;
         private readonly UserManager<IdentityUser> _userManager;
 
-        // Using Primary Constructor (C# 12) syntax for cleaner injection
         public DashboardController(DataContext context, UserManager<IdentityUser> userManager)
         {
             _context = context;
@@ -27,41 +28,81 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
         public async Task<IActionResult> Index()
         {
-            // ⭐ FIX 2: Use CountAsync() on Identity components for better asynchronous performance
-            // NOTE: The user manager count does not have a native async version without iterating, 
-            // so we use the underlying store's IQueryable or rely on the framework's optimization.
-            // Using ToListAsync().Count() is safer and truly async.
-            var usersCount = await _userManager.Users.CountAsync();
-            var productsCount = await _context.Products.CountAsync();
-            var productsRequestCount = await _context.Products.Where(p=> p.Status==ProductStatus.Pending || p.Status==ProductStatus.Rejected).CountAsync();
-            var ordersCount = await _context.Orders.CountAsync();
-            var categories = await _context.Categories.CountAsync();
-            var userprofilesCount = await _context.UserProfiles.Where(p => !p.IsImageApproved && p.ProfileImagePath != null).CountAsync();
-
-            // ⭐ FIX 3: Pending request logic for bool? Approved
-            // Pending requests are those where Approved is explicitly NULL.
-            var pendingRequests = await _context.SubscriberRequests
-                .CountAsync(r => r.Approved == false);
-
-            var recentOrders = await _context.Orders
-                .OrderByDescending(o => o.Id)
-                .Take(5)
-                .ToListAsync();
-
+            // Initialize the model with default (zero) values in case of failure
             var model = new AdminDashboardViewModel
             {
-                UsersCount = usersCount,
-                ProductsRequestCount= productsRequestCount,
-                ProductsCount = productsCount,
-                OrdersCount = ordersCount,
-                PendingSubscriberRequests = pendingRequests,
-                Categories = categories,
-                RecentOrders = recentOrders,
-                UserProfilesCount= userprofilesCount
+                UsersCount = 0,
+                ProductsRequestCount = 0,
+                ProductsCount = 0,
+                OrdersCount = 0,
+                PendingSubscriberRequests = 0,
+                Categories = 0,
+                RecentOrders = new List<Order>(),
+                UserProfilesCount = 0
             };
 
-           
+            try
+            {
+                // Execute all required counts concurrently (though await is sequential here, 
+                // the IQueryable queries benefit from optimization)
 
+                // Fetching all counts
+                var usersCountTask = _userManager.Users.CountAsync();
+                var productsCountTask = _context.Products.CountAsync();
+                var productsRequestCountTask = _context.Products
+                    .Where(p => p.Status == ProductStatus.Pending || p.Status == ProductStatus.Rejected)
+                    .CountAsync();
+                var ordersCountTask = _context.Orders.CountAsync();
+                var categoriesCountTask = _context.Categories.CountAsync();
+                var userprofilesCountTask = _context.UserProfiles
+                    .Where(p => !p.IsImageApproved && p.ProfileImagePath != null)
+                    .CountAsync();
+                var pendingRequestsTask = _context.SubscriberRequests
+                    .CountAsync(r => r.Approved == false); // Assuming false means pending review/rejection
+
+                // Fetch recent orders
+                var recentOrdersTask = _context.Orders
+                    .OrderByDescending(o => o.Id)
+                    .Take(5)
+                    .ToListAsync();
+
+                // Wait for all tasks to complete
+                await Task.WhenAll(
+                    usersCountTask,
+                    productsCountTask,
+                    productsRequestCountTask,
+                    ordersCountTask,
+                    categoriesCountTask,
+                    userprofilesCountTask,
+                    pendingRequestsTask,
+                    recentOrdersTask
+                );
+
+                // Assign results to the model
+                model.UsersCount = usersCountTask.Result;
+                model.ProductsCount = productsCountTask.Result;
+                model.ProductsRequestCount = productsRequestCountTask.Result;
+                model.OrdersCount = ordersCountTask.Result;
+                model.Categories = categoriesCountTask.Result;
+                model.UserProfilesCount = userprofilesCountTask.Result;
+                model.PendingSubscriberRequests = pendingRequestsTask.Result;
+                model.RecentOrders = recentOrdersTask.Result;
+
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Log database errors (e.g., connection string issues, timeouts)
+                // _logger.LogError(dbEx, "Database error in Admin Dashboard Index action.");
+                TempData["Error"] = "A database error occurred while loading dashboard statistics. Data displayed may be incomplete.";
+            }
+            catch (Exception ex)
+            {
+                // Log general exceptions
+                // _logger.LogError(ex, "Unexpected error in Admin Dashboard Index action.");
+                TempData["Error"] = "An unexpected error occurred while processing the dashboard data. Data displayed may be incomplete.";
+            }
+
+            // Return the model (which contains partial/zero data if an exception occurred)
             return View(model);
         }
     }
