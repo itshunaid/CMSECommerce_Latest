@@ -404,7 +404,7 @@
                 // State variables for chat routing
                 let currentChatTargetId = null;
                 let isGroupChat = false;
-                let currentGroupName = null; // Stays null unless a group chat is active
+                let currentGroupName = null;
 
                 //1. SIGNALR CONNECTION
                 const connection = new signalR.HubConnectionBuilder()
@@ -508,16 +508,26 @@
                 function openChatWindow(targetId, targetName, isGroup) {
                     currentChatTargetId = targetId;
                     isGroupChat = isGroup;
-                    // >>> MODIFICATION 1: Set currentGroupName for group chats
-                    currentGroupName = isGroup ? targetId : null;
+                    // FIX 1: Set currentGroupName for group chats
+                    currentGroupName = isGroup ? targetId : null; 
 
                     if (chatTargetName) chatTargetName.textContent = isGroup ? `Group: ${targetName}` : `Chatting with: ${targetName}`;
 
                     if (chatMessages) chatMessages.innerHTML = ''; // Clear previous messages
+                    
+                    // FIX 2: Ensure correct display state for mobile modal messages/user list
+                    const floatingModal = document.getElementById('floating-chat-modal');
+                    const floatingUserList = document.getElementById('floating-user-list');
+                    const usersToggle = document.getElementById('floating-chat-users-toggle');
+                    
+                    // Force messages to show and user list to hide (default view when chat opens)
+                    if (floatingUserList) floatingUserList.style.display = 'none';
+                    if (chatMessages) chatMessages.style.display = 'block'; // Make sure messages are visible
+                    if (usersToggle) usersToggle.setAttribute('aria-pressed', 'false'); // Set toggle state
 
                     // show floating modal if present, otherwise show sidebar container
-                    if (document.getElementById('floating-chat-modal')) {
-                        document.getElementById('floating-chat-modal').style.display = 'block';
+                    if (floatingModal) {
+                        floatingModal.style.display = 'block'; // Ensure it overrides hidden CSS
                     } else if (chatWindowContainer) {
                         chatWindowContainer.style.display = 'block';
                         if (userListView) userListView.style.display = 'none';
@@ -559,8 +569,7 @@
 
                 //4. EVENT LISTENERS
 
-                // One-to-One Chat Listener
-                // Use event delegation so dynamically added elements still work and to avoid default anchor navigation
+                // One-to-One Chat Listener (using delegation)
                 document.addEventListener('click', function (e) {
                     const btn = e.target.closest && e.target.closest('.start-chat-btn');
                     if (!btn) return;
@@ -650,17 +659,18 @@
 
                 //5. SEND MESSAGE FUNCTION
                 function sendMessage() {
-                    const message = (document.getElementById('floating-chat-input') || chatInput).value.trim();
+                    const currentInput = document.getElementById('floating-chat-input') || chatInput;
+                    const message = currentInput.value.trim();
                     if (message.length === 0 || connection.state !== signalR.HubConnectionState.Connected) {
                         return;
                     }
 
-                    // >>> MODIFICATION 2: Check for currentChatTargetId if not in a group
                     if (isGroupChat && currentGroupName) {
                         // One-to-Group
                         connection.invoke("SendMessageToGroup", currentGroupName, message).catch(err => console.error(err.toString()));
 
-                    } else if (currentChatTargetId) {
+                    } else if (currentChatTargetId) { 
+                        // FIX 3: Simplified logic, if not group chat, send private message if target ID exists
                         // One-to-One (send to user by id)
                         connection.invoke("SendPrivateMessage", currentChatTargetId, message).catch(err => console.error(err.toString()));
                         // Add local self message once
@@ -671,9 +681,9 @@
                             targetMessages.scrollTop = targetMessages.scrollHeight;
                         }
                     }
-
+                    
                     // Clear the input field after sending
-                    (document.getElementById('floating-chat-input') || chatInput).value = '';
+                    currentInput.value = '';
                 }
 
                 // ===============================================
