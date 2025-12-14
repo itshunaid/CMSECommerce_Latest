@@ -315,10 +315,9 @@
 </div>
 
 @section Scripts {
- <!-- Use local SignalR client bundle (path present in wwwroot/lib/microsoft-signalr) -->
- <script src="~/lib/microsoft-signalr/signalr.js"></script>
+    <script src="~/lib/microsoft-signalr/signalr.js"></script>
 
- <script>
+    <script>
         (function () {
             // Safely pass server-side vars to JS
             const currentCategorySlug = @Html.Raw(Json.Serialize(currentCategorySlug ?? ""));
@@ -331,11 +330,11 @@
                 let url = basePath;
                 let queryParts = [];
 
-                if (slug && slug.length >0) {
+                if (slug && slug.length > 0) {
                     url = url.replace(/\/$/, '') + "/" + encodeURIComponent(slug);
                 }
 
-                if (searchTerm && searchTerm.length >0) {
+                if (searchTerm && searchTerm.length > 0) {
                     queryParts.push("searchTerm=" + encodeURIComponent(searchTerm));
                 }
 
@@ -343,11 +342,11 @@
                     queryParts.push("sortOrder=" + encodeURIComponent(sortOrder));
                 }
 
-                if (page && page >1) {
+                if (page && page > 1) {
                     queryParts.push("p=" + page);
                 }
 
-                if (queryParts.length >0) {
+                if (queryParts.length > 0) {
                     const separator = url.includes('?') ? '&' : '?';
                     url += separator + queryParts.join("&");
                 }
@@ -405,7 +404,7 @@
                 // State variables for chat routing
                 let currentChatTargetId = null;
                 let isGroupChat = false;
-                let currentGroupName = null;
+                let currentGroupName = null; // Stays null unless a group chat is active
 
                 //1. SIGNALR CONNECTION
                 const connection = new signalR.HubConnectionBuilder()
@@ -429,28 +428,28 @@
                 });
 
                 connection.on("LoadHistory", function (messages) {
- // messages: [{ SenderName, MessageContent, Timestamp }, ...] or camelCase
- if (!chatMessages) return;
- chatMessages.innerHTML = '';
- messages.forEach(m => {
- const sender = m.SenderName || m.senderName || m.sender || 'Unknown';
- const content = m.MessageContent || m.messageContent || m.message || '';
- const rawTime = m.Timestamp || m.timestamp || m.Time || m.time || null;
- let timeText = '';
- if (rawTime) {
- const dt = new Date(rawTime);
- if (!isNaN(dt.getTime())) {
- timeText = dt.toLocaleString();
- }
- }
+                    // messages: [{ SenderName, MessageContent, Timestamp }, ...] or camelCase
+                    if (!chatMessages) return;
+                    chatMessages.innerHTML = '';
+                    messages.forEach(m => {
+                        const sender = m.SenderName || m.senderName || m.sender || 'Unknown';
+                        const content = m.MessageContent || m.messageContent || m.message || '';
+                        const rawTime = m.Timestamp || m.timestamp || m.Time || m.time || null;
+                        let timeText = '';
+                        if (rawTime) {
+                            const dt = new Date(rawTime);
+                            if (!isNaN(dt.getTime())) {
+                                timeText = dt.toLocaleString();
+                            }
+                        }
 
- const timeHtml = timeText ? `<div class="small text-muted">${timeText}</div>` : '';
- const msgHtml = `\n <div class="chat-message-item mb-1 small">\n <div><span class="fw-bold">${sender}:</span> ${content}</div>\n ${timeHtml}\n </div>`;
+                        const timeHtml = timeText ? `<div class="small text-muted">${timeText}</div>` : '';
+                        const msgHtml = `\n <div class="chat-message-item mb-1 small">\n <div><span class="fw-bold">${sender}:</span> ${content}</div>\n ${timeHtml}\n </div>`;
 
- chatMessages.insertAdjacentHTML('beforeend', msgHtml);
- });
- chatMessages.scrollTop = chatMessages.scrollHeight;
- });
+                        chatMessages.insertAdjacentHTML('beforeend', msgHtml);
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
 
                 // Receive private message that triggers opening the chat window for recipient
                 connection.on("ReceivePrivateMessage", function (senderId, senderName, message) {
@@ -475,7 +474,7 @@
                         } else {
                             // increment count
                             const badge = li.querySelector('.unread-badge');
-                            badge.textContent = (parseInt(badge.textContent || '0') +1).toString();
+                            badge.textContent = (parseInt(badge.textContent || '0') + 1).toString();
                         }
                     });
 
@@ -509,6 +508,8 @@
                 function openChatWindow(targetId, targetName, isGroup) {
                     currentChatTargetId = targetId;
                     isGroupChat = isGroup;
+                    // >>> MODIFICATION 1: Set currentGroupName for group chats
+                    currentGroupName = isGroup ? targetId : null;
 
                     if (chatTargetName) chatTargetName.textContent = isGroup ? `Group: ${targetName}` : `Chatting with: ${targetName}`;
 
@@ -545,6 +546,7 @@
                 function closeChatWindow() {
                     currentChatTargetId = null;
                     isGroupChat = false;
+                    currentGroupName = null; // Reset group name on close
                     if (document.getElementById('floating-chat-modal')) {
                         document.getElementById('floating-chat-modal').style.display = 'none';
                     } else if (chatWindowContainer) {
@@ -558,14 +560,6 @@
                 //4. EVENT LISTENERS
 
                 // One-to-One Chat Listener
-                // document.querySelectorAll('.start-chat-btn').forEach(button => {
-                // button.addEventListener('click', function (e) {
-                // e.preventDefault();
-                // const userId = this.getAttribute('data-user-id');
-                // const userName = this.getAttribute('data-user-name');
-                // openChatWindow(userId, userName, false);
-                // });
-                // });
                 // Use event delegation so dynamically added elements still work and to avoid default anchor navigation
                 document.addEventListener('click', function (e) {
                     const btn = e.target.closest && e.target.closest('.start-chat-btn');
@@ -575,7 +569,7 @@
                     const userName = btn.getAttribute('data-user-name');
                     openChatWindow(userId, userName, false);
                 });
-                
+
                 // Keyboard accessibility for start-chat-btn and group link (Enter/Space)
                 document.addEventListener('keydown', function (e) {
                     if (!e.key) return;
@@ -598,7 +592,7 @@
 
                 // One-to-Many Chat Listener (Global)
                 if (groupChatLink) {
-                    groupChatLink.addEventListener('click', function(e) {
+                    groupChatLink.addEventListener('click', function (e) {
                         e.preventDefault();
                         // join a default global group called 'Global'
                         connection.invoke('JoinGroup', 'Global').catch(err => console.error(err));
@@ -616,20 +610,20 @@
                         e.preventDefault();
                         // If group link exists, use it; otherwise directly join and open global
                         if (groupChatLink) {
-                          try {
-                            groupChatLink.click();
-                            return;
-                          } catch (err) { /* fallthrough */ }
+                            try {
+                                groupChatLink.click();
+                                return;
+                            } catch (err) { /* fallthrough */}
                         }
                         connection.invoke('JoinGroup', 'Global').catch(err => console.error(err));
                         openChatWindow('Global', 'Global', true);
                     });
                     openChatBtn.addEventListener('keydown', function (e) {
-                      if (e.key === 'Enter' || e.key === ' ') {
+                            if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         openChatBtn.click();
-                      }
-                    });
+                            }
+                        });
                 }
 
                 // Floating modal controls
@@ -637,9 +631,9 @@
                 const floatingMinimize = document.getElementById('floating-chat-minimize');
                 if (floatingClose) floatingClose.addEventListener('click', closeChatWindow);
                 if (floatingMinimize) floatingMinimize.addEventListener('click', function () {
-                    const modal = document.getElementById('floating-chat-modal');
+                        const modal = document.getElementById('floating-chat-modal');
                     if (modal) modal.style.display = 'none';
-                });
+                        });
 
                 // Close Button Listener (sidebar fallback)
                 if (closeChatBtn && !document.getElementById('floating-chat-modal')) closeChatBtn.addEventListener('click', closeChatWindow);
@@ -649,33 +643,37 @@
                 const actualChatInput = document.getElementById('floating-chat-input') || chatInput;
                 if (actualSendBtn) actualSendBtn.addEventListener('click', sendMessage);
                 if (actualChatInput) actualChatInput.addEventListener('keypress', function (e) {
-                    if (e.key === 'Enter') {
+                        if (e.key === 'Enter') {
                         sendMessage();
-                    }
-                });
+                        }
+                    });
 
                 //5. SEND MESSAGE FUNCTION
                 function sendMessage() {
                     const message = (document.getElementById('floating-chat-input') || chatInput).value.trim();
-                    if (message.length ===0 || connection.state !== signalR.HubConnectionState.Connected) {
+                    if (message.length === 0 || connection.state !== signalR.HubConnectionState.Connected) {
                         return;
                     }
 
+                    // >>> MODIFICATION 2: Check for currentChatTargetId if not in a group
                     if (isGroupChat && currentGroupName) {
-                         // One-to-Group
-                         connection.invoke("SendMessageToGroup", currentGroupName, message).catch(err => console.error(err.toString()));
+                        // One-to-Group
+                        connection.invoke("SendMessageToGroup", currentGroupName, message).catch(err => console.error(err.toString()));
 
-                    } else if (currentChatTargetId && currentChatTargetId !== 'Global') {
-                         // One-to-One (send to user by id)
-                         connection.invoke("SendPrivateMessage", currentChatTargetId, message).catch(err => console.error(err.toString()));
-                         // Add local self message once
-                         const selfMessage = `\n <div class="chat-message-item self-message mb-1 small text-end">\n <span class="fw-bold text-amazon-teal">You:</span> ${message}\n </div>`;
-                         const targetMessages = document.getElementById('floating-chat-messages') || chatMessages;
-                         if (targetMessages) {
+                    } else if (currentChatTargetId) {
+                        // One-to-One (send to user by id)
+                        connection.invoke("SendPrivateMessage", currentChatTargetId, message).catch(err => console.error(err.toString()));
+                        // Add local self message once
+                        const selfMessage = `\n <div class="chat-message-item self-message mb-1 small text-end">\n <span class="fw-bold text-amazon-teal">You:</span> ${message}\n </div>`;
+                        const targetMessages = document.getElementById('floating-chat-messages') || chatMessages;
+                        if (targetMessages) {
                             targetMessages.insertAdjacentHTML('beforeend', selfMessage);
                             targetMessages.scrollTop = targetMessages.scrollHeight;
-                         }
+                        }
                     }
+
+                    // Clear the input field after sending
+                    (document.getElementById('floating-chat-input') || chatInput).value = '';
                 }
 
                 // ===============================================
@@ -719,26 +717,29 @@
     <style>
         /* Floating chat button */
         .floating-chat-btn {
- position: fixed;
- right:20px;
- bottom:20px;
- z-index:1050;
- width:50px;
- height:50px;
- border-radius:50%;
- display: flex;
- align-items: center;
- justify-content: center;
- box-shadow:04px12px rgba(0,0,0,.15);
- color: #fff;
- background: linear-gradient(180deg,#007185,#005a5f);
- border: none;
- }
- .floating-chat-btn .fas { font-size:1.1rem; }
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 1050;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 04px12px rgba(0,0,0,.15);
+            color: #fff;
+            background: linear-gradient(180deg,#007185,#005a5f);
+            border: none;
+        }
 
- /* Floating modal overrides */
- #floating-chat-modal .card { width:100%; }
-
+            .floating-chat-btn .fas {
+                font-size: 1.1rem;
+            }
+        /* Floating modal overrides */
+        #floating-chat-modal .card {
+            width: 100%;
+        }
         /* Define Amazon-like Colors */
         :root {
             --amazon-black: #0F1111;
@@ -751,7 +752,6 @@
             --amazon-search-yellow: #FEBD69;
             --amazon-border-gray: #D5D9D9;
         }
-
         /* ------------------------------------------------ */
         /* --- GLOBAL AMAZON FONT AND BASE TEXT STYLES ---- */
         /* ------------------------------------------------ */
@@ -763,7 +763,6 @@
         .text-amazon-teal {
             color: var(--amazon-link-teal) !important;
         }
-
         /* General Links: Amazon often uses teal/blue for internal links */
         a {
             color: var(--amazon-link-teal);
@@ -773,7 +772,6 @@
             color: var(--amazon-link-teal-hover) !important;
             text-decoration: underline !important;
         }
-
         /* --- PRODUCT CARD STYLES --- */
         .product-card {
             border: 1px solid var(--amazon-border-gray) !important;
@@ -789,7 +787,6 @@
                 box-shadow: 0 4px 12px rgba(0,0,0,.1);
                 border-color: #FAFAFA !important;
             }
-
         /* ================================================= */
         /* === STANDARD PRODUCT IMAGE SIZE IMPLEMENTATION === */
         /* ================================================= */
@@ -852,7 +849,6 @@
             font-size: 1.4rem !important;
             font-weight: 700 !important;
         }
-
         /* --- BUTTONS --- */
         .btn-amazon-yellow {
             background-color: var(--amazon-yellow-button) !important;
@@ -879,7 +875,6 @@
                 background-color: #EAEAEA !important;
                 border-color: #ADADAD !important;
             }
-
         /* Search Input and Button Styling */
         .amazon-search-group {
             border-radius: 8px;
@@ -912,7 +907,6 @@
             .btn-amazon-search:hover {
                 background-color: #F3A847 !important;
             }
-
         /* --- SIDEBAR STYLES --- */
         .amazon-sidebar-card {
             border-radius: 8px !important;
@@ -940,7 +934,6 @@
             color: var(--amazon-link-teal);
             font-weight: 400;
         }
-
         /* Chat Specific Styles */
         .chat-messages {
             border: 1px solid #ccc;
@@ -963,8 +956,6 @@
             .self-message .fw-bold {
                 color: var(--amazon-link-teal) !important;
             }
-
-
         /* Responsive Adjustments */
         @@media (max-width: 576px) {
             .product-image-wrapper {
@@ -975,34 +966,34 @@
                 padding: 12px;
             }
         }
-
         /* Mobile friendly chat modal and floating button */
         @@media (max-width:767.98px) {
-  .floating-chat-btn {
-    width:60px !important;
-    height:60px !important;
-    right:16px !important;
-    bottom:16px !important;
-    z-index:3000 !important;
-  }
+            .floating-chat-btn {
+                width: 60px !important;
+                height: 60px !important;
+                right: 16px !important;
+                bottom: 16px !important;
+                z-index: 3000 !important;
+            }
 
-  #floating-chat-modal {
-    right:0 !important;
-    left:0 !important;
-    bottom:0 !important;
-    width:100% !important;
-    max-width:100% !important;
-    border-radius:0 !important;
-    margin:0 !important;
-  }
+            #floating-chat-modal {
+                right: 0 !important;
+                left: 0 !important;
+                bottom: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                border-radius: 0 !important;
+                margin: 0 !important;
+            }
 
-  #floating-chat-modal .card-body {
-    padding:0.5rem !important;
-  }
+                #floating-chat-modal .card-body {
+                    padding: 0.5rem !important;
+                }
 
-  #floating-chat-messages {
-    height:50vh !important;
-  }
-}
+            #floating-chat-messages {
+                height: 50vh !important;
+            }
+        }
+
     </style>
 }
