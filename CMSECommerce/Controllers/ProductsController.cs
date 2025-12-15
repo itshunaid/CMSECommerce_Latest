@@ -69,13 +69,13 @@ namespace CMSECommerce.Controllers
 
                 // Fetch unprocessed order details for the seller (current user)
                 List<OrderDetail> orderDetails = await _context.OrderDetails
-                    .Where(p => p.Customer == userName && p.IsProcessed == false)
+                    .Where(p => p.ProductOwner == userName && p.IsProcessed == false)
                     .OrderBy(d => d.OrderId)
                     .ToListAsync();
 
                 // Get distinct customers with unprocessed orders for the seller
                 List<string> customerUserNames = await _context.OrderDetails
-                    .Where(p => p.Customer == userName && p.IsProcessed == false)
+                    .Where(p => p.ProductOwner == userName && p.IsProcessed == false)
                     .Select(p => p.Customer)
                     .Distinct()
                     .ToListAsync();
