@@ -14,16 +14,20 @@
     var sortOrder = ViewBag.SortOrder as string ?? "default";
     var pageRange = ViewBag.PageRange ?? 3;
 
-    // Logic to prepare the user lists from the View Model data
-    var onlineUsers = Model.AllUsers
-        .Where(dto => dto.IsOnline)
-        .OrderBy(dto => dto.User.UserName)
-        .ToList();
+    // --- START MODIFIED SECTION ---
+
+    var currentUserId = Model.CurrentUser?.Id;
+
+    // REMOVE: .Where(dto => dto.User.Id != currentUserId) filter from here, as it's redundant/unnecessary.
+    var onlineUsers = Model.AllUsers
+    .Where(dto => dto.IsOnline)
+    .OrderBy(dto => dto.User.UserName)
+    .ToList();
 
     var offlineUsers = Model.AllUsers
-        .Where(dto => !dto.IsOnline)
-        .OrderBy(dto => dto.User.UserName)
-        .ToList();
+      .Where(dto => !dto.IsOnline)
+      .OrderBy(dto => dto.User.UserName)
+      .ToList();
 }
 
 <div class="container py-4">

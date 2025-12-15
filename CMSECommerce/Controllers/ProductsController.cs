@@ -25,10 +25,10 @@ namespace CMSECommerce.Controllers
 
         // The Index action handles category filtering, searching, pagination, and sorting.
         public async Task<IActionResult> Index(
-            string slug = "",
-            int p = 1,
-            string searchTerm = "",
-            string sortOrder = "")
+         string slug = "",
+         int p = 1,
+         string searchTerm = "",
+         string sortOrder = "")
         {
             // --- Paging Configuration ---
             int pageSize = 12;
@@ -42,19 +42,21 @@ namespace CMSECommerce.Controllers
             int totalPages = 1;
             List<Product> pagedProducts = new List<Product>();
             IdentityUser currentUser = null;
-            List<UserStatusDTO> userStatusDtos = new List<UserStatusDTO>();
+            // User list for sidebar (should contain ALL OTHER users)
+            List<UserStatusDTO> allOtherUsersStatus = new List<UserStatusDTO>();
+            var currentUserId = _userManager.GetUserId(User);
+            allOtherUsersStatus=await _userStatusService.GetAllOtherUsersStatusAsync(currentUserId);
 
             try
             {
                 // 1. Start with all approved products
                 IQueryable<Product> products = _context.Products
                     .Where(x => x.Status == Models.ProductStatus.Approved)
-                    .AsNoTracking(); // Use AsNoTracking for read-only query optimization
+                    .AsNoTracking();
 
                 // --- 2. Apply Category Filter ---
                 if (!string.IsNullOrWhiteSpace(slug))
                 {
-                    // Retrieve the category to get its ID and Name
                     Category category = await _context.Categories
                         .Where(x => x.Slug == slug)
                         .AsNoTracking()
@@ -62,21 +64,18 @@ namespace CMSECommerce.Controllers
 
                     if (category == null)
                     {
-                        // Invalid slug, but treat it as the main index page to prevent error
                         TempData["Error"] = $"Category '{slug}' was not found.";
                         return RedirectToAction("Index");
                     }
 
-                    // Filter by category ID
                     products = products.Where(x => x.CategoryId == category.Id);
-                    categoryName = category.Name; // Capture for VM
-                    categorySlug = slug;         // Capture for VM
+                    categoryName = category.Name;
+                    categorySlug = slug;
                 }
 
                 // --- 3. Apply Search Term Filter ---
                 if (!string.IsNullOrWhiteSpace(searchFilter))
                 {
-                    // Filter by product name containing the search term
                     products = products.Where(x => x.Name.ToLower().Contains(searchFilter.ToLower()));
                 }
 
@@ -104,48 +103,52 @@ namespace CMSECommerce.Controllers
                     .Take(pageSize)
                     .ToListAsync();
 
-                // ---8. Fetch User List (Required for the sidebar) ---
-                var currentUserId = _userManager.GetUserId(User);
+                // --- 8. Fetch User List (Required for the sidebar) ---
+                
 
-                // Safely call the service
                 if (!string.IsNullOrEmpty(currentUserId))
                 {
-                    userStatusDtos = await _userStatusService.GetAllOtherUsersStatusAsync(currentUserId);
+                    // Fetch status for all users EXCEPT the current one
+                    allOtherUsersStatus = await _userStatusService.GetAllOtherUsersStatusAsync(currentUserId);
+
+                    // Fetch the current user details
                     currentUser = await _userManager.FindByIdAsync(currentUserId);
                 }
             }
             catch (DbUpdateException dbEx)
             {
-                // Log database errors
+                // In a real application, inject ILogger and log this error
                 // _logger.LogError(dbEx, "Database error in Products Index action.");
                 TempData["Error"] = "A database error occurred while fetching products. Please try again later.";
             }
             catch (Exception ex)
             {
-                // Log general exceptions
+                // In a real application, inject ILogger and log this error
                 // _logger.LogError(ex, "Unexpected error in Products Index action.");
                 TempData["Error"] = "An unexpected error occurred while loading the product list.";
             }
 
             // --- 9. Create and return the View Model ---
-            // This is outside the try-catch to ensure the view renders even on failure (with empty data)
             var viewModel = new ProductListViewModel
             {
                 Products = pagedProducts,
 
-                // Product Metadata (From Paging/Filtering Logic)
+                // Product Metadata
                 CategoryName = categoryName,
-                CategorySlug = categorySlug,
                 CurrentSearchTerm = searchFilter,
-                SortOrder = sortOrder,
-                PageNumber = pageNumber,
-                TotalPages = totalPages,
-                PageRange = pageSize, // Reusing pageSize as the PageRange value
+                // ... other metadata properties ...
 
                 // User List Data (for the sidebar)
-                AllUsers = userStatusDtos,
-                CurrentUser = currentUser
+                AllUsers = allOtherUsersStatus, // Contains all other users (online and offline)
+                CurrentUser = currentUser // Contains the currently logged-in user (for the "You" section)
             };
+
+            // Populate ViewBags needed by the view (since they weren't in the VM)
+            ViewBag.CategorySlug = categorySlug;
+            ViewBag.PageNumber = pageNumber;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.SortOrder = sortOrder;
+            ViewBag.PageRange = pageSize;
 
             return View(viewModel);
         }
