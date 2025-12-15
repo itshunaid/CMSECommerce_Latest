@@ -24,37 +24,100 @@ namespace CMSECommerce.Controllers
         private readonly IUserStatusService _userStatusService = userStatusService;
 
         // The Index action handles category filtering, searching, pagination, and sorting.
+        /// <summary>
+        /// Handles the display of the public product catalog, implementing filtering, sorting, and pagination.
+        /// Also retrieves the status of relevant users (Product Owners and Customers) involved in pending orders.
+        /// </summary>
         public async Task<IActionResult> Index(
-         string slug = "",
-         int p = 1,
-         string searchTerm = "",
-         string sortOrder = "")
+            string slug = "",
+            int p = 1,
+            string searchTerm = "",
+            string sortOrder = "")
         {
             // --- Paging Configuration ---
-            int pageSize = 12;
+            const int pageSize = 12;
             int pageNumber = p;
 
-            // Initialize view model variables outside the try block for scope
+            // --- State Variables Initialization (for full method scope) ---
             string categoryName = null;
             string categorySlug = "";
             string searchFilter = searchTerm?.Trim();
             int totalProducts = 0;
             int totalPages = 1;
+
+            // Ensure these lists are initialized for the final ViewModel creation, even on error
             List<Product> pagedProducts = new List<Product>();
             IdentityUser currentUser = null;
-            // User list for sidebar (should contain ALL OTHER users)
             List<UserStatusDTO> allOtherUsersStatus = new List<UserStatusDTO>();
+            List<string> userNamesToLookUp = new List<string>();
+
             var currentUserId = _userManager.GetUserId(User);
-            allOtherUsersStatus=await _userStatusService.GetAllOtherUsersStatusAsync(currentUserId);
+            var userName = _userManager.GetUserName(User);
+
+            // Set ViewBags here to ensure they are available even if the try block fails
+            ViewBag.IsProcessed = false;
+            ViewBag.CategorySlug = categorySlug;
+            ViewBag.PageNumber = pageNumber;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.SortOrder = sortOrder;
+            ViewBag.PageRange = pageSize;
+
 
             try
             {
-                // 1. Start with all approved products
+                // --- 1. User and Order Data Retrieval (Vulnerable to DB and Null Exceptions) ---
+
+                // Fetch unprocessed order details for the seller (current user)
+                List<OrderDetail> orderDetails = await _context.OrderDetails
+                    .Where(p => p.ProductOwner == userName && p.IsProcessed == false)
+                    .OrderBy(d => d.OrderId)
+                    .ToListAsync();
+
+                // Get distinct customers with unprocessed orders for the seller
+                List<string> customerUserNames = await _context.OrderDetails
+                    .Where(p => p.ProductOwner == userName && p.IsProcessed == false)
+                    .Select(p => p.Customer)
+                    .Distinct()
+                    .ToListAsync();
+               
+
+                // Get the current user's username in lowercase for case-insensitive matching
+                string usernameLower = userName.ToLower();
+
+                // 1. Get ALL relevant Order IDs for the current user
+                // We use a single query to get all IDs that match the user's name.
+                List<int> orderIds = await _context.Orders
+                    .Where(o => o.UserName.ToLower().Contains(usernameLower))
+                    // We only need the IDs, so we project (Select) them.
+                    .Select(p => p.Id)
+                    .ToListAsync(); // Execute this query now.
+
+                // 2. Fetch DISTINCT Product Owners in ONE database query
+                // We query the OrderDetails table where the OrderId is contained within the list of relevant IDs.
+                // This is the efficient alternative to the inefficient foreach loop.
+                List<string> distinctProductOwners = await _context.OrderDetails
+                    // Use the 'Contains' operator to check OrderId against the list of IDs
+                    .Where(x => orderIds.Contains(x.OrderId))
+                    // Select only the ProductOwner username
+                    .Select(detail => detail.ProductOwner)
+                    // Ensure only unique names are returned
+                    .Distinct()
+                    .ToListAsync(); // Execute this single query.
+
+                // Combine all relevant users for status lookup
+                userNamesToLookUp.AddRange(distinctProductOwners);
+                userNamesToLookUp.AddRange(customerUserNames);
+                userNamesToLookUp = userNamesToLookUp.Distinct().ToList();
+
+
+                // --- 2. Product Catalog Data Retrieval and Paging Logic ---
+
+                // Start with all approved products
                 IQueryable<Product> products = _context.Products
                     .Where(x => x.Status == Models.ProductStatus.Approved)
                     .AsNoTracking();
 
-                // --- 2. Apply Category Filter ---
+                // Apply Category Filter
                 if (!string.IsNullOrWhiteSpace(slug))
                 {
                     Category category = await _context.Categories
@@ -65,7 +128,7 @@ namespace CMSECommerce.Controllers
                     if (category == null)
                     {
                         TempData["Error"] = $"Category '{slug}' was not found.";
-                        return RedirectToAction("Index");
+                        return RedirectToAction("Index"); // Redirect on category error
                     }
 
                     products = products.Where(x => x.CategoryId == category.Id);
@@ -73,43 +136,49 @@ namespace CMSECommerce.Controllers
                     categorySlug = slug;
                 }
 
-                // --- 3. Apply Search Term Filter ---
+                // Apply Search Term Filter
                 if (!string.IsNullOrWhiteSpace(searchFilter))
                 {
                     products = products.Where(x => x.Name.ToLower().Contains(searchFilter.ToLower()));
                 }
 
-                // --- 4. Apply Sorting ---
+                // Apply Sorting
                 products = sortOrder switch
                 {
                     "price-asc" => products.OrderBy(x => (double)x.Price),
                     "price-desc" => products.OrderByDescending(x => (double)x.Price),
                     "name-asc" => products.OrderBy(x => x.Name),
-                    _ => products.OrderByDescending(x => x.Id), // Default sort by ID
+                    _ => products.OrderByDescending(x => x.Id),
                 };
 
-                // --- 5. Calculate Total Pages (Fetch Count) ---
+                // Calculate Total Pages (Fetch Count)
                 totalProducts = await products.CountAsync();
                 totalPages = (int)Math.Ceiling((decimal)totalProducts / pageSize);
 
-                // --- 6. Validate Page Number ---
+                // Validate Page Number
                 if (pageNumber < 1) pageNumber = 1;
                 if (pageNumber > totalPages && totalProducts > 0) pageNumber = totalPages;
 
-                // --- 7. Apply Paging and Execute Query ---
+                // Apply Paging and Execute Query
                 pagedProducts = await products
-                    .Include(x => x.Category) // Eager load category data
+                    .Include(x => x.Category)
                     .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
 
-                // --- 8. Fetch User List (Required for the sidebar) ---
-                
-
+                // --- 3. Fetch User Status Data ---
                 if (!string.IsNullOrEmpty(currentUserId))
                 {
-                    // Fetch status for all users EXCEPT the current one
+                    // Fetch status for all users (This service call is also a database/network operation)
                     allOtherUsersStatus = await _userStatusService.GetAllOtherUsersStatusAsync(currentUserId);
+
+                    // Filter the fetched status list to only include relevant users
+                    List<UserStatusDTO> relevantUsersStatus = allOtherUsersStatus
+                        .Where(userStatus => userNamesToLookUp.Contains(userStatus.User.UserName))
+                        .ToList();
+
+                    // Replace the full list with the filtered list for the ViewModel
+                    allOtherUsersStatus = relevantUsersStatus;
 
                     // Fetch the current user details
                     currentUser = await _userManager.FindByIdAsync(currentUserId);
@@ -117,42 +186,42 @@ namespace CMSECommerce.Controllers
             }
             catch (DbUpdateException dbEx)
             {
-                // In a real application, inject ILogger and log this error
-                // _logger.LogError(dbEx, "Database error in Products Index action.");
-                TempData["Error"] = "A database error occurred while fetching products. Please try again later.";
+                // Handle database-specific errors (e.g., connection issues, constraint violations during complex queries)
+                // Log the error: _logger.LogError(dbEx, "Database error while processing Index action data.");
+                TempData["Error"] = "A database connection error occurred. Please try again later.";
+                // Reset lists/variables to safe defaults for the view
+                pagedProducts = new List<Product>();
+                allOtherUsersStatus = new List<UserStatusDTO>();
+            }
+            catch (NullReferenceException nullEx)
+            {
+                // Handle unexpected null references, though explicit checks above minimize this.
+                // Log the error: _logger.LogError(nullEx, "Null reference error in Index action.");
+                TempData["Error"] = "An internal data error occurred. The requested order data may be missing.";
+                pagedProducts = new List<Product>();
+                allOtherUsersStatus = new List<UserStatusDTO>();
             }
             catch (Exception ex)
             {
-                // In a real application, inject ILogger and log this error
-                // _logger.LogError(ex, "Unexpected error in Products Index action.");
-                TempData["Error"] = "An unexpected error occurred while loading the product list.";
+                // Handle all other unexpected errors (e.g., service call failure, general processing errors)
+                // Log the error: _logger.LogError(ex, "Unexpected error in Index action.");
+                TempData["Error"] = "An unexpected error occurred while loading the shop page.";
+                pagedProducts = new List<Product>();
+                allOtherUsersStatus = new List<UserStatusDTO>();
             }
 
-            // --- 9. Create and return the View Model ---
+            // --- 4. Create and return the View Model (Safe to execute, as all variables are initialized) ---
             var viewModel = new ProductListViewModel
             {
                 Products = pagedProducts,
-
-                // Product Metadata
                 CategoryName = categoryName,
                 CurrentSearchTerm = searchFilter,
-                // ... other metadata properties ...
-
-                // User List Data (for the sidebar)
-                AllUsers = allOtherUsersStatus, // Contains all other users (online and offline)
-                CurrentUser = currentUser // Contains the currently logged-in user (for the "You" section)
+                AllUsers = allOtherUsersStatus,
+                CurrentUser = currentUser
             };
-
-            // Populate ViewBags needed by the view (since they weren't in the VM)
-            ViewBag.CategorySlug = categorySlug;
-            ViewBag.PageNumber = pageNumber;
-            ViewBag.TotalPages = totalPages;
-            ViewBag.SortOrder = sortOrder;
-            ViewBag.PageRange = pageSize;
 
             return View(viewModel);
         }
-
 
         // --- Product Detail Page ---
         public async Task<IActionResult> Product(string slug = "")
