@@ -69,20 +69,20 @@ namespace CMSECommerce.Controllers
 
                 // Fetch unprocessed order details for the seller (current user)
                 List<OrderDetail> orderDetails = await _context.OrderDetails
-                    .Where(p => p.ProductOwner == userName && p.IsProcessed == false)
+                    .Where(p => p.Customer == userName && p.IsProcessed == false)
                     .OrderBy(d => d.OrderId)
                     .ToListAsync();
 
                 // Get distinct customers with unprocessed orders for the seller
                 List<string> customerUserNames = await _context.OrderDetails
-                    .Where(p => p.ProductOwner == userName && p.IsProcessed == false)
+                    .Where(p => p.Customer == userName && p.IsProcessed == false)
                     .Select(p => p.Customer)
                     .Distinct()
                     .ToListAsync();
-               
+
 
                 // Get the current user's username in lowercase for case-insensitive matching
-                string usernameLower = userName.ToLower();
+                string usernameLower = userName?.ToLower() ?? "";
 
                 // 1. Get ALL relevant Order IDs for the current user
                 // We use a single query to get all IDs that match the user's name.
