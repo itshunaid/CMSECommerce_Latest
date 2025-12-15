@@ -4,20 +4,91 @@
     ViewData["Title"] = "Categories Index";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="display-4 fw-bold text-dark">Category Management</h1>
-    <p>
-        <a asp-action="Create" class="btn btn-warning shadow-sm fw-bold">
+<style>
+    /* Custom Amazon-style colors */
+    .amazon-orange {
+        background-color: #FF9900; /* Signature Amazon Orange */
+        border-color: #FF9900;
+        color: #131921; /* Dark Amazon text color */
+    }
+
+        .amazon-orange:hover {
+            background-color: #ffb74d; /* Lighter shade on hover */
+            border-color: #ffb74d;
+        }
+
+    .amazon-action-btn {
+        background-color: #131921; /* Dark blue/black */
+        color: #FFFFFF;
+        border: 1px solid #FF9900; /* Orange border highlight */
+    }
+
+        .amazon-action-btn:hover {
+            background-color: #38424d;
+            color: #FFFFFF;
+        }
+
+    .amazon-edit-btn {
+        background-color: #4CAF50; /* Green for Edit/Success */
+        border: 1px solid #FF9900;
+        color: #FFFFFF;
+    }
+
+        .amazon-edit-btn:hover {
+            background-color: #66BB6A;
+            color: #FFFFFF;
+        }
+
+    .amazon-delete-btn {
+        background-color: #D32F2F; /* Red for Delete */
+        border: 1px solid #FF9900;
+        color: #FFFFFF;
+    }
+
+        .amazon-delete-btn:hover {
+            background-color: #E57373;
+            color: #FFFFFF;
+        }
+
+    .amazon-table thead {
+        background-color: #F3F3F3; /* Light gray header */
+        color: #131921;
+        border-bottom: 1px solid #DDDDDD;
+    }
+
+    .amazon-table th {
+        font-weight: 500;
+        padding: 10px;
+    }
+
+    .amazon-table td {
+        padding: 10px;
+        vertical-align: middle;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-end mb-4 border-bottom pb-2">
+    <h1 class="display-5 fw-normal text-dark">Category Management</h1>
+</div>
+
+<div class="d-flex justify-content-end align-items-center mb-3">
+    @* Combine buttons into one space for cleaner layout *@
+    <p class="mb-0 me-3">
+        <a asp-action="BulkCreate" class="btn amazon-orange shadow-sm fw-bold">
+            <i class="fas fa-file-upload me-1"></i> Bulk Upload
+        </a>
+    </p>
+    <p class="mb-0">
+        <a asp-action="Create" class="btn amazon-orange shadow-sm fw-bold">
             <i class="fas fa-plus me-1"></i> Add New Category
         </a>
     </p>
 </div>
 
-<hr />
-
 <div class="table-responsive">
-    <table class="table table-striped table-bordered shadow-sm">
-        <thead class="bg-dark text-warning">
+    @* Applied custom class for flatter, cleaner look *@
+    <table class="table amazon-table shadow-sm">
+        <thead>
             <tr>
                 <th>
                     @Html.DisplayNameFor(model => model.Id)
@@ -28,30 +99,40 @@
                 <th>
                     Slug
                 </th>
-                <th>Actions</th>
+                <th class="text-center">Actions</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var item in Model)
+            @if (Model != null && Model.Any())
+            {
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Id)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Name)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Slug)
+                        </td>
+                        <td class="text-center">
+                            @* Used Amazon-style action buttons *@
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm amazon-edit-btn me-2 shadow-sm">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm amazon-delete-btn shadow-sm">
+                                <i class="fas fa-trash-alt"></i> Delete
+                            </a>
+                        </td>
+                    </tr>
+                }
+            }
+            else
             {
                 <tr>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.Id)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.Name)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.Slug)
-                    </td>
-                    <td>
-                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-info text-white me-2 shadow-sm">
-                            <i class="fas fa-edit"></i> Edit
-                        </a>
-                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger shadow-sm">
-                            <i class="fas fa-trash-alt"></i> Delete
-                        </a>
-                    </td>
+                    <td colspan="4" class="text-center text-muted py-4">No categories found. Start by adding a new category.</td>
                 </tr>
             }
         </tbody>

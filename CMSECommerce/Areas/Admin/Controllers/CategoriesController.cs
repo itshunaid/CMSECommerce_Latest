@@ -2,13 +2,19 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using ExcelDataReader; // ✅ Required for reading Excel
+// using OfficeOpenXml; // ❌ REMOVED: Conflicting/Paid package
+using CMSECommerce.Models; // ✅ ADDED: Assuming Category model is here
 
 namespace CMSECommerce.Areas.Admin.Controllers
 {
     // Restricts access to users with the "Admin" role
     [Authorize(Roles = "Admin")]
     [Area("Admin")]
-    // It is highly recommended to also inject ILogger<CategoriesController> for production logging.
     public class CategoriesController : Controller
     {
         private readonly DataContext _context;
@@ -16,6 +22,8 @@ namespace CMSECommerce.Areas.Admin.Controllers
         public CategoriesController(DataContext context)
         {
             _context = context;
+            // ✅ FIX: Register encoding provider for ExcelDataReader to work with XLSX files.
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
         }
 
         // 1. READ (Retrieve All)
@@ -24,20 +32,15 @@ namespace CMSECommerce.Areas.Admin.Controllers
         {
             try
             {
-                // Retrieve all categories and order them by Id
                 return View(await _context.Categories.OrderBy(x => x.Id).AsNoTracking().ToListAsync());
             }
-            catch (DbUpdateException dbEx)
+            catch (DbUpdateException)
             {
-                // Log database errors (e.g., connection issues)
-                // _logger.LogError(dbEx, "Database error retrieving categories.");
                 TempData["Error"] = "A database error occurred while loading categories.";
-                return View(new List<Category>()); // Return empty list to prevent view crash
+                return View(new List<Category>());
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Log general exceptions
-                // _logger.LogError(ex, "Unexpected error in Categories Index action.");
                 TempData["Error"] = "An unexpected error occurred.";
                 return View(new List<Category>());
             }
@@ -78,21 +81,16 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                     return RedirectToAction("Index");
                 }
-                catch (DbUpdateException dbEx)
+                catch (DbUpdateException)
                 {
-                    // Log database error (e.g., concurrency, failed connection)
-                    // _logger.LogError(dbEx, "Database error creating category: {CategoryName}", category.Name);
                     ModelState.AddModelError("", "A database error prevented the category from being saved.");
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    // Log general exception
-                    // _logger.LogError(ex, "Unexpected error creating category: {CategoryName}", category.Name);
                     ModelState.AddModelError("", "An unexpected error occurred while saving the category.");
                 }
             }
 
-            // If ModelState is invalid or an exception occurred
             return View(category);
         }
 
@@ -110,17 +108,13 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 }
                 return View(category);
             }
-            catch (DbUpdateException dbEx)
+            catch (DbUpdateException)
             {
-                // Log database error
-                // _logger.LogError(dbEx, "Database error retrieving category ID: {CategoryId}", id);
                 TempData["Error"] = "A database error occurred while fetching the category for editing.";
                 return RedirectToAction("Index");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Log general exception
-                // _logger.LogError(ex, "Unexpected error retrieving category ID: {CategoryId}", id);
                 TempData["Error"] = "An unexpected error occurred.";
                 return RedirectToAction("Index");
             }
@@ -157,30 +151,20 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                     return RedirectToAction("Index");
                 }
-                catch (DbUpdateConcurrencyException cEx)
+                catch (DbUpdateConcurrencyException)
                 {
-                    // Specific handling for concurrency issues (if multiple admins edit simultaneously)
-                    // _logger.LogWarning(cEx, "Concurrency conflict updating category ID: {CategoryId}", category.Id);
                     ModelState.AddModelError("", "Concurrency error: The category was modified by another user. Please re-edit.");
-                    // Fall through to return View(category)
                 }
-                catch (DbUpdateException dbEx)
+                catch (DbUpdateException)
                 {
-                    // Log database error
-                    // _logger.LogError(dbEx, "Database error updating category ID: {CategoryId}", category.Id);
                     ModelState.AddModelError("", "A database error prevented the category from being updated.");
-                    // Fall through to return View(category)
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    // Log general exception
-                    // _logger.LogError(ex, "Unexpected error updating category ID: {CategoryId}", category.Id);
                     ModelState.AddModelError("", "An unexpected error occurred while updating the category.");
-                    // Fall through to return View(category)
                 }
             }
 
-            // If ModelState is invalid or an exception occurred
             return View(category);
         }
 
@@ -200,17 +184,13 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                 return View(category);
             }
-            catch (DbUpdateException dbEx)
+            catch (DbUpdateException)
             {
-                // Log database error
-                // _logger.LogError(dbEx, "Database error retrieving category ID: {CategoryId} for deletion.", id);
                 TempData["Error"] = "A database error occurred while fetching the category for deletion.";
                 return RedirectToAction("Index");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Log general exception
-                // _logger.LogError(ex, "Unexpected error retrieving category ID: {CategoryId} for deletion.", id);
                 TempData["Error"] = "An unexpected error occurred.";
                 return RedirectToAction("Index");
             }
@@ -239,20 +219,127 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                 return RedirectToAction("Index");
             }
-            catch (DbUpdateException dbEx)
+            catch (DbUpdateException)
             {
-                // Log database error (e.g., Foreign Key constraint violation if products still link to this category)
-                // _logger.LogError(dbEx, "Database error deleting category ID: {CategoryId}", id);
                 TempData["Error"] = "Could not delete category. Ensure no products are currently linked to it.";
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Log general exception
-                // _logger.LogError(ex, "Unexpected error deleting category ID: {CategoryId}", id);
                 TempData["Error"] = "An unexpected error occurred during deletion.";
             }
 
             return RedirectToAction("Index");
+        }
+
+        // -----------------------------------------------------------
+        // 5. BULK CREATE (GET View)
+        // GET /admin/categories/bulkcreate
+        // -----------------------------------------------------------
+        public IActionResult BulkCreate()
+        {
+            return View();
+        }
+
+        // -----------------------------------------------------------
+        // 5. BULK CREATE (POST Logic)
+        // POST /admin/categories/bulkcreate
+        // -----------------------------------------------------------
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkCreate(IFormFile excelFile)
+        {
+            if (excelFile == null || excelFile.Length == 0)
+            {
+                ModelState.AddModelError("", "Please select a valid Excel file to upload.");
+                return View();
+            }
+
+            if (!Path.GetExtension(excelFile.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError("", "Only .xlsx files are allowed.");
+                return View();
+            }
+
+            List<Category> newCategories = new List<Category>();
+            HashSet<string> categoryNamesInFile = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                using (var stream = excelFile.OpenReadStream())
+                {
+                    using (var reader = ExcelReaderFactory.CreateReader(stream))
+                    {
+                        reader.Read();
+                        bool isFirstRow = true;
+
+                        while (reader.Read())
+                        {
+                            if (isFirstRow)
+                            {
+                                isFirstRow = false;
+                                continue;
+                            }
+
+                            string categoryName = reader.GetValue(0)?.ToString()?.Trim();
+
+                            if (!string.IsNullOrWhiteSpace(categoryName))
+                            {
+                                string slug = categoryName.ToLower().Replace(" ", "-");
+                                string currentWarning = TempData["Warning"] as string ?? string.Empty; // Safely get current TempData
+
+                                // 1. Check for in-file duplicates
+                                if (categoryNamesInFile.Contains(categoryName))
+                                {
+                                    // ✅ FIX: Concatenate warning safely
+                                    TempData["Warning"] = currentWarning + $"Duplicate category name '{categoryName}' ignored in the file. ";
+                                    continue;
+                                }
+
+                                categoryNamesInFile.Add(categoryName);
+
+                                // 2. Check for database duplicates (by slug)
+                                bool isDuplicate = await _context.Categories.AnyAsync(c => c.Slug == slug);
+                                if (isDuplicate)
+                                {
+                                    // ✅ FIX: Concatenate warning safely
+                                    TempData["Warning"] = currentWarning + $"Category '{categoryName}' already exists in the database. ";
+                                    continue;
+                                }
+
+                                newCategories.Add(new Category
+                                {
+                                    Name = categoryName,
+                                    Slug = slug
+                                });
+                            }
+                        }
+                    }
+                }
+
+                if (newCategories.Any())
+                {
+                    _context.Categories.AddRange(newCategories);
+                    await _context.SaveChangesAsync();
+
+                    TempData["Success"] = $"{newCategories.Count} new categories have been added successfully!";
+                }
+                else
+                {
+                    TempData["Info"] = "No new unique categories were found in the uploaded file.";
+                }
+
+                return RedirectToAction("Index");
+            }
+            catch (DbUpdateException)
+            {
+                TempData["Error"] = "A database error occurred while saving categories. No changes were made.";
+                return View();
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"An unexpected error occurred during file processing: {ex.Message}";
+                return View();
+            }
         }
     }
 }

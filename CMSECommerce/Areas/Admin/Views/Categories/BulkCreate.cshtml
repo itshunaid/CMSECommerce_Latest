@@ -1,0 +1,28 @@
+﻿@* /Areas/Admin/Views/Categories/BulkCreate.cshtml *@
+
+<h2>Bulk Category Upload</h2>
+
+<p>
+    Upload an Excel file (.xlsx) containing category names in the first column, starting from the second row.
+    The first row (header) will be ignored.
+</p>
+
+<div class="alert alert-info">
+    <strong>File Format Tip:</strong>
+    <pre>| Category Name | (other columns ignored) |
+|---------------|-------------------------|
+| Electronics   | ...                     |
+| Clothing      | ...                     |
+| Books         | ...                     |</pre>
+</div>
+
+<form method="post" enctype="multipart/form-data" asp-action="BulkCreate">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="form-group">
+        <label for="excelFile">Select Excel File (.xlsx)</label>
+        <input type="file" id="excelFile" name="excelFile" class="form-control" accept=".xlsx" required />
+    </div>
+    <br />
+    <button type="submit" class="btn btn-primary">Upload and Save Categories</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>
