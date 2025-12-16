@@ -487,7 +487,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(EditUserModel model)
         {
-            // Reload roles immediately for failed path
+            // Reload roles immediately for failed path (moved up for better UX)
             try
             {
                 ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
@@ -500,6 +500,8 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
             if (!ModelState.IsValid)
             {
+                // Keep the current paths in the model for the return view
+                // The `IFormFile` properties will be null, which is fine.
                 return View(model);
             }
 
@@ -510,42 +512,96 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 return NotFound();
             }
 
-            // ** NEW: Fetch and Update UserProfile **
+            // --- NEW: File Upload Logic Helper (Reusable, assuming controller has IWebHostEnvironment: _webHostEnvironment) ---
+            async Task<string> SaveFileAndGetPathAsync(IFormFile file, string currentPath)
+            {
+                if (file == null || file.Length == 0)
+                {
+                    // No new file uploaded, keep the current path
+                    return currentPath;
+                }
+
+                // 1. Delete old file if it exists and is a relative path (starts with /)
+                if (!string.IsNullOrWhiteSpace(currentPath) && currentPath.StartsWith("/"))
+                {
+                    string oldFilePath = Path.Combine(_webHostEnvironment.WebRootPath, currentPath.TrimStart('/'));
+                    if (System.IO.File.Exists(oldFilePath))
+                    {
+                        System.IO.File.Delete(oldFilePath);
+                    }
+                }
+
+                // 2. Save new file
+                string uploadFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "useruploads");
+                if (!Directory.Exists(uploadFolder))
+                {
+                    Directory.CreateDirectory(uploadFolder);
+                }
+
+                string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(file.FileName);
+                string filePath = Path.Combine(uploadFolder, uniqueFileName);
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(fileStream);
+                }
+
+                // Return the new relative path for database storage
+                return $"/images/useruploads/{uniqueFileName}";
+            }
+            // ---------------------------------------------------------------------------------------------------------------------
+
+            // ** Fetch and Update UserProfile **
             var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == model.Id);
 
             if (userProfile == null)
             {
-                // Handle case where UserProfile might not exist (optional)
                 TempData["error"] = "Associated User Profile not found. Cannot save profile details.";
-                // Depending on your rules, you might redirect or attempt to create the profile here.
+                // Depending on business rules, you might want to stop or attempt to create profile here.
             }
             else
             {
-                // Map updates from the model to the existing UserProfile entity
-                userProfile.FirstName = model.FirstName;
-                userProfile.LastName = model.LastName;
-                userProfile.ITSNumber = model.ITSNumber;
-                userProfile.ProfileImagePath = model.ProfileImagePath;
-                userProfile.IsImageApproved = model.IsImageApproved;
-                userProfile.IsProfileVisible = model.IsProfileVisible;
-                userProfile.About = model.About;
-                userProfile.Profession = model.Profession;
-                userProfile.ServicesProvided = model.ServicesProvided;
-                userProfile.LinkedInUrl = model.LinkedInUrl;
-                userProfile.FacebookUrl = model.FacebookUrl;
-                userProfile.InstagramUrl = model.InstagramUrl;
-                userProfile.WhatsappNumber = model.WhatsappNumber;
-                userProfile.HomeAddress = model.HomeAddress;
-                userProfile.HomePhoneNumber = model.HomePhoneNumber;
-                userProfile.BusinessAddress = model.BusinessAddress;
-                userProfile.BusinessPhoneNumber = model.BusinessPhoneNumber;
-                userProfile.GpayQRCodePath = model.GpayQRCodePath;
-                userProfile.PhonePeQRCodePath = model.PhonePeQRCodePath;
+                try
+                {
+                    // 1. Handle File Uploads and update paths in the UserProfile entity
+                    userProfile.ProfileImagePath = await SaveFileAndGetPathAsync(model.ProfileImageFile, model.ProfileImagePath);
+                    userProfile.GpayQRCodePath = await SaveFileAndGetPathAsync(model.GpayQRCodeFile, model.GpayQRCodePath);
+                    userProfile.PhonePeQRCodePath = await SaveFileAndGetPathAsync(model.PhonePeQRCodeFile, model.PhonePeQRCodePath);
 
-                // Tell DbContext the entity has been modified
-                _context.Update(userProfile);
+                    // 2. Map the remaining updates from the model to the existing UserProfile entity
+                    userProfile.FirstName = model.FirstName;
+                    userProfile.LastName = model.LastName;
+                    userProfile.ITSNumber = model.ITSNumber;
+                    // The path fields are updated above based on uploads/current value:
+                    // userProfile.ProfileImagePath = model.ProfileImagePath; // <-- No longer direct mapping
+                    userProfile.IsImageApproved = model.IsImageApproved;
+                    userProfile.IsProfileVisible = model.IsProfileVisible;
+                    userProfile.About = model.About;
+                    userProfile.Profession = model.Profession;
+                    userProfile.ServicesProvided = model.ServicesProvided;
+                    userProfile.LinkedInUrl = model.LinkedInUrl;
+                    userProfile.FacebookUrl = model.FacebookUrl;
+                    userProfile.InstagramUrl = model.InstagramUrl;
+                    userProfile.WhatsappNumber = model.WhatsappNumber;
+                    userProfile.HomeAddress = model.HomeAddress;
+                    userProfile.HomePhoneNumber = model.HomePhoneNumber;
+                    userProfile.BusinessAddress = model.BusinessAddress;
+                    userProfile.BusinessPhoneNumber = model.BusinessPhoneNumber;
+                    // userProfile.GpayQRCodePath = model.GpayQRCodePath; // <-- No longer direct mapping
+                    // userProfile.PhonePeQRCodePath = model.PhonePeQRCodePath; // <-- No longer direct mapping
+
+                    // Tell DbContext the entity has been modified
+                    _context.Update(userProfile);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "File operation error during user profile update for ID: {UserId}", model.Id);
+                    ModelState.AddModelError(string.Empty, "An error occurred during file upload. Please try again.");
+                    // Re-throw or return view here if you want to stop Identity update on file error
+                    return View(model);
+                }
             }
-            // ** END: Fetch and Update UserProfile **
+            // ** END: Fetch and Update UserProfile & File Logic **
 
             try
             {
@@ -562,10 +618,19 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 {
                     foreach (var e in updateResult.Errors)
                         ModelState.AddModelError(string.Empty, e.Description);
+
+                    // Re-map the current (unmodified) paths back to the model before returning the view
+                    if (userProfile != null)
+                    {
+                        model.ProfileImagePath = userProfile.ProfileImagePath;
+                        model.GpayQRCodePath = userProfile.GpayQRCodePath;
+                        model.PhonePeQRCodePath = userProfile.PhonePeQRCodePath;
+                    }
                     return View(model);
                 }
 
                 // --- Role Update Logic ---
+                // (Existing logic remains the same)
                 if (!string.IsNullOrWhiteSpace(model.Role) && !currentRoles.Contains(model.Role))
                 {
                     await _userManager.RemoveFromRolesAsync(user, currentRoles);
@@ -579,6 +644,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 // --- End Role Update Logic ---
 
                 // ⭐ NEW LOGIC: Check for Subscriber Role Revocation 
+                // (Existing logic remains the same)
                 bool wasSubscriber = currentRoles.Contains("Subscriber");
                 // Check the role AFTER the role update logic above has run
                 bool isSubscriberNow = await _userManager.IsInRoleAsync(user, "Subscriber");
@@ -602,6 +668,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 // --- End Subscriber Role Revocation ---
 
                 // Change password if provided
+                // (Existing logic remains the same)
                 if (!string.IsNullOrWhiteSpace(model.NewPassword))
                 {
                     var token = await _userManager.GeneratePasswordResetTokenAsync(user);
@@ -610,6 +677,14 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     {
                         foreach (var e in passResult.Errors)
                             ModelState.AddModelError(string.Empty, e.Description);
+
+                        // Re-map the current (unmodified) paths back to the model before returning the view
+                        if (userProfile != null)
+                        {
+                            model.ProfileImagePath = userProfile.ProfileImagePath;
+                            model.GpayQRCodePath = userProfile.GpayQRCodePath;
+                            model.PhonePeQRCodePath = userProfile.PhonePeQRCodePath;
+                        }
                         return View(model);
                     }
                 }
@@ -632,6 +707,13 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 ModelState.AddModelError(string.Empty, "An unexpected error occurred during user update.");
             }
 
+            // Ensure model has current paths if execution reaches here due to an exception
+            if (userProfile != null)
+            {
+                model.ProfileImagePath = userProfile.ProfileImagePath;
+                model.GpayQRCodePath = userProfile.GpayQRCodePath;
+                model.PhonePeQRCodePath = userProfile.PhonePeQRCodePath;
+            }
             return View(model);
         }
 

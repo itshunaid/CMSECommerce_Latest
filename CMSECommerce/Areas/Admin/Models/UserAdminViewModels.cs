@@ -164,14 +164,12 @@ namespace CMSECommerce.Areas.Admin.Models
             [Display(Name = "PhonePe QR Code")]
             public IFormFile PhonePeQRCodeFile { get; set; } // Renamed for clarity
 
-            // The path strings will be handled by the controller after file upload
-            // and stored in the database.
-        }
+        // The path strings will be handled by the controller after file upload
+        // and stored in the database.
+    }
     
 
-
-
-    public class EditUserModel
+public class EditUserModel
     {
         // --- 1. IdentityUser Fields ---
 
@@ -217,8 +215,14 @@ namespace CMSECommerce.Areas.Admin.Models
         [Display(Name = "ITS Number")]
         public string ITSNumber { get; set; }
 
-        [Display(Name = "Profile Image Path")]
-        public string ProfileImagePath { get; set; }
+        // --- Profile Image (Existing Path & New File Upload) ---
+        [Display(Name = "Current Profile Image")]
+        public string ProfileImagePath { get; set; } // Keeps existing path for display
+
+        [Display(Name = "Upload New Profile Image")]
+        [DataType(DataType.Upload)]
+        public IFormFile ProfileImageFile { get; set; } // Handles new file upload
+                                                        // --------------------------------------------------------
 
         [Display(Name = "Image Approved")]
         public bool IsImageApproved { get; set; }
@@ -257,12 +261,21 @@ namespace CMSECommerce.Areas.Admin.Models
         [Display(Name = "Business Phone")]
         public string BusinessPhoneNumber { get; set; }
 
-        // Payment QR Codes (Paths)
-        [Display(Name = "GPay QR Code Path")]
-        public string GpayQRCodePath { get; set; }
+        // --- Payment QR Codes (Existing Paths & New File Uploads) ---
+        [Display(Name = "Current GPay QR Code")]
+        public string GpayQRCodePath { get; set; } // Keeps existing path for display
 
-        [Display(Name = "PhonePe QR Code Path")]
-        public string PhonePeQRCodePath { get; set; }
+        [Display(Name = "Upload New GPay QR Code")]
+        [DataType(DataType.Upload)]
+        public IFormFile GpayQRCodeFile { get; set; } // Handles new file upload
+
+        [Display(Name = "Current PhonePe QR Code")]
+        public string PhonePeQRCodePath { get; set; } // Keeps existing path for display
+
+        [Display(Name = "Upload New PhonePe QR Code")]
+        [DataType(DataType.Upload)]
+        public IFormFile PhonePeQRCodeFile { get; set; } // Handles new file upload
+                                                         // --------------------------------------------------------------
     }
-    
+
 }
