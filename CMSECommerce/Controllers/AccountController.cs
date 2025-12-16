@@ -1,6 +1,7 @@
 ﻿using CMSECommerce.Areas.Admin.Controllers;
 using CMSECommerce.Areas.Admin.Models;
 using CMSECommerce.Infrastructure;
+using CMSECommerce.Models;
 using CMSECommerce.Models.ViewModels;
 using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -1656,69 +1657,84 @@ namespace CMSECommerce.Controllers
         [Authorize(Roles = "Admin,Subscriber")] // Restrict access to authorized users
         public async Task<IActionResult> UserDetails(string id)
         {
+            // 1. Determine the user ID to view (current user or specified user)
             if (string.IsNullOrEmpty(id))
             {
-                return NotFound();
+                id = (await _userManager.GetUserAsync(User))?.Id;
+            }
+
+            if (string.IsNullOrEmpty(id))
+            {
+                // Should not happen under [Authorize], but a safeguard
+                TempData["error"] = "User ID could not be determined. Please log in again.";
+                return RedirectToAction("Login", "Account");
             }
 
             try
             {
-                // 1. Get the specific IdentityUser (Identity Operation)
-                var identityUser = await _userManager.FindByIdAsync(id);
-                if (identityUser == null)
+                // 2. Fetch Identity User details
+                var user = await _userManager.FindByIdAsync(id);
+                if (user == null)
                 {
-                    TempData["error"] = $"User with ID {id} not found.";
-                    return RedirectToAction("UserList");
+                    TempData["error"] = "User not found.";
+                    return NotFound();
                 }
 
-                // 2. Get the specific UserProfile (Database Operation)
-                var userProfile = await _context.UserProfiles
-                    .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);
+                // 3. Fetch related data (UserProfile and Roles)
+                var userProfile = await _context.UserProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == id);
+                var roles = await _userManager.GetRolesAsync(user);
 
-                // 3. Map data to the existing ProfileUpdateViewModel
-                var viewModel = new ProfileUpdateViewModel
+                // 4. Map data to the ViewModel (EditUserModel is used here as it contains all necessary properties)
+                var model = new EditUserModel
                 {
-                    UserId = identityUser.Id,
-                    UserName = identityUser.UserName,
-                    Email = identityUser.Email,
-                    PhoneNumber = identityUser.PhoneNumber,
+                    // IdentityUser Fields
+                    Id = user.Id,
+                    UserName = user.UserName,
+                    Email = user.Email,
+                    PhoneNumber = user.PhoneNumber,
+                    Role = roles.FirstOrDefault(),
 
+                    // UserProfile Fields (using null-conditional operator '?.' for safety)
+                    FirstName = userProfile?.FirstName,
+                    LastName = userProfile?.LastName,
+                    ITSNumber = userProfile?.ITSNumber,
+                    ProfileImagePath = userProfile?.ProfileImagePath,
+
+                    // Status Flags
+                    IsImageApproved = userProfile?.IsImageApproved ?? false,
+                    IsProfileVisible = userProfile?.IsProfileVisible ?? true,
+
+                    // Details
+                    About = userProfile?.About,
+                    Profession = userProfile?.Profession,
+                    ServicesProvided = userProfile?.ServicesProvided,
+
+                    // Social Links
+                    LinkedInUrl = userProfile?.LinkedInUrl,
+                    FacebookUrl = userProfile?.FacebookUrl,
+                    InstagramUrl = userProfile?.InstagramUrl,
+                    WhatsappNumber = userProfile?.WhatsappNumber,
+
+                    // Addresses
+                    HomeAddress = userProfile?.HomeAddress,
+                    HomePhoneNumber = userProfile?.HomePhoneNumber,
+                    BusinessAddress = userProfile?.BusinessAddress,
+                    BusinessPhoneNumber = userProfile?.BusinessPhoneNumber,
+
+                    // QRCodes
+                    GpayQRCodePath = userProfile?.GpayQRCodePath,
+                    PhonePeQRCodePath = userProfile?.PhonePeQRCodePath
                 };
 
-                if (userProfile != null)
-                {
-                    // ADDED FirstName and LastName
-                    viewModel.FirstName = userProfile.FirstName;
-                    viewModel.LastName = userProfile.LastName;
-                    viewModel.IsProfileVisible = userProfile.IsProfileVisible;
-                    viewModel.ITSNumber = userProfile.ITSNumber;
-                    viewModel.About = userProfile.About;
-                    viewModel.Profession = userProfile.Profession;
-                    viewModel.ServicesProvided = userProfile.ServicesProvided;
-                    viewModel.LinkedInUrl = userProfile.LinkedInUrl;
-                    viewModel.FacebookUrl = userProfile.FacebookUrl;
-                    viewModel.InstagramUrl = userProfile.InstagramUrl;
-                    viewModel.WhatsappNumber = userProfile.WhatsappNumber;
-                    viewModel.HomeAddress = userProfile.HomeAddress;
-                    viewModel.HomePhoneNumber = userProfile.HomePhoneNumber;
-                    viewModel.BusinessAddress = userProfile.BusinessAddress;
-                    viewModel.BusinessPhoneNumber = userProfile.BusinessPhoneNumber;
-                    viewModel.ExistingProfileImagePath = userProfile.ProfileImagePath;
-                    viewModel.ExistingGpayQRCodePath = userProfile.GpayQRCodePath;
-                    viewModel.ExistingPhonePeQRCodePath = userProfile.PhonePeQRCodePath;
-                }
-
-                // Use the same ProfileDetails view you already have for displaying profile data
-                return View("ProfileDetails", viewModel);
+                // 5. Return the model to the ProfileDetails.cshtml view (read-only)
+                return View("ProfileDetailsView",model);
             }
             catch (Exception ex)
             {
-                // Log the detailed exception (e.g., database connection failure, Identity service error)
-                // _logger.LogError(ex, "Error retrieving user details for ID: {UserId}", id);
-
-                // Inform the user about the failure and redirect
-                TempData["error"] = "A system error occurred while trying to load the user's details.";
-                return RedirectToAction("UserList");
+                // Log the error
+                _logger.LogError(ex, "Error loading user ID: {UserId} details.", id);
+                TempData["error"] = "An error occurred while loading the profile details.";
+                return RedirectToAction("Index", "Home");
             }
         }
 
