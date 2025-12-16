@@ -2,6 +2,8 @@
 
 @{
     ViewData["Title"] = "Users";
+    // Assuming ViewBag.AllRoles contains all possible Identity roles for the dropdown
+    var allRoles = ViewBag.AllRoles as List<string> ?? new List<string>();
 }
 
 <style>
@@ -32,15 +34,17 @@
         margin-bottom: 18px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.12);
     }
-    .amz-header h1 {
-        font-size: 1.25rem;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-weight: 600;
-        letter-spacing: .2px;
-    }
+
+        .amz-header h1 {
+            font-size: 1.25rem;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            letter-spacing: .2px;
+        }
+
     .amz-subtitle {
         font-size: .875rem;
         color: #cbd5e1;
@@ -56,10 +60,12 @@
         padding: 8px 14px;
         border-radius: 6px;
     }
-    .btn-amz-primary:hover {
-        background: var(--amz-orange-2);
-        color: #111;
-    }
+
+        .btn-amz-primary:hover {
+            background: var(--amz-orange-2);
+            color: #111;
+        }
+
     .btn-amz-secondary {
         background: #fff;
         color: var(--amz-slate);
@@ -67,9 +73,11 @@
         padding: 6px 12px;
         border-radius: 6px;
     }
-    .btn-amz-secondary:hover {
-        background: var(--amz-gray-100);
-    }
+
+        .btn-amz-secondary:hover {
+            background: var(--amz-gray-100);
+        }
+
     .btn-amz-warning {
         background: #fff4e6;
         color: #8a5800;
@@ -77,9 +85,11 @@
         padding: 6px 12px;
         border-radius: 6px;
     }
-    .btn-amz-warning:hover {
-        background: #ffe7c2;
-    }
+
+        .btn-amz-warning:hover {
+            background: #ffe7c2;
+        }
+
     .btn-amz-danger {
         background: #fff1f0;
         color: var(--amz-red);
@@ -87,9 +97,10 @@
         padding: 6px 12px;
         border-radius: 6px;
     }
-    .btn-amz-danger:hover {
-        background: #ffe3e0;
-    }
+
+        .btn-amz-danger:hover {
+            background: #ffe3e0;
+        }
 
     /* Card container */
     .amz-card {
@@ -98,6 +109,7 @@
         border-radius: 8px;
         overflow: hidden;
     }
+
     .amz-card-header {
         padding: 12px 16px;
         background: var(--amz-gray-100);
@@ -107,6 +119,7 @@
         justify-content: space-between;
         gap: 10px;
     }
+
     .amz-card-body {
         padding: 0;
     }
@@ -116,33 +129,37 @@
         width: 100%;
         overflow: auto;
     }
+
     table.amz-table {
         width: 100%;
         border-collapse: separate;
         border-spacing: 0;
     }
-    table.amz-table thead th {
-        background: var(--amz-navy-2);
-        color: #e5e7eb;
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        padding: 10px 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: .75rem;
-        letter-spacing: .3px;
-    }
-    table.amz-table tbody td {
-        padding: 10px 12px;
-        border-top: 1px solid var(--amz-border);
-        vertical-align: middle;
-        font-size: .95rem;
-        color: #111;
-    }
-    table.amz-table tbody tr:hover {
-        background: var(--amz-gray-100);
-    }
+
+        table.amz-table thead th {
+            background: var(--amz-navy-2);
+            color: #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            padding: 10px 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: .75rem;
+            letter-spacing: .3px;
+        }
+
+        table.amz-table tbody td {
+            padding: 10px 12px;
+            border-top: 1px solid var(--amz-border);
+            vertical-align: middle;
+            font-size: .95rem;
+            color: #111;
+        }
+
+        table.amz-table tbody tr:hover {
+            background: var(--amz-gray-100);
+        }
 
     /* Badges */
     .badge {
@@ -157,15 +174,23 @@
         margin-right: 6px;
         margin-bottom: 4px;
     }
+
     .badge-green {
         color: var(--amz-green);
         border-color: #bfe3bf;
         background: #f0fff0;
     }
+
     .badge-red {
         color: var(--amz-red);
         border-color: #f4c7c4;
         background: #fff5f4;
+    }
+
+    .badge-blue {
+        color: #1d4ed8;
+        border-color: #bfd4e3;
+        background: #f0f5ff;
     }
 
     /* Actions cell */
@@ -181,6 +206,7 @@
         max-width: 320px;
         width: 100%;
     }
+
     .amz-input {
         width: 100%;
         padding: 8px 10px;
@@ -189,31 +215,117 @@
         font-size: .95rem;
     }
 
-    /*media (max-width: 768px) {
-        .amz-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-        .amz-actions { gap: 6px; }
-        table.amz-table thead { display: none; }
+    /* Inline Edit Fields */
+    .inline-edit-input {
+        padding: 4px 8px;
+        border: 1px solid var(--amz-border);
+        border-radius: 4px;
+        font-size: 0.9rem;
+        width: 100%;
+        max-width: 200px; /* Limit width for professions/roles */
+        transition: border-color 0.2s;
+    }
+
+        .inline-edit-input:focus {
+            border-color: var(--amz-orange);
+            outline: none;
+        }
+
+    /* Checkbox Styling */
+    .amz-switch {
+        position: relative;
+        display: inline-block;
+        width: 48px;
+        height: 24px;
+        vertical-align: middle;
+        margin-right: 8px; /* Space between switch and badge */
+    }
+
+        .amz-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+    .amz-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: var(--amz-red);
+        transition: .4s;
+        border-radius: 24px;
+    }
+
+        .amz-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+    input:checked + .amz-slider {
+        background-color: var(--amz-green);
+    }
+
+        input:checked + .amz-slider:before {
+            transform: translateX(24px);
+        }
+
+
+    @@media (max-width: 768px) {
+        /* Responsive styles */
+        .amz-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .amz-actions {
+            gap: 6px;
+        }
+
+        table.amz-table thead {
+            display: none;
+        }
+
         table.amz-table, table.amz-table tbody, table.amz-table tr, table.amz-table td {
-            display: block; width: 100%;
-        }
-        table.amz-table tbody tr { padding: 8px 12px; border-top: 1px solid var(--amz-border); }
-        table.amz-table tbody td { padding: 6px 0; }
-        table.amz-table tbody td::before {
-            content: attr(data-label);
             display: block;
-            font-size: .75rem;
-            color: var(--amz-gray-500);
-            margin-bottom: 2px;
-            text-transform: uppercase;
+            width: 100%;
         }
-    } */
+
+            table.amz-table tbody tr {
+                padding: 8px 12px;
+                border-top: 1px solid var(--amz-border);
+            }
+
+            table.amz-table tbody td {
+                padding: 6px 0;
+            }
+
+                table.amz-table tbody td::before {
+                    content: attr(data-label);
+                    display: block;
+                    font-size: .75rem;
+                    color: var(--amz-gray-500);
+                    margin-bottom: 2px;
+                    text-transform: uppercase;
+                }
+    }
 </style>
 
 <div class="amz-header">
     <div>
         <h1>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M16 11c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zM8 13c-3.866 0-7 3.134-7 7v2h12v-2c0-3.866-3.134-7-7-7zM16 13c-1.178 0-2.273.342-3.2.93 1.905 1.289 3.2 3.468 3.2 5.97v2h8v-2c0-3.866-3.134-7-8-7z" fill="#febd69"/>
+                <path d="M16 11c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zM8 13c-3.866 0-7 3.134-7 7v2h12v-2c0-3.866-3.134-7-7-7zM16 13c-1.178 0-2.273.342-3.2.93 1.905 1.289 3.2 3.468 3.2 5.97v2h8v-2c0-3.866-3.134-7-8-7z" fill="#febd69" />
             </svg>
             Users
         </h1>
@@ -227,7 +339,7 @@
 <div class="amz-card">
     <div class="amz-card-header">
         <div class="amz-search">
-            <input id="userSearch" class="amz-input" type="text" placeholder="Search by username, email, role…" oninput="filterUsers()" />
+            <input id="userSearch" class="amz-input" type="text" placeholder="Search by name, email, role, profession…" oninput="filterUsers()" />
         </div>
         <div class="d-flex" style="gap:8px;">
             <button type="button" class="btn-amz-secondary" onclick="resetSearch()">Reset</button>
@@ -238,58 +350,80 @@
             <table class="amz-table">
                 <thead>
                     <tr>
-                        <th>Username</th>
+                        <th style="min-width:180px;">User / Full Name</th>
                         <th>Email</th>
-                        <th>Phone</th>
-                        <th>Roles</th>
-                        <th>Enabled</th>
-                        <th style="min-width:220px;">Actions</th>
+                        <th style="min-width:150px;">Profession</th>
+                        <th style="min-width:150px;">Role</th>
+                        <th>Visibility</th>
+                        <th>Status</th>
+                        <th style="min-width:180px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="usersTbody">
                     @foreach (var u in Model)
                     {
                         <tr>
-                            <td data-label="Username">
-                                <strong>@u.UserName</strong><br />
-                                <small style="color:var(--amz-gray-500);">ID: @u.Id</small>
+                            <td data-label="User / Full Name">
+                                <strong>@u.UserName</strong>
+                                @if (!string.IsNullOrWhiteSpace(u.FirstName) || !string.IsNullOrWhiteSpace(u.LastName))
+                                {
+                                    <br />
+                                    <small style="color:var(--amz-gray-500);">@u.FirstName @u.LastName</small>
+                                }
+                                <br /><small style="color:var(--amz-gray-500);">(ID: @u.Id)</small>
                             </td>
                             <td data-label="Email">
                                 <a href="mailto:@u.Email">@u.Email</a>
                             </td>
-                            <td data-label="Phone">
-                                @u.PhoneNumber
+
+                            <td data-label="Profession">
+                                <input type="text"
+                                       class="inline-edit-input"
+                                       id="profession-@u.Id"
+                                       value="@u.Profession"
+                                       onchange="updateField('@u.Id', 'Profession', this.value)" />
                             </td>
-                            <td data-label="Roles">
-                                @if (u.Roles != null && u.Roles.Any())
-                                {
-                                    foreach (var role in u.Roles)
+
+                            <td data-label="Role">
+                                <select class="inline-edit-input"
+                                        id="role-@u.Id"
+                                        onchange="updateField('@u.Id', 'Role', this.value)">
+                                    <option value="">-- None --</option>
+                                    @foreach (var r in allRoles)
                                     {
-                                        <span class="badge">@role</span>
+                                        // Check if the current user has this specific role
+                                        var isSelected = u.Roles != null && u.Roles.Contains(r);
+                                        <option value="@r" selected="@isSelected">@r</option>
                                     }
-                                }
-                                else
-                                {
-                                    <span class="badge">None</span>
-                                }
+                                </select>
                             </td>
-                            <td data-label="Enabled">
-                                @if (u.IsLockedOut)
-                                {
-                                    <span class="badge badge-red">No</span>
-                                }
-                                else
-                                {
-                                    <span class="badge badge-green">Yes</span>
-                                }
+
+                            <td data-label="Visibility">
+                                <label class="amz-switch">
+                                    <input type="checkbox"
+                                           id="isprofilevisible-@u.Id"
+                                           checked="@u.IsProfileVisible"
+                                           onchange="updateField('@u.Id', 'IsProfileVisible', this.checked)" />
+                                    <span class="amz-slider"></span>
+                                </label>
+                                <span class="badge @(u.IsProfileVisible ? "badge-green" : "badge-red")" id="badge-isprofilevisible-@u.Id">
+                                    @(u.IsProfileVisible ? "Visible" : "Hidden")
+                                </span>
                             </td>
+
+                            <td data-label="Status">
+                                <label class="amz-switch">
+                                    <input type="checkbox"
+                                           id="islockedout-@u.Id"
+                                           checked="@(!u.IsLockedOut)" onchange="updateField('@u.Id', 'IsLockedOut', !this.checked)" /> <span class="amz-slider"></span>
+                                </label>
+                                <span class="badge @(!u.IsLockedOut ? "badge-green" : "badge-red")" id="badge-islockedout-@u.Id">
+                                    @(!u.IsLockedOut ? "Active" : "Disabled")
+                                </span>
+                            </td>
+
                             <td class="amz-actions" data-label="Actions">
                                 <a asp-action="Edit" asp-route-id="@u.Id" class="btn-amz-secondary">Edit</a>
-
-                                <a asp-action="EnableDisable" asp-route-id="@u.Id" 
-                                   class="btn-amz-secondary @(u.IsLockedOut ? "btn-amz-warning" : "")">
-                                    @(u.IsLockedOut ? "Enable" : "Disable")
-                                </a>
 
                                 <form asp-action="Delete" asp-route-id="@u.Id" method="post" class="m-0">
                                     @Html.AntiForgeryToken()
@@ -309,6 +443,7 @@
 </div>
 
 <script>
+    // Utility functions (Search/Filter/Reset remain unchanged)
     function filterUsers() {
         const q = (document.getElementById('userSearch').value || '').toLowerCase();
         const rows = document.querySelectorAll('#usersTbody tr');
@@ -323,5 +458,120 @@
         filterUsers();
         input.focus();
     }
+
+    // =======================================================
+    // UPDATED: AJAX Update Function
+    // =======================================================
+    async function updateField(userId, fieldName, value) {
+        const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const inputElement = document.getElementById(fieldName.toLowerCase() + '-' + userId);
+
+        // Store current value for safe rollback
+        const originalValue = (fieldName === 'IsProfileVisible' || fieldName === 'IsLockedOut') ? inputElement.checked : inputElement.value;
+
+        // Determine the final value for the payload
+        let finalValue;
+        if (fieldName === 'IsProfileVisible' || fieldName === 'IsLockedOut') {
+            finalValue = value ? 'true' : 'false'; // Checkbox/Toggle values are sent as boolean strings
+        } else {
+            finalValue = value; // Text or Select value is string
+        }
+
+        // This is the badge element for the status/visibility fields
+        const badgeElement = document.getElementById(`badge-${fieldName.toLowerCase()}-${userId}`);
+
+
+        const data = {
+            userId: userId,
+            fieldName: fieldName,
+            value: finalValue,
+            __RequestVerificationToken: antiForgeryToken
+        };
+
+        try {
+            const response = await fetch('/Admin/Users/UpdateUserField', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(data).toString()
+            });
+
+            if (response.ok) {
+                console.log(`${fieldName} updated successfully for user ${userId}`);
+
+                // Handle badge updates for IsProfileVisible and IsLockedOut
+                if (fieldName === 'IsProfileVisible' && badgeElement) {
+                    if (value) {
+                        badgeElement.textContent = 'Visible';
+                        badgeElement.className = 'badge badge-green';
+                    } else {
+                        badgeElement.textContent = 'Hidden';
+                        badgeElement.className = 'badge badge-red';
+                    }
+                }
+                 if (fieldName === 'IsLockedOut' && badgeElement) {
+                     // value is the IsLockedOut boolean: true=Disabled, false=Active
+                    if (value) {
+                        badgeElement.textContent = 'Disabled';
+                        badgeElement.className = 'badge badge-red';
+                    } else {
+                        badgeElement.textContent = 'Active';
+                        badgeElement.className = 'badge badge-green';
+                    }
+                }
+
+            } else {
+                // Error feedback
+                const errorText = await response.text();
+                alert(`Error updating ${fieldName}: ${errorText}. Reverting changes.`);
+
+                // Revert the input/select/checkbox to original state
+                revertChanges(inputElement, originalValue, fieldName);
+            }
+        } catch (error) {
+            console.error('AJAX Error:', error);
+            alert(`Network error updating ${fieldName}. Reverting changes.`);
+            revertChanges(inputElement, originalValue, fieldName);
+        }
+    }
+
+    function revertChanges(element, originalValue, fieldName) {
+        if (fieldName === 'IsProfileVisible' || fieldName === 'IsLockedOut') {
+            // Revert the checkbox state
+            element.checked = originalValue;
+
+            // Revert the badge visually too
+            const badgeElement = document.getElementById(`badge-${fieldName.toLowerCase()}-${element.id.split('-')[1]}`);
+
+            if (badgeElement) {
+                // originalValue is the checkbox state (true/false)
+                let text, className;
+
+                if (fieldName === 'IsProfileVisible') {
+                    text = originalValue ? 'Visible' : 'Hidden';
+                    className = originalValue ? 'badge badge-green' : 'badge badge-red';
+                } else if (fieldName === 'IsLockedOut') {
+                    // For IsLockedOut, originalValue=true means Active (Not Locked Out)
+                    text = originalValue ? 'Active' : 'Disabled';
+                    className = originalValue ? 'badge badge-green' : 'badge badge-red';
+                }
+
+                if (text) {
+                    badgeElement.textContent = text;
+                    badgeElement.className = className;
+                }
+            }
+        } else {
+            // Revert text input or select value
+            element.value = originalValue;
+        }
+        element.focus(); // Keep focus on the field that failed
+    }
 </script>
 
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

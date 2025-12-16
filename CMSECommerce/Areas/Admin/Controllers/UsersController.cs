@@ -27,12 +27,69 @@ namespace CMSECommerce.Areas.Admin.Controllers
         {
             try
             {
-                var users = await _userManager.Users.AsNoTracking().ToListAsync();
+                // 1. Efficient Data Retrieval (Single Query)
+                // Join IdentityUsers with their UserProfiles and project into an anonymous object.
+                // This avoids the N+1 problem for fetching profiles.
+                var usersAndProfiles = await _userManager.Users.AsNoTracking()
+                    .Join(_context.UserProfiles.AsNoTracking(), // Join with UserProfiles table
+                        user => user.Id,                        // Key for IdentityUser
+                        profile => profile.UserId,              // Key for UserProfile
+                        (user, profile) => new { User = user, Profile = profile }) // Projection
+                    .ToListAsync();
                 var model = new List<UserViewModel>();
 
-                foreach (var u in users)
+                foreach (var item in usersAndProfiles)
                 {
-                    // Identity operation
+                    var u = item.User;
+                    var p = item.Profile;
+
+                    // 2. Identity Operations (These still require a separate trip per user)
+                    var roles = await _userManager.GetRolesAsync(u);
+                    var isLocked = await _userManager.IsLockedOutAsync(u);
+
+                    // 3. Mapping to UserViewModel
+                    model.Add(new UserViewModel
+                    {
+                        // IdentityUser Fields
+                        Id = u.Id,
+                        UserName = u.UserName,
+                        Email = u.Email,
+                        PhoneNumber = u.PhoneNumber,
+                        Roles = roles,
+                        IsLockedOut = isLocked,
+
+                        // UserProfile Fields
+                        FirstName = p.FirstName,
+                        LastName = p.LastName,
+                        ITSNumber = p.ITSNumber,
+                        ProfileImagePath = p.ProfileImagePath,
+                        IsImageApproved = p.IsImageApproved,
+                        IsProfileVisible = p.IsProfileVisible,
+                        About = p.About,
+                        Profession = p.Profession,
+                        ServicesProvided = p.ServicesProvided,
+                        LinkedInUrl = p.LinkedInUrl,
+                        FacebookUrl = p.FacebookUrl,
+                        InstagramUrl = p.InstagramUrl,
+                        WhatsappNumber = p.WhatsappNumber,
+                        HomeAddress = p.HomeAddress,
+                        HomePhoneNumber = p.HomePhoneNumber,
+                        BusinessAddress = p.BusinessAddress,
+                        BusinessPhoneNumber = p.BusinessPhoneNumber,
+                        GpayQRCodePath = p.GpayQRCodePath,
+                        PhonePeQRCodePath = p.PhonePeQRCodePath
+                    });
+                }
+
+                // Handle users without a UserProfile (Optional, but recommended for robustness)
+                // Get users that are in IdentityUser but NOT in UserProfiles
+                var identityUserIds = usersAndProfiles.Select(i => i.User.Id).ToList();
+                var usersWithoutProfiles = await _userManager.Users
+                    .Where(u => !identityUserIds.Contains(u.Id))
+                    .ToListAsync();
+
+                foreach (var u in usersWithoutProfiles)
+                {
                     var roles = await _userManager.GetRolesAsync(u);
                     var isLocked = await _userManager.IsLockedOutAsync(u);
 
@@ -43,22 +100,128 @@ namespace CMSECommerce.Areas.Admin.Controllers
                         Email = u.Email,
                         PhoneNumber = u.PhoneNumber,
                         Roles = roles,
-                        IsLockedOut = isLocked
+                        IsLockedOut = isLocked,
+                        // Profile fields will be null/default (e.g., empty string)
                     });
                 }
-                return View(model);
+                var userRoles = _roleManager.Roles.Select(r => r.Name).ToList();
+                ViewBag.AllRoles = userRoles;
+                return View(model.OrderBy(u => u.UserName).ToList());
             }
-            catch (DbUpdateException dbEx)
+            catch (Exception ex) when (ex is DbUpdateException || ex is InvalidOperationException)
             {
-                _logger.LogError(dbEx, "Database error retrieving user list in Index.");
+                _logger.LogError(ex, "Database error retrieving user list in Index.");
                 TempData["error"] = "A database error occurred while loading the user list.";
                 return View(new List<UserViewModel>());
-            }
+            }            
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error retrieving user list in Index.");
                 TempData["error"] = "An unexpected error occurred while loading users.";
                 return View(new List<UserViewModel>());
+            }
+        }
+
+        // Inside your UsersController.cs
+
+        // Inside your UsersController.cs
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateUserField(string userId, string fieldName, string value)
+        {
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(fieldName))
+            {
+                return BadRequest("Missing user ID or field name.");
+            }
+
+            try
+            {
+                // --- 1. Handle Role Update (IdentityUser) ---
+                if (fieldName == "Role")
+                {
+                    // ... (Role logic remains the same as before) ...
+                    var user = await _userManager.FindByIdAsync(userId);
+                    if (user == null) return NotFound("User not found.");
+
+                    var currentRoles = await _userManager.GetRolesAsync(user);
+
+                    // Remove all current roles
+                    if (currentRoles.Any())
+                    {
+                        var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                        if (!removeResult.Succeeded) return StatusCode(500, $"Failed to remove old roles: {string.Join(", ", removeResult.Errors.Select(e => e.Description))}");
+                    }
+
+                    // Add new role if one is provided (value is the new role name)
+                    if (!string.IsNullOrWhiteSpace(value) && await _roleManager.RoleExistsAsync(value))
+                    {
+                        var addResult = await _userManager.AddToRoleAsync(user, value);
+                        if (!addResult.Succeeded) return StatusCode(500, $"Failed to add new role: {string.Join(", ", addResult.Errors.Select(e => e.Description))}");
+                    }
+
+                    return Ok($"Role updated to {value ?? "None"}");
+                }
+
+                // --- 2. Handle Status Update (IdentityUser - IsLockedOut) ---
+                else if (fieldName == "IsLockedOut")
+                {
+                    if (!bool.TryParse(value, out bool isLockedOut))
+                    {
+                        return BadRequest("Invalid value for IsLockedOut.");
+                    }
+
+                    var user = await _userManager.FindByIdAsync(userId);
+                    if (user == null) return NotFound("User not found.");
+
+                    // Set the lock status in the Identity system
+                    // LockoutEnd = null means they are NOT locked out.
+                    user.LockoutEnd = isLockedOut ? (DateTimeOffset?)DateTimeOffset.MaxValue : null;
+
+                    var updateResult = await _userManager.UpdateAsync(user);
+
+                    if (!updateResult.Succeeded)
+                    {
+                        return StatusCode(500, $"Failed to update user status: {string.Join(", ", updateResult.Errors.Select(e => e.Description))}");
+                    }
+                    return Ok($"IsLockedOut status updated to {isLockedOut}");
+                }
+
+                // --- 3. Handle Profile Field Updates (UserProfile) ---
+                else if (fieldName == "Profession" || fieldName == "IsProfileVisible")
+                {
+                    var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+                    if (profile == null) return NotFound("User Profile not found.");
+
+                    switch (fieldName)
+                    {
+                        case "Profession":
+                            profile.Profession = value;
+                            break;
+                        case "IsProfileVisible":
+                            if (!bool.TryParse(value, out bool isVisible))
+                            {
+                                return BadRequest("Invalid value for IsProfileVisible.");
+                            }
+                            profile.IsProfileVisible = isVisible;
+                            break;
+                        default:
+                            return BadRequest("Invalid field name for profile update.");
+                    }
+
+                    await _context.SaveChangesAsync();
+                    return Ok($"{fieldName} updated successfully.");
+                }
+
+                else
+                {
+                    return BadRequest($"Field '{fieldName}' is not supported for inline update.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "AJAX update failed for user {UserId} field {FieldName}", userId, fieldName);
+                return StatusCode(500, "Internal server error during update.");
             }
         }
 
@@ -122,11 +285,56 @@ namespace CMSECommerce.Areas.Admin.Controllers
             {
                 if (ModelState.IsValid)
                 {
-                    var user = new IdentityUser { UserName = model.UserName, Email = model.Email, EmailConfirmed = true, PhoneNumber = model.PhoneNumber };
+                    // 1. Create IdentityUser object
+                    var user = new IdentityUser
+                    {
+                        UserName = model.UserName,
+                        Email = model.Email,
+                        EmailConfirmed = true,
+                        PhoneNumber = model.PhoneNumber
+                    };
+
+                    // 2. Attempt to create IdentityUser in the database
                     var result = await _userManager.CreateAsync(user, model.Password);
 
                     if (result.Succeeded)
                     {
+                        // ** START: UserProfile Creation **
+
+                        // The user.Id is now set by Identity after a successful creation.
+                        var userProfile = new UserProfile
+                        {
+                            UserId = user.Id, // Link profile to the new IdentityUser
+                            FirstName = model.FirstName,
+                            LastName = model.LastName,
+
+                            // Map ALL remaining UserProfile fields from the model
+                            ITSNumber = model.ITSNumber,
+                            ProfileImagePath = model.ProfileImagePath,
+                            IsImageApproved = model.IsImageApproved,
+                            IsProfileVisible = model.IsProfileVisible,
+                            About = model.About,
+                            Profession = model.Profession,
+                            ServicesProvided = model.ServicesProvided,
+                            LinkedInUrl = model.LinkedInUrl,
+                            FacebookUrl = model.FacebookUrl,
+                            InstagramUrl = model.InstagramUrl,
+                            WhatsappNumber = model.WhatsappNumber,
+                            HomeAddress = model.HomeAddress,
+                            HomePhoneNumber = model.HomePhoneNumber,
+                            BusinessAddress = model.BusinessAddress,
+                            BusinessPhoneNumber = model.BusinessPhoneNumber,
+                            GpayQRCodePath = model.GpayQRCodePath,
+                            PhonePeQRCodePath = model.PhonePeQRCodePath
+                        };
+
+                        // Add and save the UserProfile to the database
+                        _context.UserProfiles.Add(userProfile);
+                        await _context.SaveChangesAsync();
+
+                        // ** END: UserProfile Creation **
+
+                        // 3. Assign Role (existing logic)
                         if (!string.IsNullOrWhiteSpace(model.Role))
                         {
                             if (await _roleManager.RoleExistsAsync(model.Role))
@@ -136,16 +344,21 @@ namespace CMSECommerce.Areas.Admin.Controllers
                                 {
                                     _logger.LogError("Identity error adding role {Role} to user {UserName}. Errors: {Errors}",
                                         model.Role, model.UserName, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
-                                    TempData["warning"] = $"User created, but failed to assign role: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}";
-                                    return RedirectToAction(nameof(Index)); // Continue to Index but with warning
+
+                                    // Updated TempData message to reflect profile creation
+                                    TempData["warning"] = $"User and Profile created, but failed to assign role: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}";
+                                    return RedirectToAction(nameof(Index));
                                 }
                             }
                         }
-                        TempData["success"] = $"User '{model.UserName}' created successfully.";
+
+                        // 4. Success
+                        // Updated TempData message
+                        TempData["success"] = $"User '{model.UserName}' and Profile created successfully.";
                         return RedirectToAction(nameof(Index));
                     }
 
-                    // Handle Identity creation errors
+                    // 5. Handle Identity creation errors
                     foreach (var e in result.Errors)
                     {
                         ModelState.AddModelError(string.Empty, e.Description);
@@ -154,11 +367,12 @@ namespace CMSECommerce.Areas.Admin.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error during user creation for user: {UserName}", model.UserName);
-                ModelState.AddModelError(string.Empty, "An unexpected error occurred during user creation.");
+                // General error handling for both Identity and DbContext operations
+                _logger.LogError(ex, "Unexpected error during user and profile creation for user: {UserName}", model.UserName);
+                ModelState.AddModelError(string.Empty, "An unexpected error occurred during user or profile creation.");
             }
 
-            // Reload roles if the view is returned due to validation/error
+            // 6. Reload roles if the view is returned due to validation/error
             try
             {
                 ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
@@ -185,15 +399,43 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     return NotFound();
                 }
 
+                // ** NEW: Fetch UserProfile **
+                var userProfile = await _context.UserProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == id);
+                // If profile doesn't exist, create a new one (optional: depends on business rules)
+                // For simplicity, we assume profile exists or we handle nulls gracefully.
+
                 var roles = await _userManager.GetRolesAsync(user);
 
+                // ** NEW: Map all Identity and UserProfile fields to EditUserModel **
                 var model = new EditUserModel
                 {
+                    // IdentityUser Fields
                     Id = user.Id,
                     UserName = user.UserName,
                     Email = user.Email,
                     PhoneNumber = user.PhoneNumber,
-                    Role = roles.FirstOrDefault()
+                    Role = roles.FirstOrDefault(),
+
+                    // UserProfile Fields (using null-conditional operator '?.' for safety)
+                    FirstName = userProfile?.FirstName,
+                    LastName = userProfile?.LastName,
+                    ITSNumber = userProfile?.ITSNumber,
+                    ProfileImagePath = userProfile?.ProfileImagePath,
+                    IsImageApproved = userProfile?.IsImageApproved ?? false,
+                    IsProfileVisible = userProfile?.IsProfileVisible ?? true,
+                    About = userProfile?.About,
+                    Profession = userProfile?.Profession,
+                    ServicesProvided = userProfile?.ServicesProvided,
+                    LinkedInUrl = userProfile?.LinkedInUrl,
+                    FacebookUrl = userProfile?.FacebookUrl,
+                    InstagramUrl = userProfile?.InstagramUrl,
+                    WhatsappNumber = userProfile?.WhatsappNumber,
+                    HomeAddress = userProfile?.HomeAddress,
+                    HomePhoneNumber = userProfile?.HomePhoneNumber,
+                    BusinessAddress = userProfile?.BusinessAddress,
+                    BusinessPhoneNumber = userProfile?.BusinessPhoneNumber,
+                    GpayQRCodePath = userProfile?.GpayQRCodePath,
+                    PhonePeQRCodePath = userProfile?.PhonePeQRCodePath
                 };
 
                 ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
@@ -228,14 +470,55 @@ namespace CMSECommerce.Areas.Admin.Controllers
             }
 
             var user = await _userManager.FindByIdAsync(model.Id);
-            if (user == null) return NotFound();
+            if (user == null)
+            {
+                TempData["error"] = "User not found during update.";
+                return NotFound();
+            }
+
+            // ** NEW: Fetch and Update UserProfile **
+            var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == model.Id);
+
+            if (userProfile == null)
+            {
+                // Handle case where UserProfile might not exist (optional)
+                TempData["error"] = "Associated User Profile not found. Cannot save profile details.";
+                // Depending on your rules, you might redirect or attempt to create the profile here.
+            }
+            else
+            {
+                // Map updates from the model to the existing UserProfile entity
+                userProfile.FirstName = model.FirstName;
+                userProfile.LastName = model.LastName;
+                userProfile.ITSNumber = model.ITSNumber;
+                userProfile.ProfileImagePath = model.ProfileImagePath;
+                userProfile.IsImageApproved = model.IsImageApproved;
+                userProfile.IsProfileVisible = model.IsProfileVisible;
+                userProfile.About = model.About;
+                userProfile.Profession = model.Profession;
+                userProfile.ServicesProvided = model.ServicesProvided;
+                userProfile.LinkedInUrl = model.LinkedInUrl;
+                userProfile.FacebookUrl = model.FacebookUrl;
+                userProfile.InstagramUrl = model.InstagramUrl;
+                userProfile.WhatsappNumber = model.WhatsappNumber;
+                userProfile.HomeAddress = model.HomeAddress;
+                userProfile.HomePhoneNumber = model.HomePhoneNumber;
+                userProfile.BusinessAddress = model.BusinessAddress;
+                userProfile.BusinessPhoneNumber = model.BusinessPhoneNumber;
+                userProfile.GpayQRCodePath = model.GpayQRCodePath;
+                userProfile.PhonePeQRCodePath = model.PhonePeQRCodePath;
+
+                // Tell DbContext the entity has been modified
+                _context.Update(userProfile);
+            }
+            // ** END: Fetch and Update UserProfile **
 
             try
             {
                 // Store the current roles BEFORE the user object is updated
                 var currentRoles = await _userManager.GetRolesAsync(user);
 
-                // Update user details
+                // Update Identity user details
                 user.UserName = model.UserName;
                 user.Email = model.Email;
                 user.PhoneNumber = model.PhoneNumber;
@@ -263,6 +546,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                 // ⭐ NEW LOGIC: Check for Subscriber Role Revocation 
                 bool wasSubscriber = currentRoles.Contains("Subscriber");
+                // Check the role AFTER the role update logic above has run
                 bool isSubscriberNow = await _userManager.IsInRoleAsync(user, "Subscriber");
 
                 if (wasSubscriber && !isSubscriberNow)
@@ -279,8 +563,6 @@ namespace CMSECommerce.Areas.Admin.Controllers
                         revokedRequest.AdminNotes = $"Subscription revoked by Admin on {DateTime.Now.ToShortDateString()}. Role changed to {model.Role ?? "None"}.";
 
                         _context.Update(revokedRequest);
-                        await _context.SaveChangesAsync(); // Database operation
-                        TempData["warning"] = $"Subscription status for {user.UserName} has been revoked and the request updated.";
                     }
                 }
                 // --- End Subscriber Role Revocation ---
@@ -298,7 +580,11 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     }
                 }
 
-                TempData["success"] = $"User {user.UserName} updated successfully.";
+                // ** FINAL STEP: Save all context changes (UserProfile, SubscriberRequest) **
+                // This is done once after all Identity operations (which call SaveChanges internally)
+                await _context.SaveChangesAsync();
+
+                TempData["success"] = $"User {user.UserName} and Profile updated successfully.";
                 return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateException dbEx)

@@ -1,45 +1,241 @@
-@model global::CMSECommerce.Areas.Admin.Models.EditUserModel
+﻿@model global::CMSECommerce.Areas.Admin.Models.EditUserModel
 
 @{
- ViewData["Title"] = "Edit User";
+    ViewData["Title"] = "Edit User";
 }
 
-<h1>Edit User</h1>
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <h1>Edit User: @Model.UserName</h1>
+        <hr />
 
-<form asp-action="Edit" method="post">
- @Html.AntiForgeryToken()
- <input type="hidden" asp-for="Id" />
- <div asp-validation-summary="ModelOnly" class="text-danger"></div>
- <div class="form-group mt-3">
- <label asp-for="UserName"></label>
- <input asp-for="UserName" class="form-control" />
- <span asp-validation-for="UserName" class="text-danger"></span>
- </div>
- <div class="form-group mt-3">
- <label asp-for="Email"></label>
- <input asp-for="Email" class="form-control" />
- <span asp-validation-for="Email" class="text-danger"></span>
- </div>
-    <div class="form-group mt-3">
-        <label asp-for="PhoneNumber"></label>
-        <input asp-for="PhoneNumber" class="form-control" />
-        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+
+            <h3 class="mt-4 text-primary">Identity & Security</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="UserName"></label>
+                        <input asp-for="UserName" class="form-control" />
+                        <span asp-validation-for="UserName" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="NewPassword">New Password (leave blank to keep existing)</label>
+                        <input asp-for="NewPassword" class="form-control" type="password" />
+                        <span asp-validation-for="NewPassword" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="Email"></label>
+                        <input asp-for="Email" class="form-control" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="PhoneNumber">Phone Number (Identity)</label>
+                        <input asp-for="PhoneNumber" class="form-control" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mt-3">
+                <label asp-for="Role"></label>
+                <select asp-for="Role" class="form-select">
+                    <option value="">-- none --</option>
+                    @if (ViewBag.Roles is List<string> roles)
+                    {
+                        @foreach (var r in roles)
+                        {
+                            <option value="@r" selected="@(r == Model.Role ? "selected" : "")">@r</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <h3 class="mt-5 text-primary">Basic Profile Information</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="FirstName"></label>
+                        <input asp-for="FirstName" class="form-control" />
+                        <span asp-validation-for="FirstName" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="LastName"></label>
+                        <input asp-for="LastName" class="form-control" />
+                        <span asp-validation-for="LastName" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="ITSNumber"></label>
+                        <input asp-for="ITSNumber" class="form-control" />
+                        <span asp-validation-for="ITSNumber" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="Profession"></label>
+                        <input asp-for="Profession" class="form-control" />
+                        <span asp-validation-for="Profession" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mt-3">
+                <label asp-for="About"></label>
+                <textarea asp-for="About" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="About" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mt-3">
+                <label asp-for="ServicesProvided"></label>
+                <input asp-for="ServicesProvided" class="form-control" placeholder="e.g., Web Design, Consulting, Plumbing (comma-separated)" />
+                <span asp-validation-for="ServicesProvided" class="text-danger"></span>
+            </div>
+
+            <h3 class="mt-5 text-primary">Contact & Social Links</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="WhatsappNumber"></label>
+                        <input asp-for="WhatsappNumber" class="form-control" />
+                        <span asp-validation-for="WhatsappNumber" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="LinkedInUrl"></label>
+                        <input asp-for="LinkedInUrl" class="form-control" />
+                        <span asp-validation-for="LinkedInUrl" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="FacebookUrl"></label>
+                        <input asp-for="FacebookUrl" class="form-control" />
+                        <span asp-validation-for="FacebookUrl" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="InstagramUrl"></label>
+                        <input asp-for="InstagramUrl" class="form-control" />
+                        <span asp-validation-for="InstagramUrl" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+
+            <h3 class="mt-5 text-primary">Addresses & Phones</h3>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="HomeAddress"></label>
+                        <input asp-for="HomeAddress" class="form-control" />
+                        <span asp-validation-for="HomeAddress" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="HomePhoneNumber"></label>
+                        <input asp-for="HomePhoneNumber" class="form-control" />
+                        <span asp-validation-for="HomePhoneNumber" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="BusinessAddress"></label>
+                        <input asp-for="BusinessAddress" class="form-control" />
+                        <span asp-validation-for="BusinessAddress" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="BusinessPhoneNumber"></label>
+                        <input asp-for="BusinessPhoneNumber" class="form-control" />
+                        <span asp-validation-for="BusinessPhoneNumber" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+
+            <h3 class="mt-5 text-primary">Admin/Visibility & Image Paths</h3>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group form-check mt-4">
+                        <input asp-for="IsProfileVisible" class="form-check-input" />
+                        <label asp-for="IsProfileVisible" class="form-check-label"></label>
+                        <small class="text-muted d-block">Check to make the user's profile publicly visible.</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group form-check mt-4">
+                        <input asp-for="IsImageApproved" class="form-check-input" />
+                        <label asp-for="IsImageApproved" class="form-check-label"></label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mt-3">
+                <label asp-for="ProfileImagePath"></label>
+                <input asp-for="ProfileImagePath" class="form-control" />
+                <span asp-validation-for="ProfileImagePath" class="text-danger"></span>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="GpayQRCodePath"></label>
+                        <input asp-for="GpayQRCodePath" class="form-control" />
+                        <span asp-validation-for="GpayQRCodePath" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mt-3">
+                        <label asp-for="PhonePeQRCodePath"></label>
+                        <input asp-for="PhonePeQRCodePath" class="form-control" />
+                        <span asp-validation-for="PhonePeQRCodePath" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+
+            <hr class="mt-5" />
+
+            <div class="form-group mt-4 mb-5">
+                <button type="submit" class="btn btn-primary btn-lg">💾 Save Changes</button>
+                <a asp-action="Index" class="btn btn-secondary ms-2">Back to List</a>
+            </div>
+        </form>
     </div>
- <div class="form-group mt-3">
- <label asp-for="Role"></label>
- <select asp-for="Role" class="form-select">
- <option value="">-- none --</option>
- @foreach(var r in ViewBag.Roles as List<string>)
- {
- <option value="@r" selected="@(r==Model.Role?"selected":"")">@r</option>
- }
- </select>
- </div>
- <div class="form-group mt-3">
- <label asp-for="NewPassword">New password (leave blank to keep)</label>
- <input asp-for="NewPassword" class="form-control" />
- </div>
- <div class="form-group mt-3">
- <button class="btn btn-primary">Save</button>
- </div>
-</form>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
