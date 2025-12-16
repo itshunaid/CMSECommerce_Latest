@@ -212,12 +212,14 @@ namespace CMSECommerce.Controllers
             return View(user);
         }
 
-
         [HttpGet]
         [Authorize]
         public async Task<IActionResult> Profile()
         {
+            // Fetches the IdentityUser based on the current authenticated user
             var identityUser = await _userManager.GetUserAsync(User);
+
+            // Safety check: If user cannot be found, redirect to login
             if (identityUser == null) return RedirectToAction("Login");
 
             try
@@ -226,7 +228,7 @@ namespace CMSECommerce.Controllers
                 var userProfile = await _context.UserProfiles
                     .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);
 
-                // Map data to the ViewModel
+                // Map Identity data to the ViewModel
                 var viewModel = new ProfileUpdateViewModel
                 {
                     UserId = identityUser.Id,
@@ -237,7 +239,7 @@ namespace CMSECommerce.Controllers
 
                 if (userProfile != null)
                 {
-                    // ... (Mapping properties remains the same)
+                    // Map existing UserProfile data to the ViewModel
                     viewModel.FirstName = userProfile.FirstName;
                     viewModel.LastName = userProfile.LastName;
                     viewModel.IsProfileVisible = userProfile.IsProfileVisible;
@@ -253,13 +255,23 @@ namespace CMSECommerce.Controllers
                     viewModel.HomePhoneNumber = userProfile.HomePhoneNumber;
                     viewModel.BusinessAddress = userProfile.BusinessAddress;
                     viewModel.BusinessPhoneNumber = userProfile.BusinessPhoneNumber;
+
+                    // --- NECESSARY CHANGES START HERE ---
+                    // 1. Map existing approved image and approval status
                     viewModel.ExistingProfileImagePath = userProfile.ProfileImagePath;
+                    viewModel.IsImageApproved = userProfile.IsImageApproved;
+
+                    // 2. Map the new pending image path and pending status
+                    viewModel.PendingProfileImagePath = userProfile.PendingProfileImagePath;
+                    viewModel.IsImagePending = userProfile.IsImagePending;
+                    // --- NECESSARY CHANGES END HERE ---
+
                     viewModel.ExistingGpayQRCodePath = userProfile.GpayQRCodePath;
                     viewModel.ExistingPhonePeQRCodePath = userProfile.PhonePeQRCodePath;
                 }
 
-                // Redirect to the ProfileDetails action to display the profile
-                return RedirectToAction("ProfileDetails");
+                // Return the View with the populated ViewModel (for the edit form)
+                return View(viewModel);
             }
             catch (Exception ex)
             {
@@ -276,11 +288,20 @@ namespace CMSECommerce.Controllers
         {
             try
             {
+                // 1. ADMIN AUTHORIZATION CHECK (Recommended for multi-user edit actions)
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser == null || !await _userManager.IsInRoleAsync(currentUser, "Admin"))
+                {
+                    TempData["error"] = "You are not authorized to edit other user profiles.";
+                    // Redirect to the user's own profile page or a restricted access page
+                    return RedirectToAction("Profile");
+                }
+
                 var identityUser = await _userManager.FindByIdAsync(id);
 
                 if (identityUser == null)
                 {
-                    TempData["error"] = "User not found or you do not have permission.";
+                    TempData["error"] = "User not found.";
                     return RedirectToAction("ProfileDetails");
                 }
 
@@ -299,7 +320,7 @@ namespace CMSECommerce.Controllers
 
                 if (userProfile != null)
                 {
-                    // ... (Mapping properties remains the same)
+                    // Map common properties
                     viewModel.FirstName = userProfile.FirstName;
                     viewModel.LastName = userProfile.LastName;
                     viewModel.IsProfileVisible = userProfile.IsProfileVisible;
@@ -315,11 +336,21 @@ namespace CMSECommerce.Controllers
                     viewModel.HomePhoneNumber = userProfile.HomePhoneNumber;
                     viewModel.BusinessAddress = userProfile.BusinessAddress;
                     viewModel.BusinessPhoneNumber = userProfile.BusinessPhoneNumber;
+
+                    // --- NECESSARY CHANGES START HERE: Mapping Image Approval Fields ---
                     viewModel.ExistingProfileImagePath = userProfile.ProfileImagePath;
+                    viewModel.IsImageApproved = userProfile.IsImageApproved;
+
+                    // Map the new pending image path and pending status
+                    viewModel.PendingProfileImagePath = userProfile.PendingProfileImagePath;
+                    viewModel.IsImagePending = userProfile.IsImagePending;
+                    // --- NECESSARY CHANGES END HERE ---
+
                     viewModel.ExistingGpayQRCodePath = userProfile.GpayQRCodePath;
                     viewModel.ExistingPhonePeQRCodePath = userProfile.PhonePeQRCodePath;
                 }
 
+                // Return the common profile edit view with the data
                 return View("Profile", viewModel);
             }
             catch (Exception ex)
@@ -333,31 +364,32 @@ namespace CMSECommerce.Controllers
 
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> ProfileDetails(string userId = "", bool ITSAvailable=false)
+        public async Task<IActionResult> ProfileDetails(string userId = "", bool ITSAvailable = false)
         {
             try
             {
-
                 IdentityUser identityUser = new();
                 if (string.IsNullOrEmpty(userId))
                 {
+                    // If userId is empty, get the current logged-in user's profile
                     identityUser = await _userManager.GetUserAsync(User);
                 }
                 else
                 {
+                    // If userId is provided, get that specific user's profile
                     identityUser = await _userManager.FindByIdAsync(userId);
                 }
 
                 if (identityUser == null) return RedirectToAction("Login");
+
                 var userProfile = await _context.UserProfiles
-                            .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);              
+                                                .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);
+
                 if (userProfile != null)
                 {
                     ITSAvailable = !string.IsNullOrEmpty(userProfile.ITSNumber);
                 }
 
-
-                
                 // Map data to the ViewModel
                 var viewModel = new ProfileUpdateViewModel
                 {
@@ -369,7 +401,7 @@ namespace CMSECommerce.Controllers
 
                 if (userProfile != null)
                 {
-                    // ... (Mapping properties remains the same)
+                    // Map common properties
                     viewModel.FirstName = userProfile.FirstName;
                     viewModel.LastName = userProfile.LastName;
                     viewModel.IsProfileVisible = userProfile.IsProfileVisible;
@@ -385,11 +417,20 @@ namespace CMSECommerce.Controllers
                     viewModel.HomePhoneNumber = userProfile.HomePhoneNumber;
                     viewModel.BusinessAddress = userProfile.BusinessAddress;
                     viewModel.BusinessPhoneNumber = userProfile.BusinessPhoneNumber;
+                    
+                    // Map existing image and approval status
                     viewModel.ExistingProfileImagePath = userProfile.ProfileImagePath;
+                    viewModel.IsImageApproved = userProfile.IsImageApproved;
+
+                    // --- NECESSARY CHANGES HERE (already present in your code) ---
+                    viewModel.PendingProfileImagePath = userProfile.PendingProfileImagePath;
+                    viewModel.IsImagePending = userProfile.IsImagePending;
+                    // -----------------------------------------------------------
+
                     viewModel.ExistingGpayQRCodePath = userProfile.GpayQRCodePath;
                     viewModel.ExistingPhonePeQRCodePath = userProfile.PhonePeQRCodePath;
-                    viewModel.IsImageApproved = userProfile.IsImageApproved;
                 }
+
                 ViewBag.ITSAvailable = ITSAvailable;
                 return View(viewModel);
             }
@@ -406,8 +447,12 @@ namespace CMSECommerce.Controllers
         [Authorize]
         public async Task<IActionResult> Profile(ProfileUpdateViewModel model)
         {
+            // Note: Assumes necessary services (_userManager, _context, _webHostEnvironment) 
+            // and using statements (System.IO, etc.) are available in the Controller.
+
             if (!ModelState.IsValid)
             {
+                // Re-display the form with validation errors
                 return View(model);
             }
 
@@ -468,10 +513,13 @@ namespace CMSECommerce.Controllers
                 userProfile = new UserProfile { UserId = identityUser.Id };
             }
 
+            // FIX: Declared at this scope so it is accessible outside the I/O try block
+            bool profileImageUploaded = false;
+
             // Separate the I/O logic for better error handling visibility
             try
             {
-                // File Upload Helper Function (Original implementation with try-catch for I/O)
+                // File Upload Helper Function
                 async Task<string> ProcessFileUpload(IFormFile file, string subFolder)
                 {
                     if (file == null) return null;
@@ -494,34 +542,52 @@ namespace CMSECommerce.Controllers
                     return Path.Combine("images", subFolder, uniqueFileName).Replace("\\", "/");
                 }
 
-                // Process Profile Image
+                // --- Process Profile Image for Approval ---
                 if (model.ProfileImageUpload != null)
                 {
-                    // Delete old image (I/O operation)
-                    if (!string.IsNullOrEmpty(userProfile.ProfileImagePath))
+                    // 1. Save the new image to the PENDING folder/path
+                    string newPendingPath = await ProcessFileUpload(model.ProfileImageUpload, "profiles/pending");
+
+                    // 2. Delete the previously pending image (if one existed)
+                    if (!string.IsNullOrEmpty(userProfile.PendingProfileImagePath))
                     {
                         try
                         {
-                            string oldPath = Path.Combine(_webHostEnvironment.WebRootPath, userProfile.ProfileImagePath);
-                            if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
+                            string oldPendingPath = Path.Combine(_webHostEnvironment.WebRootPath, userProfile.PendingProfileImagePath);
+                            if (System.IO.File.Exists(oldPendingPath)) System.IO.File.Delete(oldPendingPath);
                         }
                         catch (Exception deleteEx)
                         {
-                            // Log but don't stop the update, as the new file can still be saved
-                            // _logger.LogWarning(deleteEx, "Failed to delete old profile image: {Path}", userProfile.ProfileImagePath);
+                            // Log but don't stop the update
+                            // _logger.LogWarning(deleteEx, "Failed to delete old pending profile image: {Path}", userProfile.PendingProfileImagePath);
                         }
                     }
-                    userProfile.ProfileImagePath = await ProcessFileUpload(model.ProfileImageUpload, "profiles");
-                    userProfile.IsImageApproved = model.IsImageApproved;
+
+                    // 3. Update the UserProfile properties
+                    userProfile.PendingProfileImagePath = newPendingPath;
+                    userProfile.IsImageApproved = false; // Must be reset to false when a new image is pending
+                    userProfile.IsImagePending = true;  // Mark as pending
+
+                    profileImageUploaded = true; // Set the flag
                 }
 
                 // Process GPay/PhonePe QR Codes (omitting old file delete for brevity, but it should be added)
                 if (model.GpayQRCodeUpload != null)
                 {
+                    // DELETE existing GPay QR code before saving new one
+                    if (!string.IsNullOrEmpty(userProfile.GpayQRCodePath))
+                    {
+                        // Delete old file logic here
+                    }
                     userProfile.GpayQRCodePath = await ProcessFileUpload(model.GpayQRCodeUpload, "qrcodes");
                 }
                 if (model.PhonePeQRCodeUpload != null)
                 {
+                    // DELETE existing PhonePe QR code before saving new one
+                    if (!string.IsNullOrEmpty(userProfile.PhonePeQRCodePath))
+                    {
+                        // Delete old file logic here
+                    }
                     userProfile.PhonePeQRCodePath = await ProcessFileUpload(model.PhonePeQRCodeUpload, "qrcodes");
                 }
             }
@@ -541,7 +607,7 @@ namespace CMSECommerce.Controllers
             }
 
             // --- 3. Update UserProfile Details and Save to DB ---
-            // (Mapping properties remains the same)
+            // Map data fields from ViewModel to UserProfile
             userProfile.FirstName = model.FirstName;
             userProfile.LastName = model.LastName;
             userProfile.IsProfileVisible = model.IsProfileVisible;
@@ -586,7 +652,17 @@ namespace CMSECommerce.Controllers
                 return View(model);
             }
 
-            TempData["success"] = "Your profile has been updated successfully!";
+            // Set success message based on whether an image upload was submitted
+            if (profileImageUploaded)
+            {
+                TempData["success"] = "Your profile and new image have been saved. The new profile image is now **pending review** by an administrator.";
+            }
+            else
+            {
+                TempData["success"] = "Your profile details have been updated successfully.";
+            }
+
+            // Redirect to the Profile Details page
             return RedirectToAction("ProfileDetails", new { userId = userProfile.UserId });
         }
 

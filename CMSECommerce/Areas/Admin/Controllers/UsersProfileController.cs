@@ -1,25 +1,32 @@
 ﻿using CMSECommerce.Infrastructure;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Hosting; // 1. ADDED
+using Microsoft.Extensions.Logging;
+using System.IO; // 1. ADDED
 
 namespace CMSECommerce.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]    
     public class UsersProfileController(
         UserManager<IdentityUser> userManager,
         RoleManager<IdentityRole> roleManager,
         DataContext context,
-        IWebHostEnvironment webHostEnvironment, // ADDED for file system access
-        ILogger<UsersProfileController> logger) : Controller // ADDED ILogger
+        IWebHostEnvironment webHostEnvironment,
+        ILogger<UsersProfileController> logger) : Controller
     {
+        // Fields are automatically initialized by the primary constructor in modern C# (>= 12).
+        // While defining the fields explicitly below is redundant, it is kept here for clarity
+        // since the original code defined them.
         private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly RoleManager<IdentityRole> _roleManager = roleManager;
         private readonly DataContext _context = context;
-        private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment; // ADDED field
-        private readonly ILogger<UsersProfileController> _logger = logger; // ADDED field
+        private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
+        private readonly ILogger<UsersProfileController> _logger = logger;
 
         // GET: /admin/user/pendingimageapprovals
         [HttpGet("pendingimageapprovals")]
@@ -29,7 +36,8 @@ namespace CMSECommerce.Areas.Admin.Controllers
             {
                 // Fetch all UserProfiles where ProfileImagePath is set but IsImageApproved is false
                 var pendingProfiles = await _context.UserProfiles
-                    .AsNoTracking() // Use AsNoTracking for read-only query
+                    .AsNoTracking()
+                    // Checking for IsImageApproved == false and the existence of an image path
                     .Where(p => !p.IsImageApproved && p.ProfileImagePath != null && p.ProfileImagePath != "")
                     .ToListAsync();
 
@@ -74,8 +82,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 return RedirectToAction(nameof(PendingImageApprovals));
             }
 
-            // 3. Set the approval status to true and save
+            // Set the approval status to true and save
             userProfile.IsImageApproved = true;
+            userProfile.IsImagePending = false;
 
             try
             {
@@ -98,7 +107,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 TempData["ErrorMessage"] = "An unexpected error occurred during approval.";
             }
 
-            // 4. Redirect back to the list of pending approvals
+            // Redirect back to the list of pending approvals
             return RedirectToAction(nameof(PendingImageApprovals));
         }
 
@@ -117,7 +126,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
             string oldPath = userProfile.ProfileImagePath;
             string userId = userProfile.UserId;
 
-            // 2. Clear the image path and explicitly set approval to false
+            // Clear the image path and explicitly set approval to false
             userProfile.ProfileImagePath = null;
             userProfile.IsImageApproved = false;
 
@@ -126,14 +135,14 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 // Database save
                 await _context.SaveChangesAsync();
 
-                // 3. Optional: Delete the physical file (RECOMMENDED)
+                // Delete the physical file (RECOMMENDED)
                 if (!string.IsNullOrEmpty(oldPath))
                 {
-                    string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, oldPath.TrimStart('/'));
+                    // Trimming both '~' and '/' ensures the path is correctly combined with WebRootPath
+                    string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, oldPath.TrimStart('~', '/'));
 
                     if (System.IO.File.Exists(fullPath))
                     {
-                        // File System Operation
                         System.IO.File.Delete(fullPath);
                         _logger.LogInformation("Deleted rejected profile image at path: {Path}", fullPath);
                     }
@@ -167,7 +176,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 TempData["ErrorMessage"] = "An unexpected error occurred during rejection.";
             }
 
-            // 4. Redirect back to the list of pending approvals
+            // Redirect back to the list of pending approvals
             return RedirectToAction(nameof(PendingImageApprovals));
         }
     }

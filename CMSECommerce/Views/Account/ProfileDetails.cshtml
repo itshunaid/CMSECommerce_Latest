@@ -10,6 +10,15 @@
     var visibilityClass = isVisible ? "text-success" : "text-danger";
     var visibilityIcon = isVisible ? "fa-eye" : "fa-eye-slash";
     var visibilityText = isVisible ? "Publicly Visible on Business Directory" : "Hidden from Business Directory";
+
+    // Image Upload Status Helpers
+    var isImagePending = Model.IsImagePending;
+    var isImageApproved = Model.IsImageApproved;
+
+    // Helper for Display Name (Prioritizes First/Last Name over Username)
+    var displayName = string.IsNullOrEmpty(Model.FirstName) || string.IsNullOrEmpty(Model.LastName)
+        ? Model.UserName
+        : $"{Model.FirstName} {Model.LastName}";
 }
 
 <style>
@@ -162,8 +171,23 @@
         background-color: #0073b1; /* A neutral/professional blue for services */
         color: white;
     }
+
+    /* Styles for image approval status */
+    .image-status-pending {
+        color: #FF9900; /* Amazon Yellow for pending */
+        font-weight: bold;
+    }
+
+    .image-status-approved {
+        color: #28a745; /* Success Green */
+        font-weight: bold;
+    }
+
+    .image-status-na {
+        color: #6c757d; /* Muted Gray */
+    }
 </style>
-@if(!ViewBag.ITSAvailable)
+@if (ViewBag.ITSAvailable == null || (bool)ViewBag.ITSAvailable == false)
 {
     // If ITS is NOT available (the condition fails), we display the popup.
     <script type="text/javascript">
@@ -188,19 +212,27 @@
             <div class="card border-0">
 
                 <div class="card-header bg-header-amazon text-center p-4 rounded-top">
-                    @if (Model.IsImageApproved && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
+                    @* Image Display Logic: Checks Approved -> Pending -> Default *@
+                    @if (Model.IsImageApproved == true && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
                     {
-                        <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle shadow-sm mb-3 border border-2 border-amazon-yellow" style="width:100px; height:100px; object-fit:cover;" />
+                        <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle border border-2 border-light-subtle mb-3" style="width: 100px; height: 100px; object-fit: cover;" />
+                    }
+                    else if (Model.IsImagePending == true && !string.IsNullOrEmpty(Model.PendingProfileImagePath))
+                    {
+                        @* Show the pending image, with a warning visual *@
+                        <div class="position-relative d-inline-block">
+                            <img src="/@Model.PendingProfileImagePath" alt="Pending Profile Image" class="img-fluid rounded-circle border border-3 border-warning mb-3" style="width: 100px; height: 100px; object-fit: cover; opacity: 0.7;" />
+                            <i class="fas fa-hourglass-half text-warning position-absolute top-0 end-0 bg-white rounded-circle p-1" style="font-size: 1.5rem; transform: translate(10%, -10%);"></i>
+                        </div>
                     }
                     else
                     {
-
-                        <i class="fas fa-user-circle fa-5x text-secondary mb-3"></i>
+                        <i class="fas fa-user-circle fa-4x text-muted mb-3"></i>
                     }
 
                     <h2 class="h4 fw-bold text-amazon-dark-blue mb-0">
-                        Hello, @Model.UserName
-                        @* NEW: Status Badge in Header *@
+                        Hello, @displayName
+                        @* Status Badge in Header *@
                         <span class="ms-2 badge @(isVisible ? "bg-success" : "bg-danger") fw-normal" style="font-size: 0.75rem;">
                             <i class="fas @visibilityIcon me-1"></i> @visibilityText
                         </span>
@@ -244,6 +276,12 @@
                         <div class="tab-pane fade show active" id="account" role="tabpanel" aria-labelledby="account-tab">
                             <h5 class="text-amazon-dark-blue mb-3">Login and Contact</h5>
                             <dl class="detail-list border rounded px-3 py-2 bg-white">
+
+                                @if (!string.IsNullOrEmpty(Model.FirstName) || !string.IsNullOrEmpty(Model.LastName))
+                                {
+                                    <div class="row"><dt class="col-sm-4 text-muted">Full Name:</dt><dd class="col-sm-8 fw-bold text-amazon-dark-blue">@Model.FirstName @Model.LastName</dd></div>
+                                }
+
                                 <div class="row">
                                     <dt class="col-sm-4 text-muted">Profile Visibility:</dt>
                                     <dd class="col-sm-8">
@@ -255,9 +293,6 @@
                                 <div class="row"><dt class="col-sm-4 text-muted">Username:</dt><dd class="col-sm-8 fw-bold text-amazon-dark-blue">@Model.UserName</dd></div>
                                 <div class="row"><dt class="col-sm-4 text-muted">Email:</dt><dd class="col-sm-8"><a href="mailto:@Model.Email" class="text-link-amazon">@Model.Email</a></dd></div>
                                 <div class="row"><dt class="col-sm-4 text-muted">Phone:</dt><dd class="col-sm-8">@Model.PhoneNumber</dd></div>
-
-                               
-                              
 
                             </dl>
                             <h5 class="mt-4 text-amazon-dark-blue">About Me:</h5>
@@ -286,6 +321,36 @@
                                         }
                                     </dd>
                                 </div>
+
+                                @* Profile Image Approval Status Row *@
+                                <div class="row">
+                                    <dt class="col-sm-4 text-muted">Profile Image Status:</dt>
+                                    <dd class="col-sm-8">
+                                        @if (isImagePending)
+                                        {
+                                            <span class="image-status-pending"><i class="fas fa-clock me-1"></i> Pending Approval</span>
+                                        }
+                                        else if (isImageApproved && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
+                                        {
+                                            <span class="image-status-approved"><i class="fas fa-check-circle me-1"></i> Approved</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="image-status-na"><i class="fas fa-exclamation-circle me-1"></i> Not Uploaded / Rejected</span>
+                                        }
+                                    </dd>
+                                </div>
+
+                                @* Link/Display for Pending Profile Image (Admin/Self check) *@
+                                @if (isImagePending && !string.IsNullOrEmpty(Model.PendingProfileImagePath))
+                                {
+                                    <div class="row">
+                                        <dt class="col-sm-4 text-muted">Pending Image:</dt>
+                                        <dd class="col-sm-8">
+                                            <a href="/@Model.PendingProfileImagePath" target="_blank" class="text-link-amazon"><i class="fas fa-image me-1"></i> View Pending Profile Image</a>
+                                        </dd>
+                                    </div>
+                                }
                             </dl>
                         </div>
 
@@ -379,7 +444,7 @@
             </div>
         </div>
     </div>
-    </div>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

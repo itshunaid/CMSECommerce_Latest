@@ -5,73 +5,84 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CMSECommerce.Models
 {
-    public class UserProfile
-    {
-        [Key]
-        public int Id { get; set; }
+        public class UserProfile
+        {
+            [Key]
+            public int Id { get; set; }
 
-        // Foreign Key linking to the IdentityUser
-        public string UserId { get; set; }
-        
-        [Required, MinLength(3, ErrorMessage = "Minimum length is 3")]
-        [DisplayName("First Name")]
-        public string FirstName { get; set; }= "Sample First Name";
+            // Foreign Key linking to the IdentityUser
+            public string UserId { get; set; }
 
-        [Required, MinLength(3, ErrorMessage = "Minimum length is 3")]
-        [DisplayName("Last Name")]
-        public string LastName { get; set; }= "Sample Last Name";
+            [Required, MinLength(3, ErrorMessage = "Minimum length is 3")]
+            [DisplayName("First Name")]
+            public string FirstName { get; set; } = "Sample First Name";
+
+            [Required, MinLength(3, ErrorMessage = "Minimum length is 3")]
+            [DisplayName("Last Name")]
+            public string LastName { get; set; } = "Sample Last Name";
 
 
-        // Navigation property to the Identity User (optional, but useful)
-        [ForeignKey("UserId")]
-        public virtual IdentityUser User { get; set; }
+            // Navigation property to the Identity User (optional, but useful)
+            [ForeignKey("UserId")]
+            public virtual IdentityUser User { get; set; }
 
-        // --- Custom Fields ---
+            // --- Custom Fields ---
 
-        // Identification
-        [Display(Name = "ITS Number")]
-        public string ITSNumber { get; set; }
+            // Identification
+            [Display(Name = "ITS Number")]
+            public string ITSNumber { get; set; }
 
-        [Display(Name = "Profile Image Path")]
-        public string ProfileImagePath { get; set; } // Path to the uploaded image
+            // Profile Image Fields (Modified for Approval Flow)
+            [Display(Name = "Profile Image Path")]
+            public string ProfileImagePath { get; set; } // Path to the currently approved/active image
 
-        [Display(Name = "Image Approved")]
-        public bool IsImageApproved { get; set; } = false; // Default to false (unapproved)
-        // NEW FIELD FOR PROFILE VISIBILITY
-        [Display(Name = "Keep Profile Visible")]
-        [Description("If checked, this profile will be publicly visible.")]
-        public bool IsProfileVisible { get; set; } = true; // Default to true (visible)
-        // Bio and Profession
-        [DataType(DataType.MultilineText)]
-        public string About { get; set; }
-        public string Profession { get; set; }
+            [Display(Name = "Image Approved")]
+            public bool IsImageApproved { get; set; } = false; // Status of the currently displayed image
 
-        // List of Services (Consider storing as a comma-separated string or creating a separate table for a true one-to-many relationship if complex)
-        [Display(Name = "Services Provided")]
-        public string ServicesProvided { get; set; }
+            // NEW: Field for the path of the image waiting for approval
+            [Display(Name = "Pending Profile Image Path")]
+            public string PendingProfileImagePath { get; set; }
 
-        // Social Media & Contact
-        public string LinkedInUrl { get; set; }
-        public string FacebookUrl { get; set; }
-        public string InstagramUrl { get; set; }
-        [Display(Name = "WhatsApp Number")]
-        public string WhatsappNumber { get; set; }
+            // NEW: Field to indicate that a new image is awaiting review
+            [Display(Name = "Image Pending Review")]
+            public bool IsImagePending { get; set; } = false;
 
-        // Addresses
-        [Display(Name = "Home Address")]
-        public string HomeAddress { get; set; }
-        [Display(Name = "Home Phone")]
-        public string HomePhoneNumber { get; set; }
+            // NEW FIELD FOR PROFILE VISIBILITY
+            [Display(Name = "Keep Profile Visible")]
+            [Description("If checked, this profile will be publicly visible.")]
+            public bool IsProfileVisible { get; set; } = true; // Default to true (visible)
 
-        [Display(Name = "Business Address")]
-        public string BusinessAddress { get; set; }
-        [Display(Name = "Business Phone")]
-        public string BusinessPhoneNumber { get; set; }
+            // Bio and Profession
+            [DataType(DataType.MultilineText)]
+            public string About { get; set; }
+            public string Profession { get; set; }
 
-        // Payment QR Codes
-        [Display(Name = "GPay QR Code Path")]
-        public string GpayQRCodePath { get; set; } // Path to the uploaded QR image
-        [Display(Name = "PhonePe QR Code Path")]
-        public string PhonePeQRCodePath { get; set; } // Path to the uploaded QR image
+            // List of Services (Consider storing as a comma-separated string or creating a separate table for a true one-to-many relationship if complex)
+            [Display(Name = "Services Provided")]
+            public string ServicesProvided { get; set; }
+
+            // Social Media & Contact
+            public string LinkedInUrl { get; set; }
+            public string FacebookUrl { get; set; }
+            public string InstagramUrl { get; set; }
+            [Display(Name = "WhatsApp Number")]
+            public string WhatsappNumber { get; set; }
+
+            // Addresses
+            [Display(Name = "Home Address")]
+            public string HomeAddress { get; set; }
+            [Display(Name = "Home Phone")]
+            public string HomePhoneNumber { get; set; }
+
+            [Display(Name = "Business Address")]
+            public string BusinessAddress { get; set; }
+            [Display(Name = "Business Phone")]
+            public string BusinessPhoneNumber { get; set; }
+
+            // Payment QR Codes
+            [Display(Name = "GPay QR Code Path")]
+            public string GpayQRCodePath { get; set; } // Path to the uploaded QR image
+            [Display(Name = "PhonePe QR Code Path")]
+            public string PhonePeQRCodePath { get; set; } // Path to the uploaded QR image
+        }
     }
-}

@@ -14,6 +14,7 @@
             --amazon-link-teal: #007185;
             --amazon-page-bg: #f7f7f7; /* Light grey background */
             --amazon-border-color: #D5DBDB;
+            --amazon-warning-orange: #FEBD69; /* For pending state */
         }
 
         .amazon-page-container {
@@ -104,14 +105,24 @@
 
             <div class="amazon-form-box">
                 <div class="p-4 text-center amazon-header-section rounded-top">
+                    @* --- HEADER IMAGE LOGIC START (Shows approved image or placeholder) --- *@
                     @if (Model.IsImageApproved == true && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
                     {
                         <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle border border-2 border-light-subtle mb-3" style="width: 100px; height: 100px; object-fit: cover;" />
+                    }
+                    else if (Model.IsImagePending == true && !string.IsNullOrEmpty(Model.PendingProfileImagePath))
+                    {
+                        @* Show the pending image, perhaps with a slight visual indication *@
+                        <div class="position-relative d-inline-block">
+                            <img src="/@Model.PendingProfileImagePath" alt="Pending Profile Image" class="img-fluid rounded-circle border border-3 border-warning mb-3" style="width: 100px; height: 100px; object-fit: cover; opacity: 0.7;" />
+                            <i class="fas fa-hourglass-half text-warning position-absolute top-0 end-0 bg-white rounded-circle p-1" style="font-size: 1.5rem; transform: translate(10%, -10%);"></i>
+                        </div>
                     }
                     else
                     {
                         <i class="fas fa-user-circle fa-4x text-muted mb-3"></i>
                     }
+                    @* --- HEADER IMAGE LOGIC END --- *@
                     <h2 class="h4 fw-bold text-amazon-dark mb-0">@Model.UserName</h2>
                     <p class="text-muted small">@Model.Profession</p>
                 </div>
@@ -120,12 +131,17 @@
                     <form asp-action="Profile" method="post" enctype="multipart/form-data">
                         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
                         <input type="hidden" asp-for="UserId" />
+
+                        @* --- HIDDEN FIELDS FOR PERSISTING STATE --- *@
                         <input type="hidden" asp-for="ExistingProfileImagePath" />
                         <input type="hidden" asp-for="ExistingGpayQRCodePath" />
                         <input type="hidden" asp-for="ExistingPhonePeQRCodePath" />
                         <input type="hidden" asp-for="IsImageApproved" />
+                        <input type="hidden" asp-for="IsImagePending" />
+                        <input type="hidden" asp-for="PendingProfileImagePath" />
+                        @* --- END HIDDEN FIELDS --- *@
 
-                        @* <input type="hidden" asp-for="IsProfileVisible" value="false" /> *@
+
                         <div class="form-check form-switch pt-2">
                             <input class="form-check-input" type="checkbox" role="switch" asp-for="IsProfileVisible" id="IsProfileVisibleSwitch" />
                             <label class="form-check-label" for="IsProfileVisibleSwitch">
@@ -134,11 +150,19 @@
                             <p class="text-muted small mt-1 mb-0">Uncheck this to hide your profile from public view across the site.</p>
                         </div>
                         <h4 class="form-section-header-amazon"><i class="fas fa-user-circle me-2 text-amazon-link"></i> Account Details</h4>
-                     
+
                         <div class="row g-3 mb-4">
-                            
+
                             <div class="col-md-4 text-center">
-                                @if (Model.IsImageApproved == true && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
+                                @* --- PROFILE IMAGE DISPLAY IN FORM START (With pending warning) --- *@
+                                @if (Model.IsImagePending == true && !string.IsNullOrEmpty(Model.PendingProfileImagePath))
+                                {
+                                    <div class="alert alert-warning p-2 small mb-2">
+                                        <i class="fas fa-clock me-1"></i> New image pending approval.
+                                    </div>
+                                    <img src="/@Model.PendingProfileImagePath" alt="Pending Profile Image" class="img-fluid rounded-circle mb-3 border border-3 border-warning" style="width: 100px; height: 100px; object-fit: cover;" />
+                                }
+                                else if (Model.IsImageApproved == true && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
                                 {
                                     <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle mb-3 border border-1" style="width: 100px; height: 100px; object-fit: cover;" />
                                 }
@@ -151,8 +175,9 @@
                                 <label class="form-label small text-muted">Profile Photo</label>
                                 <input type="file" asp-for="ProfileImageUpload" class="form-control form-control-sm" />
                                 <span asp-validation-for="ProfileImageUpload" class="text-danger small"></span>
+                                @* --- PROFILE IMAGE DISPLAY IN FORM END --- *@
                             </div>
-                            
+
                             <div class="col-md-8">
                                 <div class="form-floating mb-3">
                                     <input asp-for="UserName" class="form-control" placeholder="Username" />
@@ -186,7 +211,7 @@
                                     <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
                                 </div>
 
-                                
+
                             </div>
                         </div>
 
