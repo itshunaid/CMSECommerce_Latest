@@ -87,7 +87,7 @@ namespace CMSECommerce.Controllers
                 // 1. Get ALL relevant Order IDs for the current user
                 // We use a single query to get all IDs that match the user's name.
                 List<int> orderIds = await _context.Orders
-                    .Where(o => o.UserName.ToLower().Contains(usernameLower))
+                    .Where(o => o.UserName.ToLower().Contains(usernameLower) && o.Shipped==false)
                     // We only need the IDs, so we project (Select) them.
                     .Select(p => p.Id)
                     .ToListAsync(); // Execute this query now.
