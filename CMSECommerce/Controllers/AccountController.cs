@@ -541,7 +541,7 @@ namespace CMSECommerce.Controllers
             {
                 // Keep the current paths in the model for the return view
                 // The `IFormFile` properties will be null, which is fine.
-                return View(model);
+                return View("ProfileDetailsView", model);
             }
 
             var user = await _userManager.FindByIdAsync(model.Id);
@@ -637,7 +637,7 @@ namespace CMSECommerce.Controllers
                     _logger.LogError(ex, "File operation error during user profile update for ID: {UserId}", model.Id);
                     ModelState.AddModelError(string.Empty, "An error occurred during file upload. Please try again.");
                     // Re-throw or return view here if you want to stop Identity update on file error
-                    return View("ProfileDetailsView",model);
+                    return View("ProfileDetailsView", model);
                 }
             }
             // ** END: Fetch and Update UserProfile & File Logic **
@@ -665,7 +665,7 @@ namespace CMSECommerce.Controllers
                         model.GpayQRCodePath = userProfile.GpayQRCodePath;
                         model.PhonePeQRCodePath = userProfile.PhonePeQRCodePath;
                     }
-                    return View(model);
+                    return View("ProfileDetailsView", model);
                 }
 
                 // --- Role Update Logic ---
@@ -724,7 +724,7 @@ namespace CMSECommerce.Controllers
                             model.GpayQRCodePath = userProfile.GpayQRCodePath;
                             model.PhonePeQRCodePath = userProfile.PhonePeQRCodePath;
                         }
-                        return View(model);
+                        return View("ProfileDetailsView", model);
                     }
                 }
 
@@ -733,7 +733,7 @@ namespace CMSECommerce.Controllers
                 await _context.SaveChangesAsync();
 
                 TempData["success"] = $"User {user.UserName} and Profile updated successfully.";
-                return RedirectToAction(nameof(Index));
+                return View("ProfileDetailsView",model);
             }
             catch (DbUpdateException dbEx)
             {
@@ -753,7 +753,7 @@ namespace CMSECommerce.Controllers
                 model.GpayQRCodePath = userProfile.GpayQRCodePath;
                 model.PhonePeQRCodePath = userProfile.PhonePeQRCodePath;
             }
-            return View(model);
+            return View("ProfileDetailsView", model);
         }
 
        
@@ -811,7 +811,7 @@ namespace CMSECommerce.Controllers
 
                     // Optionally clear the old approved image path if a new one is pending
                     // userProfile.ProfileImagePath = null; 
-                    // userProfile.IsImageApproved = false;
+                    userProfile.IsImageApproved = false;
 
                     TempData["message"] = "Profile image uploaded successfully and is awaiting administrator approval.";
                 }
