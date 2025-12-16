@@ -74,97 +74,100 @@ namespace CMSECommerce.Areas.Admin.Models
         public string PhonePeQRCodePath { get; set; }
     }
     
+   // ... (UserViewModel and EditUserModel remain unchanged)
+
+        public class CreateUserModel
+        {
+            // --- 1. IdentityUser Fields ---
+
+            [Required(ErrorMessage = "User Name is required.")]
+            public string UserName { get; set; }
+
+            [Required(ErrorMessage = "Email is required.")]
+            [EmailAddress(ErrorMessage = "Invalid Email format.")]
+            public string Email { get; set; }
+
+            [DataType(DataType.PhoneNumber)]
+            [Display(Name = "Phone Number (Identity)")]
+            public string PhoneNumber { get; set; }
+
+            [Required(ErrorMessage = "Password is required.")]
+            [DataType(DataType.Password)]
+            public string Password { get; set; }
+
+            [Display(Name = "Assign Role")]
+            public string Role { get; set; }
 
 
-    public class CreateUserModel
-    {
-        // --- 1. IdentityUser Fields ---
+            // ** --- 2. UserProfile Fields --- **
 
-        [Required(ErrorMessage = "User Name is required.")]
-        public string UserName { get; set; }
+            // Basic Info (Required)
+            [Required(ErrorMessage = "First Name is required.")]
+            [MinLength(3, ErrorMessage = "Minimum length for First Name is 3.")]
+            [DisplayName("First Name")]
+            public string FirstName { get; set; }
 
-        [Required(ErrorMessage = "Email is required.")]
-        [EmailAddress(ErrorMessage = "Invalid Email format.")]
-        public string Email { get; set; }
+            [Required(ErrorMessage = "Last Name is required.")]
+            [MinLength(3, ErrorMessage = "Minimum length for Last Name is 3.")]
+            [DisplayName("Last Name")]
+            public string LastName { get; set; }
 
-        [DataType(DataType.PhoneNumber)]
-        [Display(Name = "Phone Number (Identity)")]
-        public string PhoneNumber { get; set; }
+            // Identification and Visibility
+            [Display(Name = "ITS Number")]
+            public string ITSNumber { get; set; }
 
-        [Required(ErrorMessage = "Password is required.")]
-        [DataType(DataType.Password)]
-        public string Password { get; set; }
+            // FILE UPLOADS: Replaced string paths with IFormFile for uploading
+            [Display(Name = "Profile Image")] // Updated Display Name for upload
+            public IFormFile ProfileImageFile { get; set; } // Renamed for clarity
 
-        [Display(Name = "Assign Role")]
-        public string Role { get; set; }
+            [Display(Name = "Image Approved")]
+            public bool IsImageApproved { get; set; } = false;
 
+            [Display(Name = "Keep Profile Visible")]
+            [Description("If checked, this profile will be publicly visible.")]
+            public bool IsProfileVisible { get; set; } = true;
 
-        // ** --- 2. UserProfile Fields --- **
+            // Bio and Profession
+            [DataType(DataType.MultilineText)]
+            public string About { get; set; }
 
-        // Basic Info (Required)
-        [Required(ErrorMessage = "First Name is required.")]
-        [MinLength(3, ErrorMessage = "Minimum length for First Name is 3.")]
-        [DisplayName("First Name")]
-        public string FirstName { get; set; }
+            public string Profession { get; set; }
 
-        [Required(ErrorMessage = "Last Name is required.")]
-        [MinLength(3, ErrorMessage = "Minimum length for Last Name is 3.")]
-        [DisplayName("Last Name")]
-        public string LastName { get; set; }
+            [Display(Name = "Services Provided")]
+            public string ServicesProvided { get; set; }
 
-        // Identification and Visibility
-        [Display(Name = "ITS Number")]
-        public string ITSNumber { get; set; }
+            // Social Media & Contact
+            public string LinkedInUrl { get; set; }
+            public string FacebookUrl { get; set; }
+            public string InstagramUrl { get; set; }
 
-        [Display(Name = "Profile Image Path")]
-        // Note: For actual creation, you'd usually use an IFormFile here,
-        // but this field is included to mirror the model structure.
-        public string ProfileImagePath { get; set; }
+            [Display(Name = "WhatsApp Number")]
+            public string WhatsappNumber { get; set; }
 
-        [Display(Name = "Image Approved")]
-        public bool IsImageApproved { get; set; } = false;
+            // Addresses
+            [Display(Name = "Home Address")]
+            public string HomeAddress { get; set; }
 
-        [Display(Name = "Keep Profile Visible")]
-        [Description("If checked, this profile will be publicly visible.")]
-        public bool IsProfileVisible { get; set; } = true;
+            [Display(Name = "Home Phone")]
+            public string HomePhoneNumber { get; set; }
 
-        // Bio and Profession
-        [DataType(DataType.MultilineText)]
-        public string About { get; set; }
+            [Display(Name = "Business Address")]
+            public string BusinessAddress { get; set; }
 
-        public string Profession { get; set; }
+            [Display(Name = "Business Phone")]
+            public string BusinessPhoneNumber { get; set; }
 
-        [Display(Name = "Services Provided")]
-        public string ServicesProvided { get; set; }
+            // Payment QR Codes (IFormFile for uploading)
+            [Display(Name = "GPay QR Code")]
+            public IFormFile GpayQRCodeFile { get; set; } // Renamed for clarity
 
-        // Social Media & Contact
-        public string LinkedInUrl { get; set; }
-        public string FacebookUrl { get; set; }
-        public string InstagramUrl { get; set; }
+            [Display(Name = "PhonePe QR Code")]
+            public IFormFile PhonePeQRCodeFile { get; set; } // Renamed for clarity
 
-        [Display(Name = "WhatsApp Number")]
-        public string WhatsappNumber { get; set; }
-
-        // Addresses
-        [Display(Name = "Home Address")]
-        public string HomeAddress { get; set; }
-
-        [Display(Name = "Home Phone")]
-        public string HomePhoneNumber { get; set; }
-
-        [Display(Name = "Business Address")]
-        public string BusinessAddress { get; set; }
-
-        [Display(Name = "Business Phone")]
-        public string BusinessPhoneNumber { get; set; }
-
-        // Payment QR Codes (Paths)
-        [Display(Name = "GPay QR Code Path")]
-        public string GpayQRCodePath { get; set; }
-
-        [Display(Name = "PhonePe QR Code Path")]
-        public string PhonePeQRCodePath { get; set; }
-    }
+            // The path strings will be handled by the controller after file upload
+            // and stored in the database.
+        }
+    
 
 
 

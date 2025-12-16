@@ -4,214 +4,403 @@
     ViewData["Title"] = "Create User";
 }
 
+<style>
+    /* ... (Existing Amazon-style CSS remains here) ... */
+    :root {
+        --amz-navy: #232f3e;
+        --amz-navy-2: #1e2a33;
+        --amz-orange: #febd69;
+        --amz-orange-2: #f3a847;
+        --amz-slate: #37475a;
+        --amz-green: #007600;
+        --amz-red: #b12704;
+        --amz-gray-100: #f8f9fa;
+        --amz-gray-200: #edf1f5;
+        --amz-gray-300: #dfe5ea;
+        --amz-gray-500: #6b7280;
+        --amz-border: #d8dadd;
+    }
+
+    /* Header Bar */
+    .amz-header {
+        background: var(--amz-navy);
+        color: #fff;
+        padding: 16px 24px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+
+        .amz-header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            letter-spacing: .2px;
+        }
+
+    .amz-subtitle {
+        font-size: .875rem;
+        color: #cbd5e1;
+        margin-top: 2px;
+    }
+
+    /* Card container */
+    .amz-card {
+        background: #fff;
+        border: 1px solid var(--amz-border);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Form Inputs */
+    .amz-form-control, .amz-form-select {
+        display: block;
+        width: 100%;
+        padding: 8px 10px;
+        font-size: 1rem;
+        line-height: 1.5;
+        color: #111;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid #c8c8c8; /* Lighter border for inputs */
+        border-radius: 4px;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+        .amz-form-control:focus, .amz-form-select:focus {
+            color: #111;
+            background-color: #fff;
+            border-color: var(--amz-orange-2);
+            outline: 0;
+            box-shadow: 0 0 0 3px rgba(255, 164, 28, 0.25); /* Subtle orange glow */
+        }
+
+    /* Form Labels */
+    .amz-label {
+        font-weight: 700;
+        color: var(--amz-slate);
+        margin-bottom: 4px;
+        display: block;
+        font-size: 0.875rem;
+    }
+
+    /* Section Headers */
+    .amz-section-header {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--amz-navy);
+        border-bottom: 2px solid var(--amz-orange);
+        padding-bottom: 5px;
+        margin-top: 30px;
+        margin-bottom: 15px;
+    }
+
+    /* Buttons */
+    .btn-amz-primary {
+        background: var(--amz-orange);
+        color: #111;
+        border: 1px solid #e6a53a;
+        font-weight: 600;
+        padding: 10px 20px;
+        border-radius: 6px;
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset;
+    }
+
+        .btn-amz-primary:hover {
+            background: var(--amz-orange-2);
+            color: #111;
+        }
+
+    .btn-amz-secondary {
+        background: #fff;
+        color: var(--amz-slate);
+        border: 1px solid var(--amz-border);
+        padding: 10px 20px;
+        border-radius: 6px;
+    }
+
+        .btn-amz-secondary:hover {
+            background: var(--amz-gray-100);
+        }
+
+    /* Checkbox Styling */
+    .amz-form-check {
+        padding-left: 1.5em;
+    }
+
+        .amz-form-check .form-check-input {
+            float: left;
+            margin-left: -1.5em;
+            /* Custom checkbox style can be added here if needed */
+        }
+
+    .amz-form-check-label {
+        font-weight: 400;
+        color: #111;
+    }
+
+    /* New Style for File Inputs */
+    .amz-file-upload .amz-form-control[type="file"] {
+        padding: 6px 8px; /* Slightly adjusted padding for file input */
+        height: 44px; /* Ensure consistent height with other inputs */
+    }
+</style>
+
+<div class="amz-header">
+    <div>
+        <h1>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="#febd69" />
+            </svg>
+            Create New User
+        </h1>
+        <div class="amz-subtitle">Establish Identity and Profile for a new CMS user</div>
+    </div>
+    <div>
+        <a asp-action="Index" class="btn-amz-secondary">← Back to List</a>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-md-8 offset-md-2">
-        <h1>Create New User & Profile</h1>
-        <hr />
+        <div class="amz-card">
+            <form asp-action="Create" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-        <form asp-action="Create" method="post">
-            @Html.AntiForgeryToken()
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-            <h3 class="mt-4 text-primary">Identity Details</h3>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="UserName"></label>
-                        <input asp-for="UserName" class="form-control" />
-                        <span asp-validation-for="UserName" class="text-danger"></span>
+                <h3 class="amz-section-header">Identity & Access Details</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="UserName" class="amz-label"></label>
+                            <input asp-for="UserName" class="amz-form-control" />
+                            <span asp-validation-for="UserName" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="Password" class="amz-label"></label>
+                            <input asp-for="Password" class="amz-form-control" type="password" />
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="Password"></label>
-                        <input asp-for="Password" class="form-control" type="password" />
-                        <span asp-validation-for="Password" class="text-danger"></span>
-                    </div>
-                </div>
-            </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="Email"></label>
-                        <input asp-for="Email" class="form-control" />
-                        <span asp-validation-for="Email" class="text-danger"></span>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="Email" class="amz-label"></label>
+                            <input asp-for="Email" class="amz-form-control" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="PhoneNumber" class="amz-label"></label>
+                            <input asp-for="PhoneNumber" class="amz-form-control" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="PhoneNumber"></label>
-                        <input asp-for="PhoneNumber" class="form-control" />
-                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
-                    </div>
-                </div>
-            </div>
 
-            <div class="form-group mt-3">
-                <label asp-for="Role"></label>
-                <select asp-for="Role" class="form-select">
-                    <option value="">-- none (no role assigned) --</option>
-                    @if (ViewBag.Roles is List<string> roles)
-                    {
-                        @foreach (var r in roles)
+                <div class="form-group mt-4">
+                    <label asp-for="Role" class="amz-label">Assign Role</label>
+                    <select asp-for="Role" class="amz-form-control amz-form-select">
+                        <option value="">-- none (no role assigned) --</option>
+                        @if (ViewBag.Roles is List<string> roles)
                         {
-                            <option value="@r">@r</option>
+                            @foreach (var r in roles)
+                            {
+                                <option value="@r">@r</option>
+                            }
                         }
-                    }
-                </select>
-            </div>
+                    </select>
+                    <span asp-validation-for="Role" class="text-danger"></span>
+                </div>
 
-            <h3 class="mt-5 text-primary">Basic Profile Information</h3>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="FirstName"></label>
-                        <input asp-for="FirstName" class="form-control" />
-                        <span asp-validation-for="FirstName" class="text-danger"></span>
+                <h3 class="amz-section-header">Basic Profile Information</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="FirstName" class="amz-label"></label>
+                            <input asp-for="FirstName" class="amz-form-control" />
+                            <span asp-validation-for="FirstName" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="LastName" class="amz-label"></label>
+                            <input asp-for="LastName" class="amz-form-control" />
+                            <span asp-validation-for="LastName" class="text-danger"></span>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="LastName"></label>
-                        <input asp-for="LastName" class="form-control" />
-                        <span asp-validation-for="LastName" class="text-danger"></span>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="ITSNumber" class="amz-label"></label>
+                            <input asp-for="ITSNumber" class="amz-form-control" />
+                            <span asp-validation-for="ITSNumber" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3 amz-file-upload">
+                            <label asp-for="ProfileImageFile" class="amz-label"></label>
+                            <input asp-for="ProfileImageFile" class="amz-form-control" type="file" accept="image/*" /> <span asp-validation-for="ProfileImageFile" class="text-danger"></span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="ITSNumber"></label>
-                        <input asp-for="ITSNumber" class="form-control" />
-                        <span asp-validation-for="ITSNumber" class="text-danger"></span>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="Profession" class="amz-label"></label>
+                            <input asp-for="Profession" class="amz-form-control" />
+                            <span asp-validation-for="Profession" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="ServicesProvided" class="amz-label"></label>
+                            <input asp-for="ServicesProvided" class="amz-form-control" placeholder="e.g., Web Design, Consulting, Plumbing (comma-separated)" />
+                            <span asp-validation-for="ServicesProvided" class="text-danger"></span>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="Profession"></label>
-                        <input asp-for="Profession" class="form-control" />
-                        <span asp-validation-for="Profession" class="text-danger"></span>
+
+                <div class="form-group mt-3">
+                    <label asp-for="About" class="amz-label"></label>
+                    <textarea asp-for="About" class="amz-form-control" rows="3"></textarea>
+                    <span asp-validation-for="About" class="text-danger"></span>
+                </div>
+
+
+                <h3 class="amz-section-header">Contact & Social Links</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="WhatsappNumber" class="amz-label"></label>
+                            <input asp-for="WhatsappNumber" class="amz-form-control" />
+                            <span asp-validation-for="WhatsappNumber" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="LinkedInUrl" class="amz-label"></label>
+                            <input asp-for="LinkedInUrl" class="amz-form-control" />
+                            <span asp-validation-for="LinkedInUrl" class="text-danger"></span>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="form-group mt-3">
-                <label asp-for="About"></label>
-                <textarea asp-for="About" class="form-control" rows="3"></textarea>
-                <span asp-validation-for="About" class="text-danger"></span>
-            </div>
-
-            <div class="form-group mt-3">
-                <label asp-for="ServicesProvided"></label>
-                <input asp-for="ServicesProvided" class="form-control" placeholder="e.g., Web Design, Consulting, Plumbing (comma-separated)" />
-                <span asp-validation-for="ServicesProvided" class="text-danger"></span>
-            </div>
-
-            <h3 class="mt-5 text-primary">Contact & Social Links</h3>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="WhatsappNumber"></label>
-                        <input asp-for="WhatsappNumber" class="form-control" />
-                        <span asp-validation-for="WhatsappNumber" class="text-danger"></span>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="FacebookUrl" class="amz-label"></label>
+                            <input asp-for="FacebookUrl" class="amz-form-control" />
+                            <span asp-validation-for="FacebookUrl" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="InstagramUrl" class="amz-label"></label>
+                            <input asp-for="InstagramUrl" class="amz-form-control" />
+                            <span asp-validation-for="InstagramUrl" class="text-danger"></span>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="LinkedInUrl"></label>
-                        <input asp-for="LinkedInUrl" class="form-control" />
-                        <span asp-validation-for="LinkedInUrl" class="text-danger"></span>
+
+
+                <h3 class="amz-section-header">Payment QR Codes (Image Uploads)</h3>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3 amz-file-upload">
+                            <label asp-for="GpayQRCodeFile" class="amz-label"></label>
+                            <input asp-for="GpayQRCodeFile" class="amz-form-control" type="file" accept="image/*" /> <span asp-validation-for="GpayQRCodeFile" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3 amz-file-upload">
+                            <label asp-for="PhonePeQRCodeFile" class="amz-label"></label>
+                            <input asp-for="PhonePeQRCodeFile" class="amz-form-control" type="file" accept="image/*" /> <span asp-validation-for="PhonePeQRCodeFile" class="text-danger"></span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="FacebookUrl"></label>
-                        <input asp-for="FacebookUrl" class="form-control" />
-                        <span asp-validation-for="FacebookUrl" class="text-danger"></span>
+
+                <h3 class="amz-section-header">Addresses & Phones</h3>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="HomeAddress" class="amz-label"></label>
+                            <input asp-for="HomeAddress" class="amz-form-control" />
+                            <span asp-validation-for="HomeAddress" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="HomePhoneNumber" class="amz-label"></label>
+                            <input asp-for="HomePhoneNumber" class="amz-form-control" />
+                            <span asp-validation-for="HomePhoneNumber" class="text-danger"></span>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="InstagramUrl"></label>
-                        <input asp-for="InstagramUrl" class="form-control" />
-                        <span asp-validation-for="InstagramUrl" class="text-danger"></span>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="BusinessAddress" class="amz-label"></label>
+                            <input asp-for="BusinessAddress" class="amz-form-control" />
+                            <span asp-validation-for="BusinessAddress" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="BusinessPhoneNumber" class="amz-label"></label>
+                            <input asp-for="BusinessPhoneNumber" class="amz-form-control" />
+                            <span asp-validation-for="BusinessPhoneNumber" class="text-danger"></span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
 
-            <h3 class="mt-5 text-primary">Addresses & Phones</h3>
+                <h3 class="amz-section-header">Admin/Visibility Settings</h3>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="HomeAddress"></label>
-                        <input asp-for="HomeAddress" class="form-control" />
-                        <span asp-validation-for="HomeAddress" class="text-danger"></span>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group amz-form-check mt-4">
+                            <input asp-for="IsProfileVisible" class="form-check-input" />
+                            <label asp-for="IsProfileVisible" class="amz-form-check-label"></label>
+                            <small class="text-muted d-block">Controls whether the profile is shown publicly.</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group amz-form-check mt-4">
+                            <input asp-for="IsImageApproved" class="form-check-input" />
+                            <label asp-for="IsImageApproved" class="amz-form-check-label"></label>
+                            <small class="text-muted d-block">Mark as approved once the user's profile image is reviewed.</small>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="HomePhoneNumber"></label>
-                        <input asp-for="HomePhoneNumber" class="form-control" />
-                        <span asp-validation-for="HomePhoneNumber" class="text-danger"></span>
-                    </div>
+
+                <hr class="mt-4" />
+
+                <div class="form-group mt-4 mb-3 d-flex justify-content-end">
+                    <a asp-action="Index" class="btn-amz-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn-amz-primary">💾 Create User & Profile</button>
                 </div>
-            </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="BusinessAddress"></label>
-                        <input asp-for="BusinessAddress" class="form-control" />
-                        <span asp-validation-for="BusinessAddress" class="text-danger"></span>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group mt-3">
-                        <label asp-for="BusinessPhoneNumber"></label>
-                        <input asp-for="BusinessPhoneNumber" class="form-control" />
-                        <span asp-validation-for="BusinessPhoneNumber" class="text-danger"></span>
-                    </div>
-                </div>
-            </div>
-
-
-            <h3 class="mt-5 text-primary">Admin/Visibility Settings</h3>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group form-check mt-4">
-                        <input asp-for="IsProfileVisible" class="form-check-input" />
-                        <label asp-for="IsProfileVisible" class="form-check-label"></label>
-                        <small class="text-muted d-block">@Html.DisplayNameFor(m => m.IsProfileVisible)</small>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group form-check mt-4">
-                        <input asp-for="IsImageApproved" class="form-check-input" />
-                        <label asp-for="IsImageApproved" class="form-check-label"></label>
-                    </div>
-                </div>
-            </div>
-
-            <hr class="mt-4" />
-
-            <div class="form-group mt-4 mb-5">
-                <button type="submit" class="btn btn-primary btn-lg">💾 Create User & Profile</button>
-                <a asp-action="Index" class="btn btn-secondary ms-2">Cancel</a>
-            </div>
-
-
-            @* Note on Paths: ProfileImagePath, GpayQRCodePath, and PhonePeQRCodePath 
-               are usually handled by file upload controls, not direct text inputs,
-               but they can be added as hidden or text inputs if needed for the backend model.*@
-
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 

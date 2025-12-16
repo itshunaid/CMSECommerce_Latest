@@ -281,11 +281,57 @@ namespace CMSECommerce.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateUserModel model)
         {
+            // Reload roles for potential return to view (moved up for cleaner structure)
+            try
+            {
+                ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching roles.");
+                ViewBag.Roles = new List<string>();
+            }
+
             try
             {
                 if (ModelState.IsValid)
                 {
-                    // 1. Create IdentityUser object
+                    // --- 1. File Upload Processing ---
+                    // These variables will hold the paths to be saved in the database
+                    string profileImagePath = null;
+                    string gpayQrCodePath = null;
+                    string phonePeQrCodePath = null;
+
+                    // Define the path where files will be saved (e.g., wwwroot/images)
+                    string uploadFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "useruploads");
+                    if (!Directory.Exists(uploadFolder))
+                    {
+                        Directory.CreateDirectory(uploadFolder);
+                    }
+
+                    // Helper function to save a file and return its path
+                    async Task<string> SaveFileAsync(IFormFile file)
+                    {
+                        if (file == null || file.Length == 0) return null;
+
+                        // Create a unique file name
+                        string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(file.FileName);
+                        string filePath = Path.Combine(uploadFolder, uniqueFileName);
+
+                        using (var fileStream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(fileStream);
+                        }
+                        // Return the relative path for database storage (e.g., /images/useruploads/guid_file.jpg)
+                        return $"/images/useruploads/{uniqueFileName}";
+                    }
+
+                    // Process uploads
+                    profileImagePath = await SaveFileAsync(model.ProfileImageFile);
+                    gpayQrCodePath = await SaveFileAsync(model.GpayQRCodeFile);
+                    phonePeQrCodePath = await SaveFileAsync(model.PhonePeQRCodeFile);
+
+                    // --- 2. Create IdentityUser object ---
                     var user = new IdentityUser
                     {
                         UserName = model.UserName,
@@ -294,7 +340,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                         PhoneNumber = model.PhoneNumber
                     };
 
-                    // 2. Attempt to create IdentityUser in the database
+                    // --- 3. Attempt to create IdentityUser in the database ---
                     var result = await _userManager.CreateAsync(user, model.Password);
 
                     if (result.Succeeded)
@@ -308,9 +354,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                             FirstName = model.FirstName,
                             LastName = model.LastName,
 
-                            // Map ALL remaining UserProfile fields from the model
+                            // Map fields, using the new paths for the image fields
                             ITSNumber = model.ITSNumber,
-                            ProfileImagePath = model.ProfileImagePath,
+                            ProfileImagePath = profileImagePath, // <-- Mapped the generated path
                             IsImageApproved = model.IsImageApproved,
                             IsProfileVisible = model.IsProfileVisible,
                             About = model.About,
@@ -324,8 +370,8 @@ namespace CMSECommerce.Areas.Admin.Controllers
                             HomePhoneNumber = model.HomePhoneNumber,
                             BusinessAddress = model.BusinessAddress,
                             BusinessPhoneNumber = model.BusinessPhoneNumber,
-                            GpayQRCodePath = model.GpayQRCodePath,
-                            PhonePeQRCodePath = model.PhonePeQRCodePath
+                            GpayQRCodePath = gpayQrCodePath,      // <-- Mapped the generated path
+                            PhonePeQRCodePath = phonePeQrCodePath // <-- Mapped the generated path
                         };
 
                         // Add and save the UserProfile to the database
@@ -334,7 +380,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                         // ** END: UserProfile Creation **
 
-                        // 3. Assign Role (existing logic)
+                        // --- 4. Assign Role (existing logic) ---
                         if (!string.IsNullOrWhiteSpace(model.Role))
                         {
                             if (await _roleManager.RoleExistsAsync(model.Role))
@@ -345,20 +391,18 @@ namespace CMSECommerce.Areas.Admin.Controllers
                                     _logger.LogError("Identity error adding role {Role} to user {UserName}. Errors: {Errors}",
                                         model.Role, model.UserName, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
 
-                                    // Updated TempData message to reflect profile creation
                                     TempData["warning"] = $"User and Profile created, but failed to assign role: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}";
                                     return RedirectToAction(nameof(Index));
                                 }
                             }
                         }
 
-                        // 4. Success
-                        // Updated TempData message
+                        // --- 5. Success ---
                         TempData["success"] = $"User '{model.UserName}' and Profile created successfully.";
                         return RedirectToAction(nameof(Index));
                     }
 
-                    // 5. Handle Identity creation errors
+                    // --- 6. Handle Identity creation errors ---
                     foreach (var e in result.Errors)
                     {
                         ModelState.AddModelError(string.Empty, e.Description);
@@ -367,22 +411,12 @@ namespace CMSECommerce.Areas.Admin.Controllers
             }
             catch (Exception ex)
             {
-                // General error handling for both Identity and DbContext operations
+                // General error handling for Identity, File System, and DbContext operations
                 _logger.LogError(ex, "Unexpected error during user and profile creation for user: {UserName}", model.UserName);
-                ModelState.AddModelError(string.Empty, "An unexpected error occurred during user or profile creation.");
+                ModelState.AddModelError(string.Empty, "An unexpected error occurred during user or profile creation. Check logs for details.");
             }
 
-            // 6. Reload roles if the view is returned due to validation/error
-            try
-            {
-                ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error reloading roles after failed user creation.");
-                ViewBag.Roles = new List<string>();
-            }
-
+            // Return the view with the model if ModelState is invalid or an error occurred
             return View(model);
         }
 
