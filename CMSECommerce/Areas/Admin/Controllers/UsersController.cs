@@ -120,10 +120,6 @@ namespace CMSECommerce.Areas.Admin.Controllers
             }
         }
 
-        // Inside your UsersController.cs
-
-        // Inside your UsersController.cs
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateUserField(string userId, string fieldName, string value)
