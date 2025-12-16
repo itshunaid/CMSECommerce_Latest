@@ -1,0 +1,309 @@
+﻿@using CMSECommerce.Areas.Admin.Models
+@model EditUserModel
+
+@{
+    ViewData["Title"] = "Profile Details";
+}
+
+<style>
+    /* LinkedIn-Style CSS Definitions */
+    :root {
+        --linkedin-blue: #0A66C2;
+        --linkedin-gray: #EBEBEB;
+        --text-dark: #191919;
+        --text-secondary: #666666;
+        --shadow-subtle: 0 0 0 1px rgb(0 0 0 / 15%), 0 2px 3px rgb(0 0 0 / 20%);
+    }
+
+    .linkedin-card {
+        background-color: #fff;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        border: 1px solid var(--linkedin-gray);
+        overflow: hidden;
+        /* Crucial: Set positioning context for absolute children (profile-photo) */
+        position: relative;
+    }
+
+    .profile-hero {
+        background-color: var(--linkedin-gray); /* Placeholder for banner image */
+        height: 150px;
+        position: relative;
+    }
+
+    .profile-photo {
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        border: 4px solid #fff;
+        position: absolute;
+        /* FIX: Adjusted positioning and added z-index for visibility */
+        top: 85px;
+        left: 25px;
+        z-index: 10; /* Ensures the photo renders above the main-info */
+
+        object-fit: cover;
+        box-shadow: 0 0 0 1px rgba(0,0,0,.15);
+    }
+
+    .main-info {
+        padding: 24px 24px 24px 24px;
+        /* FIX: Reduced top padding to make space for the image overlap */
+        padding-top: 75px;
+        position: relative;
+    }
+
+    .main-name {
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 4px;
+    }
+
+    .main-profession {
+        font-size: 18px;
+        font-weight: 400;
+        color: var(--text-dark);
+        margin-bottom: 8px;
+    }
+
+    .main-role {
+        font-size: 16px;
+        color: var(--text-secondary);
+        margin-bottom: 15px;
+    }
+
+    .section-header {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-dark);
+        border-bottom: 1px solid var(--linkedin-gray);
+        padding-bottom: 8px;
+        margin-bottom: 15px;
+    }
+
+    .detail-label {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-top: 10px;
+        display: block;
+    }
+
+    .detail-value {
+        font-size: 16px;
+        color: var(--text-dark);
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+    }
+
+    .linkedin-btn {
+        background-color: var(--linkedin-blue);
+        color: #fff;
+        border: none;
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        transition: background-color 0.2s;
+    }
+
+        .linkedin-btn:hover {
+            background-color: #004182;
+            color: #fff;
+            text-decoration: none;
+        }
+
+    .social-icon {
+        color: var(--linkedin-blue);
+        font-size: 24px;
+        margin-right: 15px;
+    }
+
+    .qr-link-btn {
+        background-color: #f3f3f3;
+        color: var(--linkedin-blue);
+        padding: 4px 8px;
+    }
+
+        .qr-link-btn:hover {
+            background-color: #e0e0e0;
+        }
+
+    /* NEW: Style for inline QR codes */
+    .qr-code-display {
+        max-width: 100px;
+        height: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-top: 5px;
+        margin-bottom: 10px; /* Add margin below the image */
+        display: block;
+        cursor: pointer; /* Suggests it's clickable (to view full size) */
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 style="font-weight: 400; color: var(--text-dark);">User Profile Details</h2>
+    <a asp-action="ProfileDetails" asp-controller="Account" class="linkedin-btn">
+        <i class="fas fa-pencil-alt me-2"></i> Edit Profile
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="linkedin-card">
+            <div class="profile-hero">
+            </div>
+
+            <img src="@(string.IsNullOrEmpty(Model.ProfileImagePath) ? "/images/default_profile.png" : Model.ProfileImagePath)"
+                 alt="Profile Photo"
+                 class="profile-photo">
+
+            <div class="main-info">
+                <div class="d-flex justify-content-end mb-3">
+                    @if (Model.IsProfileVisible)
+                    {
+                        <span class="badge bg-secondary" style="font-weight: 500;">Visible to Public</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-warning text-dark" style="font-weight: 500;">Private</span>
+                    }
+                </div>
+
+                <div class="main-name">@Model.FirstName @Model.LastName</div>
+                <div class="main-profession">@(string.IsNullOrEmpty(Model.Profession) ? "Profession Not Listed" : Model.Profession)</div>
+                <div class="main-role">@Model.Role</div>
+
+                <div class="text-secondary small">
+                    <i class="fas fa-map-marker-alt me-1"></i>
+                    @(string.IsNullOrEmpty(Model.HomeAddress) ? "Location Not Specified" : Model.HomeAddress)
+                    <span class="mx-2">|</span>
+                    <i class="fas fa-envelope me-1"></i> @Model.Email
+                </div>
+            </div>
+        </div>
+
+        <div class="linkedin-card p-4">
+            <div class="section-header">About</div>
+            <div class="detail-value" style="white-space: pre-wrap;">
+                @(string.IsNullOrEmpty(Model.About) ? "No 'About' section provided yet." : Model.About)
+            </div>
+        </div>
+
+        <div class="linkedin-card p-4">
+            <div class="section-header">Services & Skills</div>
+            <div class="detail-value">
+                @(string.IsNullOrEmpty(Model.ServicesProvided) ? "No services listed." : Model.ServicesProvided)
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+        <div class="linkedin-card p-4">
+            <div class="section-header">Contact Information</div>
+
+            <span class="detail-label">Email</span>
+            <div class="detail-value">@Model.Email</div>
+
+            <span class="detail-label">Primary Phone</span>
+            <div class="detail-value">@(string.IsNullOrEmpty(Model.PhoneNumber) ? "Not Set" : Model.PhoneNumber)</div>
+
+            @if (!string.IsNullOrEmpty(Model.ITSNumber))
+            {
+                <span class="detail-label">ITS Number</span>
+                <div class="detail-value">@Model.ITSNumber</div>
+            }
+
+            <span class="detail-label">Home Address</span>
+            <div class="detail-value">@(string.IsNullOrEmpty(Model.HomeAddress) ? "Not Set" : Model.HomeAddress)</div>
+
+            <span class="detail-label">Business Address</span>
+            <div class="detail-value">@(string.IsNullOrEmpty(Model.BusinessAddress) ? "Not Set" : Model.BusinessAddress)</div>
+
+        </div>
+
+        <div class="linkedin-card p-4">
+            <div class="section-header">Social Media & Links</div>
+
+            @if (!string.IsNullOrEmpty(Model.LinkedInUrl))
+            {
+                <span class="detail-label"><i class="fab fa-linkedin social-icon"></i> LinkedIn</span>
+                <div class="detail-value">
+                    <a href="@Model.LinkedInUrl" target="_blank" class="linkedin-btn qr-link-btn"><i class="fas fa-external-link-alt me-1"></i> View Profile</a>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.FacebookUrl))
+            {
+                <span class="detail-label"><i class="fab fa-facebook social-icon" style="color:#4267B2;"></i> Facebook</span>
+                <div class="detail-value">
+                    <a href="@Model.FacebookUrl" target="_blank" class="linkedin-btn qr-link-btn" style="color: #4267B2;"><i class="fas fa-external-link-alt me-1"></i> View Profile</a>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.InstagramUrl))
+            {
+                <span class="detail-label"><i class="fab fa-instagram social-icon" style="color:#C13584;"></i> Instagram</span>
+                <div class="detail-value">
+                    <a href="@Model.InstagramUrl" target="_blank" class="linkedin-btn qr-link-btn" style="color: #C13584;"><i class="fas fa-external-link-alt me-1"></i> View Profile</a>
+                </div>
+            }
+
+            <span class="detail-label"><i class="fab fa-whatsapp social-icon" style="color:#25D366;"></i> WhatsApp</span>
+            <div class="detail-value">@(string.IsNullOrEmpty(Model.WhatsappNumber) ? "Not Set" : Model.WhatsappNumber)</div>
+        </div>
+
+        <div class="linkedin-card p-4">
+            <div class="section-header">Image & Payment Status</div>
+
+            <span class="detail-label">Profile Image Status</span>
+            <div class="detail-value">
+                @if (Model.IsImageApproved && !string.IsNullOrEmpty(Model.ProfileImagePath))
+                {
+                    <span class="badge bg-success me-2">Approved</span>
+                    <a href="@Model.ProfileImagePath" target="_blank" class="linkedin-link" style="color: var(--linkedin-blue);">View Image</a>
+                }
+                else
+                {
+                    <span class="badge bg-danger">Awaiting Approval / Not Set</span>
+                }
+            </div>
+
+            <div class="row">
+                <div class="col-6">
+                    <span class="detail-label">GPay QR</span>
+                    @if (!string.IsNullOrEmpty(Model.GpayQRCodePath))
+                    {
+                        <a href="@Model.GpayQRCodePath" target="_blank">
+                            <img src="@Model.GpayQRCodePath" alt="GPay QR Code" class="qr-code-display" />
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="text-secondary small">Not Set</div>
+                    }
+                </div>
+                <div class="col-6">
+                    <span class="detail-label">PhonePe QR</span>
+                    @if (!string.IsNullOrEmpty(Model.PhonePeQRCodePath))
+                    {
+                        <a href="@Model.PhonePeQRCodePath" target="_blank">
+                            <img src="@Model.PhonePeQRCodePath" alt="PhonePe QR Code" class="qr-code-display" />
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="text-secondary small">Not Set</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+}

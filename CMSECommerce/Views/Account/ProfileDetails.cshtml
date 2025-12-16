@@ -1,451 +1,309 @@
-﻿@using System.Security.Claims
-@model CMSECommerce.Models.ViewModels.ProfileUpdateViewModel
+﻿@using CMSECommerce.Areas.Admin.Models
+@model EditUserModel
 
 @{
-    ViewData["Title"] = "My Profile Overview";
-    var loggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-    // Helper to determine visibility status
-    var isVisible = Model.IsProfileVisible;
-    var visibilityClass = isVisible ? "text-success" : "text-danger";
-    var visibilityIcon = isVisible ? "fa-eye" : "fa-eye-slash";
-    var visibilityText = isVisible ? "Publicly Visible on Business Directory" : "Hidden from Business Directory";
-
-    // Image Upload Status Helpers
-    var isImagePending = Model.IsImagePending;
-    var isImageApproved = Model.IsImageApproved;
-
-    // Helper for Display Name (Prioritizes First/Last Name over Username)
-    var displayName = string.IsNullOrEmpty(Model.FirstName) || string.IsNullOrEmpty(Model.LastName)
-        ? Model.UserName
-        : $"{Model.FirstName} {Model.LastName}";
+    ViewData["Title"] = "Edit User";
 }
 
 <style>
-    /* Amazon Primary Palette: Orange/Yellow, Dark Blue/Black */
-    :root {
-        --amazon-yellow: #FF9900; /* Primary accent color */
-        --amazon-dark-blue: #232F3E; /* Header/primary background color */
-        --amazon-text: #111111; /* General text color */
-        --amazon-link: #0066c0; /* Standard link color */
-        --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24); /* Subtle Amazon-like shadow */
-    }
-
-    body {
-        background-color: #EAEDED; /* Light off-white/gray background, typical of Amazon body */
-    }
-
-    .text-amazon-yellow {
-        color: var(--amazon-yellow) !important;
-    }
-
-    .text-amazon-dark-blue {
-        color: var(--amazon-dark-blue) !important;
-    }
-
-    .bg-header-amazon {
-        background-color: #FFFFFF; /* White card header */
-    }
-
-    .profile-nav .nav-link {
-        font-weight: 500;
-        color: var(--amazon-link);
-        border-bottom: 3px solid transparent;
-        transition: border-color 0.2s, color 0.2s;
-    }
-
-        .profile-nav .nav-link.active {
-            color: var(--amazon-yellow); /* Yellow text when active */
-            border-bottom: 3px solid var(--amazon-yellow); /* Yellow underline for active tab */
-        }
-
-        .profile-nav .nav-link:hover {
-            border-bottom: 3px solid #ffad33; /* Slightly brighter hover yellow */
-        }
-
-    .detail-list .row {
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #e7e7e7; /* Light separator */
-    }
-
-        .detail-list .row:last-child {
-            border-bottom: none;
-        }
-
-        .detail-list .row:hover {
-            background-color: #f7fafa; /* Very subtle hover effect */
-        }
-
-    .card {
-        border: 1px solid #DDDDDD; /* Light gray border */
+    /* Custom styling to mimic Amazon-like cards and buttons */
+    .amazon-card {
+        border: 1px solid #ddd; /* Light border */
         border-radius: 8px; /* Slightly rounded corners */
-        box-shadow: var(--shadow-card);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        padding: 20px;
+        margin-bottom: 25px;
+        background-color: #fff; /* White background */
     }
 
-    .card-header {
-        background-color: #F7FAFA; /* Very light background for headers */
-        border-bottom: 1px solid #DDDDDD;
-        font-weight: 700;
-        color: var(--amazon-dark-blue);
-    }
-
-    /* Custom button styles to match Amazon's look */
-    .btn-amazon-primary {
-        background-color: #FFD814; /* Standard Amazon button yellow */
+    .amazon-button {
+        background-color: #FFD814; /* Amazon Yellow */
         border-color: #FCD200;
-        color: var(--amazon-dark-blue);
-        font-weight: 700;
-        padding: 0.5rem 1rem;
-        border-radius: 3px;
+        color: #111; /* Black text */
+        border-radius: 50px; /* Highly rounded button */
+        padding: 8px 18px;
+        font-weight: 500;
     }
 
-        .btn-amazon-primary:hover {
+        .amazon-button:hover {
             background-color: #F7CA00; /* Darker yellow on hover */
-            border-color: #F2C200;
+            border-color: #F7CA00;
+            color: #111;
         }
 
-    .btn-amazon-secondary {
-        background-color: #F0F2F2; /* Standard Amazon secondary button light gray */
-        border-color: #ADB1B8;
-        color: var(--amazon-dark-blue);
-        font-weight: 500;
-        padding: 0.5rem 1rem;
-        border-radius: 3px;
-    }
-
-        .btn-amazon-secondary:hover {
-            background-color: #E3E6E6;
-            border-color: #A2A6AC;
-        }
-
-    .text-link-amazon {
-        color: var(--amazon-link);
-        text-decoration: none;
-    }
-
-        .text-link-amazon:hover {
-            color: var(--amazon-yellow);
-            text-decoration: underline;
-        }
-
-    /* Social links adjusted for color */
-    .social-link-btn {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.375rem 0.75rem;
-        border-radius: 3px; /* More square than pill */
-        font-weight: 500;
-        text-decoration: none;
-        transition: 0.3s;
-        border: 1px solid transparent;
-    }
-
-        .social-link-btn:hover {
-            opacity: 0.9;
-        }
-
-    .linkedin-color {
-        background-color: #0077b5;
-        color: white;
-    }
-
-    .facebook-color {
-        background-color: #1877f2;
-        color: white;
-    }
-
-    .instagram-color {
-        background-color: #e4405f;
-        color: white;
-    }
-
-    .text-purple {
-        color: #5352ed;
-    }
-
-    .address-card .card-header {
-        background-color: #F7FAFA;
-    }
-
-    .badge-amazon {
-        background-color: #0073b1; /* A neutral/professional blue for services */
-        color: white;
-    }
-
-    /* Styles for image approval status */
-    .image-status-pending {
-        color: #FF9900; /* Amazon Yellow for pending */
-        font-weight: bold;
-    }
-
-    .image-status-approved {
-        color: #28a745; /* Success Green */
-        font-weight: bold;
-    }
-
-    .image-status-na {
-        color: #6c757d; /* Muted Gray */
+    .current-image-preview {
+        max-width: 100px;
+        max-height: 100px;
+        margin-top: 10px;
+        border: 1px solid #ccc;
+        padding: 5px;
+        border-radius: 4px;
     }
 </style>
-@if (ViewBag.ITSAvailable == null || (bool)ViewBag.ITSAvailable == false)
-{
-    // If ITS is NOT available (the condition fails), we display the popup.
-    <script type="text/javascript">
-        // Use a function to ensure the code runs after the page loads
-        document.addEventListener("DOMContentLoaded", function() {
-            // Display an alert (simple popup)
-            alert("To request to become a seller, please update your ITS number in your User Profile first.");
 
-            // OR: You could use a modal/dialog library here instead of alert()
-            // $('#myITSRequiredModal').modal('show');
-        });
-    </script>
-}
+<div class="row">
+    <div class="col-lg-9 offset-lg-1">
+        <h1 class="mb-4">Edit User: @Model.UserName</h1>
 
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-10 col-xl-8">
+        <form asp-action="Edit" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-            <h1 class="display-6 fw-bold text-amazon-dark-blue mb-4">Your Account Details</h1>
-            <p class="text-secondary mb-4">View and manage your personal, professional, and address information.</p>
-
-            <div class="card border-0">
-
-                <div class="card-header bg-header-amazon text-center p-4 rounded-top">
-                    @* Image Display Logic: Checks Approved -> Pending -> Default *@
-                    @if (Model.IsImageApproved == true && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
-                    {
-                        <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle border border-2 border-light-subtle mb-3" style="width: 100px; height: 100px; object-fit: cover;" />
-                    }
-                    else if (Model.IsImagePending == true && !string.IsNullOrEmpty(Model.PendingProfileImagePath))
-                    {
-                        @* Show the pending image, with a warning visual *@
-                        <div class="position-relative d-inline-block">
-                            <img src="/@Model.PendingProfileImagePath" alt="Pending Profile Image" class="img-fluid rounded-circle border border-3 border-warning mb-3" style="width: 100px; height: 100px; object-fit: cover; opacity: 0.7;" />
-                            <i class="fas fa-hourglass-half text-warning position-absolute top-0 end-0 bg-white rounded-circle p-1" style="font-size: 1.5rem; transform: translate(10%, -10%);"></i>
+            <div class="amazon-card">
+                <h3 class="mt-0 text-dark">🔐 Identity & Security</h3>
+                <hr />
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="UserName" class="form-label"></label>
+                            <input asp-for="UserName" class="form-control" />
+                            <span asp-validation-for="UserName" class="text-danger"></span>
                         </div>
-                    }
-                    else
-                    {
-                        <i class="fas fa-user-circle fa-4x text-muted mb-3"></i>
-                    }
-
-                    <h2 class="h4 fw-bold text-amazon-dark-blue mb-0">
-                        Hello, @displayName
-                        @* Status Badge in Header *@
-                        <span class="ms-2 badge @(isVisible ? "bg-success" : "bg-danger") fw-normal" style="font-size: 0.75rem;">
-                            <i class="fas @visibilityIcon me-1"></i> @visibilityText
-                        </span>
-                    </h2>
-                    <p class="text-muted small">@Model.Profession</p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="NewPassword" class="form-label">New Password (leave blank to keep existing)</label>
+                            <input asp-for="NewPassword" class="form-control" type="password" />
+                            <span asp-validation-for="NewPassword" class="text-danger"></span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="card-body pt-3 px-4 px-md-5 border-bottom">
-                    @if (Model.UserId == loggedInUserId || User.IsInRole("Admin"))
-                    {
-                        <div class="d-flex justify-content-end mb-3">
-                            <div class="btn-group" role="group" aria-label="Profile actions">
-                                <a asp-action="EditProfile" asp-route-id="@Model.UserId" class="btn btn-amazon-primary shadow-sm me-2">
-                                    <i class="fas fa-edit me-1"></i> Edit Details
-                                </a>
-                                <button type="button" class="btn btn-amazon-secondary shadow-sm" data-bs-toggle="modal" data-bs-target="#deleteProfileModal">
-                                    <i class="fas fa-trash-alt me-1"></i> Delete Data
-                                </button>
-                            </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
                         </div>
-                    }
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="PhoneNumber" class="form-label">Phone Number (Identity)</label>
+                            <input asp-for="PhoneNumber" class="form-control" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="card-body pt-0 px-4 px-md-5">
-                    <ul class="nav nav-tabs nav-fill profile-nav mb-4" id="profileTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button" role="tab" aria-controls="account" aria-selected="true">Account</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="professional-tab" data-bs-toggle="tab" data-bs-target="#professional" type="button" role="tab" aria-controls="professional" aria-selected="false">Professional</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="address-tab" data-bs-toggle="tab" data-bs-target="#address" type="button" role="tab" aria-controls="address" aria-selected="false">Addresses</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab" aria-controls="social" aria-selected="false">Social & Pay</button>
-                        </li>
-                    </ul>
+                <div class="form-group mt-3">
+                    <label asp-for="Role" class="amazon-input-label">Role</label>
+                    <div class="detail-value">
+                        @(string.IsNullOrEmpty(Model.Role) ? "None Assigned" : Model.Role)
+                    </div>
 
-                    <div class="tab-content" id="profileTabsContent">
-                        <div class="tab-pane fade show active" id="account" role="tabpanel" aria-labelledby="account-tab">
-                            <h5 class="text-amazon-dark-blue mb-3">Login and Contact</h5>
-                            <dl class="detail-list border rounded px-3 py-2 bg-white">
+                    <input type="hidden" asp-for="Role" />
+                </div>
+            </div>
 
-                                @if (!string.IsNullOrEmpty(Model.FirstName) || !string.IsNullOrEmpty(Model.LastName))
-                                {
-                                    <div class="row"><dt class="col-sm-4 text-muted">Full Name:</dt><dd class="col-sm-8 fw-bold text-amazon-dark-blue">@Model.FirstName @Model.LastName</dd></div>
-                                }
-
-                                <div class="row">
-                                    <dt class="col-sm-4 text-muted">Profile Visibility:</dt>
-                                    <dd class="col-sm-8">
-                                        <span class="@visibilityClass fw-bold">
-                                            <i class="fas @visibilityIcon me-1"></i> @visibilityText
-                                        </span>
-                                    </dd>
-                                </div>
-                                <div class="row"><dt class="col-sm-4 text-muted">Username:</dt><dd class="col-sm-8 fw-bold text-amazon-dark-blue">@Model.UserName</dd></div>
-                                <div class="row"><dt class="col-sm-4 text-muted">Email:</dt><dd class="col-sm-8"><a href="mailto:@Model.Email" class="text-link-amazon">@Model.Email</a></dd></div>
-                                <div class="row"><dt class="col-sm-4 text-muted">Phone:</dt><dd class="col-sm-8">@Model.PhoneNumber</dd></div>
-
-                            </dl>
-                            <h5 class="mt-4 text-amazon-dark-blue">About Me:</h5>
-                            <div class="p-3 border rounded bg-white shadow-sm">@(!string.IsNullOrEmpty(Model.About) ? @Model.About : "<em class='text-muted small'>N/A</em>")</div>
+            <div class="amazon-card">
+                <h3 class="mt-0 text-dark">👤 Basic Profile Information</h3>
+                <hr />
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="FirstName" class="form-label"></label>
+                            <input asp-for="FirstName" class="form-control" />
+                            <span asp-validation-for="FirstName" class="text-danger"></span>
                         </div>
-
-                        <div class="tab-pane fade" id="professional" role="tabpanel" aria-labelledby="professional-tab">
-                            <h5 class="text-amazon-dark-blue mb-3">Professional Info</h5>
-                            <dl class="detail-list border rounded px-3 py-2 bg-white">
-                                <div class="row"><dt class="col-sm-4 text-muted">ITS Number:</dt><dd class="col-sm-8">@(string.IsNullOrEmpty(Model.ITSNumber) ? "<span class='text-danger'>Not Set</span>" : Model.ITSNumber)</dd></div>
-                                <div class="row"><dt class="col-sm-4 text-muted">Profession:</dt><dd class="col-sm-8">@Model.Profession</dd></div>
-                                <div class="row"><dt class="col-sm-4 text-muted">WhatsApp:</dt><dd class="col-sm-8">@(!string.IsNullOrEmpty(Model.WhatsappNumber) ? $"<a href='https://wa.me/{Model.WhatsappNumber}' class='text-link-amazon'>{Model.WhatsappNumber}</a>" : "N/A")</dd></div>
-                                <div class="row">
-                                    <dt class="col-sm-4 text-muted">Services:</dt>
-                                    <dd class="col-sm-8">
-                                        @if (!string.IsNullOrEmpty(Model.ServicesProvided))
-                                        {
-                                            foreach (var s in Model.ServicesProvided.Split(','))
-                                            {
-                                                <span class="badge badge-amazon text-white me-2">@s.Trim()</span>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <span>N/A</span>
-                                        }
-                                    </dd>
-                                </div>
-
-                                @* Profile Image Approval Status Row *@
-                                <div class="row">
-                                    <dt class="col-sm-4 text-muted">Profile Image Status:</dt>
-                                    <dd class="col-sm-8">
-                                        @if (isImagePending)
-                                        {
-                                            <span class="image-status-pending"><i class="fas fa-clock me-1"></i> Pending Approval</span>
-                                        }
-                                        else if (isImageApproved && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
-                                        {
-                                            <span class="image-status-approved"><i class="fas fa-check-circle me-1"></i> Approved</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="image-status-na"><i class="fas fa-exclamation-circle me-1"></i> Not Uploaded / Rejected</span>
-                                        }
-                                    </dd>
-                                </div>
-
-                                @* Link/Display for Pending Profile Image (Admin/Self check) *@
-                                @if (isImagePending && !string.IsNullOrEmpty(Model.PendingProfileImagePath))
-                                {
-                                    <div class="row">
-                                        <dt class="col-sm-4 text-muted">Pending Image:</dt>
-                                        <dd class="col-sm-8">
-                                            <a href="/@Model.PendingProfileImagePath" target="_blank" class="text-link-amazon"><i class="fas fa-image me-1"></i> View Pending Profile Image</a>
-                                        </dd>
-                                    </div>
-                                }
-                            </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="LastName" class="form-label"></label>
+                            <input asp-for="LastName" class="form-control" />
+                            <span asp-validation-for="LastName" class="text-danger"></span>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="tab-pane fade" id="address" role="tabpanel" aria-labelledby="address-tab">
-                            <h5 class="text-amazon-dark-blue mb-3">Your Addresses</h5>
-                            <div class="row g-4">
-                                <div class="col-md-6">
-                                    <div class="card address-card">
-                                        <div class="card-header">Home Address</div>
-                                        <div class="card-body bg-white">@(!string.IsNullOrEmpty(Model.HomeAddress) ? Model.HomeAddress : "<em class='text-muted'>N/A</em>")</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card address-card">
-                                        <div class="card-header">Business Address</div>
-                                        <div class="card-body bg-white">@(!string.IsNullOrEmpty(Model.BusinessAddress) ? Model.BusinessAddress : "<em class='text-muted'>N/A</em>")</div>
-                                    </div>
-                                </div>
-                            </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="ITSNumber" class="form-label"></label>
+                            <input asp-for="ITSNumber" class="form-control" />
+                            <span asp-validation-for="ITSNumber" class="text-danger"></span>
                         </div>
-
-                        <div class="tab-pane fade" id="social" role="tabpanel" aria-labelledby="social-tab">
-                            <h5 class="text-amazon-dark-blue mb-3">Social Links</h5>
-                            <div class="mb-4">
-                                @if (!string.IsNullOrEmpty(Model.LinkedInUrl))
-                                {
-                                    <a href="@Model.LinkedInUrl" target="_blank" class="social-link-btn linkedin-color me-2"><i class="fab fa-linkedin me-1"></i> LinkedIn</a>
-                                }
-                                @if (!string.IsNullOrEmpty(Model.FacebookUrl))
-                                {
-                                    <a href="@Model.FacebookUrl" target="_blank" class="social-link-btn facebook-color me-2"><i class="fab fa-facebook me-1"></i> Facebook</a>
-                                }
-                                @if (!string.IsNullOrEmpty(Model.InstagramUrl))
-                                {
-                                    <a href="@Model.InstagramUrl" target="_blank" class="social-link-btn instagram-color"><i class="fab fa-instagram me-1"></i> Instagram</a>
-                                }
-                                @if (string.IsNullOrEmpty(Model.LinkedInUrl) && string.IsNullOrEmpty(Model.FacebookUrl) && string.IsNullOrEmpty(Model.InstagramUrl))
-                                {
-                                    <span class="text-muted">No social links configured.</span>
-                                }
-                            </div>
-                            <h5 class="text-amazon-dark-blue mb-3">Payment QR Codes</h5>
-                            <div class="row g-4 justify-content-center">
-                                <div class="col-sm-6 text-center">
-                                    <p class="fw-bold text-success">GPay</p>
-                                    @if (!string.IsNullOrEmpty(Model.ExistingGpayQRCodePath))
-                                    {
-                                        <img src="/@Model.ExistingGpayQRCodePath" class="img-fluid border rounded shadow-sm" style="max-width:150px; border-color: #DDDDDD !important;" />
-                                    }
-                                    else
-                                    {
-                                        <em class='text-muted'>N/A</em>
-                                    }
-                                </div>
-                                <div class="col-sm-6 text-center">
-                                    <p class="fw-bold text-purple">PhonePe</p>
-                                    @if (!string.IsNullOrEmpty(Model.ExistingPhonePeQRCodePath))
-                                    {
-                                        <img src="/@Model.ExistingPhonePeQRCodePath" class="img-fluid border rounded shadow-sm" style="max-width:150px; border-color: #DDDDDD !important;" />
-                                    }
-                                    else
-                                    {
-                                        <em class='text-muted'>N/A</em>
-                                    }
-                                </div>
-                            </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="Profession" class="form-label"></label>
+                            <input asp-for="Profession" class="form-control" />
+                            <span asp-validation-for="Profession" class="text-danger"></span>
                         </div>
+                    </div>
+                </div>
 
+                <div class="form-group mt-3">
+                    <label asp-for="About" class="form-label"></label>
+                    <textarea asp-for="About" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="About" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mt-3">
+                    <label asp-for="ServicesProvided" class="form-label"></label>
+                    <input asp-for="ServicesProvided" class="form-control" placeholder="e.g., Web Design, Consulting, Plumbing (comma-separated)" />
+                    <span asp-validation-for="ServicesProvided" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="amazon-card">
+                <h3 class="mt-0 text-dark">📞 Contact & Social Links</h3>
+                <hr />
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="WhatsappNumber" class="form-label"></label>
+                            <input asp-for="WhatsappNumber" class="form-control" />
+                            <span asp-validation-for="WhatsappNumber" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="LinkedInUrl" class="form-label"></label>
+                            <input asp-for="LinkedInUrl" class="form-control" />
+                            <span asp-validation-for="LinkedInUrl" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="FacebookUrl" class="form-label"></label>
+                            <input asp-for="FacebookUrl" class="form-control" />
+                            <span asp-validation-for="FacebookUrl" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="InstagramUrl" class="form-label"></label>
+                            <input asp-for="InstagramUrl" class="form-control" />
+                            <span asp-validation-for="InstagramUrl" class="text-danger"></span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
 
-<div class="modal fade" id="deleteProfileModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Confirm Deletion</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="amazon-card">
+                <h3 class="mt-0 text-dark">🏠 Addresses & Phones</h3>
+                <hr />
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="HomeAddress" class="form-label"></label>
+                            <input asp-for="HomeAddress" class="form-control" />
+                            <span asp-validation-for="HomeAddress" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="HomePhoneNumber" class="form-label"></label>
+                            <input asp-for="HomePhoneNumber" class="form-control" />
+                            <span asp-validation-for="HomePhoneNumber" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="BusinessAddress" class="form-label"></label>
+                            <input asp-for="BusinessAddress" class="form-control" />
+                            <span asp-validation-for="BusinessAddress" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="BusinessPhoneNumber" class="form-label"></label>
+                            <input asp-for="BusinessPhoneNumber" class="form-control" />
+                            <span asp-validation-for="BusinessPhoneNumber" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="modal-body">
-                <p><strong>Warning:</strong> Deleting profile data is irreversible.</p>
+
+            <div class="amazon-card">
+                <h3 class="mt-0 text-dark">🖼️ Images, QR Codes & Visibility</h3>
+                <hr />
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="ProfileImageFile" class="form-label"></label>
+                            <input asp-for="ProfileImageFile" class="form-control" type="file" accept="image/*" />
+                            <span asp-validation-for="ProfileImageFile" class="text-danger"></span>
+
+                            <input type="hidden" asp-for="ProfileImagePath" />
+
+                            @if (!string.IsNullOrWhiteSpace(Model.ProfileImagePath))
+                            {
+                                <p class="mt-2 mb-0">Current Image:</p>
+                                <img src="@Model.ProfileImagePath" class="current-image-preview" alt="Current Profile Image" />
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group form-check mt-4">
+                                    <input asp-for="IsProfileVisible" class="form-check-input" />
+                                    <label asp-for="IsProfileVisible" class="form-check-label"></label>
+                                    <small class="text-muted d-block">Check to make the user's profile publicly visible.</small>
+                                </div>
+                            </div>
+                            <input type="hidden" asp-for="IsImageApproved" />
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4 mb-3 text-secondary">Payment QR Codes</h5>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="GpayQRCodeFile" class="form-label"></label>
+                            <input asp-for="GpayQRCodeFile" class="form-control" type="file" accept="image/*" />
+                            <span asp-validation-for="GpayQRCodeFile" class="text-danger"></span>
+
+                            <input type="hidden" asp-for="GpayQRCodePath" />
+                            @if (!string.IsNullOrWhiteSpace(Model.GpayQRCodePath))
+                            {
+                                <p class="mt-2 mb-0">Current QR:</p>
+                                <img src="@Model.GpayQRCodePath" class="current-image-preview" alt="Current GPay QR" />
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mt-3">
+                            <label asp-for="PhonePeQRCodeFile" class="form-label"></label>
+                            <input asp-for="PhonePeQRCodeFile" class="form-control" type="file" accept="image/*" />
+                            <span asp-validation-for="PhonePeQRCodeFile" class="text-danger"></span>
+
+                            <input type="hidden" asp-for="PhonePeQRCodePath" />
+                            @if (!string.IsNullOrWhiteSpace(Model.PhonePeQRCodePath))
+                            {
+                                <p class="mt-2 mb-0">Current QR:</p>
+                                <img src="@Model.PhonePeQRCodePath" class="current-image-preview" alt="Current PhonePe QR" />
+                            }
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-amazon-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form asp-action="DeleteProfileData" method="post">
-                    <button type="submit" class="btn btn-danger">Delete Profile Data</button>
-                </form>
+
+
+            <hr class="mt-5" />
+
+            <div class="form-group mt-4 mb-5">
+                <button type="submit" class="btn amazon-button btn-lg">💾 Save Changes</button>
+                <a asp-action="Index" class="btn btn-secondary ms-2">Back to List</a>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
