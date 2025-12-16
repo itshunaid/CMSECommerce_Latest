@@ -221,6 +221,12 @@
         background: #fff5f4;
     }
 
+    .badge-warning {
+        color: #8a5800;
+        border-color: #ffd199;
+        background: #fff4e6;
+    }
+
     .badge-blue {
         color: #1d4ed8;
         border-color: #bfd4e3;
@@ -313,6 +319,31 @@
             transform: translateX(24px);
         }
 
+    /* --- NEW CSS FOR PROFILE IMAGE --- */
+    .profile-img-xs {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 8px;
+        border: 1px solid var(--amz-border);
+        vertical-align: middle;
+    }
+
+    .profile-image-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .profile-approval-status {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    /* --- END NEW CSS --- */
+
 
     @@media (max-width: 768px) {
         /* Responsive styles */
@@ -385,6 +416,7 @@
                 <thead>
                     <tr>
                         <th style="min-width:180px;">User / Full Name</th>
+                        <th style="min-width:140px;">Profile Image</th> @* <-- NEW HEADER *@
                         <th>Email</th>
                         <th style="min-width:150px;">Profession</th>
                         <th style="min-width:150px;">Role</th>
@@ -396,6 +428,7 @@
                 <tbody id="usersTbody">
                     @foreach (var u in Model)
                     {
+                        var profileImageExists = !string.IsNullOrEmpty(u.ProfileImagePath);
                         <tr>
                             <td data-label="User / Full Name">
                                 <strong>@u.UserName</strong>
@@ -406,6 +439,36 @@
                                 }
                                 <br /><small style="color:var(--amz-gray-500);">(ID: @u.Id)</small>
                             </td>
+
+                            <td data-label="Profile Image">
+                                <div class="profile-image-cell">
+                                    @if (profileImageExists)
+                                    {
+                                        <img src="@u.ProfileImagePath" alt="Profile Image" class="profile-img-xs" />
+                                    }
+                                    else
+                                    {
+                                        <span style="color:var(--amz-gray-500);">No Image</span>
+                                    }
+
+                                    @if (profileImageExists)
+                                    {
+                                        <div class="profile-approval-status">
+                                            <label class="amz-switch" title="Image Approval Status">
+                                                <input type="checkbox"
+                                                       id="isimageapproved-@u.Id"
+                                                       checked="@u.IsImageApproved"
+                                                       onchange="updateField('@u.Id', 'IsImageApproved', this.checked)" />
+                                                <span class="amz-slider"></span>
+                                            </label>
+                                            <span class="badge @(u.IsImageApproved ? "badge-green" : "badge-warning")" id="badge-isimageapproved-@u.Id">
+                                                @(u.IsImageApproved ? "Approved" : "Pending")
+                                            </span>
+                                        </div>
+                                    }
+                                </div>
+                            </td>
+
                             <td data-label="Email">
                                 <a href="mailto:@u.Email">@u.Email</a>
                             </td>
@@ -449,7 +512,8 @@
                                 <label class="amz-switch">
                                     <input type="checkbox"
                                            id="islockedout-@u.Id"
-                                           checked="@(!u.IsLockedOut)" onchange="updateField('@u.Id', 'IsLockedOut', !this.checked)" /> <span class="amz-slider"></span>
+                                           checked="@(!u.IsLockedOut)" onchange="updateField('@u.Id', 'IsLockedOut', !this.checked)" />
+                                    <span class="amz-slider"></span>
                                 </label>
                                 <span class="badge @(!u.IsLockedOut ? "badge-green" : "badge-red")" id="badge-islockedout-@u.Id">
                                     @(!u.IsLockedOut ? "Active" : "Disabled")
@@ -501,24 +565,19 @@
     }
 
     // =======================================================
-    // UPDATED: AJAX Update Function (Functionality remains identical)
+    // UPDATED: AJAX Update Function
     // =======================================================
     async function updateField(userId, fieldName, value) {
         const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
         const inputElement = document.getElementById(fieldName.toLowerCase() + '-' + userId);
 
         // Store current value for safe rollback
-        const originalValue = (fieldName === 'IsProfileVisible' || fieldName === 'IsLockedOut') ? inputElement.checked : inputElement.value;
+        // Added 'IsImageApproved' to the list of boolean fields
+        const isBoolean = fieldName === 'IsProfileVisible' || fieldName === 'IsLockedOut' || fieldName === 'IsImageApproved';
+        const originalValue = isBoolean ? inputElement.checked : inputElement.value;
 
         // Determine the final value for the payload
-        let finalValue;
-        if (fieldName === 'IsProfileVisible' || fieldName === 'IsLockedOut') {
-            // Note: value for IsLockedOut is already inverted in the HTML,
-            // but we send the actual status change (true/false) to the controller.
-            finalValue = value ? 'true' : 'false'; // Checkbox/Toggle values are sent as boolean strings
-        } else {
-            finalValue = value; // Text or Select value is string
-        }
+        let finalValue = isBoolean ? (value ? 'true' : 'false') : value;
 
         // This is the badge element for the status/visibility fields
         const badgeElement = document.getElementById(`badge-${fieldName.toLowerCase()}-${userId}`);
@@ -543,7 +602,7 @@
             if (response.ok) {
                 console.log(`${fieldName} updated successfully for user ${userId}`);
 
-                // Handle badge updates for IsProfileVisible and IsLockedOut
+                // 1. IsProfileVisible
                 if (fieldName === 'IsProfileVisible' && badgeElement) {
                     if (value) {
                         badgeElement.textContent = 'Visible';
@@ -553,16 +612,28 @@
                         badgeElement.className = 'badge badge-red';
                     }
                 }
-                   if (fieldName === 'IsLockedOut' && badgeElement) {
-                        // value is the IsLockedOut boolean: true=Disabled (Locked Out), false=Active (Not Locked Out)
-                        if (value) {
-                            badgeElement.textContent = 'Disabled';
-                            badgeElement.className = 'badge badge-red';
-                        } else {
-                            badgeElement.textContent = 'Active';
-                            badgeElement.className = 'badge badge-green';
-                        }
+
+                // 2. IsLockedOut
+                if (fieldName === 'IsLockedOut' && badgeElement) {
+                    if (value) {
+                        badgeElement.textContent = 'Disabled';
+                        badgeElement.className = 'badge badge-red';
+                    } else {
+                        badgeElement.textContent = 'Active';
+                        badgeElement.className = 'badge badge-green';
                     }
+                }
+
+                // 3. IsImageApproved <-- NEW LOGIC
+                if (fieldName === 'IsImageApproved' && badgeElement) {
+                    if (value) {
+                        badgeElement.textContent = 'Approved';
+                        badgeElement.className = 'badge badge-green';
+                    } else {
+                        badgeElement.textContent = 'Pending';
+                        badgeElement.className = 'badge badge-warning';
+                    }
+                }
 
             } else {
                 // Error feedback
@@ -579,8 +650,14 @@
         }
     }
 
+    // =======================================================
+    // UPDATED: Revert Function
+    // =======================================================
     function revertChanges(element, originalValue, fieldName) {
-        if (fieldName === 'IsProfileVisible' || fieldName === 'IsLockedOut') {
+        // Added 'IsImageApproved' to the list of boolean fields
+        const isBoolean = fieldName === 'IsProfileVisible' || fieldName === 'IsLockedOut' || fieldName === 'IsImageApproved';
+
+        if (isBoolean) {
             // Revert the checkbox state
             element.checked = originalValue;
 
@@ -594,7 +671,12 @@
                 if (fieldName === 'IsProfileVisible') {
                     text = originalValue ? 'Visible' : 'Hidden';
                     className = originalValue ? 'badge badge-green' : 'badge badge-red';
-                } else if (fieldName === 'IsLockedOut') {
+                }
+                else if (fieldName === 'IsImageApproved') {
+                    text = originalValue ? 'Approved' : 'Pending';
+                    className = originalValue ? 'badge badge-green' : 'badge badge-warning';
+                }
+                else if (fieldName === 'IsLockedOut') {
                     // For IsLockedOut, originalValue=true means Active (Not Locked Out)
                     text = originalValue ? 'Active' : 'Disabled';
                     className = originalValue ? 'badge badge-green' : 'badge badge-red';

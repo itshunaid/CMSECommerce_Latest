@@ -27,20 +27,28 @@ namespace CMSECommerce.Areas.Admin.Controllers
         {
             try
             {
-                // 1. Efficient Data Retrieval (Single Query)
-                // Join IdentityUsers with their UserProfiles and project into an anonymous object.
-                // This avoids the N+1 problem for fetching profiles.
+                // 1. Efficient Data Retrieval (Single Query with LEFT JOIN)
+                // Use GroupJoin and SelectMany (DefaultIfEmpty) to perform a SQL LEFT JOIN.
+                // This ensures ALL IdentityUsers are returned, with 'Profile' being null if no matching UserProfile exists.
                 var usersAndProfiles = await _userManager.Users.AsNoTracking()
-                    .Join(_context.UserProfiles.AsNoTracking(), // Join with UserProfiles table
-                        user => user.Id,                        // Key for IdentityUser
-                        profile => profile.UserId,              // Key for UserProfile
-                        (user, profile) => new { User = user, Profile = profile }) // Projection
+                    .GroupJoin(
+                        _context.UserProfiles.AsNoTracking(), // Inner sequence (UserProfiles)
+                        user => user.Id,                       // Outer key (IdentityUser Id)
+                        profile => profile.UserId,             // Inner key (UserProfile UserId)
+                        (user, profiles) => new { User = user, Profiles = profiles } // Intermediate result
+                    )
+                    .SelectMany(
+                        temp => temp.Profiles.DefaultIfEmpty(), // Perform Left Join: returns one row for each profile or one row with a null profile
+                        (temp, profile) => new { User = temp.User, Profile = profile } // Final projection
+                    )
                     .ToListAsync();
+
                 var model = new List<UserViewModel>();
 
                 foreach (var item in usersAndProfiles)
                 {
                     var u = item.User;
+                    // 'p' (Profile) will be NULL if the user has no UserProfile record (due to the Left Join).
                     var p = item.Profile;
 
                     // 2. Identity Operations (These still require a separate trip per user)
@@ -48,6 +56,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     var isLocked = await _userManager.IsLockedOutAsync(u);
 
                     // 3. Mapping to UserViewModel
+                    // Use the null-conditional operator (?.) to safely access profile fields.
                     model.Add(new UserViewModel
                     {
                         // IdentityUser Fields
@@ -58,54 +67,43 @@ namespace CMSECommerce.Areas.Admin.Controllers
                         Roles = roles,
                         IsLockedOut = isLocked,
 
-                        // UserProfile Fields
-                        FirstName = p.FirstName,
-                        LastName = p.LastName,
-                        ITSNumber = p.ITSNumber,
-                        ProfileImagePath = p.ProfileImagePath,
-                        IsImageApproved = p.IsImageApproved,
-                        IsProfileVisible = p.IsProfileVisible,
-                        About = p.About,
-                        Profession = p.Profession,
-                        ServicesProvided = p.ServicesProvided,
-                        LinkedInUrl = p.LinkedInUrl,
-                        FacebookUrl = p.FacebookUrl,
-                        InstagramUrl = p.InstagramUrl,
-                        WhatsappNumber = p.WhatsappNumber,
-                        HomeAddress = p.HomeAddress,
-                        HomePhoneNumber = p.HomePhoneNumber,
-                        BusinessAddress = p.BusinessAddress,
-                        BusinessPhoneNumber = p.BusinessPhoneNumber,
-                        GpayQRCodePath = p.GpayQRCodePath,
-                        PhonePeQRCodePath = p.PhonePeQRCodePath
+                        // UserProfile Fields (safely access properties using '?.' and '??')
+                        FirstName = p?.FirstName,
+                        LastName = p?.LastName,
+                        ITSNumber = p?.ITSNumber,
+
+                        // *** ProfileImagePath is now safely handled with '?.' ***
+                        ProfileImagePath = p?.ProfileImagePath,
+
+                        // Boolean fields need to be handled with ?? false, as p?.IsField returns bool? (nullable bool)
+                        IsImageApproved = p?.IsImageApproved ?? false,
+                        IsProfileVisible = p?.IsProfileVisible ?? false,
+
+                        About = p?.About,
+                        Profession = p?.Profession,
+                        ServicesProvided = p?.ServicesProvided,
+                        LinkedInUrl = p?.LinkedInUrl,
+                        FacebookUrl = p?.FacebookUrl,
+                        InstagramUrl = p?.InstagramUrl,
+                        WhatsappNumber = p?.WhatsappNumber,
+                        HomeAddress = p?.HomeAddress,
+                        HomePhoneNumber = p?.HomePhoneNumber,
+                        BusinessAddress = p?.BusinessAddress,
+                        BusinessPhoneNumber = p?.BusinessPhoneNumber,
+                        GpayQRCodePath = p?.GpayQRCodePath,
+                        PhonePeQRCodePath = p?.PhonePeQRCodePath
                     });
                 }
 
-                // Handle users without a UserProfile (Optional, but recommended for robustness)
-                // Get users that are in IdentityUser but NOT in UserProfiles
-                var identityUserIds = usersAndProfiles.Select(i => i.User.Id).ToList();
-                var usersWithoutProfiles = await _userManager.Users
-                    .Where(u => !identityUserIds.Contains(u.Id))
-                    .ToListAsync();
+                // --- REMOVED SECTION ---
+                // The block for 'Handle users without a UserProfile' is no longer needed 
+                // because the Left Join includes them in the 'usersAndProfiles' list
+                // with the 'Profile' object set to null.
+                // --- END REMOVED SECTION ---
 
-                foreach (var u in usersWithoutProfiles)
-                {
-                    var roles = await _userManager.GetRolesAsync(u);
-                    var isLocked = await _userManager.IsLockedOutAsync(u);
-
-                    model.Add(new UserViewModel
-                    {
-                        Id = u.Id,
-                        UserName = u.UserName,
-                        Email = u.Email,
-                        PhoneNumber = u.PhoneNumber,
-                        Roles = roles,
-                        IsLockedOut = isLocked,
-                        // Profile fields will be null/default (e.g., empty string)
-                    });
-                }
                 var userRoles = _roleManager.Roles.Select(r => r.Name).ToList();
                 ViewBag.AllRoles = userRoles;
+
                 return View(model.OrderBy(u => u.UserName).ToList());
             }
             catch (Exception ex) when (ex is DbUpdateException || ex is InvalidOperationException)
@@ -113,7 +111,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 _logger.LogError(ex, "Database error retrieving user list in Index.");
                 TempData["error"] = "A database error occurred while loading the user list.";
                 return View(new List<UserViewModel>());
-            }            
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error retrieving user list in Index.");
@@ -175,7 +173,6 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     if (user == null) return NotFound("User not found.");
 
                     // Set the lock status in the Identity system
-                    // LockoutEnd = null means they are NOT locked out.
                     user.LockoutEnd = isLockedOut ? (DateTimeOffset?)DateTimeOffset.MaxValue : null;
 
                     var updateResult = await _userManager.UpdateAsync(user);
@@ -188,9 +185,11 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 }
 
                 // --- 3. Handle Profile Field Updates (UserProfile) ---
-                else if (fieldName == "Profession" || fieldName == "IsProfileVisible")
+                // ADD 'IsImageApproved' to the condition
+                else if (fieldName == "Profession" || fieldName == "IsProfileVisible" || fieldName == "IsImageApproved")
                 {
                     var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+                    // Handle case where profile doesn't exist
                     if (profile == null) return NotFound("User Profile not found.");
 
                     switch (fieldName)
@@ -205,6 +204,15 @@ namespace CMSECommerce.Areas.Admin.Controllers
                             }
                             profile.IsProfileVisible = isVisible;
                             break;
+                        // --- NEW CASE ADDED FOR IMAGE APPROVAL ---
+                        case "IsImageApproved":
+                            if (!bool.TryParse(value, out bool isApproved))
+                            {
+                                return BadRequest("Invalid value for IsImageApproved.");
+                            }
+                            profile.IsImageApproved = isApproved;
+                            break;
+                        // --- END NEW CASE ---
                         default:
                             return BadRequest("Invalid field name for profile update.");
                     }
@@ -224,7 +232,6 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 return StatusCode(500, "Internal server error during update.");
             }
         }
-
         public async Task<IActionResult> EnableDisable(string id)
         {
             if (string.IsNullOrEmpty(id)) return NotFound();

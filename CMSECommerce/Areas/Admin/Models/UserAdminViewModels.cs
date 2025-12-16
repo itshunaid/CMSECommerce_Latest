@@ -8,6 +8,11 @@ namespace CMSECommerce.Areas.Admin.Models
     {
         // --- IdentityUser Fields ---
         public string Id { get; set; }
+        // This property is used only for file uploads from the form.
+        // It should be decorated with [NotMapped] if this ViewModel maps directly to an Entity Framework entity
+        // that does not have a column for the file object itself.
+        [Display(Name = "Upload New Profile Image")]
+        public IFormFile ProfileImageFile { get; set; }
         public string UserName { get; set; }
         public string Email { get; set; }
         public string PhoneNumber { get; set; }
