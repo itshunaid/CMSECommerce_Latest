@@ -327,12 +327,13 @@
         object-fit: cover;
         margin-right: 8px;
         border: 1px solid var(--amz-border);
-        vertical-align: middle;
+        vertical-align: top; /* Align image to the top of the cell */
+        flex-shrink: 0; /* Prevent image from shrinking */
     }
 
     .profile-image-cell {
         display: flex;
-        align-items: center;
+        align-items: flex-start; /* Align contents to the top */
         gap: 10px;
     }
 
@@ -415,8 +416,7 @@
             <table class="amz-table">
                 <thead>
                     <tr>
-                        <th style="min-width:180px;">User / Full Name</th>
-                        <th style="min-width:140px;">Profile Image</th> @* <-- NEW HEADER *@
+                        <th style="min-width:200px;">Profile Image & Info</th> @* <-- COLUMN 1 *@
                         <th>Email</th>
                         <th style="min-width:150px;">Profession</th>
                         <th style="min-width:150px;">Role</th>
@@ -430,17 +430,10 @@
                     {
                         var profileImageExists = !string.IsNullOrEmpty(u.ProfileImagePath);
                         <tr>
-                            <td data-label="User / Full Name">
-                                <strong>@u.UserName</strong>
-                                @if (!string.IsNullOrWhiteSpace(u.FirstName) || !string.IsNullOrWhiteSpace(u.LastName))
-                                {
-                                    <br />
-                                    <small style="color:var(--amz-gray-500);">@u.FirstName @u.LastName</small>
-                                }
-                                <br /><small style="color:var(--amz-gray-500);">(ID: @u.Id)</small>
-                            </td>
-
-                            <td data-label="Profile Image">
+                            @* ---------------------------------------------------------------------------------- *@
+                            @* ---------------------------------- COLUMN 1: Image & User Info (UPDATED) --------- *@
+                            @* ---------------------------------------------------------------------------------- *@
+                            <td data-label="Profile Image & Info">
                                 <div class="profile-image-cell">
                                     @if (profileImageExists)
                                     {
@@ -448,26 +441,37 @@
                                     }
                                     else
                                     {
-                                        <span style="color:var(--amz-gray-500);">No Image</span>
+                                        <span style="color:var(--amz-gray-500); flex-shrink: 0; padding-top: 10px;">No Image</span>
                                     }
 
-                                    @if (profileImageExists)
-                                    {
-                                        <div class="profile-approval-status">
-                                            <label class="amz-switch" title="Image Approval Status">
-                                                <input type="checkbox"
-                                                       id="isimageapproved-@u.Id"
-                                                       checked="@u.IsImageApproved"
-                                                       onchange="updateField('@u.Id', 'IsImageApproved', this.checked)" />
-                                                <span class="amz-slider"></span>
-                                            </label>
-                                            <span class="badge @(u.IsImageApproved ? "badge-green" : "badge-warning")" id="badge-isimageapproved-@u.Id">
-                                                @(u.IsImageApproved ? "Approved" : "Pending")
-                                            </span>
-                                        </div>
-                                    }
+                                    <div class="profile-approval-status">
+                                      
+                                        <strong>@u.UserName</strong>
+                                        @if (!string.IsNullOrWhiteSpace(u.FirstName) || !string.IsNullOrWhiteSpace(u.LastName))
+                                        {
+                                            <small style="color:var(--amz-gray-500);">@u.FirstName @u.LastName</small>
+                                        }
+
+                                        @if (profileImageExists)
+                                        {
+                                            
+                                            <div style="margin-top: 4px;">
+                                                <label class="amz-switch" title="Image Approval Status">
+                                                    <input type="checkbox"
+                                                           id="isimageapproved-@u.Id"
+                                                           checked="@u.IsImageApproved"
+                                                           onchange="updateField('@u.Id', 'IsImageApproved', this.checked)" />
+                                                    <span class="amz-slider"></span>
+                                                </label>
+                                                <span class="badge @(u.IsImageApproved ? "badge-green" : "badge-warning")" id="badge-isimageapproved-@u.Id">
+                                                    @(u.IsImageApproved ? "Approved" : "Pending")
+                                                </span>
+                                            </div>
+                                        }
+                                    </div>
                                 </div>
                             </td>
+                            @* ---------------------------------------------------------------------------------- *@
 
                             <td data-label="Email">
                                 <a href="mailto:@u.Email">@u.Email</a>
@@ -565,14 +569,13 @@
     }
 
     // =======================================================
-    // UPDATED: AJAX Update Function
+    // AJAX Update Function
     // =======================================================
     async function updateField(userId, fieldName, value) {
         const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
         const inputElement = document.getElementById(fieldName.toLowerCase() + '-' + userId);
 
         // Store current value for safe rollback
-        // Added 'IsImageApproved' to the list of boolean fields
         const isBoolean = fieldName === 'IsProfileVisible' || fieldName === 'IsLockedOut' || fieldName === 'IsImageApproved';
         const originalValue = isBoolean ? inputElement.checked : inputElement.value;
 
@@ -624,7 +627,7 @@
                     }
                 }
 
-                // 3. IsImageApproved <-- NEW LOGIC
+                // 3. IsImageApproved
                 if (fieldName === 'IsImageApproved' && badgeElement) {
                     if (value) {
                         badgeElement.textContent = 'Approved';
@@ -651,10 +654,10 @@
     }
 
     // =======================================================
-    // UPDATED: Revert Function
+    // Revert Function
     // =======================================================
     function revertChanges(element, originalValue, fieldName) {
-        // Added 'IsImageApproved' to the list of boolean fields
+        // 'IsImageApproved' is included in the list of boolean fields
         const isBoolean = fieldName === 'IsProfileVisible' || fieldName === 'IsLockedOut' || fieldName === 'IsImageApproved';
 
         if (isBoolean) {
