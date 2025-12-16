@@ -333,10 +333,11 @@ namespace CMSECommerce.Controllers
 
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> ProfileDetails(string userId = "")
+        public async Task<IActionResult> ProfileDetails(string userId = "", bool ITSAvailable=false)
         {
             try
             {
+
                 IdentityUser identityUser = new();
                 if (string.IsNullOrEmpty(userId))
                 {
@@ -348,11 +349,15 @@ namespace CMSECommerce.Controllers
                 }
 
                 if (identityUser == null) return RedirectToAction("Login");
-
-                // Attempt to find existing profile data
                 var userProfile = await _context.UserProfiles
-                    .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);
+                            .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);              
+                if (userProfile != null)
+                {
+                    ITSAvailable = !string.IsNullOrEmpty(userProfile.ITSNumber);
+                }
 
+
+                
                 // Map data to the ViewModel
                 var viewModel = new ProfileUpdateViewModel
                 {
@@ -385,7 +390,7 @@ namespace CMSECommerce.Controllers
                     viewModel.ExistingPhonePeQRCodePath = userProfile.PhonePeQRCodePath;
                     viewModel.IsImageApproved = userProfile.IsImageApproved;
                 }
-
+                ViewBag.ITSAvailable = ITSAvailable;
                 return View(viewModel);
             }
             catch (Exception ex)
@@ -858,6 +863,19 @@ namespace CMSECommerce.Controllers
                     // Database Operation: Add and Save New Request
                     try
                     {
+                        var userProfile= await _context.UserProfiles
+                            .FirstOrDefaultAsync(p => p.UserId == currentUser.Id);
+                        bool ITSAvailable= false;
+                        if (userProfile != null) 
+                        { 
+                            ITSAvailable = !string.IsNullOrEmpty(userProfile.ITSNumber);
+                        }
+
+                        if(!ITSAvailable)
+                        {
+                            TempData["error"] = "You must have a valid ITS Number in your profile to request seller access. Please update your profile and try again.";
+                            return RedirectToAction("ProfileDetails",new { ITSAvailable=ITSAvailable});
+                        }
                         var newRequest = new SubscriberRequest
                         {
                             UserId = currentUser.Id,

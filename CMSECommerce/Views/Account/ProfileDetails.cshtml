@@ -163,6 +163,20 @@
         color: white;
     }
 </style>
+@if(!ViewBag.ITSAvailable)
+{
+    // If ITS is NOT available (the condition fails), we display the popup.
+    <script type="text/javascript">
+        // Use a function to ensure the code runs after the page loads
+        document.addEventListener("DOMContentLoaded", function() {
+            // Display an alert (simple popup)
+            alert("To request to become a seller, please update your ITS number in your User Profile first.");
+
+            // OR: You could use a modal/dialog library here instead of alert()
+            // $('#myITSRequiredModal').modal('show');
+        });
+    </script>
+}
 
 <div class="container py-5">
     <div class="row justify-content-center">
@@ -365,7 +379,7 @@
             </div>
         </div>
     </div>
-</div>
+    </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
