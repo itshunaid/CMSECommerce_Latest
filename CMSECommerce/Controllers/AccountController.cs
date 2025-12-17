@@ -1351,84 +1351,98 @@ namespace CMSECommerce.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel loginVM)
         {
+            if (!ModelState.IsValid)
+                return View(loginVM);
+
             string returnUrl = loginVM.ReturnUrl ?? "/";
 
-            if (ModelState.IsValid)
+            try
             {
-                try
+                // 1. Resolve the Identity User based on multi-criteria input
+                var user = await ResolveUserAsync(loginVM.UserName);
+
+                if (user == null)
                 {
-                    // 1. Identify the user by checking Username, Email, and PhoneNumber
-                    // Note: loginVM.UserName here acts as the "Identifier" input
-                    var user = await _userManager.FindByNameAsync(loginVM.UserName) // Check Username
-                               ?? await _userManager.FindByEmailAsync(loginVM.UserName) // Check Email
-                               ?? await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == loginVM.UserName); // Check Mobile
-                    
-                    var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(up => up.ITSNumber == loginVM.UserName);
-                    var userObject = _context.Users.FirstOrDefault(u => u.Id == userProfile.UserId);
-
-                  
-                    if (userProfile != null)
-                    {
-                        // If ITS match is found, ensure it points to the same Identity user
-                        if (userObject == null || userProfile.UserId != userObject.Id)
-                        {
-                            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-                            return View(loginVM);
-                        }
-                    }
-                    else if (user == null)
-                    {
-                        // No ITS found AND no standard user found
-                        ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-                        return View(loginVM);
-                    }
-                    if(user==null && userObject!=null)
-                    {
-                        user = userObject;
-                    }
-                    
-
-                    // 2. Attempt the sign-in using the user's actual Identity UserName
-                    // PasswordSignInAsync requires the 'UserName' property of the IdentityUser
-                    var result = await _sign_in_manager.PasswordSignInAsync(user.UserName, loginVM.Password, false, false);
-
-                    if (result.Succeeded)
-                    {
-                        // --- USER STATUS TRACKING ---
-                        try
-                        {
-                            var status = await _context.UserStatuses.FindAsync(user.Id);
-                            if (status == null)
-                            {
-                                status = new UserStatusTracker { UserId = user.Id };
-                                _context.UserStatuses.Add(status);
-                            }
-
-                            status.IsOnline = true;
-                            status.LastActivity = DateTime.UtcNow;
-
-                            await _context.SaveChangesAsync();
-                        }
-                        catch (Exception statusEx)
-                        {
-                            // Swallowing error to allow login to proceed
-                        }
-
-                        return LocalRedirect(returnUrl);
-                    }
-
-                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                    return InvalidLoginResponse(loginVM);
                 }
-                catch (Exception ex)
+
+                // 2. Perform Security Check
+                var result = await _sign_in_manager.PasswordSignInAsync(
+                    user.UserName,
+                    loginVM.Password,
+                    isPersistent: false,
+                    lockoutOnFailure: false);
+
+                if (result.Succeeded)
                 {
-                    ModelState.AddModelError(string.Empty, "A critical system error occurred.");
-                    return View(loginVM);
+                    // 3. Telemetry/Status Tracking (Non-blocking)
+                    await UpdateUserStatusAsync(user.Id);
+
+                    return LocalRedirect(returnUrl);
                 }
+
+                return InvalidLoginResponse(loginVM);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception here (e.g., _logger.LogError(ex, "Login failed"))
+                ModelState.AddModelError(string.Empty, "A critical system error occurred.");
+                return View(loginVM);
+            }
+        }
+
+        /// <summary>
+        /// Architect's Approach: Encapsulated logic to find user by ITS, Email, Phone, or Username
+        /// </summary>
+        private async Task<IdentityUser> ResolveUserAsync(string identifier)
+        {
+            // Strategy: Check ITS Profile first as it's the most specific business requirement
+            var profile = await _context.UserProfiles
+                .AsNoTracking() // Performance optimization for read-only
+                .FirstOrDefaultAsync(up => up.ITSNumber == identifier);
+
+            if (profile != null)
+            {
+                return await _userManager.FindByIdAsync(profile.UserId);
             }
 
-            return View(loginVM);
+            // Fallback: Standard Identity Lookups
+            return await _userManager.FindByNameAsync(identifier)
+                   ?? await _userManager.FindByEmailAsync(identifier)
+                   ?? await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == identifier);
+        }
+
+        /// <summary>
+        /// Updates user online status with error resiliency
+        /// </summary>
+        private async Task UpdateUserStatusAsync(string userId)
+        {
+            try
+            {
+                var status = await _context.UserStatuses.FindAsync(userId)
+                             ?? new UserStatusTracker { UserId = userId };
+
+                status.IsOnline = true;
+                status.LastActivity = DateTime.UtcNow;
+
+                if (_context.Entry(status).State == EntityState.Detached)
+                    _context.UserStatuses.Add(status);
+
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                // Architect Note: Status tracking shouldn't break the login flow
+            }
+        }
+
+        private IActionResult InvalidLoginResponse(LoginViewModel vm)
+        {
+            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+            return View(vm);
         }
         public async Task<IActionResult> Logout()
         {
