@@ -135,18 +135,123 @@ namespace CMSECommerce.Controllers
             return View();
         }
 
+        
         [HttpGet]
-        public async Task<IActionResult> CheckEmailUnique(string email)
+        [AllowAnonymous]
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public async Task<IActionResult> CheckUserNameUnique([FromQuery] string userName)
         {
-            var user = await _userManager.FindByEmailAsync(email);
-            return Json(user == null); // Returns true if email is available
+            // 1. Guard Clause: Fast-fail on empty input
+            if (string.IsNullOrWhiteSpace(userName))
+            {
+                return Json(true);
+            }
+
+            try
+            {
+                // 2. Optimization: Use Normalized fields for O(1) or O(log n) DB lookups
+                // Identity indexes are typically tuned for NormalizedUserName and NormalizedEmail.
+                var normalizedInput = userName.ToUpperInvariant();
+
+                // 3. Efficiency: Use AnyAsync instead of FirstOrDefaultAsync.
+                // AnyAsync generates 'IF EXISTS' in SQL, which stops searching after the first match.
+                // FirstOrDefaultAsync retrieves the entire row into memory, which is wasteful.
+                bool isTaken = await _userManager.Users.AnyAsync(u =>
+                    u.NormalizedUserName == normalizedInput ||
+                    u.NormalizedEmail == normalizedInput ||
+                    u.PhoneNumber == userName); // Phone numbers are usually treated as exact strings
+
+                // 4. Return result: True means "Available", False means "Taken"
+                return Json(!isTaken);
+            }
+            catch (Exception ex)
+            {
+                // 5. Resilience: Log the error and fail safe (assume taken to prevent collisions)
+                _logger.LogError(ex, "Error validating uniqueness for identifier: {Identifier}", userName);
+                return StatusCode(500, "Internal validation error");
+            }
         }
 
         [HttpGet]
-        public async Task<IActionResult> CheckPhoneUnique(string phoneNumber)
+        [AllowAnonymous]
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public async Task<IActionResult> CheckEmailUnique([FromQuery] string email)
         {
-            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
-            return Json(user == null); // Returns true if phone is available
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return Json(new { isAvailable = true });
+            }
+
+            // 1. Format Validation
+            var emailAttribute = new System.ComponentModel.DataAnnotations.EmailAddressAttribute();
+            if (!emailAttribute.IsValid(email))
+            {
+                return Json(new { isAvailable = false, message = "Please enter a valid email address." });
+            }
+
+            try
+            {
+                string normalizedEmail = email.ToUpperInvariant();
+
+                // 2. Uniqueness Check
+                bool isEmailTaken = await _userManager.Users
+                    .AnyAsync(u => u.NormalizedEmail == normalizedEmail);
+
+                if (isEmailTaken)
+                {
+                    return Json(new { isAvailable = false, message = "Email address is already in use." });
+                }
+
+                return Json(new { isAvailable = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while validating email uniqueness for: {Email}", email);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Validation service unavailable.");
+            }
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public async Task<IActionResult> CheckPhoneUnique([FromQuery] string phoneNumber)
+        {
+            // 1. Guard Clause: Format Validation (O(1) complexity)
+            // We validate length and numeric integrity to prevent unnecessary DB round-trips.
+            if (string.IsNullOrWhiteSpace(phoneNumber) ||
+                phoneNumber.Length != 10 ||
+                !long.TryParse(phoneNumber, out _))
+            {
+                // Architect's Note: Return false or a specific error object if the format is invalid.
+                return Json(false);
+            }
+
+            try
+            {
+                // 2. Normalization
+                // Identity lookups for usernames should always use the Normalized field (Upper case)
+                // to leverage the database index effectively.
+                string normalizedInput = phoneNumber.ToUpperInvariant();
+
+                // 3. Atomic Data Access Strategy
+                // We use 'AnyAsync' instead of 'FirstOrDefaultAsync'.
+                // AnyAsync generates a SQL 'IF EXISTS' which is significantly faster and 
+                // avoids loading the full user entity into the web server's memory.
+                bool isConflict = await _userManager.Users.AnyAsync(u =>
+                    u.PhoneNumber == phoneNumber ||
+                    u.NormalizedUserName == normalizedInput);
+
+                // 4. Result: Returns true if the phone number is available and valid.
+                return Json(!isConflict);
+            }
+            catch (Exception ex)
+            {
+                // 5. Resilience & Observability
+                // Log the exception but do not expose internal details to the client.
+                _logger.LogError(ex, "Phone uniqueness validation failed for input: {Phone}", phoneNumber);
+
+                return StatusCode(StatusCodes.Status500InternalServerError, "Validation service error");
+            }
         }
 
 

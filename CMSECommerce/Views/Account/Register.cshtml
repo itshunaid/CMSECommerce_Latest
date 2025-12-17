@@ -16,19 +16,19 @@
 
                     <div class="form-group mb-3">
                         <label asp-for="UserName" class="form-label fw-bold small text-amazon-dark mb-1">User name</label>
-                        <input asp-for="UserName" class="form-control amazon-input-field" />
-                        <span asp-validation-for="UserName" class="text-danger small mt-1 d-block"></span>
+                        <input asp-for="UserName" id="UserNameInput" class="form-control amazon-input-field" placeholder="Username" />
+                        <span asp-validation-for="UserName" id="UserNameError" class="text-danger small mt-1 d-block"></span>
                     </div>
 
                     <div class="form-group mb-3">
                         <label asp-for="Email" class="form-label fw-bold small text-amazon-dark mb-1">Email</label>
-                        <input type="email" asp-for="Email" id="EmailInput" class="form-control amazon-input-field" />
+                        <input type="email" asp-for="Email" id="EmailInput" class="form-control amazon-input-field" placeholder="example@@domain.com" />
                         <span asp-validation-for="Email" id="EmailError" class="text-danger small mt-1 d-block"></span>
                     </div>
 
                     <div class="form-group mb-3">
                         <label asp-for="PhoneNumber" class="form-label fw-bold small text-amazon-dark mb-1">Mobile Number</label>
-                        <input asp-for="PhoneNumber" id="PhoneInput" class="form-control amazon-input-field" />
+                        <input asp-for="PhoneNumber" id="PhoneInput" class="form-control amazon-input-field" placeholder="10-digit mobile number" maxlength="10" />
                         <span asp-validation-for="PhoneNumber" id="PhoneError" class="text-danger small mt-1 d-block"></span>
                     </div>
 
@@ -195,68 +195,96 @@
 
     <script>
         $(document).ready(function () {
+            const userNameInput = $('#UserNameInput');
             const emailInput = $('#EmailInput');
             const phoneInput = $('#PhoneInput');
             const submitBtn = $('#submitBtn');
 
-            // --- AJAX Validation Function ---
-            function checkUniqueness(inputElement, errorElement, url, dataParamName, errorMessage) {
+            function checkUniqueness(inputElement, errorElement, url, dataParamName, defaultErrorMessage) {
                 const value = inputElement.val().trim();
-                if (value === "") return;
 
+                // 1. Client-side Format Validation (Fail-Fast)
+                if (value !== "") {
+                    // Email Regex check
+                    if (dataParamName === 'email') {
+                        const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+                        if (!emailRegex.test(value)) {
+                            setError(inputElement, errorElement, "Please enter a valid email address.");
+                            return;
+                        }
+                    }
+
+                    // Phone Numeric/Length check
+                    if (dataParamName === 'phoneNumber') {
+                        if (value.length !== 10 || isNaN(value)) {
+                            setError(inputElement, errorElement, "Please enter a valid 10-digit numeric mobile number.");
+                            return;
+                        }
+                    }
+                }
+
+                // 2. Empty Value Handling
+                if (value === "") {
+                    clearError(inputElement, errorElement);
+                    return;
+                }
+
+                // 3. Server-side AJAX Check
                 $.ajax({
                     url: url,
                     type: 'GET',
                     data: { [dataParamName]: value },
-                    success: function (isAvailable) {
+                    success: function (response) {
+                        // Support both raw boolean and { isAvailable, message } object
+                        const isAvailable = typeof response === 'object' ? response.isAvailable : response;
+                        const serverMsg = typeof response === 'object' ? response.message : null;
+
                         if (!isAvailable) {
-                            errorElement.text(errorMessage);
-                            inputElement.addClass("input-error-border");
-                            submitBtn.prop("disabled", true);
+                            setError(inputElement, errorElement, serverMsg || defaultErrorMessage);
                         } else {
-                            errorElement.text("");
-                            inputElement.removeClass("input-error-border");
-                            // Re-enable only if no other errors exist
-                            if ($(".input-error-border").length === 0) {
-                                submitBtn.prop("disabled", false);
-                            }
+                            clearError(inputElement, errorElement);
                         }
                     },
                     error: function() {
-                        console.error("Validation service unavailable");
+                        console.error("Validation service unavailable for " + dataParamName);
                     }
                 });
             }
 
-            // --- Event Listeners ---
+            function setError(input, errorSpan, msg) {
+                errorSpan.text(msg);
+                input.addClass("input-error-border");
+                updateButtonState();
+            }
 
-            // Check Email on Blur
+            function clearError(input, errorSpan) {
+                errorSpan.text("");
+                input.removeClass("input-error-border");
+                updateButtonState();
+            }
+
+            function updateButtonState() {
+                const hasErrors = $(".input-error-border").length > 0;
+                submitBtn.prop("disabled", hasErrors);
+            }
+
+            // Event Listeners
+            userNameInput.on("blur", function () {
+                checkUniqueness(userNameInput, $('#UserNameError'), '@Url.Action("CheckUserNameUnique", "Account")', 'userName', "This username is already taken.");
+            });
+
             emailInput.on("blur", function () {
-                checkUniqueness(
-                    emailInput,
-                    $('#EmailError'),
-                    '@Url.Action("CheckEmailUnique", "Account")',
-                    'email',
-                    "Email address is already in use."
-                );
+                checkUniqueness(emailInput, $('#EmailError'), '@Url.Action("CheckEmailUnique", "Account")', 'email', "Email address is already in use.");
             });
 
-            // Check Phone on Blur
             phoneInput.on("blur", function () {
-                checkUniqueness(
-                    phoneInput,
-                    $('#PhoneError'),
-                    '@Url.Action("CheckPhoneUnique", "Account")',
-                    'phoneNumber',
-                    "Mobile number is already registered."
-                );
+                checkUniqueness(phoneInput, $('#PhoneError'), '@Url.Action("CheckPhoneUnique", "Account")', 'phoneNumber', "This number is already registered with another user.");
             });
 
-            // Final Form Validation
             $('#registrationForm').on("submit", function(e) {
                 if ($(".input-error-border").length > 0) {
                     e.preventDefault();
-                    alert("Please fix the duplicate information errors before proceeding.");
+                    alert("Please fix the highlighted errors before proceeding.");
                 }
             });
         });

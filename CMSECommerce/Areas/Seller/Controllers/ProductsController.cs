@@ -1,10 +1,11 @@
 ﻿using CMSECommerce.Infrastructure;
+using CMSECommerce.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity.UI.Services;
-using Microsoft.AspNetCore.Identity;
 
 namespace CMSECommerce.Areas.Seller.Controllers
 {
@@ -244,6 +245,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
             try
             {
                 Product product = await _context.Products.FindAsync(id);
+               
 
                 if (product == null) { return NotFound(); }
 
@@ -263,7 +265,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 {
                     product.GalleryImages = Directory.EnumerateFiles(uploadsDir).Select(x => Path.GetFileName(x));
                 }
-
+               
                 return View(product);
             }
             catch (Exception ex)
@@ -461,75 +463,81 @@ namespace CMSECommerce.Areas.Seller.Controllers
             return RedirectToAction("Index");
         }
 
-        // POST /seller/products/uploadimages/5
+
+        // POST: /Seller/Products/UploadImages
         [HttpPost]
         public async Task<IActionResult> UploadImages(int id)
         {
             var files = HttpContext.Request.Form.Files;
-            if (!files.Any()) return Ok(); // Nothing to upload, return Ok
 
-            try
+            if (files.Any())
             {
                 string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + id.ToString());
 
-                // File operation: Create directory if it doesn't exist
                 if (!Directory.Exists(uploadsDir))
                 {
                     Directory.CreateDirectory(uploadsDir);
                 }
 
-                // File operation: Save each uploaded file
                 foreach (var file in files)
                 {
                     string imageName = Guid.NewGuid().ToString() + "_" + file.FileName;
+
                     string filePath = Path.Combine(uploadsDir, imageName);
 
-                    await using (FileStream fs = new(filePath, FileMode.Create))
-                    {
-                        await file.CopyToAsync(fs);
-                    }
+                    FileStream fs = new(filePath, FileMode.Create);
+
+                    await file.CopyToAsync(fs);
+                    fs.Close();
                 }
 
-                return Ok();
+                return Content("ok");
             }
-            catch (IOException ioEx)
-            {
-                _logger.LogError(ioEx, "File system error during gallery upload for product ID {ProductId}.", id);
-                return BadRequest(new { error = "An error occurred during file upload." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error during gallery upload for product ID {ProductId}.", id);
-                return BadRequest(new { error = "An unexpected server error occurred." });
-            }
+
+            return Content("ok");
         }
 
-        // POST /seller/products/deleteimage
-        [HttpPost]
-        public void DeleteImage(int id, string imageName)
+       
+        [HttpPost]       
+        public async Task<IActionResult> DeleteImage(int id, string imageName)
         {
+            if (string.IsNullOrEmpty(imageName))
+            {
+                return BadRequest("Image name is required.");
+            }
+
             try
             {
-                string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + id.ToString() + "/" + imageName);
+                // 1. Build the correct physical path
+                string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, "media", "gallery", id.ToString(), imageName);
 
-                // File operation: Delete file
+                // 2. Perform the deletion
                 if (System.IO.File.Exists(fullPath))
                 {
                     System.IO.File.Delete(fullPath);
+
+                    // Since this is an AJAX call for immediate UI update, 
+                    // we don't need to reload the view or update ViewBag here.
+                    // The JavaScript will handle the removal of the element.
+                    return Content("ok");
                 }
+
+                return NotFound("Image not found on the server.");
             }
             catch (IOException ioEx)
             {
-                _logger.LogError(ioEx, "File system error deleting gallery image '{ImageName}' for product ID {ProductId}.", imageName, id);
-                // Cannot return a status code from a void method, logging is the best option here.
+                _logger.LogError(ioEx, "File system error deleting image {ImageName} for product {Id}", imageName, id);
+                return StatusCode(500, "File is in use or system error.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error deleting gallery image '{ImageName}' for product ID {ProductId}.", imageName, id);
+                _logger.LogError(ex, "Unexpected error deleting image {ImageName} for product {Id}", imageName, id);
+                return StatusCode(500, "An unexpected error occurred.");
             }
         }
 
-        // Admin/Workflow actions - Implementing error handling for completeness
+
+        
 
         // GET /seller/products/approve/5
         public async Task<IActionResult> Approve(int id)

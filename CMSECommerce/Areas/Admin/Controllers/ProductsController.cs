@@ -487,17 +487,13 @@ namespace CMSECommerce.Areas.Admin.Controllers
         }
 
         // 7. UploadImages (Partial View/API endpoint)
+        // POST: /Seller/Products/UploadImages
         [HttpPost]
         public async Task<IActionResult> UploadImages(int id)
         {
             var files = HttpContext.Request.Form.Files;
 
-            if (!files.Any())
-            {
-                return Ok();
-            }
-
-            try
+            if (files.Any())
             {
                 string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + id.ToString());
 
@@ -509,52 +505,60 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 foreach (var file in files)
                 {
                     string imageName = Guid.NewGuid().ToString() + "_" + file.FileName;
+
                     string filePath = Path.Combine(uploadsDir, imageName);
 
-                    using (FileStream fs = new(filePath, FileMode.Create))
-                    {
-                        await file.CopyToAsync(fs);
-                    }
+                    FileStream fs = new(filePath, FileMode.Create);
+
+                    await file.CopyToAsync(fs);
+                    fs.Close();
                 }
 
                 return Ok();
             }
-            catch (IOException ioEx)
-            {
-                _logger.LogError(ioEx, "File system error uploading gallery images for product ID: {ProductId}", id);
-                return BadRequest("Failed to upload one or more files due to a file system error.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error uploading gallery images for product ID: {ProductId}", id);
-                return BadRequest("An unexpected error occurred during file upload.");
-            }
+
+            return View();
         }
 
-        // 8. DeleteImage (Partial View/API endpoint)
+
         [HttpPost]
-        public void DeleteImage(int id, string imageName)
+        public async Task<IActionResult> DeleteImage(int id, string imageName)
         {
-            if (string.IsNullOrEmpty(imageName)) return;
+            if (string.IsNullOrEmpty(imageName))
+            {
+                return BadRequest("Image name is required.");
+            }
 
             try
             {
-                string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + id.ToString() + "/" + imageName);
+                // 1. Build the correct physical path
+                string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, "media", "gallery", id.ToString(), imageName);
 
+                // 2. Perform the deletion
                 if (System.IO.File.Exists(fullPath))
                 {
                     System.IO.File.Delete(fullPath);
+
+                    // Since this is an AJAX call for immediate UI update, 
+                    // we don't need to reload the view or update ViewBag here.
+                    // The JavaScript will handle the removal of the element.
+                    return Content("ok");
                 }
+
+                return NotFound("Image not found on the server.");
             }
             catch (IOException ioEx)
             {
-                _logger.LogError(ioEx, "File system error deleting gallery image {ImageName} for product ID: {ProductId}", imageName, id);
+                _logger.LogError(ioEx, "File system error deleting image {ImageName} for product {Id}", imageName, id);
+                return StatusCode(500, "File is in use or system error.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error deleting gallery image {ImageName} for product ID: {ProductId}", imageName, id);
+                _logger.LogError(ex, "Unexpected error deleting image {ImageName} for product {Id}", imageName, id);
+                return StatusCode(500, "An unexpected error occurred.");
             }
         }
+
 
         // 9. Approve
         public async Task<IActionResult> Approve(int id)
