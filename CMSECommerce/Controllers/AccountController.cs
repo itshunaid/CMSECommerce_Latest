@@ -135,30 +135,66 @@ namespace CMSECommerce.Controllers
             return View();
         }
 
+        [HttpGet]
+        public async Task<IActionResult> CheckEmailUnique(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            return Json(user == null); // Returns true if email is available
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckPhoneUnique(string phoneNumber)
+        {
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
+            return Json(user == null); // Returns true if phone is available
+        }
+
+
         [HttpPost]
         public async Task<IActionResult> Register(User user)
         {
-            if (string.IsNullOrEmpty(user.FirstName))
-            {
-                user.FirstName = "First Name";
-            }
-            if (string.IsNullOrEmpty(user.LastName))
-            {
-                user.LastName = "Last Name";
-            }
+            // Set default names if empty
+            user.FirstName ??= "First Name";
+            user.LastName ??= "Last Name";
 
             if (ModelState.IsValid)
             {
-                IdentityUser newUser = new() { UserName = user.UserName, Email = user.Email, PhoneNumber = user.PhoneNumber };
+                // 1. MANUAL UNIQUENESS CHECKS
+                // Check for duplicate Email
+                var existingEmail = await _userManager.FindByEmailAsync(user.Email);
+                if (existingEmail != null)
+                {
+                    ModelState.AddModelError("Email", "Email address is already in use.");
+                }
+
+                // Check for duplicate Phone Number
+                // Note: IdentityUser doesn't have a direct 'FindByPhone', so we use EF via the Context or Users set
+                var existingPhone = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == user.PhoneNumber);
+                if (existingPhone != null && !string.IsNullOrEmpty(user.PhoneNumber))
+                {
+                    ModelState.AddModelError("PhoneNumber", "Phone number is already registered.");
+                }
+
+                // If either check failed, return the view immediately
+                if (!ModelState.IsValid)
+                {
+                    return View(user);
+                }
+
+                IdentityUser newUser = new()
+                {
+                    UserName = user.UserName,
+                    Email = user.Email,
+                    PhoneNumber = user.PhoneNumber
+                };
 
                 try
                 {
-                    // 1. Attempt to create the user in the Identity store
+                    // 2. Attempt to create the user
                     IdentityResult result = await _userManager.CreateAsync(newUser, user.Password);
 
                     if (result.Succeeded)
                     {
-                        // 2. Add Profile and Address (Database operations)
                         try
                         {
                             var newProfile = new UserProfile
@@ -180,9 +216,8 @@ namespace CMSECommerce.Controllers
                             };
 
                             _context.Addresses.Add(newAddress);
-                            await _context.SaveChangesAsync(); // Save both UserProfile and Address
+                            await _context.SaveChangesAsync();
 
-                            // 3. Assign role (Identity operation)
                             await _userManager.AddToRoleAsync(newUser, "Customer");
 
                             TempData["success"] = "You have registered successfully!";
@@ -190,19 +225,15 @@ namespace CMSECommerce.Controllers
                         }
                         catch (Exception dbEx)
                         {
-                            // Log error if saving profile/address or assigning role fails *after* IdentityUser creation
-                            // _logger.LogError(dbEx, "Failed to save UserProfile, Address, or assign role for user: {username}", user.UserName);
+                            // CLEANUP: If Profile/Address fails, delete the Identity user to prevent "ghost" accounts
+                            await _userManager.DeleteAsync(newUser);
 
-                            // You might want to delete the newly created IdentityUser here to clean up, 
-                            // as the registration is incomplete.
-                            // await _userManager.DeleteAsync(newUser); 
-
-                            TempData["error"] = "Registration successful, but failed to save profile details. Please contact support.";
-                            return RedirectToAction("Login"); // Redirect to avoid displaying sensitive error info
+                            ModelState.AddModelError("", "Failed to save profile details. Account creation rolled back.");
+                            return View(user);
                         }
                     }
 
-                    // If IdentityResult was not successful (e.g., username already exists)
+                    // Handle Identity errors (e.g., Password too weak)
                     foreach (var error in result.Errors)
                     {
                         ModelState.AddModelError("", error.Description);
@@ -210,13 +241,10 @@ namespace CMSECommerce.Controllers
                 }
                 catch (Exception ex)
                 {
-                    // Log catastrophic failure of Identity system (e.g., database connection down)
-                    // _logger.LogCritical(ex, "Critical failure during user creation for user: {username}", user.UserName);
-                    ModelState.AddModelError("", "A critical error occurred during registration. Please try again later.");
+                    ModelState.AddModelError("", "A critical error occurred. Please try again later.");
                 }
             }
 
-            // Return view with model (and potentially validation errors)
             return View(user);
         }
 
@@ -1213,76 +1241,64 @@ namespace CMSECommerce.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(LoginViewModel loginVM)
         {
-            // The ReturnUrl should be handled here to prevent null reference if not provided.
             string returnUrl = loginVM.ReturnUrl ?? "/";
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    // 1. Attempt to find the user by UserName
-                    var user = await _userManager.FindByNameAsync(loginVM.UserName);
+                    // 1. Identify the user by checking Username, Email, and PhoneNumber
+                    // Note: loginVM.UserName here acts as the "Identifier" input
+                    var user = await _userManager.FindByNameAsync(loginVM.UserName) // Check Username
+                               ?? await _userManager.FindByEmailAsync(loginVM.UserName) // Check Email
+                               ?? await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == loginVM.UserName); // Check Mobile
 
                     if (user == null)
                     {
-                        ModelState.AddModelError(string.Empty, "Invalid username or password.");
+                        ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                         return View(loginVM);
                     }
 
-                    // 2. Attempt the sign-in
-                    Microsoft.AspNetCore.Identity.SignInResult result =
-                        await _sign_in_manager.PasswordSignInAsync(loginVM.UserName, loginVM.Password, false, false);
+                    // 2. Attempt the sign-in using the user's actual Identity UserName
+                    // PasswordSignInAsync requires the 'UserName' property of the IdentityUser
+                    var result = await _sign_in_manager.PasswordSignInAsync(user.UserName, loginVM.Password, false, false);
 
                     if (result.Succeeded)
                     {
-                        // --- USER STATUS TRACKING: SET ONLINE (Database Operations) ---
+                        // --- USER STATUS TRACKING ---
                         try
                         {
-                            // 1. Get the status tracker for the successfully logged-in user
                             var status = await _context.UserStatuses.FindAsync(user.Id);
-
-                            // 2. If no tracker exists, create one
                             if (status == null)
                             {
                                 status = new UserStatusTracker { UserId = user.Id };
                                 _context.UserStatuses.Add(status);
                             }
 
-                            // 3. Update status to online and record activity time
                             status.IsOnline = true;
                             status.LastActivity = DateTime.UtcNow;
 
-                            // The critical database save operation
                             await _context.SaveChangesAsync();
                         }
                         catch (Exception statusEx)
                         {
-                            // Log the error during status update but allow login to proceed
-                            // Logging the status update failure is crucial for monitoring.
-                            // _logger.LogError(statusEx, "Failed to update UserStatusTracker for user {UserId} during login.", user.Id);
-                            // The user is already logged in, so we swallow the exception and continue the redirect.
+                            // Swallowing error to allow login to proceed
                         }
 
-                        // 4. Redirect user to the intended URL
                         return LocalRedirect(returnUrl);
                     }
 
-                    // If login failed (e.g., bad password)
-                    ModelState.AddModelError(string.Empty, "Invalid username or password.");
+                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                 }
                 catch (Exception ex)
                 {
-                    // Log catastrophic failure of Identity system (e.g., database connection down, misconfiguration)
-                    // _logger.LogCritical(ex, "Critical error during login process for user: {Username}", loginVM.UserName);
-                    ModelState.AddModelError(string.Empty, "A critical system error occurred during login. Please try again.");
+                    ModelState.AddModelError(string.Empty, "A critical system error occurred.");
                     return View(loginVM);
                 }
             }
 
-            // If ModelState is not valid or login failed
             return View(loginVM);
         }
-
         public async Task<IActionResult> Logout()
         {
             string userId = null;
