@@ -322,7 +322,11 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 // 2. Optimization: Use Normalized fields for O(1) or O(log n) DB lookups
                 // Identity indexes are typically tuned for NormalizedUserName and NormalizedEmail.
                 var normalizedInput = userName.ToUpperInvariant();
-
+                var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(up => up.ITSNumber == userName);
+                if (userProfile != null)
+                {
+                    return Json(false);
+                }
                 // 3. Efficiency: Use AnyAsync instead of FirstOrDefaultAsync.
                 // AnyAsync generates 'IF EXISTS' in SQL, which stops searching after the first match.
                 // FirstOrDefaultAsync retrieves the entire row into memory, which is wasteful.

@@ -141,6 +141,7 @@ namespace CMSECommerce.Controllers
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public async Task<IActionResult> CheckUserNameUnique([FromQuery] string userName)
         {
+            
             // 1. Guard Clause: Fast-fail on empty input
             if (string.IsNullOrWhiteSpace(userName))
             {
@@ -149,10 +150,16 @@ namespace CMSECommerce.Controllers
 
             try
             {
+
                 // 2. Optimization: Use Normalized fields for O(1) or O(log n) DB lookups
                 // Identity indexes are typically tuned for NormalizedUserName and NormalizedEmail.
                 var normalizedInput = userName.ToUpperInvariant();
 
+                var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(up => up.ITSNumber == userName);
+                if (userProfile != null)
+                {
+                    return Json(false);
+                }
                 // 3. Efficiency: Use AnyAsync instead of FirstOrDefaultAsync.
                 // AnyAsync generates 'IF EXISTS' in SQL, which stops searching after the first match.
                 // FirstOrDefaultAsync retrieves the entire row into memory, which is wasteful.
@@ -1357,12 +1364,31 @@ namespace CMSECommerce.Controllers
                     var user = await _userManager.FindByNameAsync(loginVM.UserName) // Check Username
                                ?? await _userManager.FindByEmailAsync(loginVM.UserName) // Check Email
                                ?? await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == loginVM.UserName); // Check Mobile
+                    
+                    var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(up => up.ITSNumber == loginVM.UserName);
+                    var userObject = _context.Users.FirstOrDefault(u => u.Id == userProfile.UserId);
 
-                    if (user == null)
+                  
+                    if (userProfile != null)
                     {
+                        // If ITS match is found, ensure it points to the same Identity user
+                        if (userObject == null || userProfile.UserId != userObject.Id)
+                        {
+                            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                            return View(loginVM);
+                        }
+                    }
+                    else if (user == null)
+                    {
+                        // No ITS found AND no standard user found
                         ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                         return View(loginVM);
                     }
+                    if(user==null && userObject!=null)
+                    {
+                        user = userObject;
+                    }
+                    
 
                     // 2. Attempt the sign-in using the user's actual Identity UserName
                     // PasswordSignInAsync requires the 'UserName' property of the IdentityUser
