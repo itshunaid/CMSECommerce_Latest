@@ -20,7 +20,7 @@
     else
     {
         <div class="table-responsive shadow-sm rounded">
-            <table class="table table-hover table-striped mb-0">
+            <table class="table table-hover table-striped mb-0" id="sellerTable">
                 <thead class="bg-primary text-white">
                     <tr>
                         <th scope="col">Name</th>
@@ -30,12 +30,20 @@
                         <th scope="col">Profession</th>
                         <th scope="col">Actions</th>
                     </tr>
+                    @* Filter Row *@
+                    <tr class="bg-light">
+                        <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter Name..." data-col="0"></th>
+                        <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter Email..." data-col="1"></th>
+                        <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter Phone..." data-col="2"></th>
+                        <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter ITS..." data-col="3"></th>
+                        <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter Profession..." data-col="4"></th>
+                        <th><button id="clearFilters" class="btn btn-sm btn-secondary w-100">Reset</button></th>
+                    </tr>
                 </thead>
-                <tbody>
+                <tbody id="sellerTableBody">
                     @foreach (var user in Model)
                     {
                         <tr>
-                            @* **RECTIFICATION: Use null-coalescing and string interpolation for Name display** *@
                             <td>
                                 @{
                                     var firstName = user.FirstName ?? "N/A";
@@ -59,18 +67,76 @@
             </table>
         </div>
 
-        <p class="text-muted small mt-3">Total Registered Sellers: @Model.Count()</p>
+        <p class="text-muted small mt-3">Total Registered Sellers: <span id="visibleCount">@Model.Count()</span></p>
     }
 </div>
 
 @section Styles {
     <style>
         .bg-primary {
-            background-color: #1e3a8a !important; /* Dark Blue Header */
+            background-color: #1e3a8a !important;
         }
 
+        /* Styling for the filter inputs */
+        .column-filter {
+            border: 1px solid #ced4da;
+            font-size: 0.85rem;
+        }
+
+            .column-filter:focus {
+                border-color: #007bff;
+                box-shadow: none;
+            }
+
+        /* Keep header clean */
         .table thead th {
             border-bottom: 2px solid #007bff;
+            vertical-align: middle;
         }
     </style>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const filters = document.querySelectorAll(".column-filter");
+            const rows = document.querySelectorAll("#sellerTableBody tr");
+            const countDisplay = document.getElementById("visibleCount");
+            const clearBtn = document.getElementById("clearFilters");
+
+            function filterTable() {
+                let visibleCount = 0;
+
+                rows.forEach(row => {
+                    let isVisible = true;
+
+                    filters.forEach(filter => {
+                        const colIndex = filter.getAttribute("data-col");
+                        const filterValue = filter.value.toLowerCase();
+                        const cellText = row.cells[colIndex].textContent.toLowerCase();
+
+                        if (!cellText.includes(filterValue)) {
+                            isVisible = false;
+                        }
+                    });
+
+                    row.style.display = isVisible ? "" : "none";
+                    if (isVisible) visibleCount++;
+                });
+
+                countDisplay.textContent = visibleCount;
+            }
+
+            // Trigger filtering on input
+            filters.forEach(filter => {
+                filter.addEventListener("keyup", filterTable);
+            });
+
+            // Reset functionality
+            clearBtn.addEventListener("click", function () {
+                filters.forEach(filter => filter.value = "");
+                filterTable();
+            });
+        });
+    </script>
 }
