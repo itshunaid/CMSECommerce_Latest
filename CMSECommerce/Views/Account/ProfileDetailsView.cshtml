@@ -146,9 +146,16 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 style="font-weight: 400; color: var(--text-dark);">User Profile Details</h2>
-    <a asp-action="ProfileDetails" asp-controller="Account" class="linkedin-btn">
-        <i class="fas fa-pencil-alt me-2"></i> Edit Profile
-    </a>
+
+    @if (User.IsInRole("Admin") || User.Identity.Name == Model.UserName)
+    {
+        <a asp-action="ProfileDetails"
+           asp-controller="Account"
+           asp-route-id="@Model.Id"
+           class="linkedin-btn">
+            <i class="fas fa-pencil-alt me-2"></i> Edit Profile
+        </a>
+    }
 </div>
 
 <div class="row">

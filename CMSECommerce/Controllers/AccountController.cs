@@ -372,16 +372,16 @@ namespace CMSECommerce.Controllers
 
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> ProfileDetails(string userId = "", bool ITSAvailable = false)
+        public async Task<IActionResult> ProfileDetails(string id = "", bool ITSAvailable = false)
         {
-            if (string.IsNullOrEmpty(userId))
+            if (string.IsNullOrEmpty(id))
             {
-                userId = (await _userManager.GetUserAsync(User))?.Id;
+                id = (await _userManager.GetUserAsync(User))?.Id;
             }
 
             try
             {
-                var user = await _userManager.FindByIdAsync(userId);
+                var user = await _userManager.FindByIdAsync(id);
                 if (user == null)
                 {
                     TempData["error"] = "User not found.";
@@ -389,7 +389,7 @@ namespace CMSECommerce.Controllers
                 }
 
                 // ** NEW: Fetch UserProfile **
-                var userProfile = await _context.UserProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == userId);
+                var userProfile = await _context.UserProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == id);
                 // If profile doesn't exist, create a new one (optional: depends on business rules)
                 // For simplicity, we assume profile exists or we handle nulls gracefully.
 
@@ -432,7 +432,7 @@ namespace CMSECommerce.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading user ID: {UserId} for editing.", userId);
+                _logger.LogError(ex, "Error loading user ID: {UserId} for editing.", id);
                 TempData["error"] = "Failed to load user details for editing.";
                 return RedirectToAction(nameof(Index));
             }
