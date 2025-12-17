@@ -5,7 +5,7 @@
 }
 
 <style>
-    /* ... (Existing Amazon-style CSS remains here) ... */
+    /* ... (Your existing Amazon-style CSS) ... */
     :root {
         --amz-navy: #232f3e;
         --amz-navy-2: #1e2a33;
@@ -21,7 +21,6 @@
         --amz-border: #d8dadd;
     }
 
-    /* Header Bar */
     .amz-header {
         background: var(--amz-navy);
         color: #fff;
@@ -50,7 +49,6 @@
         margin-top: 2px;
     }
 
-    /* Card container */
     .amz-card {
         background: #fff;
         border: 1px solid var(--amz-border);
@@ -60,7 +58,6 @@
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
-    /* Form Inputs */
     .amz-form-control, .amz-form-select {
         display: block;
         width: 100%;
@@ -70,7 +67,7 @@
         color: #111;
         background-color: #fff;
         background-clip: padding-box;
-        border: 1px solid #c8c8c8; /* Lighter border for inputs */
+        border: 1px solid #c8c8c8;
         border-radius: 4px;
         transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     }
@@ -80,10 +77,9 @@
             background-color: #fff;
             border-color: var(--amz-orange-2);
             outline: 0;
-            box-shadow: 0 0 0 3px rgba(255, 164, 28, 0.25); /* Subtle orange glow */
+            box-shadow: 0 0 0 3px rgba(255, 164, 28, 0.25);
         }
 
-    /* Form Labels */
     .amz-label {
         font-weight: 700;
         color: var(--amz-slate);
@@ -92,7 +88,12 @@
         font-size: 0.875rem;
     }
 
-    /* Section Headers */
+        /* Added required indicator */
+        .amz-label.required::after {
+            content: " *";
+            color: var(--amz-red);
+        }
+
     .amz-section-header {
         font-size: 1.3rem;
         font-weight: 600;
@@ -103,7 +104,6 @@
         margin-bottom: 15px;
     }
 
-    /* Buttons */
     .btn-amz-primary {
         background: var(--amz-orange);
         color: #111;
@@ -131,7 +131,6 @@
             background: var(--amz-gray-100);
         }
 
-    /* Checkbox Styling */
     .amz-form-check {
         padding-left: 1.5em;
     }
@@ -139,7 +138,6 @@
         .amz-form-check .form-check-input {
             float: left;
             margin-left: -1.5em;
-            /* Custom checkbox style can be added here if needed */
         }
 
     .amz-form-check-label {
@@ -147,10 +145,15 @@
         color: #111;
     }
 
-    /* New Style for File Inputs */
     .amz-file-upload .amz-form-control[type="file"] {
-        padding: 6px 8px; /* Slightly adjusted padding for file input */
-        height: 44px; /* Ensure consistent height with other inputs */
+        padding: 6px 8px;
+        height: 44px;
+    }
+
+    .validation-loader {
+        font-size: 0.75rem;
+        color: var(--amz-gray-500);
+        display: none;
     }
 </style>
 
@@ -172,7 +175,7 @@
 <div class="row">
     <div class="col-md-8 offset-md-2">
         <div class="amz-card">
-            <form asp-action="Create" method="post" enctype="multipart/form-data">
+            <form asp-action="Create" method="post" enctype="multipart/form-data" id="createUserForm">
                 @Html.AntiForgeryToken()
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
@@ -182,7 +185,8 @@
                         <div class="form-group mt-3">
                             <label asp-for="UserName" class="amz-label"></label>
                             <input asp-for="UserName" class="amz-form-control" />
-                            <span asp-validation-for="UserName" class="text-danger"></span>
+                            <span id="userNameLoader" class="validation-loader">Checking...</span>
+                            <span asp-validation-for="UserName" class="text-danger" id="UserName-error"></span>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -199,14 +203,16 @@
                         <div class="form-group mt-3">
                             <label asp-for="Email" class="amz-label"></label>
                             <input asp-for="Email" class="amz-form-control" />
-                            <span asp-validation-for="Email" class="text-danger"></span>
+                            <span id="emailLoader" class="validation-loader">Checking...</span>
+                            <span asp-validation-for="Email" class="text-danger" id="Email-error"></span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group mt-3">
                             <label asp-for="PhoneNumber" class="amz-label"></label>
-                            <input asp-for="PhoneNumber" class="amz-form-control" />
-                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                            <input asp-for="PhoneNumber" class="amz-form-control" placeholder="10-digit number" />
+                            <span id="phoneLoader" class="validation-loader">Checking...</span>
+                            <span asp-validation-for="PhoneNumber" class="text-danger" id="PhoneNumber-error"></span>
                         </div>
                     </div>
                 </div>
@@ -247,15 +253,24 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mt-3">
-                            <label asp-for="ITSNumber" class="amz-label"></label>
-                            <input asp-for="ITSNumber" class="amz-form-control" />
-                            <span asp-validation-for="ITSNumber" class="text-danger"></span>
+                            @* Added 'required' class for red asterisk visual *@
+                            <label asp-for="ITSNumber" class="amz-label required">ITS Number</label>
+                            <input asp-for="ITSNumber"
+                                   class="amz-form-control"
+                                   type="text"
+                                   inputmode="numeric"
+                                   maxlength="8"
+                                   placeholder="8-digit integer"
+                                   required />
+                            <span id="itsLoader" class="validation-loader">Checking uniqueness...</span>
+                            <span asp-validation-for="ITSNumber" class="text-danger" id="ITSNumber-error"></span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group mt-3 amz-file-upload">
                             <label asp-for="ProfileImageFile" class="amz-label"></label>
-                            <input asp-for="ProfileImageFile" class="amz-form-control" type="file" accept="image/*" /> <span asp-validation-for="ProfileImageFile" class="text-danger"></span>
+                            <input asp-for="ProfileImageFile" class="amz-form-control" type="file" accept="image/*" />
+                            <span asp-validation-for="ProfileImageFile" class="text-danger"></span>
                         </div>
                     </div>
                 </div>
@@ -271,7 +286,7 @@
                     <div class="col-md-6">
                         <div class="form-group mt-3">
                             <label asp-for="ServicesProvided" class="amz-label"></label>
-                            <input asp-for="ServicesProvided" class="amz-form-control" placeholder="e.g., Web Design, Consulting, Plumbing (comma-separated)" />
+                            <input asp-for="ServicesProvided" class="amz-form-control" placeholder="e.g., Web Design, Consulting (comma-separated)" />
                             <span asp-validation-for="ServicesProvided" class="text-danger"></span>
                         </div>
                     </div>
@@ -282,7 +297,6 @@
                     <textarea asp-for="About" class="amz-form-control" rows="3"></textarea>
                     <span asp-validation-for="About" class="text-danger"></span>
                 </div>
-
 
                 <h3 class="amz-section-header">Contact & Social Links</h3>
                 <div class="row">
@@ -301,43 +315,26 @@
                         </div>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="FacebookUrl" class="amz-label"></label>
-                            <input asp-for="FacebookUrl" class="amz-form-control" />
-                            <span asp-validation-for="FacebookUrl" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="InstagramUrl" class="amz-label"></label>
-                            <input asp-for="InstagramUrl" class="amz-form-control" />
-                            <span asp-validation-for="InstagramUrl" class="text-danger"></span>
-                        </div>
-                    </div>
-                </div>
-
 
                 <h3 class="amz-section-header">Payment QR Codes (Image Uploads)</h3>
-
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mt-3 amz-file-upload">
                             <label asp-for="GpayQRCodeFile" class="amz-label"></label>
-                            <input asp-for="GpayQRCodeFile" class="amz-form-control" type="file" accept="image/*" /> <span asp-validation-for="GpayQRCodeFile" class="text-danger"></span>
+                            <input asp-for="GpayQRCodeFile" class="amz-form-control" type="file" accept="image/*" />
+                            <span asp-validation-for="GpayQRCodeFile" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group mt-3 amz-file-upload">
                             <label asp-for="PhonePeQRCodeFile" class="amz-label"></label>
-                            <input asp-for="PhonePeQRCodeFile" class="amz-form-control" type="file" accept="image/*" /> <span asp-validation-for="PhonePeQRCodeFile" class="text-danger"></span>
+                            <input asp-for="PhonePeQRCodeFile" class="amz-form-control" type="file" accept="image/*" />
+                            <span asp-validation-for="PhonePeQRCodeFile" class="text-danger"></span>
                         </div>
                     </div>
                 </div>
 
                 <h3 class="amz-section-header">Addresses & Phones</h3>
-
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mt-3">
@@ -355,39 +352,18 @@
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="BusinessAddress" class="amz-label"></label>
-                            <input asp-for="BusinessAddress" class="amz-form-control" />
-                            <span asp-validation-for="BusinessAddress" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="BusinessPhoneNumber" class="amz-label"></label>
-                            <input asp-for="BusinessPhoneNumber" class="amz-form-control" />
-                            <span asp-validation-for="BusinessPhoneNumber" class="text-danger"></span>
-                        </div>
-                    </div>
-                </div>
-
-
                 <h3 class="amz-section-header">Admin/Visibility Settings</h3>
-
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group amz-form-check mt-4">
                             <input asp-for="IsProfileVisible" class="form-check-input" />
                             <label asp-for="IsProfileVisible" class="amz-form-check-label"></label>
-                            <small class="text-muted d-block">Controls whether the profile is shown publicly.</small>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group amz-form-check mt-4">
                             <input asp-for="IsImageApproved" class="form-check-input" />
                             <label asp-for="IsImageApproved" class="amz-form-check-label"></label>
-                            <small class="text-muted d-block">Mark as approved once the user's profile image is reviewed.</small>
                         </div>
                     </div>
                 </div>
@@ -396,7 +372,7 @@
 
                 <div class="form-group mt-4 mb-3 d-flex justify-content-end">
                     <a asp-action="Index" class="btn-amz-secondary me-2">Cancel</a>
-                    <button type="submit" class="btn-amz-primary">💾 Create User & Profile</button>
+                    <button type="submit" id="btnSubmit" class="btn-amz-primary">💾 Create User & Profile</button>
                 </div>
 
             </form>
@@ -408,4 +384,107 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script>
+        $(document).ready(function () {
+            // Function to handle validation UI
+            function setValidationResult(inputSelector, errorSelector, isAvailable, message) {
+                const errorSpan = $(errorSelector);
+                if (isAvailable) {
+                    errorSpan.text("");
+                    $(inputSelector).css("border-color", "#007600"); // Success Green
+                } else {
+                    errorSpan.text(message);
+                    $(inputSelector).css("border-color", "#b12704"); // Error Red
+                }
+            }
+
+            // --- 1. ITS Number Enhancements ---
+
+            // A. Enforce Integer-only while typing
+            $("#ITSNumber").on("input", function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+
+            // B. Uniqueness, Length, and Mandatory Check on Blur
+            $("#ITSNumber").on("blur", function () {
+                const val = $(this).val();
+
+                // Mandatory check
+                if (!val) {
+                    setValidationResult("#ITSNumber", "#ITSNumber-error", false, "ITS Number is a mandatory field.");
+                    return;
+                }
+
+                // 8-digit check
+                if (val.length !== 8) {
+                    setValidationResult("#ITSNumber", "#ITSNumber-error", false, "ITS Number must be exactly 8 digits.");
+                    return;
+                }
+
+                // Uniqueness Check via AJAX
+                $("#itsLoader").show();
+                $.get('@Url.Action("CheckITSUnique")', { itsNumber: val }, function (data) {
+                    $("#itsLoader").hide();
+                    // Assuming controller returns { isAvailable: bool, message: string }
+                    setValidationResult("#ITSNumber", "#ITSNumber-error", data.isAvailable, data.message);
+                });
+            });
+
+
+            // 2. UserName Uniqueness Check
+            $("#UserName").on("blur", function () {
+                const val = $(this).val();
+                if (!val) return;
+
+                $("#userNameLoader").show();
+                $.get('@Url.Action("CheckUserNameUnique")', { userName: val }, function (data) {
+                    $("#userNameLoader").hide();
+                    setValidationResult("#UserName", "#UserName-error", data, "Username/Phone is already taken.");
+                });
+            });
+
+            // 3. Email Uniqueness Check
+            $("#Email").on("blur", function () {
+                const val = $(this).val();
+                if (!val) return;
+
+                $("#emailLoader").show();
+                $.get('@Url.Action("CheckEmailUnique")', { email: val }, function (data) {
+                    $("#emailLoader").hide();
+                    setValidationResult("#Email", "#Email-error", data.isAvailable, data.message);
+                });
+            });
+
+            // 4. Phone Number Uniqueness Check
+            $("#PhoneNumber").on("blur", function () {
+                const val = $(this).val();
+                if (!val) return;
+
+                $("#phoneLoader").show();
+                $.get('@Url.Action("CheckPhoneUnique")', { phoneNumber: val }, function (data) {
+                    $("#phoneLoader").hide();
+                    setValidationResult("#PhoneNumber", "#PhoneNumber-error", data, "This phone number is already registered.");
+                });
+            });
+
+            // Prevent form submission if there are visible errors or ITS is invalid
+            $("#createUserForm").on("submit", function(e) {
+                const itsVal = $("#ITSNumber").val();
+
+                // Final check for ITS requirements before allowing submit
+                if (!itsVal || itsVal.length !== 8) {
+                    e.preventDefault();
+                    setValidationResult("#ITSNumber", "#ITSNumber-error", false, "Valid 8-digit ITS Number is required.");
+                    alert("Please fix the ITS Number field.");
+                    return;
+                }
+
+                if ($(".text-danger:not(:empty)").length > 0) {
+                    e.preventDefault();
+                    alert("Please fix validation errors before submitting.");
+                }
+            });
+        });
+    </script>
 }

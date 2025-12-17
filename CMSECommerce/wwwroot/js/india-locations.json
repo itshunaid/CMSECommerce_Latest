@@ -1,0 +1,401 @@
+{
+  "Country": "India",
+  "States": [
+    {
+      "State": "Andhra Pradesh",
+      "Cities": [
+        {
+          "Name": "Visakhapatnam",
+          "PostalCodes": [ "530001", "530002" ]
+        },
+        {
+          "Name": "Vijayawada",
+          "PostalCodes": [ "520001", "520002" ]
+        },
+        {
+          "Name": "Guntur",
+          "PostalCodes": [ "522001" ]
+        }
+      ]
+    },
+    {
+      "State": "Arunachal Pradesh",
+      "Cities": [
+        {
+          "Name": "Itanagar",
+          "PostalCodes": [ "791111" ]
+        }
+      ]
+    },
+    {
+      "State": "Assam",
+      "Cities": [
+        {
+          "Name": "Guwahati",
+          "PostalCodes": [ "781001" ]
+        },
+        {
+          "Name": "Dibrugarh",
+          "PostalCodes": [ "786001" ]
+        }
+      ]
+    },
+    {
+      "State": "Bihar",
+      "Cities": [
+        {
+          "Name": "Patna",
+          "PostalCodes": [ "800001" ]
+        },
+        {
+          "Name": "Gaya",
+          "PostalCodes": [ "823001" ]
+        }
+      ]
+    },
+    {
+      "State": "Chandigarh (UT)",
+      "Cities": [
+        {
+          "Name": "Chandigarh",
+          "PostalCodes": [ "160001", "160017" ]
+        }
+      ]
+    },
+    {
+      "State": "Chhattisgarh",
+      "Cities": [
+        {
+          "Name": "Raipur",
+          "PostalCodes": [ "492001" ]
+        },
+        {
+          "Name": "Bhilai",
+          "PostalCodes": [ "490001" ]
+        }
+      ]
+    },
+    {
+      "State": "Delhi (NCT)",
+      "Cities": [
+        {
+          "Name": "New Delhi",
+          "PostalCodes": [ "110001", "110011", "110020" ]
+        },
+        {
+          "Name": "North Delhi",
+          "PostalCodes": [ "110007" ]
+        }
+      ]
+    },
+    {
+      "State": "Goa",
+      "Cities": [
+        {
+          "Name": "Panaji",
+          "PostalCodes": [ "403001" ]
+        },
+        {
+          "Name": "Margao",
+          "PostalCodes": [ "403601" ]
+        }
+      ]
+    },
+    {
+      "State": "Gujarat",
+      "Cities": [
+        {
+          "Name": "Ahmedabad",
+          "PostalCodes": [ "380001" ]
+        },
+        {
+          "Name": "Surat",
+          "PostalCodes": [ "395001" ]
+        },
+        {
+          "Name": "Vadodara",
+          "PostalCodes": [ "390001" ]
+        }
+      ]
+    },
+    {
+      "State": "Haryana",
+      "Cities": [
+        {
+          "Name": "Gurugram",
+          "PostalCodes": [ "122001", "122018" ]
+        },
+        {
+          "Name": "Faridabad",
+          "PostalCodes": [ "121001" ]
+        }
+      ]
+    },
+    {
+      "State": "Himachal Pradesh",
+      "Cities": [
+        {
+          "Name": "Shimla",
+          "PostalCodes": [ "171001" ]
+        }
+      ]
+    },
+    {
+      "State": "Jammu & Kashmir (UT)",
+      "Cities": [
+        {
+          "Name": "Srinagar",
+          "PostalCodes": [ "190001" ]
+        },
+        {
+          "Name": "Jammu",
+          "PostalCodes": [ "180001" ]
+        }
+      ]
+    },
+    {
+      "State": "Jharkhand",
+      "Cities": [
+        {
+          "Name": "Ranchi",
+          "PostalCodes": [ "834001" ]
+        },
+        {
+          "Name": "Jamshedpur",
+          "PostalCodes": [ "831001" ]
+        }
+      ]
+    },
+    {
+      "State": "Karnataka",
+      "Cities": [
+        {
+          "Name": "Bengaluru",
+          "PostalCodes": [ "560001", "560034", "560100" ]
+        },
+        {
+          "Name": "Mysuru",
+          "PostalCodes": [ "570001" ]
+        },
+        {
+          "Name": "Hubballi",
+          "PostalCodes": [ "580001" ]
+        }
+      ]
+    },
+    {
+      "State": "Kerala",
+      "Cities": [
+        {
+          "Name": "Thiruvananthapuram",
+          "PostalCodes": [ "695001" ]
+        },
+        {
+          "Name": "Kochi",
+          "PostalCodes": [ "682001" ]
+        }
+      ]
+    },
+    {
+      "State": "Madhya Pradesh",
+      "Cities": [
+        {
+          "Name": "Bhopal",
+          "PostalCodes": [ "462001" ]
+        },
+        {
+          "Name": "Indore",
+          "PostalCodes": [ "452001" ]
+        }
+      ]
+    },
+    {
+      "State": "Maharashtra",
+      "Cities": [
+        {
+          "Name": "Mumbai",
+          "PostalCodes": [ "400001", "400013", "400050" ]
+        },
+        {
+          "Name": "Pune",
+          "PostalCodes": [ "411001", "411004" ]
+        },
+        {
+          "Name": "Nagpur",
+          "PostalCodes": [ "440001" ]
+        }
+      ]
+    },
+    {
+      "State": "Manipur",
+      "Cities": [
+        {
+          "Name": "Imphal",
+          "PostalCodes": [ "795001" ]
+        }
+      ]
+    },
+    {
+      "State": "Meghalaya",
+      "Cities": [
+        {
+          "Name": "Shillong",
+          "PostalCodes": [ "793001" ]
+        }
+      ]
+    },
+    {
+      "State": "Mizoram",
+      "Cities": [
+        {
+          "Name": "Aizawl",
+          "PostalCodes": [ "796001" ]
+        }
+      ]
+    },
+    {
+      "State": "Nagaland",
+      "Cities": [
+        {
+          "Name": "Kohima",
+          "PostalCodes": [ "797001" ]
+        }
+      ]
+    },
+    {
+      "State": "Odisha",
+      "Cities": [
+        {
+          "Name": "Bhubaneswar",
+          "PostalCodes": [ "751001" ]
+        },
+        {
+          "Name": "Cuttack",
+          "PostalCodes": [ "753001" ]
+        }
+      ]
+    },
+    {
+      "State": "Puducherry (UT)",
+      "Cities": [
+        {
+          "Name": "Puducherry",
+          "PostalCodes": [ "605001" ]
+        }
+      ]
+    },
+    {
+      "State": "Punjab",
+      "Cities": [
+        {
+          "Name": "Ludhiana",
+          "PostalCodes": [ "141001" ]
+        },
+        {
+          "Name": "Amritsar",
+          "PostalCodes": [ "143001" ]
+        }
+      ]
+    },
+    {
+      "State": "Rajasthan",
+      "Cities": [
+        {
+          "Name": "Jaipur",
+          "PostalCodes": [ "302001", "302015" ]
+        },
+        {
+          "Name": "Jodhpur",
+          "PostalCodes": [ "342001" ]
+        }
+      ]
+    },
+    {
+      "State": "Sikkim",
+      "Cities": [
+        {
+          "Name": "Gangtok",
+          "PostalCodes": [ "737101" ]
+        }
+      ]
+    },
+    {
+      "State": "Tamil Nadu",
+      "Cities": [
+        {
+          "Name": "Chennai",
+          "PostalCodes": [ "600001", "600017", "600028" ]
+        },
+        {
+          "Name": "Coimbatore",
+          "PostalCodes": [ "641001" ]
+        },
+        {
+          "Name": "Madurai",
+          "PostalCodes": [ "625001" ]
+        }
+      ]
+    },
+    {
+      "State": "Telangana",
+      "Cities": [
+        {
+          "Name": "Hyderabad",
+          "PostalCodes": [ "500001", "500032", "500081" ]
+        },
+        {
+          "Name": "Warangal",
+          "PostalCodes": [ "506001" ]
+        }
+      ]
+    },
+    {
+      "State": "Tripura",
+      "Cities": [
+        {
+          "Name": "Agartala",
+          "PostalCodes": [ "799001" ]
+        }
+      ]
+    },
+    {
+      "State": "Uttar Pradesh",
+      "Cities": [
+        {
+          "Name": "Lucknow",
+          "PostalCodes": [ "226001" ]
+        },
+        {
+          "Name": "Kanpur",
+          "PostalCodes": [ "208001" ]
+        },
+        {
+          "Name": "Noida",
+          "PostalCodes": [ "201301" ]
+        }
+      ]
+    },
+    {
+      "State": "Uttarakhand",
+      "Cities": [
+        {
+          "Name": "Dehradun",
+          "PostalCodes": [ "248001" ]
+        }
+      ]
+    },
+    {
+      "State": "West Bengal",
+      "Cities": [
+        {
+          "Name": "Kolkata",
+          "PostalCodes": [ "700001", "700091" ]
+        },
+        {
+          "Name": "Darjeeling",
+          "PostalCodes": [ "734101" ]
+        }
+      ]
+    }
+  ]
+}
