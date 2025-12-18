@@ -13,6 +13,7 @@ namespace CMSECommerce.Infrastructure
         public DbSet<OrderDetail> OrderDetails { get; set; }
         public DbSet<User> User { get; set; }
         public DbSet<UserProfile> UserProfiles { get; set; }
+        public DbSet<UnlockRequest> UnlockRequests { get; set; }
         public DbSet<Address> Addresses { get; set; }
         public DbSet<SubscriberRequest> SubscriberRequests { get; set; }
 

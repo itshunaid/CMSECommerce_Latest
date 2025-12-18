@@ -5,88 +5,117 @@
     const string controllerName = "Account";
 }
 
-<div class="amazon-login-page py-5">
-    <div class="container d-flex justify-content-center overflow-hidden">
-        <div class="col-lg-10 col-xl-8">
-            <div class="row justify-content-center align-items-center">
+<div class="amazon-login-page min-vh-100 d-flex align-items-center py-4">
+    <div class="container overflow-hidden">
+        <div class="row justify-content-center align-items-center">
 
-                <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-start pe-4 me-auto">
-                    <h1 class="display-5 fw-bold mb-3 text-amazon-dark">Welcome Back</h1>
-                    <p class="text-muted mb-4 small">
-                        Sign in to access your orders, track shipments, and manage your account details.
-                        <strong>You can now use your registered email or mobile number to log in.</strong>
-                    </p>
-                    <ul class="list-unstyled text-muted small">
-                        <li class="mb-2"><i class="fas fa-check-circle me-2 text-amazon-link"></i> Secure and fast checkout</li>
-                        <li class="mb-2"><i class="fas fa-check-circle me-2 text-amazon-link"></i> View order history & invoices</li>
-                        <li class="mb-2"><i class="fas fa-check-circle me-2 text-amazon-link"></i> Sync your cart across devices</li>
-                    </ul>
+            <div class="col-lg-5 d-none d-lg-flex flex-column justify-content-center align-items-start pe-5">
+                <h1 class="display-5 fw-bold mb-3 text-amazon-dark">Welcome Back</h1>
+                <p class="text-muted mb-4 small">
+                    Sign in to access your orders, track shipments, and manage your account details.
+                    <strong>Your security is our priority.</strong>
+                </p>
+                <ul class="list-unstyled text-muted small">
+                    <li class="mb-2"><i class="bi bi-check-circle-fill me-2 text-amazon-link"></i> Secure and fast checkout</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill me-2 text-amazon-link"></i> View order history & invoices</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill me-2 text-amazon-link"></i> Sync your cart across devices</li>
+                </ul>
+            </div>
+
+            <div class="col-12 col-sm-10 col-md-7 col-lg-4">
+
+                <div class="text-center mb-4 d-lg-none">
+                    <h3 class="fw-bold text-amazon-dark">CMSECommerce</h3>
                 </div>
 
-                <div class="col-lg-5 col-md-8 col-sm-10">
-                    <div class="amazon-form-box p-4 border rounded shadow-sm bg-white">
-                        <h2 class="h3 fw-bold mb-4 text-amazon-dark">Sign-In</h2>
-
-                        <form method="post" asp-controller="@controllerName" asp-action="Login" role="form">
-                            <div asp-validation-summary="ModelOnly" class="alert alert-danger small p-2" role="alert"></div>
-
-                            <div class="form-group mb-3">
-                                <label asp-for="UserName" class="form-label fw-bold small text-amazon-dark mb-1">
-                                    Username, Email, or Mobile Number
-                                </label>
-                                <input asp-for="UserName"
-                                       class="form-control amazon-input-field"
-                                       placeholder="Username, email, or mobile number"
-                                       autofocus />
-                                <span asp-validation-for="UserName" class="text-danger small mt-1 d-block"></span>
+                @* --- STATUS ALERTS --- *@
+                @if (ViewBag.RequestSubmitted == true)
+                {
+                    <div class="amazon-status-box border rounded mb-3 p-3 shadow-sm bg-white border-start-teal">
+                        <div class="d-flex">
+                            <i class="bi bi-info-circle-fill fs-4 me-3 text-amazon-link"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1 text-amazon-dark">Request Status: Pending</h6>
+                                <p class="small mb-0 text-muted">Review in progress. We'll email you once your account is unlocked.</p>
                             </div>
-
-                            <div class="form-group mb-3">
-                                <div class="d-flex justify-content-between">
-                                    <label asp-for="Password" class="form-label fw-bold small text-amazon-dark mb-1">Password</label>
-                                    <a asp-controller="@controllerName" asp-action="ForgotPassword" class="small text-amazon-link text-decoration-none">
-                                        Forgot Password?
-                                    </a>
-                                </div>
-                                <input asp-for="Password" type="password" class="form-control amazon-input-field" />
-                                <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input amazon-checkbox" type="checkbox" asp-for="RememberMe">
-                                    <label class="form-check-label small text-amazon-dark" asp-for="RememberMe">
-                                        Keep me signed in
-                                    </label>
-                                </div>
-                            </div>
-
-                            <input type="hidden" asp-for="ReturnUrl" />
-
-                            <div class="d-grid mb-3">
-                                <button type="submit" class="btn btn-amazon-checkout w-100 fw-bold">
-                                    Continue
-                                </button>
-                            </div>
-
-                            <p class="small text-muted mb-0">
-                                By continuing, you agree to CMSECommerce's <a href="#" class="text-amazon-link">Conditions of Use</a>.
-                            </p>
-                        </form>
-                    </div>
-
-                    <div class="text-center mt-4">
-                        <div class="position-relative mb-3">
-                            <hr />
-                            <span class="position-absolute top-50 start-50 translate-middle bg-light px-2 small text-muted" style="background-color: #f7f7f7 !important;">
-                                New to CMSECommerce?
-                            </span>
                         </div>
-                        <a asp-controller="@controllerName" asp-action="Register"
-                           class="btn btn-amazon-secondary w-100 fw-bold">
-                            Create your account
-                        </a>
                     </div>
+                }
+                else if (ViewBag.IsLockedOut == true)
+                {
+                    <div class="amazon-status-box border rounded mb-3 p-3 shadow-sm bg-white border-start-orange">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-exclamation-triangle-fill fs-4 me-3 icon-orange"></i>
+                            <div class="w-100">
+                                <h6 class="fw-bold mb-1 icon-orange">Account Locked</h6>
+
+                                @* Displaying the Error Message from ModelState (Contains Admin Notes if Denied) *@
+                                <div class="text-amazon-dark small mb-3">
+                                    @Html.ValidationSummary(true, "", new { @class = "list-unstyled mb-0" })
+                                </div>
+
+                                <form asp-action="RequestAccountUnlock" asp-controller="@controllerName" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@ViewBag.UserId" />
+                                    <button type="submit" class="btn btn-amazon-secondary btn-sm w-100 py-1 fw-bold">
+                                        Submit New Unlock Request
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @* --- SIGN-IN BOX --- *@
+                <div class="amazon-form-box p-4 border rounded shadow-sm bg-white">
+                    <h2 class="h3 fw-bold mb-4 text-amazon-dark">Sign-In</h2>
+
+                    <form method="post" asp-controller="@controllerName" asp-action="Login" role="form">
+                        @* Keep only Model-level errors here if not locked out *@
+                        @if (ViewBag.IsLockedOut != true)
+                        {
+                            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                        }
+
+                        <div class="mb-3">
+                            <label asp-for="UserName" class="form-label fw-bold small text-amazon-dark mb-1">Email or phone</label>
+                            <input asp-for="UserName" class="form-control amazon-input-field shadow-none" autofocus />
+                            <span asp-validation-for="UserName" class="text-danger small mt-1 d-block"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <label asp-for="Password" class="form-label fw-bold small text-amazon-dark mb-1">Password</label>
+                                <a asp-action="ForgotPassword" class="small text-amazon-link text-decoration-none">Forgot Password?</a>
+                            </div>
+                            <input asp-for="Password" type="password" class="form-control amazon-input-field shadow-none" />
+                            <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input class="form-check-input amazon-checkbox shadow-none" type="checkbox" asp-for="RememberMe">
+                            <label class="form-check-label small text-amazon-dark" asp-for="RememberMe">Keep me signed in</label>
+                        </div>
+
+                        <input type="hidden" asp-for="ReturnUrl" />
+
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-amazon-checkout w-100 fw-bold">Continue</button>
+                        </div>
+
+                        <p class="small text-muted mb-0" style="font-size: 11px; line-height: 1.4;">
+                            By continuing, you agree to our <a href="#" class="text-amazon-link">Conditions of Use</a> and <a href="#" class="text-amazon-link">Privacy Notice</a>.
+                        </p>
+                    </form>
+                </div>
+
+                @* --- REGISTER LINK --- *@
+                <div class="text-center mt-4">
+                    <div class="position-relative mb-3">
+                        <hr class="m-0" />
+                        <span class="position-absolute top-50 start-50 translate-middle bg-amazon-bg px-2 small text-muted">New to us?</span>
+                    </div>
+                    <a asp-action="Register" class="btn btn-amazon-secondary w-100 fw-bold">Create account</a>
                 </div>
             </div>
         </div>
@@ -98,21 +127,66 @@
         :root {
             --amazon-dark-text: #0F1111;
             --amazon-yellow-action: #FFD814;
-            --amazon-yellow-action-hover: #F7CA00;
+            --amazon-yellow-hover: #F7CA00;
             --amazon-link-teal: #007185;
-            --amazon-link-teal-hover: #C7511F;
-            --amazon-light-button-bg: #f0f2f2;
-            --amazon-light-button-border: #c9c9c9;
-            --amazon-page-bg: #f7f7f7;
+            --amazon-orange: #c45500;
+            --amazon-bg: #f7f7f7;
         }
 
-        .amazon-login-page {
-            background-color: var(--amazon-page-bg);
-            min-height: 85vh;
+        body {
+            background-color: var(--amazon-bg);
         }
 
-        .text-amazon-dark {
+        .bg-amazon-bg {
+            background-color: var(--amazon-bg) !important;
+        }
+
+        .amazon-input-field {
+            height: 31px;
+            font-size: 14px;
+            border: 1px solid #a6a6a6;
+            border-radius: 3px;
+        }
+
+            .amazon-input-field:focus {
+                border-color: #e77600 !important;
+                box-shadow: 0 0 3px 2px rgba(228,121,17,.5) !important;
+            }
+
+        .btn-amazon-checkout {
+            background: var(--amazon-yellow-action);
+            border: 1px solid #FCD200;
             color: var(--amazon-dark-text);
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(213,217,217,.5);
+        }
+
+            .btn-amazon-checkout:hover {
+                background: var(--amazon-yellow-hover);
+            }
+
+        .btn-amazon-secondary {
+            background: #f0f2f2;
+            border: 1px solid #c9c9c9;
+            border-radius: 8px;
+            color: var(--amazon-dark-text);
+            box-shadow: 0 2px 5px rgba(213,217,217,.1);
+        }
+
+            .btn-amazon-secondary:hover {
+                background: #e3e6e6;
+            }
+
+        .border-start-teal {
+            border-left: 5px solid var(--amazon-link-teal) !important;
+        }
+
+        .border-start-orange {
+            border-left: 5px solid var(--amazon-orange) !important;
+        }
+
+        .icon-orange {
+            color: var(--amazon-orange);
         }
 
         .text-amazon-link {
@@ -120,68 +194,15 @@
         }
 
             .text-amazon-link:hover {
-                color: var(--amazon-link-teal-hover) !important;
+                color: #C7511F !important;
                 text-decoration: underline !important;
             }
 
-        .amazon-form-box {
-            border-color: #ddd !important;
-            background-color: #fff;
-        }
-
-        .amazon-input-field {
-            height: 31px;
-            padding: 3px 7px;
-            font-size: 14px;
-            border-radius: 3px;
-            border: 1px solid #a6a6a6;
-            box-shadow: 0 1px 0 rgba(0,0,0,.04);
-        }
-
-            .amazon-input-field:focus {
-                border-color: #e77600;
-                box-shadow: 0 0 3px 2px rgba(228,121,17,.5);
-                outline: none;
-            }
-
-        .btn-amazon-checkout {
-            background-color: var(--amazon-yellow-action) !important;
-            border: 1px solid #FCD200 !important;
-            color: var(--amazon-dark-text) !important;
-            font-weight: 500;
-            border-radius: 8px !important;
-            height: 35px;
-            font-size: 13px;
-            box-shadow: 0 2px 5px 0 rgba(213,217,217,.5);
-        }
-
-            .btn-amazon-checkout:hover {
-                background-color: var(--amazon-yellow-action-hover) !important;
-                border-color: #F2C200 !important;
-            }
-
-        .btn-amazon-secondary {
-            background-color: var(--amazon-light-button-bg) !important;
-            border: 1px solid var(--amazon-light-button-border) !important;
-            color: var(--amazon-dark-text) !important;
-            border-radius: 8px !important;
-            height: 35px;
-            font-size: 13px;
-            box-shadow: 0 1px 2px 0 rgba(15,17,17,.15);
-        }
-
-            .btn-amazon-secondary:hover {
-                background-color: #e7e9e9 !important;
-                border-color: #adb1b1 !important;
-            }
-
-        .amazon-checkbox:focus {
-            box-shadow: 0 0 3px 2px rgba(0,113,133,.5);
-            border-color: #007185;
+        /* Fix for validation list styling in Amazon box */
+        .amazon-status-box .validation-summary-errors ul {
+            padding-left: 0;
+            margin-bottom: 0;
+            list-style: none;
         }
     </style>
-}
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
 }

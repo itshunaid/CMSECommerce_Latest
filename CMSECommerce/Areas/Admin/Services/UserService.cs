@@ -30,6 +30,76 @@ namespace CMSECommerce.Areas.Admin.Services
             };
         }
 
+        public async Task<ServiceResponse> CreateUnlockRequestAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return ServiceResponse.Failure("User not found.");
+
+            // Architect's Note: Check if a pending request already exists to prevent spam
+            var existingRequest = await _context.UnlockRequests
+                .AnyAsync(r => r.UserId == userId && r.Status == "Pending");
+
+            if (existingRequest)
+            {
+                return ServiceResponse.Failure("You already have a pending request. Please wait for admin review.");
+            }
+
+            var newRequest = new UnlockRequest
+            {
+                UserId = user.Id,
+                UserName = user.UserName,
+                Email = user.Email,
+                Status = "Pending",
+                RequestDate = DateTime.UtcNow
+            };
+
+            await _context.UnlockRequests.AddAsync(newRequest);
+            await _context.SaveChangesAsync();
+
+            return ServiceResponse.Success("Your request has been submitted successfully.");
+        }
+        public async Task<ServiceResponse> ProcessUnlockRequestAsync(int requestId, string status, string adminNotes)
+        {
+            // 1. Fetch the specific request being processed
+            var request = await _context.UnlockRequests.FindAsync(requestId);
+            if (request == null) return ServiceResponse.Failure("Request not found.");
+
+            if (status == "Approved")
+            {
+                // 2. We first update the Admin Notes so they are available 
+                // when HandleLockoutUpdate saves changes inside its transaction.
+                request.AdminNotes = adminNotes ?? "Approved by Admin";
+
+                // 3. HandleLockoutUpdate handles the Transaction, User Lockout, 
+                // Product Statuses, and sets the Request Status to "Approved".
+                var result = await HandleLockoutUpdate(request.UserId, "false");
+
+                if (!result.Succeeded) return result;
+            }
+            else
+            {
+                // 4. If Denied, we don't call HandleLockoutUpdate (since user stays locked).
+                // We update the status and notes directly here.
+                request.Status = "Denied";
+                request.AdminNotes = adminNotes ?? "Denied by Admin";
+                request.RequestDate = DateTime.Now; // Using this as the 'Processed' timestamp
+
+                await _context.SaveChangesAsync();
+            }
+
+            return ServiceResponse.Success($"Request has been {status.ToLower()} successfully.");
+        }
+
+        public async Task<bool> IsUnlockRequestPendingAsync(string userId)
+        {
+            if (string.IsNullOrEmpty(userId)) return false;
+
+            // We only care if there is a 'Pending' request. 
+            // .AnyAsync is faster than .Where because it stops at the first match.
+            return await _context.UnlockRequests
+                .AnyAsync(r => r.UserId == userId && r.Status == "Pending" && r.Status == "Deny");
+        }
+
         private async Task<ServiceResponse> HandleRoleUpdate(string userId, string roleName)
         {
             var user = await _userManager.FindByIdAsync(userId);
@@ -58,7 +128,6 @@ namespace CMSECommerce.Areas.Admin.Services
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return ServiceResponse.Failure("User not found", 404);
 
-            // Architect's Note: Use a transaction to ensure User and Products are updated together
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
@@ -73,13 +142,26 @@ namespace CMSECommerce.Areas.Admin.Services
                     return ServiceResponse.Failure("Failed to update user security status");
                 }
 
-                // 2. Determine target Product Status
-                // If locked (Disabled) -> Pending
-                // If unlocked (Enabled) -> Approved (Active)
+                // 2. Determine target statuses
                 var newProductStatus = isLockedOut ? ProductStatus.Pending : ProductStatus.Approved;
 
+                // --- NEW LOGIC: Update the UnlockRequest Status to Approved ---
+                if (!isLockedOut) // Only if we are enabling/unlocking
+                {
+                    var unlockRequest = await _context.UnlockRequests
+                        .Where(ur => ur.UserId == user.Id && ur.Status == "Pending")
+                        .OrderByDescending(ur => ur.RequestDate)
+                        .FirstOrDefaultAsync();
+
+                    if (unlockRequest != null)
+                    {
+                        unlockRequest.Status = "Approved";
+                        unlockRequest.RequestDate = DateTime.Now;
+                        _context.UnlockRequests.Update(unlockRequest);
+                    }
+                }
+
                 // 3. Bulk Update Products 
-                // We target both User.Id and User.UserName for maximum data safety
                 var products = await _context.Products
                     .Where(p => p.OwnerId == user.Id || p.OwnerId == user.UserName)
                     .ToListAsync();
@@ -93,17 +175,16 @@ namespace CMSECommerce.Areas.Admin.Services
                     _context.Products.UpdateRange(products);
                 }
 
-                // 4. Commit all changes
+                // 4. Commit all changes (User update, UnlockRequest update, and Product updates)
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 string action = isLockedOut ? "Disabled" : "Enabled";
-                return ServiceResponse.Success($"User {action} and associated products set to {newProductStatus}");
+                return ServiceResponse.Success($"User {action}, associated products set to {newProductStatus}, and request set to Approved.");
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                // Log the error (ensure ILogger is injected in your class)
                 // _logger.LogError(ex, "Transaction failed for User Lockout update");
                 return ServiceResponse.Failure("A system error occurred during the update transaction.");
             }

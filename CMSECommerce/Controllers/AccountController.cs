@@ -1,5 +1,6 @@
 ﻿using CMSECommerce.Areas.Admin.Controllers;
 using CMSECommerce.Areas.Admin.Models;
+using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
 using CMSECommerce.Models.ViewModels;
@@ -18,7 +19,8 @@ namespace CMSECommerce.Controllers
             IWebHostEnvironment webHostEnvironment,
             IUserStatusService userStatusService,
             RoleManager<IdentityRole> roleManager,
-            ILogger<AccountController> logger) : Controller
+            ILogger<AccountController> logger,
+            IUserService userService) : Controller
     {
         private DataContext _context = dataContext;
         private UserManager<IdentityUser> _userManager = userManager;
@@ -27,6 +29,7 @@ namespace CMSECommerce.Controllers
         private readonly IUserStatusService _userStatusService = userStatusService;
         private readonly RoleManager<IdentityRole> _roleManager = roleManager;
         private readonly ILogger<AccountController> _logger = logger;
+        private readonly IUserService _userService = userService;
 
 
         private async Task UpdateOrderShippedStatus(string username)
@@ -1347,6 +1350,7 @@ namespace CMSECommerce.Controllers
         }
         public IActionResult Login(string returnUrl)
         {
+           
             return View(new LoginViewModel { ReturnUrl = returnUrl });
         }
 
@@ -1361,37 +1365,91 @@ namespace CMSECommerce.Controllers
 
             try
             {
-                // 1. Resolve the Identity User based on multi-criteria input
                 var user = await ResolveUserAsync(loginVM.UserName);
+                if (user == null) return InvalidLoginResponse(loginVM);
 
-                if (user == null)
-                {
-                    return InvalidLoginResponse(loginVM);
-                }
+                ViewBag.UserId = user.Id;
 
-                // 2. Perform Security Check
                 var result = await _sign_in_manager.PasswordSignInAsync(
                     user.UserName,
                     loginVM.Password,
                     isPersistent: false,
-                    lockoutOnFailure: false);
+                    lockoutOnFailure: true);
 
                 if (result.Succeeded)
                 {
-                    // 3. Telemetry/Status Tracking (Non-blocking)
                     await UpdateUserStatusAsync(user.Id);
-
                     return LocalRedirect(returnUrl);
+                }
+
+                if (result.IsLockedOut)
+                {
+                    _logger.LogWarning("User account locked out: {UserName}", loginVM.UserName);
+                    ViewBag.IsLockedOut = true;
+
+                    // Fetch the most recent request to see the Admin's decision/notes
+                    var lastRequest = await _context.UnlockRequests
+                        .Where(ur => ur.UserId == user.Id)
+                        .OrderByDescending(ur => ur.RequestDate)
+                        .FirstOrDefaultAsync();
+
+                    string statusMessage;
+
+                    if (lastRequest != null)
+                    {
+                        // If the last request was denied, show the Admin Note (the reason)
+                        if (lastRequest.Status == "Denied" && !string.IsNullOrEmpty(lastRequest.AdminNotes))
+                        {
+                            statusMessage = $"Your request was denied. Admin Note: {lastRequest.AdminNotes}";
+                        }
+                        else if (lastRequest.Status == "Pending")
+                        {
+                            statusMessage = "An unlock request is already pending with the admin team.";
+                            ViewBag.RequestSubmitted = true;
+                        }
+                        else
+                        {
+                            statusMessage = "Your account is disabled. You can submit an unlock request below.";
+                        }
+                    }
+                    else
+                    {
+                        statusMessage = "Your account is disabled. Please contact the administrator or submit a request below.";
+                    }
+
+                    ModelState.AddModelError(string.Empty, statusMessage);
+                    return View(loginVM);
                 }
 
                 return InvalidLoginResponse(loginVM);
             }
             catch (Exception ex)
             {
-                // Log the exception here (e.g., _logger.LogError(ex, "Login failed"))
-                ModelState.AddModelError(string.Empty, "A critical system error occurred.");
+                _logger.LogError(ex, "Login error");
                 return View(loginVM);
             }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RequestAccountUnlock(string userId)
+        {
+            if (string.IsNullOrEmpty(userId)) return BadRequest();
+
+            // Architect's Tip: Use TempData to pass feedback back to the Login view
+            var result = await _userService.CreateUnlockRequestAsync(userId);
+
+            if (result.Succeeded)
+            {
+                TempData["success"] = "Success! Your unlock request has been sent to the admin team.";
+                ViewBag.RequestSubmitted = result.Succeeded;
+            }
+            else
+            {
+                TempData["error"] = result.Message; // e.g., "Request already pending"
+            }
+
+            return RedirectToAction(nameof(Login));
         }
 
         /// <summary>

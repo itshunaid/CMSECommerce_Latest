@@ -6,7 +6,8 @@
         public string Message { get; set; }
         public int StatusCode { get; set; }
 
-        public static ServiceResponse Success(string message) =>
+        // Changed: message now has a default value
+        public static ServiceResponse Success(string message = "Success") =>
             new() { Succeeded = true, Message = message, StatusCode = 200 };
 
         public static ServiceResponse Failure(string message, int code = 400) =>

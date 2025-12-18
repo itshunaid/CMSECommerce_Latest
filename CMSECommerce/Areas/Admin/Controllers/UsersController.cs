@@ -1,6 +1,7 @@
 ﻿using CMSECommerce.Areas.Admin.Models; // Assumed namespace for ViewModels
 using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
+using CMSECommerce.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -123,6 +124,58 @@ namespace CMSECommerce.Areas.Admin.Controllers
             }
         }
 
+
+        // GET: Admin/UnlockRequests
+        public async Task<IActionResult> UnlockRequests()
+        {
+            // Fetch only non-approved requests (Pending/Denied) as per your logic
+            var requests = await _context.UnlockRequests
+                .Where(p => p.Status != "Approved")
+                .OrderByDescending(r => r.RequestDate)
+                .ToListAsync();
+
+            return View(requests);
+        }
+
+        // POST: Admin/ProcessUnlock
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ProcessUnlock(int id, string status, string notes)
+        {
+            // Basic validation for the ID
+            if (id <= 0)
+            {
+                return Json(new { succeeded = false, message = "Invalid Request ID." });
+            }
+
+            // Validate that a status was actually provided
+            if (string.IsNullOrEmpty(status))
+            {
+                return Json(new { succeeded = false, message = "Action status is required." });
+            }
+
+            try
+            {
+                // 1. Execute the service logic using the 3 required parameters:
+                // requestId, status ("Approved"/"Denied"), and adminNotes
+                var result = await _userService.ProcessUnlockRequestAsync(id, status, notes);
+
+                if (result.Succeeded)
+                {
+                    // Return success to the AJAX caller
+                    return Json(new { succeeded = true, message = result.Message });
+                }
+
+                // Return failure message from the service layer
+                return Json(new { succeeded = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (e.g., _logger.LogError(ex, "Error processing unlock"))
+                return Json(new { succeeded = false, message = "An internal server error occurred." });
+            }
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateUserField(string userId, string fieldName, string value)
@@ -131,7 +184,8 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 return BadRequest("Missing required parameters.");
 
             var result = await _userService.UpdateUserFieldAsync(userId, fieldName, value);
-
+            
+            
             if (result.Succeeded) return Ok(result.Message);
 
             return result.StatusCode switch
