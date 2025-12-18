@@ -2,7 +2,6 @@
 
 @{
     ViewData["Title"] = "Users";
-    // Assuming ViewBag.AllRoles contains all possible Identity roles for the dropdown
     var allRoles = ViewBag.AllRoles as List<string> ?? new List<string>();
 }
 
@@ -59,6 +58,7 @@
         font-weight: 600;
         padding: 8px 14px;
         border-radius: 6px;
+        text-decoration: none;
     }
 
         .btn-amz-primary:hover {
@@ -66,7 +66,6 @@
             color: #111;
         }
 
-    /* === ICON BUTTON STYLES (New/Modified) === */
     .btn-amz-icon {
         padding: 6px 6px;
         display: inline-flex;
@@ -77,6 +76,8 @@
         height: 32px;
         width: 32px;
         border: 1px solid transparent;
+        background: none;
+        cursor: pointer;
     }
 
         .btn-amz-icon.edit {
@@ -98,7 +99,6 @@
             .btn-amz-icon.delete:hover {
                 background: #ffe3e0;
             }
-    /* === END ICON BUTTON STYLES === */
 
     .btn-amz-secondary {
         background: #fff;
@@ -106,35 +106,8 @@
         border: 1px solid var(--amz-border);
         padding: 6px 12px;
         border-radius: 6px;
+        cursor: pointer;
     }
-
-        .btn-amz-secondary:hover {
-            background: var(--amz-gray-100);
-        }
-
-    .btn-amz-warning {
-        background: #fff4e6;
-        color: #8a5800;
-        border: 1px solid #ffd199;
-        padding: 6px 12px;
-        border-radius: 6px;
-    }
-
-        .btn-amz-warning:hover {
-            background: #ffe7c2;
-        }
-
-    .btn-amz-danger {
-        background: #fff1f0;
-        color: var(--amz-red);
-        border: 1px solid #f4c7c4;
-        padding: 6px 12px;
-        border-radius: 6px;
-    }
-
-        .btn-amz-danger:hover {
-            background: #ffe3e0;
-        }
 
     /* Card container */
     .amz-card {
@@ -152,10 +125,6 @@
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-    }
-
-    .amz-card-body {
-        padding: 0;
     }
 
     /* Table styling */
@@ -176,14 +145,12 @@
             position: sticky;
             top: 0;
             z-index: 2;
-            padding: 10px 12px;
+            padding: 12px;
             font-weight: 600;
             text-transform: uppercase;
             font-size: .75rem;
-            letter-spacing: .3px;
         }
 
-        /* Styling for the new filter row */
         table.amz-table thead tr.filter-row th {
             background: var(--amz-gray-200);
             padding: 8px 12px;
@@ -195,11 +162,6 @@
             border-top: 1px solid var(--amz-border);
             vertical-align: middle;
             font-size: .95rem;
-            color: #111;
-        }
-
-        table.amz-table tbody tr:hover {
-            background: var(--amz-gray-100);
         }
 
     /* Badges */
@@ -210,10 +172,6 @@
         font-size: .75rem;
         font-weight: 600;
         border: 1px solid var(--amz-border);
-        background: #fff;
-        color: var(--amz-slate);
-        margin-right: 6px;
-        margin-bottom: 4px;
     }
 
     .badge-green {
@@ -234,27 +192,8 @@
         background: #fff4e6;
     }
 
-    .badge-blue {
-        color: #1d4ed8;
-        border-color: #bfd4e3;
-        background: #f0f5ff;
-    }
-
-    /* Actions cell */
-    .amz-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    /* Utility */
-    .amz-search {
-        max-width: 320px;
-        width: 100%;
-    }
-
-    .amz-input, .amz-filter-input {
+    /* Inputs */
+    .amz-filter-input, .amz-filter-select, .inline-edit-input {
         width: 100%;
         padding: 6px 8px;
         border: 1px solid var(--amz-border);
@@ -262,53 +201,18 @@
         font-size: .9rem;
     }
 
-    .amz-filter-select {
-        width: 100%;
-        padding: 6px 8px;
-        border: 1px solid var(--amz-border);
-        border-radius: 4px;
-        font-size: .9rem;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-color: #fff;
-        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%20165.7c-4.5%204.7-10.9%207.2-17.7%207.2h-241c-6.8%200-13.2-2.5-17.7-7.2-9.4-9.6-9.4-25.2%200-34.8l120.5-120.5c9.4-9.6%2024.6-9.6%2034%200l120.5%20120.5c9.4%209.5%209.4%2025.1%200%2034.7z%22%2F%3E%3C%2Fsvg%3E');
-        background-repeat: no-repeat;
-        background-position: right 8px center;
-        background-size: 8px;
-        padding-right: 20px;
-    }
-
-        .amz-input:focus, .amz-filter-input:focus, .amz-filter-select:focus {
+        .amz-filter-input:focus, .amz-filter-select:focus {
             border-color: var(--amz-orange);
             outline: none;
         }
 
-
-    /* Inline Edit Fields (Kept for consistency, although not used for filtering) */
-    .inline-edit-input {
-        padding: 4px 8px;
-        border: 1px solid var(--amz-border);
-        border-radius: 4px;
-        font-size: 0.9rem;
-        width: 100%;
-        max-width: 200px;
-        transition: border-color 0.2s;
-    }
-
-        .inline-edit-input:focus {
-            border-color: var(--amz-orange);
-            outline: none;
-        }
-
-    /* Checkbox Styling (Unchanged) */
+    /* Switch */
     .amz-switch {
         position: relative;
         display: inline-block;
         width: 48px;
         height: 24px;
         vertical-align: middle;
-        margin-right: 8px;
     }
 
         .amz-switch input {
@@ -349,7 +253,6 @@
             transform: translateX(24px);
         }
 
-    /* --- PROFILE IMAGE & INFO (Unchanged) --- */
     .profile-img-xs {
         width: 40px;
         height: 40px;
@@ -357,8 +260,6 @@
         object-fit: cover;
         margin-right: 8px;
         border: 1px solid var(--amz-border);
-        vertical-align: top;
-        flex-shrink: 0;
     }
 
     .profile-image-cell {
@@ -373,76 +274,107 @@
         align-items: flex-start;
         gap: 4px;
     }
-    /* --- END NEW CSS --- */
 
+    /* RESPONSIVE FILTERS */
+    .filter-mobile-btn {
+        display: none;
+    }
 
     @@media (max-width: 768px) {
-        /* Hide the filter row on smaller screens as individual cell filters are impractical */
-        table.amz-table thead tr.filter-row {
-            display: none;
-        }
-        /* Responsive styles (Unchanged) */
-        .amz-header {
+        .filter-mobile-btn
+
+    {
+        display: inline-block;
+    }
+
+    .amz-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    /* Hide traditional table headers */
+    table.amz-table thead tr:not(.filter-row) {
+        display: none;
+    }
+
+    /* Transform Filter Row into a toggleable drawer */
+    table.amz-table thead tr.filter-row {
+        display: none;
+        background: #fff;
+        padding: 15px;
+        border: 1px solid var(--amz-border);
+        margin: 10px;
+        border-radius: 8px;
+    }
+
+        table.amz-table thead tr.filter-row.show-mobile {
+            display: flex;
             flex-direction: column;
-            align-items: flex-start;
             gap: 10px;
         }
 
-        .amz-actions {
-            gap: 6px;
-        }
-
-        table.amz-table thead tr:not(.filter-row) {
-            display: none;
-        }
-
-        table.amz-table, table.amz-table tbody, table.amz-table tr, table.amz-table td {
+        table.amz-table thead tr.filter-row th {
             display: block;
             width: 100%;
+            padding: 0;
+            border: none;
+            background: transparent;
         }
 
-            table.amz-table tbody tr {
-                padding: 8px 12px;
-                border-top: 1px solid var(--amz-border);
+    /* Mobile Card View */
+    table.amz-table, table.amz-table tbody, table.amz-table tr, table.amz-table td {
+        display: block;
+        width: 100%;
+    }
+
+        table.amz-table tbody tr {
+            padding: 12px;
+            border-bottom: 8px solid var(--amz-gray-200);
+        }
+
+        table.amz-table tbody td {
+            border: none;
+            padding: 8px 0;
+        }
+
+            table.amz-table tbody td::before {
+                content: attr(data-label);
+                display: block;
+                font-size: .7rem;
+                color: var(--amz-gray-500);
+                text-transform: uppercase;
+                font-weight: bold;
             }
 
-            table.amz-table tbody td {
-                padding: 6px 0;
-            }
-
-                table.amz-table tbody td::before {
-                    content: attr(data-label);
-                    display: block;
-                    font-size: .75rem;
-                    color: var(--amz-gray-500);
-                    margin-bottom: 2px;
-                    text-transform: uppercase;
-                }
     }
 </style>
 
 <div class="amz-header">
     <div>
         <h1>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M16 11c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zM8 13c-3.866 0-7 3.134-7 7v2h12v-2c0-3.866-3.134-7-7-7zM16 13c-1.178 0-2.273.342-3.2.93 1.905 1.289 3.2 3.468 3.2 5.97v2h8v-2c0-3.866-3.134-7-8-7z" fill="#febd69" />
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M16 11c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zM8 13c-3.866 0-7 3.134-7 7v2h12v-2c0-3.866-3.134-7-8-7z" fill="#febd69" />
             </svg>
             Users
         </h1>
         <div class="amz-subtitle">Manage accounts, roles, and access</div>
     </div>
-    <div>
-        <a asp-action="Create" class="btn-amz-primary">➕ Create User</a>
-    </div>
+    <a asp-action="Create" class="btn-amz-primary">➕ Create User</a>
 </div>
 
 <div class="amz-card">
     <div class="amz-card-header">
-        @* The global search bar is replaced by individual column filters for better control *@
-        <div class="d-flex" style="gap:8px;">
-            <button type="button" class="btn-amz-secondary" onclick="resetFilters()">Clear All Filters</button>
+        <div class="d-flex align-items-center" style="gap:10px;">
+            <button type="button" class="btn-amz-secondary filter-mobile-btn" onclick="toggleFilters()">
+                🔍 Filters
+            </button>
+            <button type="button" class="btn-amz-secondary" onclick="resetFilters()">Clear All</button>
+        </div>
+        <div class="text-muted small">
+            Found <span id="user-count">@Model.Count()</span> Users
         </div>
     </div>
+
     <div class="amz-card-body">
         <div class="amz-table-wrap">
             <table class="amz-table">
@@ -457,17 +389,10 @@
                         <th style="min-width:180px;">Actions</th>
                     </tr>
 
-                    @* --- NEW FILTER ROW --- *@
-                    <tr class="filter-row">
-                        <th>
-                            <input type="text" id="filter-userinfo" class="amz-filter-input" placeholder="Search User/Image Status" oninput="filterTable()" />
-                        </th>
-                        <th>
-                            <input type="text" id="filter-email" class="amz-filter-input" placeholder="Search Email" oninput="filterTable()" />
-                        </th>
-                        <th>
-                            <input type="text" id="filter-profession" class="amz-filter-input" placeholder="Filter Profession" oninput="filterTable()" />
-                        </th>
+                    <tr class="filter-row" id="filterRow">
+                        <th><input type="text" id="filter-userinfo" class="amz-filter-input" placeholder="Name/Username..." oninput="filterTable()" /></th>
+                        <th><input type="text" id="filter-email" class="amz-filter-input" placeholder="Search Email..." oninput="filterTable()" /></th>
+                        <th><input type="text" id="filter-profession" class="amz-filter-input" placeholder="Filter Prof..." oninput="filterTable()" /></th>
                         <th>
                             <select id="filter-role" class="amz-filter-select" onchange="filterTable()">
                                 <option value="">All Roles</option>
@@ -491,12 +416,8 @@
                                 <option value="Disabled">Disabled</option>
                             </select>
                         </th>
-                        <th>
-                            @* Action column filter is usually empty or could be a filter for Delete/Edit availability *@
-                        </th>
+                        <th></th>
                     </tr>
-                    @* --- END FILTER ROW --- *@
-
                 </thead>
                 <tbody id="usersTbody">
                     @foreach (var u in Model)
@@ -507,116 +428,75 @@
                         var profileVisibility = u.IsProfileVisible ? "Visible" : "Hidden";
 
                         <tr data-image-status="@imageStatus" data-role="@(u.Roles?.FirstOrDefault())" data-status="@accountStatus" data-visibility="@profileVisibility">
-                            @* ---------------------------------------------------------------------------------- *@
-                            @* ---------------------------------- COLUMN 1: Image & User Info ------------------- *@
-                            @* ---------------------------------------------------------------------------------- *@
                             <td data-label="User Info" data-search-info="@(u.UserName.ToLower()) @(u.FirstName?.ToLower()) @(u.LastName?.ToLower()) @imageStatus.ToLower()">
                                 <div class="profile-image-cell">
                                     @if (profileImageExists)
                                     {
-                                        <img src="@u.ProfileImagePath" alt="Profile Image" class="profile-img-xs" />
+                                        <img src="@u.ProfileImagePath" alt="Profile" class="profile-img-xs" />
                                     }
-                                    else
-                                    {
-                                        <span style="color:var(--amz-gray-500); flex-shrink: 0; padding-top: 10px;">No Image</span>
-                                    }
-
                                     <div class="profile-approval-status">
-
                                         <strong>@u.UserName</strong>
-                                        @if (!string.IsNullOrWhiteSpace(u.FirstName) || !string.IsNullOrWhiteSpace(u.LastName))
-                                        {
-                                            <small style="color:var(--amz-gray-500);">@u.FirstName @u.LastName</small>
-                                        }
-
+                                        <small class="text-muted">@u.FirstName @u.LastName</small>
                                         @if (profileImageExists)
                                         {
-                                            <div style="margin-top: 4px;">
-                                                <label class="amz-switch" title="Image Approval Status">
-                                                    <input type="checkbox"
-                                                           id="isimageapproved-@u.Id"
-                                                           checked="@u.IsImageApproved"
-                                                           onchange="updateField('@u.Id', 'IsImageApproved', this.checked)" />
+                                            <div class="d-flex align-items-center mt-1">
+                                                <label class="amz-switch me-2">
+                                                    <input type="checkbox" id="isimageapproved-@u.Id" checked="@u.IsImageApproved" onchange="updateField('@u.Id', 'IsImageApproved', this.checked)" />
                                                     <span class="amz-slider"></span>
                                                 </label>
-                                                <span class="badge @(u.IsImageApproved ? "badge-green" : "badge-warning")" id="badge-isimageapproved-@u.Id">
-                                                    @(imageStatus)
-                                                </span>
+                                                <span class="badge @(u.IsImageApproved ? "badge-green" : "badge-warning")" id="badge-isimageapproved-@u.Id">@imageStatus</span>
                                             </div>
                                         }
                                     </div>
                                 </div>
                             </td>
-                            @* ---------------------------------------------------------------------------------- *@
 
                             <td data-label="Email" data-search-info="@u.Email.ToLower()">
                                 <a href="mailto:@u.Email">@u.Email</a>
                             </td>
 
-                            <td data-label="Profession" data-search-info="@u.Profession?.ToLower()">
-                                <input type="text"
-                                       class="inline-edit-input"
-                                       id="profession-@u.Id"
-                                       value="@u.Profession"
-                                       onchange="updateField('@u.Id', 'Profession', this.value)" />
+                            <td data-label="Profession">
+                                <input type="text" class="inline-edit-input" id="profession-@u.Id" value="@u.Profession" onchange="updateField('@u.Id', 'Profession', this.value)" />
                             </td>
 
-                            <td data-label="Role" data-role-val="@(u.Roles?.FirstOrDefault())">
-                                <select class="inline-edit-input"
-                                        id="role-@u.Id"
-                                        onchange="updateField('@u.Id', 'Role', this.value)">
+                            <td data-label="Role">
+                                <select class="inline-edit-input" id="role-@u.Id" onchange="updateField('@u.Id', 'Role', this.value)">
                                     <option value="">-- None --</option>
                                     @foreach (var r in allRoles)
                                     {
-                                        var isSelected = u.Roles != null && u.Roles.Contains(r);
-                                        <option value="@r" selected="@isSelected">@r</option>
+                                        <option value="@r" selected="@(u.Roles != null && u.Roles.Contains(r))">@r</option>
                                     }
                                 </select>
                             </td>
 
-                            <td data-label="Visibility" data-visibility-val="@profileVisibility">
+                            <td data-label="Visibility">
                                 <label class="amz-switch">
-                                    <input type="checkbox"
-                                           id="isprofilevisible-@u.Id"
-                                           checked="@u.IsProfileVisible"
-                                           onchange="updateField('@u.Id', 'IsProfileVisible', this.checked)" />
+                                    <input type="checkbox" id="isprofilevisible-@u.Id" checked="@u.IsProfileVisible" onchange="updateField('@u.Id', 'IsProfileVisible', this.checked)" />
                                     <span class="amz-slider"></span>
                                 </label>
-                                <span class="badge @(u.IsProfileVisible ? "badge-green" : "badge-red")" id="badge-isprofilevisible-@u.Id">
-                                    @(profileVisibility)
-                                </span>
+                                <span class="badge @(u.IsProfileVisible ? "badge-green" : "badge-red")" id="badge-isprofilevisible-@u.Id">@profileVisibility</span>
                             </td>
 
-                            <td data-label="Status" data-status-val="@accountStatus">
+                            <td data-label="Status">
                                 <label class="amz-switch">
-                                    <input type="checkbox"
-                                           id="islockedout-@u.Id"
-                                           checked="@(!u.IsLockedOut)" onchange="updateField('@u.Id', 'IsLockedOut', !this.checked)" />
+                                    <input type="checkbox" id="islockedout-@u.Id" checked="@(!u.IsLockedOut)" onchange="updateField('@u.Id', 'IsLockedOut', !this.checked)" />
                                     <span class="amz-slider"></span>
                                 </label>
-                                <span class="badge @(!u.IsLockedOut ? "badge-green" : "badge-red")" id="badge-islockedout-@u.Id">
-                                    @(accountStatus)
-                                </span>
+                                <span class="badge @(!u.IsLockedOut ? "badge-green" : "badge-red")" id="badge-islockedout-@u.Id">@accountStatus</span>
                             </td>
 
-                            <td class="amz-actions" data-label="Actions">
-                                <a asp-action="Edit" asp-route-id="@u.Id" class="btn-amz-icon edit" title="Edit User Details">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M16.47 5.48a.75.75 0 0 0-1.06 0L4.5 16.42V19.5a.5.5 0 0 0 .5.5H7.58L18.52 8.04a.75.75 0 0 0 0-1.06l-2.05-2.05zM6.5 17.79V18.5h.71l8.77-8.77-0.71-0.71-8.77 8.77zM17.5 7.06l.71.71-1.06 1.06-0.71-0.71 1.06-1.06z" fill="currentColor" />
-                                    </svg>
-                                </a>
-
-                                <form asp-action="Delete" asp-route-id="@u.Id" method="post" class="m-0">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn-amz-icon delete"
-                                            onclick="return confirm('Are you sure you want to delete user @u.UserName? This action is irreversible and will remove all their data.');"
-                                            title="Delete User">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M7 21h10a1 1 0 0 0 1-1V7H6v13a1 1 0 0 0 1 1zM20 4h-4V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v1H4a1 1 0 0 0 0 2h16a1 1 0 0 0 0-2zm-9-1h2v1h-2V3z" fill="currentColor" />
-                                            <path d="M10 10v7m4-7v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                                        </svg>
-                                    </button>
-                                </form>
+                            <td data-label="Actions">
+                                <div class="d-flex gap-2">
+                                    <a asp-action="Edit" asp-route-id="@u.Id" class="btn-amz-icon edit">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@u.Id" method="post" class="m-0" onsubmit="return confirm('Delete user @u.UserName?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn-amz-icon delete">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" /></svg>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     }
@@ -627,193 +507,103 @@
 </div>
 
 <script>
-    // =======================================================
-    // FILTERING FUNCTIONS (UPDATED)
-    // =======================================================
+    function toggleFilters() {
+        document.getElementById('filterRow').classList.toggle('show-mobile');
+    }
+
     function filterTable() {
-        // Get filter values
-        const filterUserInfo = (document.getElementById('filter-userinfo').value || '').toLowerCase();
-        const filterEmail = (document.getElementById('filter-email').value || '').toLowerCase();
-        const filterProfession = (document.getElementById('filter-profession').value || '').toLowerCase();
-        const filterRole = (document.getElementById('filter-role').value || '').toLowerCase();
-        const filterVisibility = (document.getElementById('filter-visibility').value || '').toLowerCase();
-        const filterStatus = (document.getElementById('filter-status').value || '').toLowerCase();
+        const filters = {
+            userInfo: document.getElementById('filter-userinfo').value.toLowerCase(),
+            email: document.getElementById('filter-email').value.toLowerCase(),
+            profession: document.getElementById('filter-profession').value.toLowerCase(),
+            role: document.getElementById('filter-role').value.toLowerCase(),
+            visibility: document.getElementById('filter-visibility').value.toLowerCase(),
+            status: document.getElementById('filter-status').value.toLowerCase()
+        };
 
         const rows = document.querySelectorAll('#usersTbody tr');
+        let visibleCount = 0;
 
         rows.forEach(row => {
-            // Get data from the row attributes and cells
-            const userInfoData = row.querySelector('[data-search-info]').getAttribute('data-search-info') || '';
-            const emailData = row.querySelector('[data-search-info]').nextElementSibling.getAttribute('data-search-info') || '';
-            const professionData = row.querySelector('[data-label="Profession"] input').value.toLowerCase() || '';
-            const roleData = row.querySelector('[data-label="Role"] select').value.toLowerCase() || '';
-            const visibilityData = row.getAttribute('data-visibility').toLowerCase();
-            const statusData = row.getAttribute('data-status').toLowerCase();
+            const data = {
+                userInfo: row.querySelector('[data-label="User Info"]').getAttribute('data-search-info'),
+                email: row.querySelector('[data-label="Email"]').getAttribute('data-search-info'),
+                profession: row.querySelector('[data-label="Profession"] input').value.toLowerCase(),
+                role: row.querySelector('[data-label="Role"] select').value.toLowerCase(),
+                visibility: row.getAttribute('data-visibility').toLowerCase(),
+                status: row.getAttribute('data-status').toLowerCase()
+            };
 
-            let match = true;
-
-            // 1. User Info (Name, Username, Image Status)
-            if (filterUserInfo && !userInfoData.includes(filterUserInfo)) {
-                match = false;
-            }
-
-            // 2. Email
-            if (filterEmail && !emailData.includes(filterEmail)) {
-                match = false;
-            }
-
-            // 3. Profession
-            if (filterProfession && !professionData.includes(filterProfession)) {
-                match = false;
-            }
-
-            // 4. Role (Exact Match for Select)
-            if (filterRole && filterRole !== roleData) {
-                match = false;
-            }
-
-            // 5. Visibility (Exact Match for Select)
-            if (filterVisibility && filterVisibility !== visibilityData) {
-                match = false;
-            }
-
-            // 6. Status (Exact Match for Select)
-            if (filterStatus && filterStatus !== statusData) {
-                match = false;
-            }
+            const match = (!filters.userInfo || data.userInfo.includes(filters.userInfo)) &&
+                          (!filters.email || data.email.includes(filters.email)) &&
+                          (!filters.profession || data.profession.includes(filters.profession)) &&
+                          (!filters.role || filters.role === data.role) &&
+                          (!filters.visibility || filters.visibility === data.visibility) &&
+                          (!filters.status || filters.status === data.status);
 
             row.style.display = match ? '' : 'none';
+            if (match) visibleCount++;
         });
+
+        document.getElementById('user-count').textContent = visibleCount;
     }
 
     function resetFilters() {
-        document.getElementById('filter-userinfo').value = '';
-        document.getElementById('filter-email').value = '';
-        document.getElementById('filter-profession').value = '';
-        document.getElementById('filter-role').value = '';
-        document.getElementById('filter-visibility').value = '';
-        document.getElementById('filter-status').value = '';
-        filterTable(); // Re-run the filter logic to show all rows
+        ['filter-userinfo', 'filter-email', 'filter-profession', 'filter-role', 'filter-visibility', 'filter-status'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+        filterTable();
     }
 
-    // =======================================================
-    // AJAX Update Function (Unchanged)
-    // =======================================================
     async function updateField(userId, fieldName, value) {
         const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
         const inputElement = document.getElementById(fieldName.toLowerCase() + '-' + userId);
-        const originalValue = (fieldName === 'IsProfileVisible' || fieldName === 'IsLockedOut' || fieldName === 'IsImageApproved') ? inputElement.checked : inputElement.value;
-        let finalValue = (fieldName === 'IsProfileVisible' || fieldName === 'IsLockedOut' || fieldName === 'IsImageApproved') ? (value ? 'true' : 'false') : value;
         const badgeElement = document.getElementById(`badge-${fieldName.toLowerCase()}-${userId}`);
+        const row = inputElement.closest('tr');
 
-        const data = {
+        let finalValue = (typeof value === 'boolean') ? (value ? 'true' : 'false') : value;
+
+        const data = new URLSearchParams({
             userId: userId,
             fieldName: fieldName,
             value: finalValue,
             __RequestVerificationToken: antiForgeryToken
-        };
+        });
 
         try {
             const response = await fetch('/Admin/Users/UpdateUserField', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams(data).toString()
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: data.toString()
             });
 
             if (response.ok) {
-                console.log(`${fieldName} updated successfully for user ${userId}`);
-
-                // Update UI badges/row data based on the new boolean value
                 if (fieldName === 'IsProfileVisible') {
-                    const statusText = value ? 'Visible' : 'Hidden';
-                    if (badgeElement) {
-                        badgeElement.textContent = statusText;
-                        badgeElement.className = `badge ${value ? 'badge-green' : 'badge-red'}`;
-                    }
-                    inputElement.closest('tr').setAttribute('data-visibility', statusText);
+                    const txt = value ? 'Visible' : 'Hidden';
+                    row.setAttribute('data-visibility', txt);
+                    badgeElement.textContent = txt;
+                    badgeElement.className = `badge ${value ? 'badge-green' : 'badge-red'}`;
                 }
                 if (fieldName === 'IsLockedOut') {
-                    const statusText = value ? 'Disabled' : 'Active';
-                    if (badgeElement) {
-                        badgeElement.textContent = statusText;
-                        badgeElement.className = `badge ${!value ? 'badge-green' : 'badge-red'}`;
-                    }
-                    inputElement.closest('tr').setAttribute('data-status', statusText);
+                    const txt = value ? 'Disabled' : 'Active';
+                    row.setAttribute('data-status', txt);
+                    badgeElement.textContent = txt;
+                    badgeElement.className = `badge ${!value ? 'badge-green' : 'badge-red'}`;
                 }
                 if (fieldName === 'IsImageApproved') {
-                    const statusText = value ? 'Approved' : 'Pending';
-                    if (badgeElement) {
-                        badgeElement.textContent = statusText;
-                        badgeElement.className = `badge ${value ? 'badge-green' : 'badge-warning'}`;
-                    }
-                    // Find the Image Info cell (closest tr, then first td) and update its data attribute
-                    const userInfoCell = inputElement.closest('tr').querySelector('[data-search-info]');
-                    if (userInfoCell) {
-                         // Rebuild the data-search-info attribute for the filter
-                        const oldInfo = userInfoCell.getAttribute('data-search-info');
-                        const newInfo = oldInfo.replace(/approved|pending|no image/i, statusText.toLowerCase());
-                        userInfoCell.setAttribute('data-search-info', newInfo);
-                    }
+                    const txt = value ? 'Approved' : 'Pending';
+                    badgeElement.textContent = txt;
+                    badgeElement.className = `badge ${value ? 'badge-green' : 'badge-warning'}`;
+                    const infoCell = row.querySelector('[data-search-info]');
+                    infoCell.setAttribute('data-search-info', infoCell.getAttribute('data-search-info').replace(/approved|pending|no image/i, txt.toLowerCase()));
                 }
-
-                // Re-run filter logic in case the new value affects filtering (e.g., profession/role text change)
                 filterTable();
-
-
             } else {
-                const errorText = await response.text();
-                alert(`Error updating ${fieldName}: ${errorText}. Reverting changes.`);
-                revertChanges(inputElement, originalValue, fieldName);
+                alert('Update failed. Please refresh.');
             }
         } catch (error) {
-            console.error('AJAX Error:', error);
-            alert(`Network error updating ${fieldName}. Reverting changes.`);
-            revertChanges(inputElement, originalValue, fieldName);
+            console.error(error);
+            alert('Network error.');
         }
-    }
-
-    // =======================================================
-    // Revert Function (Unchanged)
-    // =======================================================
-    function revertChanges(element, originalValue, fieldName) {
-        const isBoolean = fieldName === 'IsProfileVisible' || fieldName === 'IsLockedOut' || fieldName === 'IsImageApproved';
-
-        if (isBoolean) {
-            element.checked = originalValue;
-            const badgeElement = document.getElementById(`badge-${fieldName.toLowerCase()}-${element.id.split('-')[1]}`);
-
-            if (badgeElement) {
-                let text, className;
-
-                if (fieldName === 'IsProfileVisible') {
-                    text = originalValue ? 'Visible' : 'Hidden';
-                    className = originalValue ? 'badge badge-green' : 'badge badge-red';
-                }
-                else if (fieldName === 'IsImageApproved') {
-                    text = originalValue ? 'Approved' : 'Pending';
-                    className = originalValue ? 'badge badge-green' : 'badge badge-warning';
-                }
-                else if (fieldName === 'IsLockedOut') {
-                    text = originalValue ? 'Active' : 'Disabled';
-                    className = originalValue ? 'badge badge-green' : 'badge badge-red';
-                }
-
-                if (text) {
-                    badgeElement.textContent = text;
-                    badgeElement.className = className;
-                }
-            }
-        } else {
-            element.value = originalValue;
-        }
-        element.focus();
     }
 </script>
-
-@section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-}
