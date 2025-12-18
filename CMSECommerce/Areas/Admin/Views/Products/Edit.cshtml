@@ -24,9 +24,13 @@
     <div class="row g-4">
         <div class="col-lg-8">
             <form asp-action="Edit" enctype="multipart/form-data" id="mainProductForm">
+                @* 1. Validation Summary and Hidden Fields *@
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger shadow-sm border-0"></div>
+
                 <input type="hidden" asp-for="Id" id="productId" />
                 <input type="hidden" asp-for="Image" />
+                <input type="hidden" asp-for="Slug" />
+                <input type="hidden" asp-for="OwnerId" />
 
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-header bg-white py-3 border-bottom">
@@ -37,6 +41,15 @@
                             <label asp-for="Name" class="form-label fw-bold small text-uppercase text-muted"></label>
                             <input asp-for="Name" class="form-control border-2 shadow-none" placeholder="Product Title" />
                             <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        @* 2. Category Selection (Required to fix ModelState.IsValid) *@
+                        <div class="mb-4">
+                            <label asp-for="CategoryId" class="form-label fw-bold small text-uppercase text-muted">Category</label>
+                            <select asp-for="CategoryId" class="form-select border-2 shadow-none" asp-items="ViewBag.Categories">
+                                <option value="">-- Choose a category --</option>
+                            </select>
+                            <span asp-validation-for="CategoryId" class="text-danger small"></span>
                         </div>
 
                         <div class="mb-4">
@@ -52,10 +65,12 @@
                                     <span class="input-group-text bg-light border-2">₹</span>
                                     <input asp-for="Price" class="form-control border-2 shadow-none" placeholder="0.00" />
                                 </div>
+                                <span asp-validation-for="Price" class="text-danger small"></span>
                             </div>
                             <div class="col-md-6">
                                 <label asp-for="StockQuantity" class="form-label fw-bold small text-uppercase text-muted">Inventory</label>
                                 <input asp-for="StockQuantity" type="number" class="form-control border-2 shadow-none" />
+                                <span asp-validation-for="StockQuantity" class="text-danger small"></span>
                             </div>
                         </div>
                     </div>
@@ -73,6 +88,7 @@
                             <div class="col-sm-8">
                                 <label class="form-label fw-bold small text-uppercase text-muted">Replace Main Photo</label>
                                 <input asp-for="ImageUpload" class="form-control border-2" type="file" onchange="previewMain(this);" />
+                                <span asp-validation-for="ImageUpload" class="text-danger small"></span>
                                 <div class="mt-3" id="mainPrevContainer" style="display: none;">
                                     <img src="" id="imgpreview" class="img-thumbnail" style="max-width: 100px;" />
                                 </div>
@@ -89,6 +105,7 @@
             </form>
         </div>
 
+        @* Gallery Management Sidepanel *@
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm sticky-top" style="top: 1rem;">
                 <div class="card-header bg-white py-3 border-bottom">
@@ -148,12 +165,15 @@
         function previewMain(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = e => { $('#imgpreview').attr('src', e.target.result); $('#mainPrevContainer').show(); };
+                reader.onload = e => {
+                    $('#imgpreview').attr('src', e.target.result);
+                    $('#mainPrevContainer').show();
+                };
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
-        // 3. Dropzone AJAX Upload (No Refresh)
+        // 3. Dropzone AJAX Upload
         Dropzone.autoDiscover = false;
         $(function () {
             const productId = "@Model.Id";
@@ -178,7 +198,6 @@
 
                     this.on("successmultiple", function (files, response) {
                         if (response.trim() === "ok") {
-                            // UI Update: Append new images immediately
                             files.forEach(file => {
                                 const newImgHtml = `
                                     <div class="col-4 col-lg-6 gallery-item-container">
@@ -190,8 +209,6 @@
                                     </div>`;
                                 $("#galleryWrapper").append(newImgHtml);
                             });
-
-                            // Cleanup
                             $("#emptyMsg").remove();
                             self.removeAllFiles();
                             $("#btnStartUpload").prop("disabled", false).html('<i class="bi bi-cloud-arrow-up me-2"></i>Upload to Gallery');
@@ -200,7 +217,7 @@
                 }
             });
 
-            // 4. Immediate Delete AJAX (No Refresh)
+            // 4. Delete Gallery Image AJAX
             $(document).on("click", ".deleteImage", function (e) {
                 e.preventDefault();
                 const btn = $(this);
@@ -209,12 +226,10 @@
 
                 if (confirm("Delete this image permanently from the server?")) {
                     container.css("opacity", "0.4");
-
                     $.ajax({
                         type: "POST",
                         url: "/Admin/Products/DeleteImage",
                         data: { id: productId, imageName: imageName },
-                        dataType: "text",
                         success: function (res) {
                             if (res.trim() === "ok") {
                                 container.fadeOut(300, function() {
@@ -227,10 +242,6 @@
                                 container.css("opacity", "1");
                                 alert("Failed: " + res);
                             }
-                        },
-                        error: function() {
-                            container.css("opacity", "1");
-                            alert("Network error.");
                         }
                     });
                 }
