@@ -24,15 +24,20 @@ namespace CMSECommerce.Controllers
             return View();
         }
 
+        /// <summary>
+        /// Retrieves a paginated, filtered list of orders. 
+        /// Synchronizes the 'Shipped' status: Sets to true only if ALL associated items are processed.
+        /// </summary>
         public async Task<IActionResult> MyOrders(
-        int? page,
-        string orderId,
-        string status,
-        decimal? minTotal,
-        decimal? maxTotal,
-        DateTime? minDate,
-        DateTime? maxDate)
+            int? page,
+            string orderId,
+            string status,
+            decimal? minTotal,
+            decimal? maxTotal,
+            DateTime? minDate,
+            DateTime? maxDate)
         {
+            // 1. Authentication Guard Clause
             if (!User.Identity.IsAuthenticated)
             {
                 TempData["Error"] = "You must be logged in to view your orders.";
@@ -41,67 +46,82 @@ namespace CMSECommerce.Controllers
 
             try
             {
-                var userName = _userManager.GetUserName(User);
-                // 1. Setup Pagination and Filtering Defaults
-                int pageSize = 10;
-                int pageNumber = page ?? 1; // Default to page 1
+                // 2. Identity Handling & Name Formatting
+                var rawUserName = _userManager.GetUserName(User);
+                string usernameLower = rawUserName?.ToLower() ?? string.Empty;
 
-                // The current 'username' variable is assumed to hold the case-insensitive username to match.
-                string usernameLower = userName.ToLower();
+                var userProfile = await _context.UserProfiles
+                    .Where(p => p.User.UserName.ToLower() == usernameLower)
+                    .FirstOrDefaultAsync();
 
+                // Architect Note: Handle potential null profile gracefully
+                string finalUserName = userProfile != null
+                    ? $"{userProfile.FirstName} {userProfile.LastName} ({rawUserName})".ToLower()
+                    : rawUserName.ToLower();
 
-                // Start with all orders for the current user
-                // NOTE: Use FindAsync or similar if User has UserId property, otherwise use AsQueryable()
-                var orders = _context.Orders
-                                     .OrderByDescending(x => x.Id)
-                                     .Where(o => o.UserName.ToLower().Contains(usernameLower))
-                                     .AsQueryable();
+                const int pageSize = 10;
+                int pageNumber = page ?? 1;
 
-                // 2. Apply Filters to the Query
-                // Filter by Order ID
-                if (!string.IsNullOrEmpty(orderId))
-                {
-                    if (int.TryParse(orderId, out int id))
+                // 3. Status Synchronization Logic (Architectural Efficiency)
+                // We use a projection to check completion status in a single DB round-trip
+                var ordersQuery = _context.Orders
+                    .Where(o => o.UserName.ToLower() == finalUserName);
+
+                var ordersWithStatus = await ordersQuery
+                    .Select(o => new
                     {
-                        orders = orders.Where(o => o.Id == id);
+                        Order = o,
+                        // Condition: True if EVERY item in OrderDetails is processed
+                        AllItemsProcessed = _context.OrderDetails
+                            .Where(od => od.OrderId == o.Id)
+                            .All(od => od.IsProcessed)
+                    })
+                    .ToListAsync();
+
+                bool hasChanges = false;
+                foreach (var item in ordersWithStatus)
+                {
+                    // Only trigger update if the database value is out of sync
+                    if (item.Order.Shipped != item.AllItemsProcessed)
+                    {
+                        item.Order.Shipped = item.AllItemsProcessed;
+                        _context.Update(item.Order);
+                        hasChanges = true;
                     }
                 }
 
-                // Filter by Status (Shipped property is a boolean)
+                if (hasChanges)
+                {
+                    await _context.SaveChangesAsync();
+                }
+
+                // 4. Build Filtered Query for UI Display
+                // We re-initialize the query to ensure it uses the newly updated 'Shipped' statuses
+                var filteredOrders = _context.Orders
+                    .AsNoTracking()
+                    .Where(o => o.UserName.ToLower() == finalUserName);
+
+                // Apply Filters
+                if (!string.IsNullOrEmpty(orderId) && int.TryParse(orderId, out int id))
+                {
+                    filteredOrders = filteredOrders.Where(o => o.Id == id);
+                }
+
                 if (!string.IsNullOrEmpty(status))
                 {
                     if (status.Equals("Shipped", StringComparison.OrdinalIgnoreCase))
-                    {
-                        orders = orders.Where(o => o.Shipped == true);
-                    }
+                        filteredOrders = filteredOrders.Where(o => o.Shipped);
                     else if (status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
-                    {
-                        orders = orders.Where(o => o.Shipped == false);
-                    }
+                        filteredOrders = filteredOrders.Where(o => !o.Shipped);
                 }
 
-                // Filter by Total Range
-                if (minTotal.HasValue)
-                {
-                    orders = orders.Where(o => o.GrandTotal >= minTotal.Value);
-                }
-                if (maxTotal.HasValue)
-                {
-                    orders = orders.Where(o => o.GrandTotal <= maxTotal.Value);
-                }
+                if (minTotal.HasValue) filteredOrders = filteredOrders.Where(o => o.GrandTotal >= minTotal.Value);
+                if (maxTotal.HasValue) filteredOrders = filteredOrders.Where(o => o.GrandTotal <= maxTotal.Value);
 
-                // Filter by Date Range
-                if (minDate.HasValue)
-                {
-                    orders = orders.Where(o => o.DateTime.Date >= minDate.Value.Date);
-                }
-                if (maxDate.HasValue)
-                {
-                    // Filter orders placed on or before the max date
-                    orders = orders.Where(o => o.DateTime.Date <= maxDate.Value.Date);
-                }
+                if (minDate.HasValue) filteredOrders = filteredOrders.Where(o => o.DateTime.Date >= minDate.Value.Date);
+                if (maxDate.HasValue) filteredOrders = filteredOrders.Where(o => o.DateTime.Date <= maxDate.Value.Date);
 
-                // 3. Store Current Filter Values for the View (used for form persistence and pagination links)
+                // 5. Store UI State
                 ViewData["CurrentOrderId"] = orderId;
                 ViewData["CurrentStatus"] = status;
                 ViewData["CurrentMinTotal"] = minTotal?.ToString();
@@ -109,28 +129,23 @@ namespace CMSECommerce.Controllers
                 ViewData["CurrentMinDate"] = minDate?.ToString("yyyy-MM-dd");
                 ViewData["CurrentMaxDate"] = maxDate?.ToString("yyyy-MM-dd");
 
-                // 4. Execute Query and Apply Pagination
-                var count = await orders.CountAsync();
-                var items = await orders
-                    .OrderByDescending(o => o.DateTime) // Always sort for consistent pagination
+                // 6. Pagination & Execution
+                var totalCount = await filteredOrders.CountAsync();
+                var pagedItems = await filteredOrders
+                    .OrderByDescending(o => o.DateTime)
                     .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
 
-                // Create the PagedList instance (assuming you have this custom ViewModel)
-                var pagedList = new PagedList<Order>(items, count, pageNumber, pageSize);
-
-                return View(pagedList);
+                return View(new PagedList<Order>(pagedItems, totalCount, pageNumber, pageSize));
             }
-            catch (DbUpdateException dbEx)
+            catch (DbUpdateException)
             {
-                // _logger.LogError(dbEx, "Database error while fetching orders for user {Username}.", _userManager.GetUserName(User));
-                TempData["Error"] = "We encountered a database error while retrieving your orders. Please try again later.";
-                return View(new PagedList<Order>(new List<Order>(), 0, page ?? 1, 10)); // Return empty list on failure
+                TempData["Error"] = "A database error occurred. Your history might be temporarily unavailable.";
+                return View(new PagedList<Order>(new List<Order>(), 0, page ?? 1, 10));
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // _logger.LogError(ex, "Unexpected error in MyOrders action for user {Username}.", _userManager.GetUserName(User));
                 TempData["Error"] = "An unexpected error occurred while loading your order history.";
                 return RedirectToAction("Index", "Home");
             }
