@@ -1,4 +1,5 @@
 ﻿using CMSECommerce.Areas.Admin.Models; // Assumed namespace for ViewModels
+using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -14,13 +15,15 @@ namespace CMSECommerce.Areas.Admin.Controllers
         RoleManager<IdentityRole> roleManager,
         DataContext context,
         IWebHostEnvironment webHostEnvironment,
-        ILogger<UsersController> logger) : Controller
+        ILogger<UsersController> logger,
+        IUserService userService) : Controller
     {
         private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly RoleManager<IdentityRole> _roleManager = roleManager;
         private readonly DataContext _context = context;
         private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
         private readonly ILogger<UsersController> _logger = logger;
+        private readonly IUserService _userService = userService;
 
         [HttpGet]
         public async Task<IActionResult> Index()
@@ -124,142 +127,82 @@ namespace CMSECommerce.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateUserField(string userId, string fieldName, string value)
         {
-            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(fieldName))
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(fieldName))
+                return BadRequest("Missing required parameters.");
+
+            var result = await _userService.UpdateUserFieldAsync(userId, fieldName, value);
+
+            if (result.Succeeded) return Ok(result.Message);
+
+            return result.StatusCode switch
             {
-                return BadRequest("Missing user ID or field name.");
-            }
-
-            try
-            {
-                // --- 1. Handle Role Update (IdentityUser) ---
-                if (fieldName == "Role")
-                {
-                    // ... (Role logic remains the same as before) ...
-                    var user = await _userManager.FindByIdAsync(userId);
-                    if (user == null) return NotFound("User not found.");
-
-                    var currentRoles = await _userManager.GetRolesAsync(user);
-
-                    // Remove all current roles
-                    if (currentRoles.Any())
-                    {
-                        var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
-                        if (!removeResult.Succeeded) return StatusCode(500, $"Failed to remove old roles: {string.Join(", ", removeResult.Errors.Select(e => e.Description))}");
-                    }
-
-                    // Add new role if one is provided (value is the new role name)
-                    if (!string.IsNullOrWhiteSpace(value) && await _roleManager.RoleExistsAsync(value))
-                    {
-                        var addResult = await _userManager.AddToRoleAsync(user, value);
-                        if (!addResult.Succeeded) return StatusCode(500, $"Failed to add new role: {string.Join(", ", addResult.Errors.Select(e => e.Description))}");
-                    }
-
-                    return Ok($"Role updated to {value ?? "None"}");
-                }
-
-                // --- 2. Handle Status Update (IdentityUser - IsLockedOut) ---
-                else if (fieldName == "IsLockedOut")
-                {
-                    if (!bool.TryParse(value, out bool isLockedOut))
-                    {
-                        return BadRequest("Invalid value for IsLockedOut.");
-                    }
-
-                    var user = await _userManager.FindByIdAsync(userId);
-                    if (user == null) return NotFound("User not found.");
-
-                    // Set the lock status in the Identity system
-                    user.LockoutEnd = isLockedOut ? (DateTimeOffset?)DateTimeOffset.MaxValue : null;
-
-                    var updateResult = await _userManager.UpdateAsync(user);
-
-                    if (!updateResult.Succeeded)
-                    {
-                        return StatusCode(500, $"Failed to update user status: {string.Join(", ", updateResult.Errors.Select(e => e.Description))}");
-                    }
-                    return Ok($"IsLockedOut status updated to {isLockedOut}");
-                }
-
-                // --- 3. Handle Profile Field Updates (UserProfile) ---
-                // ADD 'IsImageApproved' to the condition
-                else if (fieldName == "Profession" || fieldName == "IsProfileVisible" || fieldName == "IsImageApproved")
-                {
-                    var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
-                    // Handle case where profile doesn't exist
-                    if (profile == null) return NotFound("User Profile not found.");
-
-                    switch (fieldName)
-                    {
-                        case "Profession":
-                            profile.Profession = value;
-                            break;
-                        case "IsProfileVisible":
-                            if (!bool.TryParse(value, out bool isVisible))
-                            {
-                                return BadRequest("Invalid value for IsProfileVisible.");
-                            }
-                            profile.IsProfileVisible = isVisible;
-                            break;
-                        // --- NEW CASE ADDED FOR IMAGE APPROVAL ---
-                        case "IsImageApproved":
-                            if (!bool.TryParse(value, out bool isApproved))
-                            {
-                                return BadRequest("Invalid value for IsImageApproved.");
-                            }
-                            profile.IsImageApproved = isApproved;
-                            break;
-                        // --- END NEW CASE ---
-                        default:
-                            return BadRequest("Invalid field name for profile update.");
-                    }
-
-                    await _context.SaveChangesAsync();
-                    return Ok($"{fieldName} updated successfully.");
-                }
-
-                else
-                {
-                    return BadRequest($"Field '{fieldName}' is not supported for inline update.");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "AJAX update failed for user {UserId} field {FieldName}", userId, fieldName);
-                return StatusCode(500, "Internal server error during update.");
-            }
+                404 => NotFound(result.Message),
+                _ => BadRequest(result.Message)
+            };
         }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> EnableDisable(string id)
         {
-            if (string.IsNullOrEmpty(id)) return NotFound();
+            if (string.IsNullOrWhiteSpace(id)) return NotFound();
+
             var user = await _userManager.FindByIdAsync(id);
             if (user == null)
             {
-                TempData["error"] = $"User with ID {id} not found.";
-                return NotFound();
+                TempData["error"] = "User not found.";
+                return RedirectToAction(nameof(Index));
             }
+
+            // Use a transaction to ensure atomicity (All-or-Nothing)
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
-                var isLocked = await _userManager.IsLockedOutAsync(user);
+                bool isCurrentlyLocked = await _userManager.IsLockedOutAsync(user);
 
-                if (isLocked)
+                // 1. Determine new state
+                DateTimeOffset? lockoutDate = isCurrentlyLocked ? null : DateTimeOffset.MaxValue;
+                ProductStatus productStatus = isCurrentlyLocked ? ProductStatus.Approved : ProductStatus.Pending;
+                string actionVerb = isCurrentlyLocked ? "enabled" : "permanently locked out";
+
+                // 2. Update User Lockout Status
+                var identityResult = await _userManager.SetLockoutEndDateAsync(user, lockoutDate);
+                if (!identityResult.Succeeded)
                 {
-                    // Enable user
-                    await _userManager.SetLockoutEndDateAsync(user, null);
+                    throw new Exception($"Identity Error: {string.Join(", ", identityResult.Errors.Select(e => e.Description))}");
+                }
+
+                if (isCurrentlyLocked)
+                {
                     await _userManager.ResetAccessFailedCountAsync(user);
-                    TempData["success"] = $"User '{user.UserName}' has been enabled.";
                 }
-                else
+
+                // 3. Optimize Product Updates: Use Bulk Update logic
+                // We query for both UserName and Id once to handle legacy data consistency
+                var productsToUpdate = await _context.Products
+                    .Where(p => p.OwnerId == user.Id || p.OwnerId == user.UserName)
+                    .ToListAsync();
+
+                if (productsToUpdate.Any())
                 {
-                    // Disable (Lock out) user permanently
-                    await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
-                    TempData["warning"] = $"User '{user.UserName}' has been permanently locked out.";
+                    foreach (var product in productsToUpdate)
+                    {
+                        product.Status = productStatus;
+                    }
+                    // EF Core will batch these updates automatically on SaveChangesAsync
+                    _context.Products.UpdateRange(productsToUpdate);
                 }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                TempData["success"] = $"User '{user.UserName}' has been {actionVerb}.";
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error enabling/disabling user ID: {UserId}", id);
-                TempData["error"] = "Error updating user's lock status. Please check logs.";
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Failed to toggle status for user {UserId}", id);
+                TempData["error"] = "A system error occurred while updating the account status.";
             }
 
             return RedirectToAction(nameof(Index));
@@ -916,10 +859,12 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 // d. Delete Product records (Assuming products have an OwnerId/UserId field)
                 // Depending on your model, you might need to handle product files/gallery too.
                 // Assuming Product.OwnerId is the UserId (string)
-                var userProducts = await _context.Products.Where(p => p.OwnerId == user.UserName).ToListAsync();
+                var userProductsByUserName = await _context.Products.Where(p => p.OwnerId == user.UserName).ToListAsync();
+                var userProductsByOwerId = await _context.Products.Where(p => p.OwnerId == user.Id).ToListAsync();
                 // **WARNING:** Deleting products may require file system cleanup of images/gallery. 
                 // This is a complex dependency that should be handled explicitly.
-                _context.Products.RemoveRange(userProducts);
+                _context.Products.RemoveRange(userProductsByUserName);
+                _context.Products.RemoveRange(userProductsByOwerId);
 
                 // Save changes to delete custom records from your DataContext
                 await _context.SaveChangesAsync(); // Database operation

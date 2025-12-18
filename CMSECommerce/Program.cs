@@ -1,14 +1,16 @@
-﻿using CMSECommerce.Infrastructure;
+﻿using CMSECommerce.Areas.Admin.Services;
+using CMSECommerce.Infrastructure;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
-using Microsoft.AspNetCore.Localization;
-using Microsoft.AspNetCore.Identity.UI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // Razor Pages (for Admin area settings page)
 builder.Services.AddRazorPages();
