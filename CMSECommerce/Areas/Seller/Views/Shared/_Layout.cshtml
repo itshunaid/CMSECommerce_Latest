@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Weypaari</title>
+    <title>Weypaari - Seller Central</title>
 
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -53,13 +53,14 @@
             background-color: #fff;
             border-radius: 4px;
             border: 1px solid #ddd;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             margin-top: 5px;
+            min-width: 220px;
         }
 
         .amz-dropdown-item {
-            font-size: 0.9rem;
-            padding: 8px 20px;
+            font-size: 0.85rem;
+            padding: 10px 20px;
             color: var(--amz-navy);
         }
 
@@ -67,6 +68,14 @@
                 background-color: #f0f2f2;
                 color: var(--amz-orange);
             }
+
+        .dropdown-header {
+            font-weight: bold;
+            color: #555;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            padding: 5px 20px;
+        }
 
         /* Footer */
         .amz-footer {
@@ -97,27 +106,31 @@
                                 <i class="fas fa-home me-1"></i> Dashboard
                             </a>
                         </li>
-                        
+
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="inventoryDrop" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-cube me-1"></i> Inventory
                             </a>
                             <ul class="dropdown-menu amz-dropdown-menu">
-                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Products" asp-action="Index">View All Products</a></li>
-                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Products" asp-action="Create">Add New Product</a></li>
+                                <li><h6 class="dropdown-header">Catalog</h6></li>
+                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Products" asp-action="Index">Manage Products</a></li>
+                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Products" asp-action="inventory">Low Stock Products</a></li>
+                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Products" asp-action="Create">Add a Product</a></li>
+
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Categories" asp-action="Index">View All Catgories</a></li>
+                                <li><h6 class="dropdown-header">Setup</h6></li>
+                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Categories" asp-action="Index">Product Categories</a></li>
                                 <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Categories" asp-action="Create">Add New Category</a></li>
                             </ul>
                         </li>
 
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-user-cog me-1"></i> Orders Management
+                            <a class="nav-link dropdown-toggle" href="#" id="ordersDrop" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-shopping-cart me-1"></i> Orders
                             </a>
                             <ul class="dropdown-menu amz-dropdown-menu">
-                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Orders" asp-action="Index">Orders Pending</a></li>
-                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Orders" asp-action="Shipped">Order Shipped</a></li>
+                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Orders" asp-action="Index">Unshipped Orders</a></li>
+                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Orders" asp-action="Shipped">Shipping History</a></li>
                             </ul>
                         </li>
                     </ul>
@@ -125,15 +138,24 @@
                     <ul class="navbar-nav justify-content-end align-items-center">
                         @if (User.Identity.IsAuthenticated)
                         {
-                            <li class="nav-item me-2">
-                                <span class="nav-link" style="cursor: default;">
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-white" href="#" id="userAccountDrop" role="button" data-bs-toggle="dropdown">
                                     Hello, <span style="font-weight:600; color:var(--amz-orange);">@User.Identity.Name</span>
-                                </span>
-                            </li>
-                            <li class="nav-item">
-                                <a asp-area="" asp-controller="Account" asp-action="Logout" class="nav-link">
-                                    <i class="fas fa-sign-out-alt me-1"></i> Log Out
                                 </a>
+                                <ul class="dropdown-menu amz-dropdown-menu dropdown-menu-end shadow">
+                                    <li><h6 class="dropdown-header">Your Account</h6></li>
+                                    <li>
+                                        <a class="dropdown-item amz-dropdown-item" asp-area="" asp-controller="Account" asp-action="profiledetailsview">
+                                            <i class="fas fa-user-edit me-2"></i> Profile Settings
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item amz-dropdown-item text-danger" asp-area="" asp-controller="Account" asp-action="Logout">
+                                            <i class="fas fa-power-off me-2"></i> Sign Out
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
                         }
                         else
