@@ -11,181 +11,116 @@
     @RenderSection("Styles", required: false)
     <style>
         /* --- Amazon-Like Design Styles --- */
-
-        /* Core Colors */
         :root {
-            --amazon-blue: #131921; /* Header Background */
-            --amazon-dark-blue: #232f3e; /* Navigation Bar */
-            --amazon-orange: #ff9900; /* Primary Accent */
-            --amazon-text-hover: #ffad33; /* Hover Accent */
+            --amazon-blue: #131921;
+            --amazon-dark-blue: #232f3e;
+            --amazon-orange: #ff9900;
+            --amazon-text-hover: #ffad33;
+            --amazon-search-btn: #febd69;
         }
 
-        /* General Body/Container */
         body {
-            background-color: #f7f7f7; /* Light off-white background */
+            background-color: #f7f7f7;
         }
 
         .container.bg-light.py-4 {
-            background-color: #ffffff !important; /* Ensure main content is white */
+            background-color: #ffffff !important;
             padding-top: 1rem !important;
         }
 
-        /* HEADER: Top Bar (Amazon Blue) */
-        header .navbar-dark.bg-dark {
+        /* HEADER */
+        header .navbar-dark.bg-amazon-main {
             background-color: var(--amazon-blue) !important;
-            box-shadow: none !important;
-            margin-bottom: 0 !important; /* Remove margin from the main navbar */
-            padding: 0.5rem 0; /* Make header more compact */
+            padding: 0.5rem 0;
         }
 
-        /* Logo */
         .navbar-brand {
-            color: #ffffff !important; /* White logo text */
-            font-size: 1.5rem !important;
-            font-weight: bold !important;
+            color: #ffffff !important;
+            display: flex;
+            align-items: center;
         }
 
-            .navbar-brand i {
-                color: var(--amazon-orange);
-            }
+        .logo-accent {
+            color: var(--amazon-orange) !important;
+        }
 
-        /* Search Bar Styles */
+        /* SEARCH BAR */
         .amazon-search-bar {
             flex-grow: 1;
             margin: 0 15px;
             max-width: 600px;
         }
 
-            .amazon-search-bar .input-group input {
-                border: 3px solid transparent;
+            .amazon-search-bar .input-group input:focus {
+                border: 3px solid var(--amazon-orange);
+                box-shadow: none;
             }
 
-                .amazon-search-bar .input-group input:focus {
-                    border: 3px solid var(--amazon-orange);
-                    box-shadow: none;
-                }
-
-            .amazon-search-bar .input-group button {
-                background-color: #febd69; /* Search button color */
+            .amazon-search-bar .btn-search {
+                background-color: var(--amazon-search-btn) !important;
                 border: none;
-                color: #111;
+                color: #111 !important;
             }
-                /* Style for the search button icon */
-                .amazon-search-bar .input-group button i {
-                    color: var(--amazon-blue);
-                }
 
-
-        /* User/Cart Links */
-        .d-flex.align-items-center a, .d-flex.align-items-center .nav-link {
-            color: #ffffff !important;
-            font-size: 0.85rem;
-            line-height: 1;
-            padding: 0 7px;
-        }
-
-            .d-flex.align-items-center a:hover, .d-flex.align-items-center .nav-link:hover {
-                color: var(--amazon-text-hover) !important;
-                text-decoration: underline;
-            }
-        /* Small cart style (assuming it's white text with orange icon) */
-        .small-cart-icon {
-            color: var(--amazon-orange);
-            font-size: 1.5rem;
-        }
-
-        /* Sub-Navigation Bar (Amazon Dark Blue) - The one with the category menu items */
+        /* SUB-NAV */
         .sub-nav-bar {
             background-color: var(--amazon-dark-blue) !important;
-            color: #ffffff;
             padding: 0 15px;
         }
 
-            .sub-nav-bar .navbar-nav .nav-link {
+            .sub-nav-bar .nav-link {
                 color: #ffffff !important;
-                padding: 0.5rem 10px;
                 font-size: 0.85rem;
+                border: 1px solid transparent; /* Prevents layout jump on hover */
+                transition: all 0.1s;
             }
 
-                .sub-nav-bar .navbar-nav .nav-link:hover {
-                    border: 1px solid white; /* Border-like hover effect */
-                    margin: -1px; /* Compensate for border to keep layout stable */
+                .sub-nav-bar .nav-link:hover {
+                    border: 1px solid white;
+                    border-radius: 2px;
                 }
 
-            .sub-nav-bar .navbar-nav .nav-item.admin-category-link a {
-                color: var(--amazon-orange) !important;
-            }
-
-
-        /* Sidebar Categories */
-        .card-header.bg-dark.text-warning {
-            background-color: var(--amazon-dark-blue) !important;
-            color: #ffffff !important; /* White text for header */
-            font-weight: bold;
-            font-size: 1.1rem !important;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--amazon-dark-blue);
-        }
-
-        .category-list-item .nav-link {
-            color: var(--amazon-blue) !important;
-            padding: 0.5rem 1rem;
-            border-bottom: 1px solid #eee;
-        }
-
-            .category-list-item .nav-link:hover {
-                background-color: #f0f0f0;
-                color: var(--amazon-orange) !important;
-            }
-
-        .card.shadow-lg.mb-3.border-dark {
+        /* SIDEBAR */
+        .category-sidebar-card {
             border: 1px solid #ddd !important;
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05) !important;
         }
 
-        /* Footer */
-        footer {
+        .category-sidebar-header {
             background-color: var(--amazon-dark-blue) !important;
-            color: #ffffff !important;
-            font-size: 0.8rem !important;
+            color: white !important;
+            font-weight: bold;
         }
 
-            footer a {
+        /* FOOTER */
+        footer.amazon-footer {
+            background-color: var(--amazon-dark-blue) !important;
+            color: white !important;
+        }
+
+            footer.amazon-footer a {
                 color: var(--amazon-orange) !important;
+                text-decoration: none;
             }
-
-        /* Keep existing custom styles/adjustments for mobile/active states */
-        .admin-category-link a {
-            color: #ffc107 !important;
-            font-weight: bold;
-        }
-
-        .mobile-categories-section .category-header {
-            color: var(--amazon-orange);
-            font-weight: bold;
-            display: block;
-            padding: 8px 15px 5px;
-        }
     </style>
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-lg">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-amazon-main shadow-lg">
             <div class="container-fluid">
-                <a class="navbar-brand fs-3 fw-bolder" href="\">
-                    <i class="fas fa-store me-2"></i>Weypaari
+                <a class="navbar-brand fs-3 fw-bolder" href="/">
+                    <i class="fas fa-box logo-accent me-2"></i>
+                    <span style="font-weight: 300;">WE</span><span class="logo-accent">y</span>paari
                 </a>
 
                 <div class="amazon-search-bar d-none d-md-flex">
                     <form asp-controller="Products" asp-action="Index" method="get" class="d-flex input-group">
-                        <input type="hidden" name="slug" value="@(ViewData["CurrentCategorySlug"] as string ?? "")" />
+                        <input type="hidden" name="slug" value="@(ViewData["CurrentCategorySlug"] ?? "")" />
                         <input type="hidden" name="p" value="1" />
-                        <input type="hidden" name="sortOrder" value="@(ViewData["SortOrder"] as string ?? "")" />
 
-                        <input type="text" name="searchTerm" id="searchTermInput" class="form-control"
-                               placeholder="e.g., monitor, keyboard" value="@(ViewData["CurrentSearchTerm"] as string ?? "")" />
+                        <input type="text" name="searchTerm" class="form-control"
+                               placeholder="Search for products..." value="@(ViewData["CurrentSearchTerm"] ?? "")" />
 
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-search">
                             <i class="fas fa-search"></i>
                         </button>
                     </form>
@@ -196,17 +131,15 @@
                     <partial name="_IdentityLinksPartial" />
                 </div>
 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
-                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#subNavBarContent">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-
             </div>
         </nav>
 
         <nav class="navbar navbar-expand-lg navbar-dark sub-nav-bar mb-4">
             <div class="container-fluid">
-                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <div class="collapse navbar-collapse" id="subNavBarContent">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Products" asp-action="Index">Home</a>
@@ -214,87 +147,59 @@
                         <vc:menu />
                         @if (User.IsInRole("Admin") || User.IsInRole("Subscriber"))
                         {
-                            <li class="nav-item admin-category-link">
-                                <a class="nav-link" asp-area="" asp-controller="Account" asp-action="UserList">
+                            <li class="nav-item">
+                                <a class="nav-link fw-bold" style="color: var(--amazon-orange) !important;"
+                                   asp-controller="Account" asp-action="UserList">
                                     <i class="fas fa-users me-1"></i> Business Directory
                                 </a>
                             </li>
                         }
                     </ul>
-
-                    <div class="d-lg-none mobile-categories-section w-100">
-                        <span class="category-header"><i class="fas fa-list me-2"></i> Shop Categories</span>
-                        <div class="card-body p-0">
-                            <vc:categories />
-                        </div>
-                    </div>
-
-                    <div class="amazon-search-bar d-md-none mt-2 w-100">
-                        <form asp-controller="Products" asp-action="Index" method="get" class="d-flex input-group">
-                            <input type="hidden" name="slug" value="@(ViewData["CurrentCategorySlug"] as string ?? "")" />
-                            <input type="hidden" name="p" value="1" />
-                            <input type="hidden" name="sortOrder" value="@(ViewData["SortOrder"] as string ?? "")" />
-
-                            <input type="text" name="searchTerm" id="searchTermInput" class="form-control"
-                                   placeholder="e.g., monitor, keyboard" value="@(ViewData["CurrentSearchTerm"] as string ?? "")" />
-
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </form>
-                    </div>
                 </div>
             </div>
         </nav>
     </header>
 
-    <div class="container bg-light py-4">
+    <div class="container bg-light py-4 shadow-sm rounded-1">
         <main role="main" class="pb-3">
             <partial name="_NotificationsPartial" />
 
             <div class="row">
-    <div id="categorySidebar" class="col-lg-3 d-none d-lg-block">
-        <div class="card shadow-lg mb-3 border-dark">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center" id="categorySidebarHeader">
-                <div><i class="fas fa-bars me-2"></i> Shop by Category</div>
-                <button id="pinSidebar" class="btn btn-sm btn-outline-light py-0 px-2" title="Pin/Unpin Sidebar">
-                    <i class="fas fa-thumbtack"></i> 
-                </button>
-            </div>
-            <div class="list-group list-group-flush p-0">
-                <vc:categories />
-            </div>
-        </div>
-    </div>
+                <div id="categorySidebar" class="col-lg-3 d-none d-lg-block">
+                    <div class="card category-sidebar-card mb-3">
+                        <div class="card-header category-sidebar-header d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-bars me-2"></i> Shop by Category</span>
+                        </div>
+                        <div class="list-group list-group-flush">
+                            <vc:categories />
+                        </div>
+                    </div>
+                </div>
 
-    <div id="mainContent" class="col-12 col-lg-9">
-        @* Toggler for Mobile/Small Screens: Always visible on MD-down, hidden on LG-up *@
-        <button id="toggleCategories" class="btn btn-dark d-lg-none mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#mobileCategoryList" aria-expanded="false" aria-controls="mobileCategoryList">
-            <i class="fas fa-list me-2"></i> Show Categories
-        </button>
+                <div id="mainContent" class="col-12 col-lg-9">
+                    @* Mobile Toggler *@
+                    <button class="btn btn-dark d-lg-none mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#mobileCategoryCollapse">
+                        <i class="fas fa-list me-2"></i> Categories
+                    </button>
 
-        @* Mobile Collapsible Categories: Separate element for small screens *@
-        <div class="collapse d-lg-none mb-3" id="mobileCategoryList">
-            <div class="card shadow-lg border-dark">
-                 <div class="card-header bg-dark text-white">Shop by Category</div>
-                <div class="list-group list-group-flush p-0">
-                    <vc:categories />
+                    <div class="collapse d-lg-none mb-3" id="mobileCategoryCollapse">
+                        <div class="card category-sidebar-card">
+                            <div class="list-group list-group-flush">
+                                <vc:categories />
+                            </div>
+                        </div>
+                    </div>
+
+                    @RenderBody()
                 </div>
             </div>
-        </div>
-
-        @RenderBody()
-    </div>
-</div>
         </main>
     </div>
 
-    <footer class="footer mt-5 bg-dark text-white">
-        <div class="container py-3">
-            &copy; 2025 - CMSEcommerce -
-           @*  <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a> *@
-            <a asp-area="" asp-controller="Home" asp-action="Index">Privacy</a>
-            <span class="float-end">Back to top (optional link)</span>
+    <footer class="amazon-footer mt-5 py-4">
+        <div class="container text-center">
+            <p class="mb-1">&copy; 2025 - Weypaari CMSEcommerce</p>
+            <a asp-controller="Home" asp-action="Index">Privacy Policy</a>
         </div>
     </footer>
 
@@ -305,17 +210,17 @@
 
     <script>
         $(function () {
-            // Highlight active menu item
-            $(".sub-nav-bar .navbar-nav li a").filter(function () {
-                // Ensure the href is not empty before comparison
-                return this.href && this.href.split(/[?#]/)[0] == location.href.split(/[?#]/)[0];
-            }).addClass("fw-bold").parent().css({
-                "border": "1px solid white",
-                "margin": "-1px"
+            // High-fidelity active link highlighting
+            const currentPath = window.location.pathname;
+            $(".sub-nav-bar .nav-link").each(function() {
+                const linkPath = $(this).attr("href");
+                if (linkPath === currentPath) {
+                    $(this).css({
+                        "border": "1px solid white",
+                        "font-weight": "bold"
+                    });
+                }
             });
-
-            // Re-apply specific link colors if needed
-            $(".admin-category-link a").removeClass('text-white').addClass('text-warning fw-bold');
         });
     </script>
 </body>
