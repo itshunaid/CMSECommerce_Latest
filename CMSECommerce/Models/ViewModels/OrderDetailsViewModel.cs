@@ -4,5 +4,6 @@
     {
         public Order Order { get; set; }
         public List<OrderDetail> OrderDetails { get; set; }
+        public UserProfile UserProfile { get; set; }
     }
 }

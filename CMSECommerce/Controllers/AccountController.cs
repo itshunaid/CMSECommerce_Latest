@@ -1578,8 +1578,14 @@ namespace CMSECommerce.Controllers
                     .Where(x => x.OrderId == id)
                     .ToListAsync();
 
+                // Use GetUserId(User) instead of GetUserIdAsync
+                string userId = _userManager.GetUserId(User);
+
+                UserProfile userProfile = await _context.UserProfiles
+                    .FirstOrDefaultAsync(p => p.UserId == userId);
+
                 // Return the combined ViewModel
-                return View(new OrderDetailsViewModel { Order = order, OrderDetails = orderDetails });
+                return View(new OrderDetailsViewModel { Order = order, OrderDetails = orderDetails, UserProfile=userProfile });
             }
             catch (Exception ex)
             {
