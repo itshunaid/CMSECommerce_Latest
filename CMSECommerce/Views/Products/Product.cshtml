@@ -1,13 +1,13 @@
 ﻿@using Microsoft.AspNetCore.Html
-@using System.Linq 
+@using System.Linq
+@using System.Globalization
 @model Product
-
 
 @{
     ViewData["Title"] = Model.Name;
 
+    // --- Image Logic ---
     var allImages = new List<string>();
-
     if (!string.IsNullOrEmpty(Model.Image))
     {
         allImages.Add($"/media/products/{Model.Image}");
@@ -22,30 +22,21 @@
     }
 
     var defaultImagePath = "/media/default-product.png";
-
     if (!allImages.Any())
         allImages.Add(defaultImagePath);
 
+    // --- Logic Variables ---
     bool isInStock = Model.StockQuantity > 0;
-
-    // --- USING ACTUAL MODEL PROPERTIES ---
-    // These now correctly reference the calculated properties defined in the Product model
     double averageRating = Model.AverageRating;
     int ratingCount = Model.RatingCount;
     bool userIsAuthenticated = User.Identity.IsAuthenticated;
 
-    // FIX: Remove mock data and correctly handle the Review collection.
-    // We use Model.Reviews directly, ordering by date, and use the empty collection
-    // pattern to handle null/empty reviews without a type error.
-    // The iteration loop in the HTML will automatically access properties based on the Review class.
+    // Fix: Ensure reviews are handled as a List to avoid iteration errors
     var reviewsToDisplay = Model.Reviews?
         .OrderByDescending(r => r.DateCreated)
-        .AsEnumerable()
-        ?? Enumerable.Empty<Review>();
+        .ToList() ?? new List<Review>();
 
-    // --- END ASSUMPTIONS ---
-
-    // Helper function to render star icons based on rating
+    // Helper function to render star icons
     Func<double, IHtmlContent> RenderStars = (rating) =>
     {
         var content = new HtmlContentBuilder();
@@ -53,17 +44,14 @@
         {
             if (rating >= i)
             {
-                // Full star
                 content.AppendHtml("<i class='fas fa-star'></i>");
             }
             else if (rating > i - 1 && rating < i)
             {
-                // Half star
                 content.AppendHtml("<i class='fas fa-star-half-alt'></i>");
             }
             else
             {
-                // Empty star
                 content.AppendHtml("<i class='far fa-star'></i>");
             }
         }
@@ -73,6 +61,7 @@
 
 <div class="container py-4">
 
+    @* --- Breadcrumbs --- *@
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item small">
@@ -89,9 +78,8 @@
     </nav>
 
     <div class="row">
-
+        @* --- Left: Image Gallery --- *@
         <div class="col-lg-5 mb-4 product-image-section">
-
             <div class="main-image-container border rounded p-3 shadow-sm bg-white text-center">
                 <img id="mainImage"
                      src="@allImages.First()"
@@ -115,8 +103,8 @@
             }
         </div>
 
+        @* --- Center: Product Details --- *@
         <div class="col-lg-4 mb-4 product-details-section">
-
             <h1 class="h3 fw-bold mb-1 product-title">@Model.Name</h1>
 
             @if (Model.Category != null)
@@ -129,33 +117,63 @@
             <hr class="my-2" />
 
             <div class="star-rating mb-2">
-                @* Use corrected averageRating variable *@
                 @RenderStars(averageRating)
-                @* Use corrected ratingCount variable *@
                 <a href="#reviews-section" class="text-amazon-link small ms-2 review-link">(@ratingCount ratings)</a>
             </div>
 
             <div class="price-box my-3 p-3 rounded bg-light-amazon">
                 <span class="price-label text-danger fw-bold me-2">Price:</span>
-                <span class="price-value fw-bolder">@Model.Price.ToString("C2")</span>
+                <span class="price-value fw-bolder">@Model.Price.ToString("C", new CultureInfo("en-IN"))</span>
             </div>
 
             <hr class="my-3" />
 
+            @* --- Vendor Details (FIXED: Null-Safe and Professional) --- *@
+            @if (ViewBag.UserProfile != null)
+            {
+                <div class="vendor-card mb-4 p-3 border rounded shadow-sm bg-white">
+                    <h4 class="h6 fw-bold text-dark mb-2"><i class="fas fa-store-alt me-2"></i>Sold by:</h4>
+                    <div class="small">
+                        <p class="mb-1 fw-bold text-amazon-teal">@ViewBag.UserProfile.FirstName @ViewBag.UserProfile.LastName</p>
+
+                        @* Safely check the User navigation property for Address/Phone *@
+                        @if (ViewBag.UserProfile.User != null)
+                        {
+                            <p class="mb-1 text-muted"><i class="fas fa-map-marker-alt me-2"></i>@ViewBag.UserProfile.User.HomeAddress</p>
+                            <p class="mb-1 text-muted"><i class="fas fa-phone-alt me-2"></i>@ViewBag.UserProfile.User.HomePhoneNumber</p>
+                        }
+
+                        <div class="vendor-socials mt-2 pt-2 border-top d-flex gap-3">
+                            @if (!string.IsNullOrEmpty(ViewBag.UserProfile.WhatsAppNumber))
+                            {
+                                <a href="https://wa.me/@ViewBag.UserProfile.WhatsAppNumber" target="_blank" class="text-success" title="Contact on WhatsApp"><i class="fab fa-whatsapp fa-lg"></i></a>
+                            }
+                            @if (!string.IsNullOrEmpty(ViewBag.UserProfile.FacebookUrl))
+                            {
+                                <a href="@ViewBag.UserProfile.FacebookUrl" target="_blank" class="text-primary" title="Facebook Profile"><i class="fab fa-facebook fa-lg"></i></a>
+                            }
+                            @if (!string.IsNullOrEmpty(ViewBag.UserProfile.InstagramUrl))
+                            {
+                                <a href="@ViewBag.UserProfile.InstagramUrl" target="_blank" style="color: #E4405F;" title="Instagram Profile"><i class="fab fa-instagram fa-lg"></i></a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
             <div class="description-highlights">
                 <h4 class="h6 fw-bold text-dark">About this item:</h4>
-                <div class="small">
-
-                    @Html.Raw(Model.Description.Length > 200 ? Model.Description.Substring(0, 200) + "..." : Model.Description)
+                <div class="small text-muted">
+                    @Html.Raw(Model.Description.Length > 300 ? Model.Description.Substring(0, 300) + "..." : Model.Description)
                 </div>
             </div>
-
         </div>
 
+        @* --- Right: Buy Box --- *@
         <div class="col-lg-3">
             <div class="buy-box border rounded p-3 bg-white shadow-sm @(isInStock ? "in-stock-box" : "out-of-stock-box")">
 
-                <h4 class="price-value-box fw-bolder mb-3">@Model.Price.ToString("C2")</h4>
+                <h4 class="price-value-box fw-bolder mb-3">@Model.Price.ToString("C", new CultureInfo("en-IN"))</h4>
 
                 <p class="stock-info fw-bold mb-3">
                     @if (isInStock)
@@ -179,10 +197,6 @@
                             {
                                 <option value="@i">@i</option>
                             }
-                            @if (Model.StockQuantity > 10)
-                            {
-                                <option value="10+">10+</option>
-                            }
                         </select>
                     </div>
 
@@ -191,17 +205,10 @@
                         <button type="submit" class="btn btn-amazon-yellow btn-lg w-100 mb-2">
                             <i class="fas fa-cart-plus me-1"></i> Add to Cart
                         </button>
-
-                        <a asp-controller="Cart" asp-action="Index"
-                           class="btn btn-amazon-orange-outline btn-lg w-100">
-                            <i class="fas fa-shopping-cart me-1"></i> View Cart
-                        </a>
                     }
                     else
                     {
-                        <button class="btn btn-danger btn-lg w-100" disabled>
-                            Out of Stock
-                        </button>
+                        <button class="btn btn-danger btn-lg w-100" disabled>Out of Stock</button>
                     }
                 </form>
 
@@ -210,7 +217,6 @@
                     <li><i class="fas fa-lock me-2 text-muted"></i> Secure transaction</li>
                     <li><i class="fas fa-box-open me-2 text-muted"></i> 7-Day Return Policy</li>
                 </ul>
-
             </div>
         </div>
     </div>
@@ -219,7 +225,7 @@
 
     <div class="row">
         <div class="col-lg-9">
-            <h3 class="fw-bold mb-3">Product Description and Details</h3>
+            <h3 class="fw-bold mb-3">Product Description</h3>
             <div class="text-dark product-full-description">
                 @Html.Raw(Model.Description)
             </div>
@@ -228,6 +234,7 @@
 
     <hr class="my-5" id="reviews-section" />
 
+    @* --- Reviews Section --- *@
     <div class="row">
         <div class="col-lg-9">
             <h3 class="fw-bold mb-4">Customer Reviews</h3>
@@ -240,9 +247,8 @@
                         <input type="hidden" name="ProductId" value="@Model.Id" />
 
                         <div class="mb-3">
-                            <label for="rating" class="form-label fw-bold small">Overall Rating:</label>
+                            <label class="form-label fw-bold small">Overall Rating:</label>
                             <div id="rating-stars" class="rating-input d-flex">
-                                @* Star radio buttons for rating input (1 to 5) - uses RTL trick in CSS *@
                                 @for (int i = 5; i >= 1; i--)
                                 {
                                     <input type="radio" id="star@(i)" name="Rating" value="@i" required />
@@ -251,58 +257,49 @@
                             </div>
                         </div>
 
-                        @* Added Title Input field as per Review Model update *@
                         <div class="mb-3">
-                            <label for="title" class="form-label fw-bold small">Review Headline/Title:</label>
-                            <input type="text" class="form-control" id="title" name="Title" maxlength="100" placeholder="E.g., Great value for money!" required />
+                            <label for="title" class="form-label fw-bold small">Review Headline:</label>
+                            <input type="text" class="form-control" id="title" name="Title" maxlength="100" placeholder="Summarize your experience" required />
                         </div>
 
-
                         <div class="mb-3">
-                            <label for="comment" class="form-label fw-bold small">Add a written review:</label>
+                            <label for="comment" class="form-label fw-bold small">Detailed Review:</label>
                             <textarea class="form-control" id="comment" name="Comment" rows="3" maxlength="1000" placeholder="What did you like or dislike?" required></textarea>
-                            <div class="form-text small">Maximum 1000 characters.</div>
                         </div>
 
-                        <button type="submit" class="btn btn-amazon-yellow mt-2">
-                            <i class="fas fa-pen-to-square me-1"></i> Submit Review
-                        </button>
+                        <button type="submit" class="btn btn-amazon-yellow mt-2">Submit Review</button>
                     </form>
                 </div>
             }
             else
             {
-                <div class="alert alert-info" role="alert">
-                    Please <a asp-controller="Account" asp-action="Login" asp-route-ReturnUrl="@Context.Request.Path" class="alert-link text-amazon-link">log in</a> to submit a rating and review.
+                <div class="alert alert-info py-2" role="alert">
+                    Please <a asp-controller="Account" asp-action="Login" asp-route-ReturnUrl="@Context.Request.Path" class="alert-link">log in</a> to write a review.
                 </div>
             }
 
-            @* Use .Count() on the fixed reviewsToDisplay variable *@
-            <h4 class="h5 fw-bold mb-3">All Reviews (@reviewsToDisplay.Count() total)</h4>
+            <h4 class="h5 fw-bold mb-3">All Reviews (@reviewsToDisplay.Count)</h4>
 
-            <div class="review-list mt-3">
+            <div class="review-list">
                 @if (reviewsToDisplay.Any())
                 {
-                    @* Use the correctly-typed reviewsToDisplay variable *@
                     @foreach (var review in reviewsToDisplay)
                     {
-                        <div class="review-item border rounded p-3 mb-3 bg-white shadow-sm">
+                        <div class="review-item border-bottom py-3 mb-2">
                             <div class="d-flex align-items-center mb-1">
-                                @* Display review rating *@
-                                <div class="star-rating me-3 small">
+                                <div class="star-rating me-2 small">
                                     @RenderStars((double)review.Rating)
                                 </div>
                                 <span class="fw-bold">@review.Title</span>
                             </div>
-                            @* Use correctly-typed properties, no need for (DateTime) cast *@
-                            <p class="small text-muted mb-2">Reviewed by **@review.UserName** on @review.DateCreated.ToString("d MMMM yyyy")</p>
+                            <p class="small text-muted mb-2">By <strong>@review.UserName</strong> on @review.DateCreated.ToString("d MMMM yyyy")</p>
                             <p class="mb-0">@review.Comment</p>
                         </div>
                     }
                 }
                 else
                 {
-                    <p class="text-muted">There are no customer reviews yet. Be the first to review!</p>
+                    <p class="text-muted">No reviews yet. Be the first to rate this product!</p>
                 }
             </div>
         </div>
@@ -310,28 +307,19 @@
 </div>
 
 @section Scripts {
-
     <script>
         document.querySelectorAll('.thumb-img').forEach(img => {
             img.addEventListener('click', function () {
                 document.getElementById('mainImage').src = this.dataset.img;
-
-                document.querySelectorAll('.thumb-img').forEach(t => {
-                    t.classList.remove('active-thumb');
-                });
-
+                document.querySelectorAll('.thumb-img').forEach(t => t.classList.remove('active-thumb'));
                 this.classList.add('active-thumb');
             });
         });
 
-        // Set initial active state for first thumbnail
         document.addEventListener('DOMContentLoaded', () => {
             const firstThumb = document.querySelector('.thumb-img');
-            if(firstThumb) {
-                firstThumb.classList.add('active-thumb');
-            }
+            if(firstThumb) firstThumb.classList.add('active-thumb');
 
-            // Smooth scroll to reviews section when clicking the rating count link
             const reviewLink = document.querySelector('.review-link');
             if (reviewLink) {
                 reviewLink.addEventListener('click', function(e) {
@@ -341,23 +329,20 @@
             }
         });
     </script>
-
 }
 
 @section Styles {
     <style>
-        /* --- AMAZON COLOR PALETTE --- */
         :root {
             --amazon-price-red: #B12704;
             --amazon-yellow-action: #FFD814;
             --amazon-yellow-action-hover: #F7CA00;
             --amazon-link-teal: #007185;
-            --amazon-link-teal-hover: #005666;
             --amazon-star-gold: #ffa41c;
             --amazon-background-light: #f7f7ff;
         }
 
-        .text-amazon-link {
+        .text-amazon-link, .text-amazon-teal {
             color: var(--amazon-link-teal) !important;
         }
 
@@ -365,49 +350,27 @@
             background-color: var(--amazon-background-light) !important;
         }
 
-        /* --- PRODUCT DETAILS LAYOUT --- */
         .product-main-img {
             max-height: 480px;
             object-fit: contain;
             width: 100%;
         }
 
-        .main-image-container {
-            border: 1px solid #ddd !important;
-        }
-
-        /* Thumbnails */
         .thumb-img {
             height: 60px;
             object-fit: contain;
             cursor: pointer;
             border: 1px solid #ddd !important;
-            transition: border-color 0.1s ease;
             padding: 2px;
         }
 
         .active-thumb {
             border: 2px solid var(--amazon-link-teal) !important;
-            box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--amazon-link-teal);
+            box-shadow: 0 0 0 2px #fff;
         }
 
-        /* Stars */
         .star-rating i {
             color: var(--amazon-star-gold);
-        }
-
-        .product-title {
-            color: #0F1111;
-        }
-
-        /* --- PRICE AND BUY BOX --- */
-        .price-box {
-            font-size: 1.5rem;
-            color: var(--amazon-price-red);
-        }
-
-        .price-value {
-            font-size: 1.8rem;
         }
 
         .price-value-box {
@@ -415,100 +378,45 @@
             font-size: 1.7rem !important;
         }
 
-        .buy-box {
-            border-color: #ddd !important;
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
-        }
-
-        .in-stock-box .stock-info {
-            color: #008000;
-        }
-
-        /* Add to Cart Button (Primary Amazon Yellow) */
+        /* Amazon Buttons */
         .btn-amazon-yellow {
             background-color: var(--amazon-yellow-action) !important;
             border-color: #FCD200 !important;
-            color: #0F1111 !important;
             font-weight: 700;
-            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
+            color: #111;
         }
 
             .btn-amazon-yellow:hover {
                 background-color: var(--amazon-yellow-action-hover) !important;
             }
 
-        /* View Cart/Buy Now Button (Secondary Outline) */
-        .btn-amazon-orange-outline {
-            background: #fff;
-            border: 1px solid #D5D9DD !important;
-            color: #0F1111 !important;
-            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
-            font-weight: 700;
-        }
-
-            .btn-amazon-orange-outline:hover {
-                background-color: #F7FAFA !important;
-                border-color: #adb1b8 !important;
-            }
-
-        /* --- STICKY BUY BOX (Desktop) --- */
-        @@media (min-width: 992px) {
-            .buy-box {
-                position: sticky;
-                top: 20px; /* Adjust as needed for header height */
-            }
-        }
-
-        /* --- MOBILE ADJUSTMENTS --- */
-        @@media (max-width: 991px) {
-            .product-image-section {
-                order: 1;
-            }
-
-            .product-details-section {
-                order: 2;
-            }
-
-            .buy-box {
-                order: 3;
-            }
-
-            .product-main-img {
-                max-height: 350px;
-            }
-        }
-
-        /* --- NEW RATING INPUT STYLES --- */
+        /* Rating Stars Input */
         .rating-input {
-            direction: rtl; /* Makes stars display right-to-left for easier CSS hover/check logic */
-            unicode-bidi: isolate;
+            direction: rtl;
         }
 
             .rating-input > input {
-                display: none; /* Hide the radio buttons */
+                display: none;
             }
 
             .rating-input > label {
-                color: #ddd; /* Default star color (unfilled) */
+                color: #ddd;
                 font-size: 1.5rem;
-                padding: 0 2px;
                 cursor: pointer;
                 transition: color 0.1s;
             }
 
-                /* Filling stars on hover/check */
                 .rating-input > input:checked ~ label,
                 .rating-input > label:hover,
                 .rating-input > label:hover ~ label {
-                    color: var(--amazon-star-gold); /* Filled star color */
+                    color: var(--amazon-star-gold);
                 }
 
-                    /* Ensures the stars are filled up to the selected one */
-                    .rating-input > input:checked + label:hover,
-                    .rating-input > input:checked ~ label:hover,
-                    .rating-input > input:checked ~ label:hover ~ label,
-                    .rating-input > label:hover ~ input:checked ~ label {
-                        color: var(--amazon-star-gold);
-                    }
+        @@media (min-width: 992px) {
+            .buy-box {
+                position: sticky;
+                top: 20px;
+            }
+        }
     </style>
 }

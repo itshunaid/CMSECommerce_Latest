@@ -287,7 +287,10 @@ namespace CMSECommerce.Controllers
                 TempData["Error"] = "An unexpected error occurred while loading the product page.";
                 return RedirectToAction("Index");
             }
-
+            
+            
+            var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.User.UserName.ToLower() == product.OwnerId.ToLower());
+            ViewBag.UserProfile = userProfile;
             // Return the view with the product data
             return View(product);
         }

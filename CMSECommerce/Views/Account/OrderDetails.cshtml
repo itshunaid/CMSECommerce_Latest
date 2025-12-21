@@ -63,7 +63,10 @@
                             </div>
 
                             <div class="col-10 col-md-5">
-                                <a href="#" class="text-amazon-link fw-semibold item-name-link text-decoration-none">
+                                <a asp-controller="Products"
+                                   asp-action="Product"
+                                   asp-route-slug="@item.ProductName"
+                                   class="text-amazon-link fw-semibold item-name-link text-decoration-none">
                                     @item.ProductName
                                 </a>
                                 <p class="small text-muted mb-1">Qty: @item.Quantity</p>

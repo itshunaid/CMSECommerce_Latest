@@ -14,6 +14,8 @@
 
         public bool IsOutOfStock { get; set; }
 
+        public UserProfile UserProfile { get; set; }
+
 
         public CartItem()
         {

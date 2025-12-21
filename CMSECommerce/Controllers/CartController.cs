@@ -2,6 +2,7 @@
 using CMSECommerce.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 
 namespace CMSECommerce.Controllers
 {
@@ -80,11 +81,38 @@ namespace CMSECommerce.Controllers
                 HttpContext.Session.SetJson("Cart", cart);
 
                 // 6. Create and return the ViewModel
+                var userProfile = new List<UserProfile>();
+                foreach (var product in cart)
+                {
+                    if (!userProfile.Any(u => u.User.UserName == product.ProductOwner))
+                    {
+                        var profile = _context.UserProfiles.Include(p => p.User).FirstOrDefault(u => u.User.UserName == product.ProductOwner);
+                        if (profile != null)
+                        {
+
+                            userProfile.Add(profile);
+                        }
+                    }
+                }
+
+                cart.ForEach(c =>
+                {
+                    var profile = userProfile.FirstOrDefault(u => u.User.UserName == c.ProductOwner);
+                    if (profile != null)
+                    {
+                        c.UserProfile = profile;
+                    }
+                });
+
                 CartViewModel cartVM = new()
                 {
                     CartItems = cart,
                     GrandTotal = cart.Sum(x => x.Price * x.Quantity)
                 };
+
+
+                
+              
 
                 return View(cartVM);
             }
