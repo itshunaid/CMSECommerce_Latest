@@ -137,6 +137,8 @@ namespace CMSECommerce.Controllers
                     .Take(pageSize)
                     .ToListAsync();
 
+                ViewBag.UserProfile = userProfile;
+
                 return View(new PagedList<Order>(pagedItems, totalCount, pageNumber, pageSize));
             }
             catch (DbUpdateException)

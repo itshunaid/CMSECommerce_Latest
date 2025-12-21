@@ -4,6 +4,7 @@ using CMSECommerce.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMSECommerce.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20251221130904_AddedUserProfileInOrder")]
+    partial class AddedUserProfileInOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -150,7 +153,12 @@ namespace CMSECommerce.Migrations
                     b.Property<string>("UserName")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("UserProfileId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserProfileId");
 
                     b.ToTable("Orders");
                 });
@@ -889,6 +897,15 @@ namespace CMSECommerce.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("CMSECommerce.Models.Order", b =>
+                {
+                    b.HasOne("CMSECommerce.Models.UserProfile", "UserProfile")
+                        .WithMany()
+                        .HasForeignKey("UserProfileId");
+
+                    b.Navigation("UserProfile");
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.Product", b =>

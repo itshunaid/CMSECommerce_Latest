@@ -251,9 +251,20 @@
                         </div>
 
                         <div class="col-md-4 mb-3 mb-md-0">
-                            <h6 class="text-uppercase small mb-1" style="color:#555555;">Ship To</h6>
-                            <p class="mb-0 fw-bold">@item.UserName</p>
-                            <p class="small text-muted mb-0">@item.PhoneNumber</p>
+                            <h6 class="text-uppercase small mb-1" style="color:#555555;">Ship To</h6>                           
+                            @if (ViewBag.UserProfile != null)
+                            {
+                                <p class="mb-0 fw-bold">@ViewBag.UserProfile?.FirstName @ViewBag.UserProfile?.LastName</p>
+                                <p class="mb-0 fw-bold">@ViewBag.UserProfile?.HomeAddress</p>
+                                <p class="mb-0 fw-bold">@ViewBag.UserProfile?.HomePhoneNumber</p>
+                            }
+                            else
+                            {
+                                <p class="mb-0 fw-bold">@item.UserName</p>
+                                <p class="small text-muted mb-0">@item.PhoneNumber</p>
+                            }
+
+                            
                         </div>
 
                         <div class="col-md-3 text-md-end d-flex flex-column align-items-md-end justify-content-center">
