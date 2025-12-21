@@ -268,96 +268,96 @@ namespace CMSECommerce.Controllers
         [HttpPost]
         public async Task<IActionResult> Register(User user)
         {
-            // Set default names if empty
+            // 1. Validation and Uniqueness Checks (Same as before)
             user.FirstName ??= "First Name";
             user.LastName ??= "Last Name";
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid) return View(user);
+
+            var existingEmail = await _userManager.FindByEmailAsync(user.Email);
+            if (existingEmail != null)
             {
-                // 1. MANUAL UNIQUENESS CHECKS
-                // Check for duplicate Email
-                var existingEmail = await _userManager.FindByEmailAsync(user.Email);
-                if (existingEmail != null)
-                {
-                    ModelState.AddModelError("Email", "Email address is already in use.");
-                }
+                ModelState.AddModelError("Email", "Email address is already in use.");
+                return View(user);
+            }
 
-                // Check for duplicate Phone Number
-                // Note: IdentityUser doesn't have a direct 'FindByPhone', so we use EF via the Context or Users set
-                var existingPhone = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == user.PhoneNumber);
-                if (existingPhone != null && !string.IsNullOrEmpty(user.PhoneNumber))
-                {
-                    ModelState.AddModelError("PhoneNumber", "Phone number is already registered.");
-                }
+            // 2. Create the Identity User
+            IdentityUser newUser = new()
+            {
+                UserName = user.UserName,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber
+            };
 
-                // If either check failed, return the view immediately
-                if (!ModelState.IsValid)
-                {
-                    return View(user);
-                }
+            try
+            {
+                IdentityResult result = await _userManager.CreateAsync(newUser, user.Password);
 
-                IdentityUser newUser = new()
+                if (result.Succeeded)
                 {
-                    UserName = user.UserName,
-                    Email = user.Email,
-                    PhoneNumber = user.PhoneNumber
-                };
-
-                try
-                {
-                    // 2. Attempt to create the user
-                    IdentityResult result = await _userManager.CreateAsync(newUser, user.Password);
-
-                    if (result.Succeeded)
+                    try
                     {
-                        try
+                        // 3. Map Address details to the UserProfile model
+                        // We combine the registration address fields into a single string for the Profile
+                        string fullAddress = $"{user.StreetAddress}, {user.City}, {user.State} {user.PostalCode}, {user.Country}";
+
+                        var newProfile = new UserProfile
                         {
-                            var newProfile = new UserProfile
-                            {
-                                UserId = newUser.Id,
-                                FirstName = user.FirstName,
-                                LastName = user.LastName
-                            };
-                            _context.UserProfiles.Add(newProfile);
+                            UserId = newUser.Id,
+                            FirstName = user.FirstName,
+                            LastName = user.LastName,
+                            // Mapping Address details to UserProfile fields
+                            HomeAddress = fullAddress,
+                            HomePhoneNumber = user.PhoneNumber,
+                            BusinessPhoneNumber = user.PhoneNumber, // Defaulting to same as home
 
-                            var newAddress = new CMSECommerce.Models.Address
-                            {
-                                UserId = newUser.Id,
-                                StreetAddress = user.StreetAddress,
-                                City = user.City,
-                                State = user.State,
-                                PostalCode = user.PostalCode,
-                                Country = user.Country
-                            };
+                            // Setting default visibility and status
+                            IsProfileVisible = true,
+                            IsImageApproved = false,
+                            IsImagePending = false
+                        };
 
-                            _context.Addresses.Add(newAddress);
-                            await _context.SaveChangesAsync();
+                        _context.UserProfiles.Add(newProfile);
 
-                            await _userManager.AddToRoleAsync(newUser, "Customer");
-
-                            TempData["success"] = "You have registered successfully!";
-                            return RedirectToAction("Login");
-                        }
-                        catch (Exception dbEx)
+                        // 4. Map Address details to the separate Address table (Relational)
+                        var newAddress = new CMSECommerce.Models.Address
                         {
-                            // CLEANUP: If Profile/Address fails, delete the Identity user to prevent "ghost" accounts
-                            await _userManager.DeleteAsync(newUser);
+                            UserId = newUser.Id,
+                            StreetAddress = user.StreetAddress,
+                            City = user.City,
+                            State = user.State,
+                            PostalCode = user.PostalCode,
+                            Country = user.Country
+                        };
 
-                            ModelState.AddModelError("", "Failed to save profile details. Account creation rolled back.");
-                            return View(user);
-                        }
+                        _context.Addresses.Add(newAddress);
+
+                        // Save all changes to the database
+                        await _context.SaveChangesAsync();
+
+                        // 5. Finalize
+                        await _userManager.AddToRoleAsync(newUser, "Customer");
+
+                        TempData["success"] = "You have registered successfully!";
+                        return RedirectToAction("Login");
                     }
-
-                    // Handle Identity errors (e.g., Password too weak)
-                    foreach (var error in result.Errors)
+                    catch (Exception dbEx)
                     {
-                        ModelState.AddModelError("", error.Description);
+                        // Rollback Identity user if Profile/Address fails
+                        await _userManager.DeleteAsync(newUser);
+                        ModelState.AddModelError("", "Database error occurred while saving profile details.");
+                        return View(user);
                     }
                 }
-                catch (Exception ex)
+
+                foreach (var error in result.Errors)
                 {
-                    ModelState.AddModelError("", "A critical error occurred. Please try again later.");
+                    ModelState.AddModelError("", error.Description);
                 }
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "A critical error occurred. Please try again later.");
             }
 
             return View(user);
@@ -401,7 +401,7 @@ namespace CMSECommerce.Controllers
                     viewModel.LinkedInUrl = userProfile.LinkedInUrl;
                     viewModel.FacebookUrl = userProfile.FacebookUrl;
                     viewModel.InstagramUrl = userProfile.InstagramUrl;
-                    viewModel.WhatsappNumber = userProfile.WhatsappNumber;
+                    viewModel.WhatsappNumber = userProfile.WhatsAppNumber;
                     viewModel.HomeAddress = userProfile.HomeAddress;
                     viewModel.HomePhoneNumber = userProfile.HomePhoneNumber;
                     viewModel.BusinessAddress = userProfile.BusinessAddress;
@@ -482,7 +482,7 @@ namespace CMSECommerce.Controllers
                     viewModel.LinkedInUrl = userProfile.LinkedInUrl;
                     viewModel.FacebookUrl = userProfile.FacebookUrl;
                     viewModel.InstagramUrl = userProfile.InstagramUrl;
-                    viewModel.WhatsappNumber = userProfile.WhatsappNumber;
+                    viewModel.WhatsappNumber = userProfile.WhatsAppNumber;
                     viewModel.HomeAddress = userProfile.HomeAddress;
                     viewModel.HomePhoneNumber = userProfile.HomePhoneNumber;
                     viewModel.BusinessAddress = userProfile.BusinessAddress;
@@ -561,7 +561,7 @@ namespace CMSECommerce.Controllers
                     LinkedInUrl = userProfile?.LinkedInUrl,
                     FacebookUrl = userProfile?.FacebookUrl,
                     InstagramUrl = userProfile?.InstagramUrl,
-                    WhatsappNumber = userProfile?.WhatsappNumber,
+                    WhatsAppNumber = userProfile?.WhatsAppNumber,
                     HomeAddress = userProfile?.HomeAddress,
                     HomePhoneNumber = userProfile?.HomePhoneNumber,
                     BusinessAddress = userProfile?.BusinessAddress,
@@ -641,7 +641,7 @@ namespace CMSECommerce.Controllers
                     LinkedInUrl = userProfile?.LinkedInUrl,
                     FacebookUrl = userProfile?.FacebookUrl,
                     InstagramUrl = userProfile?.InstagramUrl,
-                    WhatsappNumber = userProfile?.WhatsappNumber,
+                    WhatsAppNumber = userProfile?.WhatsAppNumber,
 
                     // Addresses
                     HomeAddress = userProfile?.HomeAddress,
@@ -765,7 +765,7 @@ namespace CMSECommerce.Controllers
                     userProfile.LinkedInUrl = model.LinkedInUrl;
                     userProfile.FacebookUrl = model.FacebookUrl;
                     userProfile.InstagramUrl = model.InstagramUrl;
-                    userProfile.WhatsappNumber = model.WhatsappNumber;
+                    userProfile.WhatsAppNumber = model.WhatsAppNumber;
                     userProfile.HomeAddress = model.HomeAddress;
                     userProfile.HomePhoneNumber = model.HomePhoneNumber;
                     userProfile.BusinessAddress = model.BusinessAddress;
@@ -998,7 +998,7 @@ namespace CMSECommerce.Controllers
                 userProfile.LinkedInUrl = viewModel.LinkedInUrl;
                 userProfile.FacebookUrl = viewModel.FacebookUrl;
                 userProfile.InstagramUrl = viewModel.InstagramUrl;
-                userProfile.WhatsappNumber = viewModel.WhatsappNumber;
+                userProfile.WhatsAppNumber = viewModel.WhatsappNumber;
 
                 // Address Information
                 userProfile.HomeAddress = viewModel.HomeAddress;
@@ -1236,7 +1236,7 @@ namespace CMSECommerce.Controllers
             userProfile.LinkedInUrl = model.LinkedInUrl;
             userProfile.FacebookUrl = model.FacebookUrl;
             userProfile.InstagramUrl = model.InstagramUrl;
-            userProfile.WhatsappNumber = model.WhatsappNumber;
+            userProfile.WhatsAppNumber = model.WhatsappNumber;
             userProfile.HomeAddress = model.HomeAddress;
             userProfile.HomePhoneNumber = model.HomePhoneNumber;
             userProfile.BusinessAddress = model.BusinessAddress;
@@ -1932,7 +1932,7 @@ namespace CMSECommerce.Controllers
                     LinkedInUrl = userProfile?.LinkedInUrl,
                     FacebookUrl = userProfile?.FacebookUrl,
                     InstagramUrl = userProfile?.InstagramUrl,
-                    WhatsappNumber = userProfile?.WhatsappNumber,
+                    WhatsAppNumber = userProfile?.WhatsAppNumber,
 
                     // Addresses
                     HomeAddress = userProfile?.HomeAddress,

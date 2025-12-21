@@ -7,25 +7,25 @@
 <style>
     /* Custom styling to mimic Amazon-like cards and buttons */
     .amazon-card {
-        border: 1px solid #ddd; /* Light border */
-        border-radius: 8px; /* Slightly rounded corners */
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         padding: 20px;
         margin-bottom: 25px;
-        background-color: #fff; /* White background */
+        background-color: #fff;
     }
 
     .amazon-button {
         background-color: #FFD814; /* Amazon Yellow */
         border-color: #FCD200;
-        color: #111; /* Black text */
-        border-radius: 50px; /* Highly rounded button */
+        color: #111;
+        border-radius: 50px;
         padding: 8px 18px;
         font-weight: 500;
     }
 
         .amazon-button:hover {
-            background-color: #F7CA00; /* Darker yellow on hover */
+            background-color: #F7CA00;
             border-color: #F7CA00;
             color: #111;
         }
@@ -37,6 +37,7 @@
         border: 1px solid #ccc;
         padding: 5px;
         border-radius: 4px;
+        display: block;
     }
 </style>
 
@@ -47,6 +48,11 @@
         <form asp-action="Edit" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="Id" />
+
+            <input type="hidden" asp-for="ProfileImagePath" />
+            <input type="hidden" asp-for="GpayQRCodePath" />
+            <input type="hidden" asp-for="PhonePeQRCodePath" />
+
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <div class="amazon-card">
@@ -63,7 +69,7 @@
                     <div class="col-md-6">
                         <div class="form-group mt-3">
                             <label asp-for="NewPassword" class="form-label">New Password (leave blank to keep existing)</label>
-                            <input asp-for="NewPassword" class="form-control" type="password" />
+                            <input asp-for="NewPassword" class="form-control" type="password" autocomplete="new-password" />
                             <span asp-validation-for="NewPassword" class="text-danger"></span>
                         </div>
                     </div>
@@ -94,7 +100,7 @@
                         {
                             @foreach (var r in roles)
                             {
-                                <option value="@r" selected="@(r == Model.Role ? "selected" : "")">@r</option>
+                                <option value="@r">@r</option>
                             }
                         }
                     </select>
@@ -146,7 +152,7 @@
 
                 <div class="form-group mt-3">
                     <label asp-for="ServicesProvided" class="form-label"></label>
-                    <input asp-for="ServicesProvided" class="form-control" placeholder="e.g., Web Design, Consulting, Plumbing (comma-separated)" />
+                    <input asp-for="ServicesProvided" class="form-control" placeholder="e.g., Web Design, Consulting" />
                     <span asp-validation-for="ServicesProvided" class="text-danger"></span>
                 </div>
             </div>
@@ -157,9 +163,9 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mt-3">
-                            <label asp-for="WhatsappNumber" class="form-label"></label>
-                            <input asp-for="WhatsappNumber" class="form-control" />
-                            <span asp-validation-for="WhatsappNumber" class="text-danger"></span>
+                            <label asp-for="WhatsAppNumber" class="form-label"></label>
+                            <input asp-for="WhatsAppNumber" class="form-control" />
+                            <span asp-validation-for="WhatsAppNumber" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -237,11 +243,8 @@
                             <input asp-for="ProfileImageFile" class="form-control" type="file" accept="image/*" />
                             <span asp-validation-for="ProfileImageFile" class="text-danger"></span>
 
-                            <input type="hidden" asp-for="ProfileImagePath" />
-
                             @if (!string.IsNullOrWhiteSpace(Model.ProfileImagePath))
                             {
-                                <p class="mt-2 mb-0">Current Image:</p>
                                 <img src="@Model.ProfileImagePath" class="current-image-preview" alt="Current Profile Image" />
                             }
                         </div>
@@ -253,7 +256,6 @@
                                 <div class="form-group form-check mt-4">
                                     <input asp-for="IsProfileVisible" class="form-check-input" />
                                     <label asp-for="IsProfileVisible" class="form-check-label"></label>
-                                    <small class="text-muted d-block">Check to make the user's profile publicly visible.</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -275,10 +277,8 @@
                             <input asp-for="GpayQRCodeFile" class="form-control" type="file" accept="image/*" />
                             <span asp-validation-for="GpayQRCodeFile" class="text-danger"></span>
 
-                            <input type="hidden" asp-for="GpayQRCodePath" />
                             @if (!string.IsNullOrWhiteSpace(Model.GpayQRCodePath))
                             {
-                                <p class="mt-2 mb-0">Current QR:</p>
                                 <img src="@Model.GpayQRCodePath" class="current-image-preview" alt="Current GPay QR" />
                             }
                         </div>
@@ -289,19 +289,14 @@
                             <input asp-for="PhonePeQRCodeFile" class="form-control" type="file" accept="image/*" />
                             <span asp-validation-for="PhonePeQRCodeFile" class="text-danger"></span>
 
-                            <input type="hidden" asp-for="PhonePeQRCodePath" />
                             @if (!string.IsNullOrWhiteSpace(Model.PhonePeQRCodePath))
                             {
-                                <p class="mt-2 mb-0">Current QR:</p>
                                 <img src="@Model.PhonePeQRCodePath" class="current-image-preview" alt="Current PhonePe QR" />
                             }
                         </div>
                     </div>
                 </div>
             </div>
-
-
-            <hr class="mt-5" />
 
             <div class="form-group mt-4 mb-5">
                 <button type="submit" class="btn amazon-button btn-lg">💾 Save Changes</button>

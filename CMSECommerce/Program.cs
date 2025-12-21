@@ -1,5 +1,6 @@
 ﻿using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
+using CMSECommerce.Models; // Added to access UserProfile
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Localization;
@@ -18,45 +19,45 @@ builder.Services.AddRazorPages();
 // Add SignalR services for real-time communication
 builder.Services.AddSignalR();
 
-//Add your DbContext with the SQLite provider
+// Add DbContext with the SQL Server provider
 var connectionString = builder.Configuration.GetConnectionString("DbConnection");
-// ✅ CORRECT: This line tells EF Core to use the SQLite provider.
 builder.Services.AddDbContext<DataContext>(options =>
- options.UseSqlite(connectionString)
+ options.UseSqlServer(connectionString)
 );
 builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(options =>
 {
- options.IdleTimeout = TimeSpan.FromMinutes(30);
- options.Cookie.IsEssential = true;
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.IsEssential = true;
 });
 
-builder.Services.AddIdentity<IdentityUser, IdentityRole>().AddEntityFrameworkStores<DataContext>().AddDefaultTokenProviders();
+builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+    .AddEntityFrameworkStores<DataContext>()
+    .AddDefaultTokenProviders();
 
 // configure cookie paths for access denied and login
 builder.Services.ConfigureApplicationCookie(options =>
 {
- options.LoginPath = "/Account/Login";
- options.AccessDeniedPath = "/Account/AccessDenied";
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";
 });
 
 builder.Services.Configure<IdentityOptions>(options =>
 {
- options.Password.RequiredLength =4;
- options.Password.RequireNonAlphanumeric = false;
- options.Password.RequireLowercase = false;
- options.Password.RequireUppercase = false;
- options.Password.RequireDigit = false;
-
- options.User.RequireUniqueEmail = true;
+    options.Password.RequiredLength = 4;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireDigit = false;
+    options.User.RequireUniqueEmail = true;
 });
 
 builder.Services.AddAuthorization(options =>
 {
- options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
- options.AddPolicy("Subscriber", policy => policy.RequireRole("Subscriber"));
- options.AddPolicy("Customer", policy => policy.RequireRole("Customer"));
+    options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("Subscriber", policy => policy.RequireRole("Subscriber"));
+    options.AddPolicy("Customer", policy => policy.RequireRole("Customer"));
 });
 
 // register email sender
@@ -76,7 +77,7 @@ builder.Services.AddHostedService<CMSECommerce.Services.UserStatusCleanupService
 
 builder.Services.Configure<RouteOptions>(options =>
 {
- options.LowercaseUrls = true;
+    options.LowercaseUrls = true;
 });
 
 var app = builder.Build();
@@ -89,154 +90,155 @@ CultureInfo.DefaultThreadCurrentUICulture = culture;
 var supportedCultures = new[] { culture };
 var localizationOptions = new RequestLocalizationOptions
 {
- DefaultRequestCulture = new RequestCulture(culture),
- SupportedCultures = supportedCultures.ToList(),
- SupportedUICultures = supportedCultures.ToList()
+    DefaultRequestCulture = new RequestCulture(culture),
+    SupportedCultures = supportedCultures.ToList(),
+    SupportedUICultures = supportedCultures.ToList()
 };
 app.UseRequestLocalization(localizationOptions);
 
-// Apply migrations and ensure Identity roles exist at startup
+// --- SEEDING LOGIC ---
 using (var scope = app.Services.CreateScope())
 {
- var services = scope.ServiceProvider;
- try
- {
- // Apply any pending migrations (creates database if it doesn't exist)
- var context = services.GetRequiredService<DataContext>();
- context.Database.Migrate();
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<DataContext>();
+        context.Database.Migrate();
 
- // Ensure roles exist after migrations are applied
- var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
- // ⭐ CHANGE MADE HERE: Added "Subscriber" to the roles array
- var roles = new[] { "Admin", "Customer", "Subscriber" };
- foreach (var role in roles)
- {
- var exists = roleManager.RoleExistsAsync(role).GetAwaiter().GetResult();
- if (!exists)
- {
- roleManager.CreateAsync(new IdentityRole(role)).GetAwaiter().GetResult();
- }
- }
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+        var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
 
- // Ensure admin user exists
- var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
- var adminEmail = "admin@local.local";
- var adminUserName = "admin";
- var adminPassword = "Pass@local110";
+        // Ensure roles exist
+        var roles = new[] { "Admin", "Customer", "Subscriber" };
+        foreach (var role in roles)
+        {
+            if (!roleManager.RoleExistsAsync(role).GetAwaiter().GetResult())
+            {
+                roleManager.CreateAsync(new IdentityRole(role)).GetAwaiter().GetResult();
+            }
+        }
 
- var admin = userManager.FindByEmailAsync(adminEmail).GetAwaiter().GetResult();
- if (admin == null)
- {
- admin = new IdentityUser
- {
- UserName = adminUserName,
- Email = adminEmail,
- EmailConfirmed = true
- };
+        // Ensure admin user exists
+        var adminEmail = "admin@local.local";
+        var adminUserName = "admin";
+        var adminPassword = "Pass@local110";
 
- var createResult = userManager.CreateAsync(admin, adminPassword).GetAwaiter().GetResult();
- if (createResult.Succeeded)
- {
- userManager.AddToRoleAsync(admin, "Admin").GetAwaiter().GetResult();
- }
- else
- {
- var logger = services.GetRequiredService<ILogger<Program>>();
- logger.LogError("Failed to create admin user: {Errors}", string.Join('|', createResult.Errors.Select(e => e.Description)));
- }
- }
- else
- {
- // Ensure user is in Admin role
- var inRole = userManager.IsInRoleAsync(admin, "Admin").GetAwaiter().GetResult();
- if (!inRole)
- {
- userManager.AddToRoleAsync(admin, "Admin").GetAwaiter().GetResult();
- }
- }
- }
- catch (Exception ex)
- {
- var logger = services.GetRequiredService<ILogger<Program>>();
- logger.LogError(ex, "An error occurred while migrating the database or creating roles/users.");
- }
+        var adminUser = userManager.FindByEmailAsync(adminEmail).GetAwaiter().GetResult();
+        if (adminUser == null)
+        {
+            adminUser = new IdentityUser
+            {
+                UserName = adminUserName,
+                Email = adminEmail,
+                EmailConfirmed = true
+            };
+
+            var createResult = userManager.CreateAsync(adminUser, adminPassword).GetAwaiter().GetResult();
+            if (createResult.Succeeded)
+            {
+                userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
+            }
+        }
+        else
+        {
+            if (!userManager.IsInRoleAsync(adminUser, "Admin").GetAwaiter().GetResult())
+            {
+                userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
+            }
+        }
+
+        // --- NEW: Seed UserProfile for Admin ---
+        if (adminUser != null)
+        {
+            var adminProfile = context.UserProfiles.FirstOrDefault(p => p.UserId == adminUser.Id);
+            if (adminProfile == null)
+            {
+                adminProfile = new UserProfile
+                {
+                    UserId = adminUser.Id,
+                    FirstName = "System",
+                    LastName = "Administrator",
+                    ITSNumber = "ADMIN-001",
+                    Profession = "Global Admin",
+                    About = "System generated administrator profile.",
+                    IsProfileVisible = true,
+                    IsImageApproved = true,
+
+                    // Address Mapping
+                    HomeAddress = "123 Admin HQ, Tech Park",
+                    HomePhoneNumber = "022-1234567",
+                    BusinessAddress = "Main Office Tower, Floor 10",
+                    BusinessPhoneNumber = "022-7654321",
+                    WhatsAppNumber = "910000000000",
+
+                    // Defaults
+                    ProfileImagePath = "/images/defaults/admin-profile.png",
+                    ServicesProvided = "System Management, Support"
+                };
+                context.UserProfiles.Add(adminProfile);
+                context.SaveChanges();
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while migrating the database or seeding data.");
+    }
 }
 
 app.UseSession();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
- app.UseExceptionHandler("/Home/Error");
- // The default HSTS value is30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
- app.UseHsts();
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Register SignalR hub mapping
+// Hub and Razor Pages mapping
 app.MapHub<CMSECommerce.Hubs.ChatHub>("/chatHub");
-
-// Map Razor Pages (ensure area pages are reachable)
 app.MapRazorPages();
 
-// ----------------------------------------------------------------------
-// ROUTE CONFIGURATION CHANGES
-// ----------------------------------------------------------------------
-
-//1. Area Routes (Highest Priority)
+// --- ROUTE CONFIGURATION ---
 app.MapControllerRoute(
  name: "areas",
  pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
 
-//2. Specific Controller Routes (MUST come before the generic/default routes)
-
-// Route for product details (e.g., /products/product-slug-name)
 app.MapControllerRoute(
  name: "product",
  pattern: "products/product/{slug?}",
  defaults: new { controller = "Products", action = "Product" });
 
-// Route for cart actions (e.g., /cart/add)
 app.MapControllerRoute(
  name: "cart",
  pattern: "cart/{action}/{id?}",
  defaults: new { controller = "Cart", action = "Index" });
 
-// Route for account actions (e.g., /account/login)
 app.MapControllerRoute(
  name: "account",
  pattern: "account/{action}",
  defaults: new { controller = "Account", action = "Index" });
 
-// Route for orders actions (e.g., /orders/history)
 app.MapControllerRoute(
  name: "orders",
  pattern: "orders/{action}",
  defaults: new { controller = "Orders", action = "Index" });
 
-// ⭐ CHANGE1: Main Shop Route (Optional, but good practice for clarity)
-// This handles /products/{slug} for categories and /products for the main shop.
 app.MapControllerRoute(
  name: "products",
  pattern: "products/{slug?}",
  defaults: new { controller = "Products", action = "Index" });
 
-
-//3. Default MVC Route (Lowest Priority Standard Route)
-// ⭐ CHANGE2: Sets the Products controller as the default landing page.
 app.MapControllerRoute(
  name: "default",
  pattern: "{controller=Products}/{action=Index}/{id?}");
 
-//4. CMS Page Route (Catch-all - MUST BE LAST)
-// This will now only catch requests that don't match Areas, Cart, Account, Orders, or Products.
 app.MapControllerRoute(
  name: "pages",
  pattern: "{slug?}",

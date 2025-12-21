@@ -251,7 +251,8 @@ public class EditUserModel
         public string InstagramUrl { get; set; }
 
         [Display(Name = "WhatsApp Number")]
-        public string WhatsappNumber { get; set; }
+        public string WhatsAppNumber { get; set; }
+
 
         // Addresses
         [Display(Name = "Home Address")]

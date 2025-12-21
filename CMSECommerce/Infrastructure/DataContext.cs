@@ -41,87 +41,111 @@ namespace CMSECommerce.Infrastructure
             );
 
             modelBuilder.Entity<Product>().HasData(
-                new Product
-                {
-                    Id = 1,
-                    Name = "Apples",
-                    Slug = "apples",
-                    Description = "Juicy apples",
-                    Price = 1.50M,
-                    CategoryId = 2,
-                    Image = "apple1.jpg"
-                },
-                new Product
-                {
-                    Id = 2,
-                    Name = "Grapefruit",
-                    Slug = "grapefruit",
-                    Description = "Juicy grapefruit",
-                    Price = 2M,
-                    CategoryId = 2,
-                    Image = "grapefruit1.jpg"
-                },
-                new Product
-                {
-                    Id = 3,
-                    Name = "Grapes",
-                    Slug = "grapes",
-                    Description = "Fresh grapes",
-                    Price = 1.80M,
-                    CategoryId = 2,
-                    Image = "grapes1.jpg"
-                },
-                new Product
-                {
-                    Id = 4,
-                    Name = "Oranges",
-                    Slug = "oranges",
-                    Description = "Fresh oranges",
-                    Price = 1.50M,
-                    CategoryId = 2,
-                    Image = "orange1.jpg"
-                },
-                new Product
-                {
-                    Id = 5,
-                    Name = "Blue shirt",
-                    Slug = "blue-shirt",
-                    Description = "Nice blue t-shirt",
-                    Price = 7.99M,
-                    CategoryId = 1,
-                    Image = "blue1.jpg"
-                },
-                new Product
-                {
-                    Id = 6,
-                    Name = "Red shirt",
-                    Slug = "red-shirt",
-                    Description = "Nice red t-shirt",
-                    Price = 8.99M,
-                    CategoryId = 1,
-                    Image = "red1.jpg"
-                },
-                new Product
-                {
-                    Id = 7,
-                    Name = "Green shirt",
-                    Slug = "green-shirt",
-                    Description = "Nice green t-shirt",
-                    Price = 9.99M,
-                    CategoryId = 1,
-                    Image = "green1.png"
-                },
-                new Product
-                {
-                    Id = 8,
-                    Name = "Pink shirt",
-                    Slug = "pink-shirt",
-                    Description = "Nice pink t-shirt",
-                    Price = 10.99M,
-                    CategoryId = 1,
-                    Image = "pink1.png"
-                }
-            );
+    new Product
+    {
+        Id = 1,
+        Name = "Apples",
+        Slug = "apples",
+        Description = "Juicy apples",
+        Price = 1.50M,
+        CategoryId = 2,
+        Image = "apple1.jpg",
+        OwnerId = "admin", // Owner set to admin
+        Status = ProductStatus.Approved,
+        StockQuantity = 100
+    },
+    new Product
+    {
+        Id = 2,
+        Name = "Grapefruit",
+        Slug = "grapefruit",
+        Description = "Juicy grapefruit",
+        Price = 2M,
+        CategoryId = 2,
+        Image = "grapefruit1.jpg",
+        OwnerId = "admin",
+        Status = ProductStatus.Approved,
+        StockQuantity = 80
+    },
+    new Product
+    {
+        Id = 3,
+        Name = "Grapes",
+        Slug = "grapes",
+        Description = "Fresh grapes",
+        Price = 1.80M,
+        CategoryId = 2,
+        Image = "grapes1.jpg",
+        OwnerId = "admin",
+        Status = ProductStatus.Approved,
+        StockQuantity = 150
+    },
+    new Product
+    {
+        Id = 4,
+        Name = "Oranges",
+        Slug = "oranges",
+        Description = "Fresh oranges",
+        Price = 1.50M,
+        CategoryId = 2,
+        Image = "orange1.jpg",
+        OwnerId = "admin",
+        Status = ProductStatus.Approved,
+        StockQuantity = 120
+    },
+    new Product
+    {
+        Id = 5,
+        Name = "Blue shirt",
+        Slug = "blue-shirt",
+        Description = "Nice blue t-shirt",
+        Price = 7.99M,
+        CategoryId = 1,
+        Image = "blue1.jpg",
+        OwnerId = "admin",
+        Status = ProductStatus.Approved,
+        StockQuantity = 45
+    },
+    new Product
+    {
+        Id = 6,
+        Name = "Red shirt",
+        Slug = "red-shirt",
+        Description = "Nice red t-shirt",
+        Price = 8.99M,
+        CategoryId = 1,
+        Image = "red1.jpg",
+        OwnerId = "admin",
+        Status = ProductStatus.Approved,
+        StockQuantity = 30
+    },
+    new Product
+    {
+        Id = 7,
+        Name = "Green shirt",
+        Slug = "green-shirt",
+        Description = "Nice green t-shirt",
+        Price = 9.99M,
+        CategoryId = 1,
+        Image = "green1.png",
+        OwnerId = "admin",
+        Status = ProductStatus.Approved,
+        StockQuantity = 25
+    },
+    new Product
+    {
+        Id = 8,
+        Name = "Pink shirt",
+        Slug = "pink-shirt",
+        Description = "Nice pink t-shirt",
+        Price = 10.99M,
+        CategoryId = 1,
+        Image = "pink1.png",
+        OwnerId = "admin",
+        Status = ProductStatus.Approved,
+        StockQuantity = 10
+    }
+);
 
             modelBuilder.Entity<Page>().HasData(
                 new Page { Id = 1, Title = "Home", Slug = "home", Body = "This is the home page" },

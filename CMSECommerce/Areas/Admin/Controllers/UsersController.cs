@@ -89,7 +89,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                         LinkedInUrl = p?.LinkedInUrl,
                         FacebookUrl = p?.FacebookUrl,
                         InstagramUrl = p?.InstagramUrl,
-                        WhatsappNumber = p?.WhatsappNumber,
+                        WhatsappNumber = p?.WhatsAppNumber,
                         HomeAddress = p?.HomeAddress,
                         HomePhoneNumber = p?.HomePhoneNumber,
                         BusinessAddress = p?.BusinessAddress,
@@ -515,7 +515,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                             LinkedInUrl = model.LinkedInUrl,
                             FacebookUrl = model.FacebookUrl,
                             InstagramUrl = model.InstagramUrl,
-                            WhatsappNumber = model.WhatsappNumber,
+                            WhatsAppNumber = model.WhatsappNumber,
                             HomeAddress = model.HomeAddress,
                             HomePhoneNumber = model.HomePhoneNumber,
                             BusinessAddress = model.BusinessAddress,
@@ -570,301 +570,151 @@ namespace CMSECommerce.Areas.Admin.Controllers
             return View(model);
         }
 
+        // GET: Admin/Users/Edit/5
         public async Task<IActionResult> Edit(string id)
         {
             if (string.IsNullOrEmpty(id)) return NotFound();
 
-            try
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            // Fetch Profile (creating a shell if it doesn't exist to prevent null reference in View)
+            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == id);
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var model = new EditUserModel
             {
-                var user = await _userManager.FindByIdAsync(id);
-                if (user == null)
-                {
-                    TempData["error"] = "User not found.";
-                    return NotFound();
-                }
+                Id = user.Id,
+                UserName = user.UserName,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                Role = roles.FirstOrDefault(),
 
-                // ** NEW: Fetch UserProfile **
-                var userProfile = await _context.UserProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == id);
-                // If profile doesn't exist, create a new one (optional: depends on business rules)
-                // For simplicity, we assume profile exists or we handle nulls gracefully.
+                // Profile mapping
+                FirstName = profile?.FirstName ?? "",
+                LastName = profile?.LastName ?? "",
+                ITSNumber = profile?.ITSNumber,
+                About = profile?.About,
+                Profession = profile?.Profession,
+                ServicesProvided = profile?.ServicesProvided,
+                WhatsAppNumber = profile?.WhatsAppNumber,
+                LinkedInUrl = profile?.LinkedInUrl,
+                FacebookUrl = profile?.FacebookUrl,
+                InstagramUrl = profile?.InstagramUrl,
+                HomeAddress = profile?.HomeAddress,
+                HomePhoneNumber = profile?.HomePhoneNumber,
+                BusinessAddress = profile?.BusinessAddress,
+                BusinessPhoneNumber = profile?.BusinessPhoneNumber,
+                ProfileImagePath = profile?.ProfileImagePath,
+                GpayQRCodePath = profile?.GpayQRCodePath,
+                PhonePeQRCodePath = profile?.PhonePeQRCodePath,
+                IsImageApproved = profile?.IsImageApproved ?? false,
+                IsProfileVisible = profile?.IsProfileVisible ?? true
+            };
 
-                var roles = await _userManager.GetRolesAsync(user);
-
-                // ** NEW: Map all Identity and UserProfile fields to EditUserModel **
-                var model = new EditUserModel
-                {
-                    // IdentityUser Fields
-                    Id = user.Id,
-                    UserName = user.UserName,
-                    Email = user.Email,
-                    PhoneNumber = user.PhoneNumber,
-                    Role = roles.FirstOrDefault(),
-
-                    // UserProfile Fields (using null-conditional operator '?.' for safety)
-                    FirstName = userProfile?.FirstName,
-                    LastName = userProfile?.LastName,
-                    ITSNumber = userProfile?.ITSNumber,
-                    ProfileImagePath = userProfile?.ProfileImagePath,
-                    IsImageApproved = userProfile?.IsImageApproved ?? false,
-                    IsProfileVisible = userProfile?.IsProfileVisible ?? true,
-                    About = userProfile?.About,
-                    Profession = userProfile?.Profession,
-                    ServicesProvided = userProfile?.ServicesProvided,
-                    LinkedInUrl = userProfile?.LinkedInUrl,
-                    FacebookUrl = userProfile?.FacebookUrl,
-                    InstagramUrl = userProfile?.InstagramUrl,
-                    WhatsappNumber = userProfile?.WhatsappNumber,
-                    HomeAddress = userProfile?.HomeAddress,
-                    HomePhoneNumber = userProfile?.HomePhoneNumber,
-                    BusinessAddress = userProfile?.BusinessAddress,
-                    BusinessPhoneNumber = userProfile?.BusinessPhoneNumber,
-                    GpayQRCodePath = userProfile?.GpayQRCodePath,
-                    PhonePeQRCodePath = userProfile?.PhonePeQRCodePath
-                };
-
-                ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
-                return View(model);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading user ID: {UserId} for editing.", id);
-                TempData["error"] = "Failed to load user details for editing.";
-                return RedirectToAction(nameof(Index));
-            }
+            ViewBag.Roles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
+            return View(model);
         }
 
+        // POST: Admin/Users/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(EditUserModel model)
         {
-            // Reload roles immediately for failed path (moved up for better UX)
-            try
-            {
-                ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error reloading roles during user edit postback.");
-                ViewBag.Roles = new List<string>();
-            }
-
             if (!ModelState.IsValid)
             {
-                // Keep the current paths in the model for the return view
-                // The `IFormFile` properties will be null, which is fine.
+                ViewBag.Roles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
                 return View(model);
             }
 
             var user = await _userManager.FindByIdAsync(model.Id);
-            if (user == null)
+            if (user == null) return NotFound();
+
+            // 1. Update IdentityUser Basic Info
+            user.UserName = model.UserName;
+            user.Email = model.Email;
+            user.PhoneNumber = model.PhoneNumber;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded)
             {
-                TempData["error"] = "User not found during update.";
-                return NotFound();
-            }
-
-            // --- NEW: File Upload Logic Helper (Reusable, assuming controller has IWebHostEnvironment: _webHostEnvironment) ---
-            async Task<string> SaveFileAndGetPathAsync(IFormFile file, string currentPath)
-            {
-                if (file == null || file.Length == 0)
-                {
-                    // No new file uploaded, keep the current path
-                    return currentPath;
-                }
-
-                // 1. Delete old file if it exists and is a relative path (starts with /)
-                if (!string.IsNullOrWhiteSpace(currentPath) && currentPath.StartsWith("/"))
-                {
-                    string oldFilePath = Path.Combine(_webHostEnvironment.WebRootPath, currentPath.TrimStart('/'));
-                    if (System.IO.File.Exists(oldFilePath))
-                    {
-                        System.IO.File.Delete(oldFilePath);
-                    }
-                }
-
-                // 2. Save new file
-                string uploadFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "useruploads");
-                if (!Directory.Exists(uploadFolder))
-                {
-                    Directory.CreateDirectory(uploadFolder);
-                }
-
-                string uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(file.FileName);
-                string filePath = Path.Combine(uploadFolder, uniqueFileName);
-
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(fileStream);
-                }
-
-                // Return the new relative path for database storage
-                return $"/images/useruploads/{uniqueFileName}";
-            }
-            // ---------------------------------------------------------------------------------------------------------------------
-
-            // ** Fetch and Update UserProfile **
-            var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == model.Id);
-
-            if (userProfile == null)
-            {
-                TempData["error"] = "Associated User Profile not found. Cannot save profile details.";
-                // Depending on business rules, you might want to stop or attempt to create profile here.
-            }
-            else
-            {
-                try
-                {
-                    // 1. Handle File Uploads and update paths in the UserProfile entity
-                    userProfile.ProfileImagePath = await SaveFileAndGetPathAsync(model.ProfileImageFile, model.ProfileImagePath);
-                    userProfile.GpayQRCodePath = await SaveFileAndGetPathAsync(model.GpayQRCodeFile, model.GpayQRCodePath);
-                    userProfile.PhonePeQRCodePath = await SaveFileAndGetPathAsync(model.PhonePeQRCodeFile, model.PhonePeQRCodePath);
-
-                    // 2. Map the remaining updates from the model to the existing UserProfile entity
-                    userProfile.FirstName = model.FirstName;
-                    userProfile.LastName = model.LastName;
-                    userProfile.ITSNumber = model.ITSNumber;
-                    // The path fields are updated above based on uploads/current value:
-                    // userProfile.ProfileImagePath = model.ProfileImagePath; // <-- No longer direct mapping
-                    userProfile.IsImageApproved = model.IsImageApproved;
-                    userProfile.IsProfileVisible = model.IsProfileVisible;
-                    userProfile.About = model.About;
-                    userProfile.Profession = model.Profession;
-                    userProfile.ServicesProvided = model.ServicesProvided;
-                    userProfile.LinkedInUrl = model.LinkedInUrl;
-                    userProfile.FacebookUrl = model.FacebookUrl;
-                    userProfile.InstagramUrl = model.InstagramUrl;
-                    userProfile.WhatsappNumber = model.WhatsappNumber;
-                    userProfile.HomeAddress = model.HomeAddress;
-                    userProfile.HomePhoneNumber = model.HomePhoneNumber;
-                    userProfile.BusinessAddress = model.BusinessAddress;
-                    userProfile.BusinessPhoneNumber = model.BusinessPhoneNumber;
-                    // userProfile.GpayQRCodePath = model.GpayQRCodePath; // <-- No longer direct mapping
-                    // userProfile.PhonePeQRCodePath = model.PhonePeQRCodePath; // <-- No longer direct mapping
-
-                    // Tell DbContext the entity has been modified
-                    _context.Update(userProfile);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "File operation error during user profile update for ID: {UserId}", model.Id);
-                    ModelState.AddModelError(string.Empty, "An error occurred during file upload. Please try again.");
-                    // Re-throw or return view here if you want to stop Identity update on file error
-                    return View(model);
-                }
-            }
-            // ** END: Fetch and Update UserProfile & File Logic **
-
-            try
-            {
-                // Store the current roles BEFORE the user object is updated
+                // 2. Update Role
                 var currentRoles = await _userManager.GetRolesAsync(user);
-
-                // Update Identity user details
-                user.UserName = model.UserName;
-                user.Email = model.Email;
-                user.PhoneNumber = model.PhoneNumber;
-                var updateResult = await _userManager.UpdateAsync(user);
-
-                if (!updateResult.Succeeded)
-                {
-                    foreach (var e in updateResult.Errors)
-                        ModelState.AddModelError(string.Empty, e.Description);
-
-                    // Re-map the current (unmodified) paths back to the model before returning the view
-                    if (userProfile != null)
-                    {
-                        model.ProfileImagePath = userProfile.ProfileImagePath;
-                        model.GpayQRCodePath = userProfile.GpayQRCodePath;
-                        model.PhonePeQRCodePath = userProfile.PhonePeQRCodePath;
-                    }
-                    return View(model);
-                }
-
-                // --- Role Update Logic ---
-                // (Existing logic remains the same)
-                if (!string.IsNullOrWhiteSpace(model.Role) && !currentRoles.Contains(model.Role))
+                if (!currentRoles.Contains(model.Role))
                 {
                     await _userManager.RemoveFromRolesAsync(user, currentRoles);
-                    if (await _roleManager.RoleExistsAsync(model.Role))
+                    if (!string.IsNullOrEmpty(model.Role))
+                    {
                         await _userManager.AddToRoleAsync(user, model.Role);
-                }
-                else if (string.IsNullOrWhiteSpace(model.Role) && currentRoles.Count > 0)
-                {
-                    await _userManager.RemoveFromRolesAsync(user, currentRoles);
-                }
-                // --- End Role Update Logic ---
-
-                // ⭐ NEW LOGIC: Check for Subscriber Role Revocation 
-                // (Existing logic remains the same)
-                bool wasSubscriber = currentRoles.Contains("Subscriber");
-                // Check the role AFTER the role update logic above has run
-                bool isSubscriberNow = await _userManager.IsInRoleAsync(user, "Subscriber");
-
-                if (wasSubscriber && !isSubscriberNow)
-                {
-                    var revokedRequest = await _context.SubscriberRequests
-                        .Where(r => r.UserId == user.Id && r.Approved == true)
-                        .OrderByDescending(r => r.RequestDate)
-                        .FirstOrDefaultAsync();
-
-                    if (revokedRequest != null)
-                    {
-                        revokedRequest.Approved = false;
-                        revokedRequest.ApprovalDate = DateTime.Now;
-                        revokedRequest.AdminNotes = $"Subscription revoked by Admin on {DateTime.Now.ToShortDateString()}. Role changed to {model.Role ?? "None"}.";
-
-                        _context.Update(revokedRequest);
                     }
                 }
-                // --- End Subscriber Role Revocation ---
 
-                // Change password if provided
-                // (Existing logic remains the same)
-                if (!string.IsNullOrWhiteSpace(model.NewPassword))
+                // 3. Handle Password if provided
+                if (!string.IsNullOrEmpty(model.NewPassword))
                 {
                     var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-                    var passResult = await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
-                    if (!passResult.Succeeded)
-                    {
-                        foreach (var e in passResult.Errors)
-                            ModelState.AddModelError(string.Empty, e.Description);
-
-                        // Re-map the current (unmodified) paths back to the model before returning the view
-                        if (userProfile != null)
-                        {
-                            model.ProfileImagePath = userProfile.ProfileImagePath;
-                            model.GpayQRCodePath = userProfile.GpayQRCodePath;
-                            model.PhonePeQRCodePath = userProfile.PhonePeQRCodePath;
-                        }
-                        return View(model);
-                    }
+                    await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
                 }
 
-                // ** FINAL STEP: Save all context changes (UserProfile, SubscriberRequest) **
-                // This is done once after all Identity operations (which call SaveChanges internally)
-                await _context.SaveChangesAsync();
+                // 4. Update or Create UserProfile
+                var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+                if (profile == null)
+                {
+                    profile = new UserProfile { UserId = user.Id };
+                    _context.UserProfiles.Add(profile);
+                }
 
-                TempData["success"] = $"User {user.UserName} and Profile updated successfully.";
+                profile.FirstName = model.FirstName;
+                profile.LastName = model.LastName;
+                profile.ITSNumber = model.ITSNumber;
+                profile.About = model.About;
+                profile.Profession = model.Profession;
+                profile.ServicesProvided = model.ServicesProvided;
+                profile.WhatsAppNumber = model.WhatsAppNumber;
+                profile.LinkedInUrl = model.LinkedInUrl;
+                profile.FacebookUrl = model.FacebookUrl;
+                profile.InstagramUrl = model.InstagramUrl;
+                profile.HomeAddress = model.HomeAddress;
+                profile.HomePhoneNumber = model.HomePhoneNumber;
+                profile.BusinessAddress = model.BusinessAddress;
+                profile.BusinessPhoneNumber = model.BusinessPhoneNumber;
+                profile.IsImageApproved = model.IsImageApproved;
+                profile.IsProfileVisible = model.IsProfileVisible;
+
+                // 5. Handle File Uploads
+                if (model.ProfileImageFile != null)
+                    profile.ProfileImagePath = await SaveFile(model.ProfileImageFile, "profiles");
+
+                if (model.GpayQRCodeFile != null)
+                    profile.GpayQRCodePath = await SaveFile(model.GpayQRCodeFile, "qrcodes");
+
+                if (model.PhonePeQRCodeFile != null)
+                    profile.PhonePeQRCodePath = await SaveFile(model.PhonePeQRCodeFile, "qrcodes");
+
+                await _context.SaveChangesAsync();
+                TempData["success"] = "User and Profile updated successfully!";
                 return RedirectToAction(nameof(Index));
             }
-            catch (DbUpdateException dbEx)
+
+            foreach (var error in result.Errors) ModelState.AddModelError("", error.Description);
+            ViewBag.Roles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
+            return View(model);
+        }
+
+        private async Task<string> SaveFile(IFormFile file, string subFolder)
+        {
+            string uploadDir = Path.Combine(_webHostEnvironment.WebRootPath, "media", subFolder);
+            if (!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
+
+            string fileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+            string filePath = Path.Combine(uploadDir, fileName);
+
+            using (var fs = new FileStream(filePath, FileMode.Create))
             {
-                _logger.LogError(dbEx, "Database error updating user ID: {UserId}", model.Id);
-                ModelState.AddModelError(string.Empty, "A database error occurred while updating the user record.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error updating user ID: {UserId}", model.Id);
-                ModelState.AddModelError(string.Empty, "An unexpected error occurred during user update.");
+                await file.CopyToAsync(fs);
             }
 
-            // Ensure model has current paths if execution reaches here due to an exception
-            if (userProfile != null)
-            {
-                model.ProfileImagePath = userProfile.ProfileImagePath;
-                model.GpayQRCodePath = userProfile.GpayQRCodePath;
-                model.PhonePeQRCodePath = userProfile.PhonePeQRCodePath;
-            }
-            return View(model);
+            return $"/media/{subFolder}/{fileName}";
         }
 
         [HttpPost, ActionName("Delete")]

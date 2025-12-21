@@ -21,7 +21,7 @@ namespace CMSECommerce.Infrastructure
             ?? "Data Source=CMSECommerce.db";
 
             var optionsBuilder = new DbContextOptionsBuilder<DataContext>();
-            optionsBuilder.UseSqlite(connectionString);
+            optionsBuilder.UseSqlServer(connectionString);
 
             return new DataContext(optionsBuilder.Options);
         }
