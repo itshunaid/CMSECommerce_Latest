@@ -133,9 +133,20 @@
                         <span>Items Subtotal:</span>
                         <span>@Model.Order.GrandTotal.ToString("C2")</span>
                     </div>
-                    <div class="d-flex justify-content-between small text-muted mb-3">
+                    @* <div class="d-flex justify-content-between small text-muted mb-3">
                         <span>Shipping & Handling:</span>
                         <span class="text-success fw-semibold">FREE</span>
+                    </div> *@
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="small text-muted">Shipping & Handling:</span>
+                        <div class="text-end">
+                            @* The primary status replaces the 'FREE' text *@
+                            <div class="text-success fw-bold small">TBD</div>
+                            @* The professional instruction for the user *@
+                            <div class="text-muted" style="font-size: 0.75rem; line-height: 1.2;">
+                                Seller will contact you <br /> to coordinate delivery
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-between pt-2 border-top">
