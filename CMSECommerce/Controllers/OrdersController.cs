@@ -311,5 +311,30 @@ namespace CMSECommerce.Controllers
                 return RedirectToAction("Index", "Cart"); // Redirect back to cart or an error page
             }
         }
+
+        // Add this to your OrdersController
+        public async Task<IActionResult> Invoice(int id)
+        {
+            // Reuse your existing logic to get order details
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound();
+
+            var orderDetails = await _context.OrderDetails
+                .Where(od => od.OrderId == id)
+                .ToListAsync();
+
+            // Assuming you have a way to get the UserProfile associated with the order
+            var userProfile = await _context.UserProfiles
+                .FirstOrDefaultAsync(u => u.User.UserName == order.UserName);
+
+            var viewModel = new OrderDetailsViewModel
+            {
+                Order = order,
+                OrderDetails = orderDetails,
+                UserProfile = userProfile
+            };
+
+            return View(viewModel);
+        }
     }
 }

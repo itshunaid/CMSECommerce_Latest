@@ -1,0 +1,179 @@
+﻿@model OrderDetailsViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Tax Invoice - #" + Model.Order.Id;
+}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<div class="container my-4 no-print">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a href="javascript:history.go(-1)" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Details
+        </a>
+        <div class="btn-group shadow-sm">
+            <button onclick="downloadInvoice()" class="btn btn-primary fw-bold">
+                <i class="fas fa-file-pdf me-2"></i> Download PDF
+            </button>
+            <button onclick="window.print()" class="btn btn-dark fw-bold">
+                <i class="fas fa-print me-2"></i> Print Invoice
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="invoice-document">
+    <div class="container invoice-wrapper bg-white shadow-sm border p-5 mb-5">
+
+        @* --- Header Section --- *@
+        <div class="row mb-5 align-items-center">
+            <div class="col-6">
+                @* You can replace this text with an <img> tag for your logo *@
+                <h2 class="fw-bold text-dark mb-0">YOUR STORE</h2>
+                <p class="text-muted small">Quality Goods Delivered to Your Door</p>
+            </div>
+            <div class="col-6 text-end">
+                <h1 class="display-6 fw-bold text-uppercase text-secondary">Tax Invoice</h1>
+                <p class="mb-0 fw-bold">Invoice #: @Model.Order.Id</p>
+                <p class="text-muted">Date: @Model.Order.DateTime.ToString("MMMM dd, yyyy")</p>
+            </div>
+        </div>
+
+        @* --- Addresses Section --- *@
+        <div class="row mb-5">
+            <div class="col-6">
+                <h6 class="text-muted text-uppercase fw-bold border-bottom pb-2 mb-3">Billed To</h6>
+                <div class="ps-1">
+                    <p class="fw-bold mb-1">@Model.UserProfile?.FirstName @Model.UserProfile?.LastName</p>
+                    <p class="text-muted small mb-1">@Model.UserProfile?.HomeAddress</p>
+                    <p class="text-muted small mb-1"><i class="fas fa-envelope me-1"></i> @Model.Order.UserName</p>
+                    <p class="text-muted small mb-0"><i class="fas fa-phone me-1"></i> @Model.UserProfile?.HomePhoneNumber</p>
+                </div>
+            </div>
+            <div class="col-6 text-end">
+                <h6 class="text-muted text-uppercase fw-bold border-bottom pb-2 mb-3">Store Details</h6>
+                <div class="pe-1">
+                    <p class="fw-bold mb-1">Official Platform Store</p>
+                    <p class="text-muted small mb-1">123 eCommerce Ave, Digital Square</p>
+                    <p class="text-muted small mb-1">GSTIN: 12AAAAA0000A1Z5</p>
+                    <p class="text-muted small mb-0">support@yourstore.com</p>
+                </div>
+            </div>
+        </div>
+
+        @* --- Line Items Table --- *@
+
+        <div class="table-responsive mb-5">
+            <table class="table table-hover border">
+                <thead class="table-light text-uppercase small">
+                    <tr>
+                        <th class="py-3">Product Description</th>
+                        <th class="py-3 text-center">Unit Price</th>
+                        <th class="py-3 text-center">Qty</th>
+                        <th class="py-3 text-end">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.OrderDetails)
+                    {
+                        <tr>
+                            <td class="py-3">
+                                <div class="fw-bold text-dark">@item.ProductName</div>
+                                <div class="text-muted x-small">Seller: @(item.ProductOwner ?? "Platform")</div>
+                            </td>
+                            <td class="py-3 text-center align-middle">@item.Price.ToString("C2")</td>
+                            <td class="py-3 text-center align-middle">@item.Quantity</td>
+                            <td class="py-3 text-end align-middle fw-bold">@((item.Price * item.Quantity).ToString("C2"))</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot class="border-0">
+                    <tr>
+                        <td colspan="2" class="border-0"></td>
+                        <td class="text-end py-2 fw-bold text-muted border-0">Subtotal:</td>
+                        <td class="text-end py-2 border-0">@Model.Order.GrandTotal.ToString("C2")</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" class="border-0"></td>
+                        <td class="text-end py-2 fw-bold text-muted border-0">Shipping:</td>
+                        <td class="text-end py-2 border-0 text-success">TBD (By Seller)</td>
+                    </tr>
+                    <tr class="border-top-2">
+                        <td colspan="2" class="border-0"></td>
+                        <td class="text-end py-3 fs-5 fw-bold text-dark border-0">Grand Total:</td>
+                        <td class="text-end py-3 fs-5 fw-bold text-danger border-0">@Model.Order.GrandTotal.ToString("C2")</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        @* --- Footer Section --- *@
+        <div class="row mt-5">
+            <div class="col-8">
+                <h6 class="fw-bold text-dark">Delivery Terms:</h6>
+                <p class="text-muted small">The seller will contact you directly to finalize delivery timing and logistics. Shipping costs are coordinated between the buyer and seller at the time of delivery.</p>
+            </div>
+            <div class="col-4 text-center">
+                <div class="mt-4 pt-4 border-top">
+                    <p class="small fw-bold text-dark mb-0">Authorized Signatory</p>
+                    <p class="x-small text-muted">(Computer Generated Invoice)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function downloadInvoice() {
+            const element = document.getElementById('invoice-document');
+            const options = {
+                margin:       [0.5, 0.5, 0.5, 0.5],
+                filename:     'Invoice_#@(Model.Order.Id).pdf',
+                image:        { type: 'jpeg', quality: 1 },
+                html2canvas:  { scale: 3, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Run html2pdf
+            html2pdf().set(options).from(element).save();
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .invoice-wrapper {
+            max-width: 900px;
+            margin: auto;
+            border-radius: 4px;
+        }
+
+        .x-small {
+            font-size: 0.75rem;
+        }
+
+        .border-top-2 {
+            border-top: 2px solid #000 !important;
+        }
+
+        /* Print adjustments */
+        @@media print {
+            .no-print, header, footer, .navbar {
+                display: none !important;
+            }
+
+            .invoice-wrapper {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100%;
+            }
+
+            body {
+                background: white !important;
+            }
+        }
+    </style>
+}

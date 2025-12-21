@@ -41,7 +41,13 @@
                             </p>
                         </div>
                         <div class="col-md-3 text-end d-flex align-items-center justify-content-end">
-                            <a href="#" class="btn btn-sm btn-amazon-checkout-light fw-bold">Invoice</a>
+                            <a asp-controller="Orders"
+                               asp-action="Invoice"
+                               asp-route-id="@Model.Order.Id"
+                               target="_blank"
+                               class="btn btn-sm btn-amazon-checkout-light fw-bold">
+                                <i class="fas fa-file-invoice me-1"></i> Invoice
+                            </a>
                         </div>
                     </div>
                 </div>
