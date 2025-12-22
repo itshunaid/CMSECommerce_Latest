@@ -12,68 +12,74 @@ namespace CMSECommerce.Models
         public int Id { get; set; }
 
         [Required]
+        [StringLength(450)] // Matches default IdentityUser key length
         public string UserId { get; set; }
 
         [Required(ErrorMessage = "First Name is required")]
-        [MinLength(3, ErrorMessage = "Minimum length is 3")]
-        [MaxLength(50, ErrorMessage = "Maximum length is 50 characters")]
+        [StringLength(50, MinimumLength = 3, ErrorMessage = "First Name must be between 3 and 50 characters")]
         [Display(Name = "First Name")]
         public string FirstName { get; set; } = "Sample First Name";
 
         [Required(ErrorMessage = "Last Name is required")]
-        [MinLength(3, ErrorMessage = "Minimum length is 3")]
-        [MaxLength(50, ErrorMessage = "Maximum length is 50 characters")]
+        [StringLength(50, MinimumLength = 3, ErrorMessage = "Last Name must be between 3 and 50 characters")]
         [Display(Name = "Last Name")]
         public string LastName { get; set; } = "Sample Last Name";
 
         [ForeignKey("UserId")]
         public virtual IdentityUser User { get; set; }
 
-        // --- Custom Fields ---
+        // --- Identification ---
 
         [Display(Name = "ITS Number")]
         [RegularExpression(@"^\d+$", ErrorMessage = "ITS Number must contain only digits")]
+        [StringLength(20)]
         public string ITSNumber { get; set; }
 
-        [Display(Name = "Profile Image")]
+        // --- Image Approval Workflow ---
+
+        [Display(Name = "Active Profile Image")]
+        [StringLength(500)]
         public string ProfileImagePath { get; set; }
 
         [Display(Name = "Image Approved")]
         public bool IsImageApproved { get; set; } = false;
 
-        [Display(Name = "Pending Image")]
+        [Display(Name = "Pending Image Path")]
+        [StringLength(500)]
         public string PendingProfileImagePath { get; set; }
 
-        [Display(Name = "Pending Review")]
+        [Display(Name = "Image Pending Review")]
         public bool IsImagePending { get; set; } = false;
 
+        // --- Visibility & Bio ---
+
         [Display(Name = "Publicly Visible")]
-        [Description("If checked, this profile will be publicly visible.")]
         public bool IsProfileVisible { get; set; } = true;
 
         [DataType(DataType.MultilineText)]
-        [MaxLength(2000, ErrorMessage = "Bio cannot exceed 2000 characters")]
+        [StringLength(2000, ErrorMessage = "Bio cannot exceed 2000 characters")]
         [Display(Name = "About Me")]
         public string About { get; set; }
 
-        [MaxLength(100, ErrorMessage = "Profession cannot exceed 100 characters")]
-        [Display(Name = "Profession")]
+        [StringLength(100)]
         public string Profession { get; set; }
 
         [Display(Name = "Services Provided")]
-        [MaxLength(500, ErrorMessage = "Services list cannot exceed 500 characters")]
+        [StringLength(500)]
         public string ServicesProvided { get; set; }
 
+        // --- Social Media ---
+
         [Url(ErrorMessage = "Please enter a valid URL")]
-        [Display(Name = "LinkedIn Profile")]
+        [StringLength(500)]
         public string LinkedInUrl { get; set; }
 
         [Url(ErrorMessage = "Please enter a valid URL")]
-        [Display(Name = "Facebook Profile")]
+        [StringLength(500)]
         public string FacebookUrl { get; set; }
 
         [Url(ErrorMessage = "Please enter a valid URL")]
-        [Display(Name = "Instagram Profile")]
+        [StringLength(500)]
         public string InstagramUrl { get; set; }
 
         [Display(Name = "WhatsApp Number")]
@@ -81,29 +87,30 @@ namespace CMSECommerce.Models
         [StringLength(15, MinimumLength = 10, ErrorMessage = "Phone number must be between 10 and 15 digits")]
         public string WhatsAppNumber { get; set; }
 
-        [Display(Name = "Home Address")]
-        [MaxLength(255)]
+        // --- Contact & Payment ---
+
+        [StringLength(255)]
         public string HomeAddress { get; set; }
 
-        [Display(Name = "Home Phone")]
-        [Phone(ErrorMessage = "Invalid Home Phone Number")]
+        [Phone]
+        [StringLength(20)]
         public string HomePhoneNumber { get; set; }
 
-        [Display(Name = "Business Address")]
-        [MaxLength(255)]
+        [StringLength(255)]
         public string BusinessAddress { get; set; }
 
-        [Display(Name = "Business Phone")]
-        [Phone(ErrorMessage = "Invalid Business Phone Number")]
+        [Phone]
+        [StringLength(20)]
         public string BusinessPhoneNumber { get; set; }
 
-        [Display(Name = "GPay QR Code")]
+        [StringLength(500)]
         public string GpayQRCodePath { get; set; }
 
-        [Display(Name = "PhonePe QR Code")]
+        [StringLength(500)]
         public string PhonePeQRCodePath { get; set; }
 
-        // Made nullable to resolve migration FK conflict
+        // --- Relationship with Store ---
+
         [Display(Name = "Assigned Store")]
         public int? StoreId { get; set; }
 
@@ -113,45 +120,54 @@ namespace CMSECommerce.Models
 
     public class Store
     {
+        public Store()
+        {
+            UserProfiles = new HashSet<UserProfile>();
+        }
+
         [Key]
         public int Id { get; set; }
 
         [Required(ErrorMessage = "Store Name is required")]
-        [StringLength(100, ErrorMessage = "Store Name cannot exceed 100 characters")]
+        [StringLength(100)]
         [Display(Name = "Store Name")]
         public string StoreName { get; set; }
 
-        [Required(ErrorMessage = "Street Address is required")]
-        [Display(Name = "Street Address")]
+        [Required]
+        [StringLength(255)]
         public string StreetAddress { get; set; }
 
-        [Required(ErrorMessage = "City is required")]
-        [Display(Name = "City")]
+        [Required]
+        [StringLength(100)]
         public string City { get; set; }
 
-        [Required(ErrorMessage = "Post Code is required")]
-        [Display(Name = "Post Code")]
+        [Required]
+        [StringLength(20)]
         [DataType(DataType.PostalCode)]
         public string PostCode { get; set; }
 
-        [Required(ErrorMessage = "Country is required")]
-        [Display(Name = "Country")]
+        [Required]
+        [StringLength(100)]
         public string Country { get; set; }
 
         [Display(Name = "GSTIN Number")]
         [RegularExpression(@"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", ErrorMessage = "Invalid GSTIN format")]
+        [StringLength(15)]
         public string GSTIN { get; set; }
 
-        [Required(ErrorMessage = "Email address is required")]
-        [EmailAddress(ErrorMessage = "Invalid Email Address")]
-        [Display(Name = "Store Email")]
+        [Required]
+        [EmailAddress]
+        [StringLength(255)]
         public string Email { get; set; }
 
-        [Required(ErrorMessage = "Contact number is required")]
-        [Phone(ErrorMessage = "Invalid Contact Number")]
-        [Display(Name = "Store Contact")]
+       
+
+        [Required]
+        [Phone]
+        [StringLength(20)]
         public string Contact { get; set; }
 
+        // Navigation property
         public virtual ICollection<UserProfile> UserProfiles { get; set; }
     }
 }

@@ -1,6 +1,6 @@
 ﻿using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
-using CMSECommerce.Models; // Added to access UserProfile
+using CMSECommerce.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Localization;
@@ -9,34 +9,30 @@ using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// --- 1. SERVICES CONFIGURATION ---
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IUserService, UserService>();
-
-// Razor Pages (for Admin area settings page)
 builder.Services.AddRazorPages();
-
-// Add SignalR services for real-time communication
 builder.Services.AddSignalR();
 
-// Add DbContext with the SQL Server provider
+// Database Configuration
 var connectionString = builder.Configuration.GetConnectionString("DbConnection");
 builder.Services.AddDbContext<DataContext>(options =>
- options.UseSqlServer(connectionString)
+    options.UseSqlServer(connectionString)
 );
-builder.Services.AddDistributedMemoryCache();
 
+builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.IsEssential = true;
 });
 
+// Identity Configuration
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<DataContext>()
     .AddDefaultTokenProviders();
 
-// configure cookie paths for access denied and login
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
@@ -60,19 +56,11 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Customer", policy => policy.RequireRole("Customer"));
 });
 
-// register email sender
+// Custom Services
 builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
-
-// Register custom SignalR IUserIdProvider
 builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, CMSECommerce.Services.NameUserIdProvider>();
-
-// Bind UserStatus options
 builder.Services.Configure<CMSECommerce.Services.UserStatusOptions>(builder.Configuration.GetSection("UserStatus"));
-
-// Register the user status service used by multiple pages
 builder.Services.AddScoped<CMSECommerce.Services.IUserStatusService, CMSECommerce.Services.UserStatusService>();
-
-// Background cleanup service to mark stale users offline
 builder.Services.AddHostedService<CMSECommerce.Services.UserStatusCleanupService>();
 
 builder.Services.Configure<RouteOptions>(options =>
@@ -82,21 +70,7 @@ builder.Services.Configure<RouteOptions>(options =>
 
 var app = builder.Build();
 
-// Set default culture to en-IN so currency formatting uses the Indian rupee symbol
-var culture = new CultureInfo("en-IN");
-CultureInfo.DefaultThreadCurrentCulture = culture;
-CultureInfo.DefaultThreadCurrentUICulture = culture;
-
-var supportedCultures = new[] { culture };
-var localizationOptions = new RequestLocalizationOptions
-{
-    DefaultRequestCulture = new RequestCulture(culture),
-    SupportedCultures = supportedCultures.ToList(),
-    SupportedUICultures = supportedCultures.ToList()
-};
-app.UseRequestLocalization(localizationOptions);
-
-// --- SEEDING LOGIC ---
+// --- 2. SEEDING LOGIC ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -108,7 +82,7 @@ using (var scope = app.Services.CreateScope())
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
 
-        // Ensure roles exist
+        // Ensure Roles exist
         var roles = new[] { "Admin", "Customer", "Subscriber" };
         foreach (var role in roles)
         {
@@ -118,62 +92,56 @@ using (var scope = app.Services.CreateScope())
             }
         }
 
-        // Ensure admin user exists
+        // Ensure Admin User exists
         var adminEmail = "admin@local.local";
-        var adminUserName = "admin";
-        var adminPassword = "Pass@local110";
-
         var adminUser = userManager.FindByEmailAsync(adminEmail).GetAwaiter().GetResult();
         if (adminUser == null)
         {
             adminUser = new IdentityUser
             {
-                UserName = adminUserName,
+                UserName = "admin",
                 Email = adminEmail,
                 EmailConfirmed = true
             };
-
-            var createResult = userManager.CreateAsync(adminUser, adminPassword).GetAwaiter().GetResult();
+            var createResult = userManager.CreateAsync(adminUser, "Pass@local110").GetAwaiter().GetResult();
             if (createResult.Succeeded)
             {
                 userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
             }
         }
-        else
-        {
-            if (!userManager.IsInRoleAsync(adminUser, "Admin").GetAwaiter().GetResult())
-            {
-                userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
-            }
-        }
 
-        // --- NEW: Seed UserProfile for Admin ---
+        // Ensure Admin Profile and Store exist
         if (adminUser != null)
         {
-            var adminProfile = context.UserProfiles.FirstOrDefault(p => p.UserId == adminUser.Id);
+            var adminProfile = context.UserProfiles.Include(p => p.Store).FirstOrDefault(p => p.UserId == adminUser.Id);
             if (adminProfile == null)
             {
+                var adminStore = new Store
+                {
+                    StoreName = "Admin Central Store",
+                    StreetAddress = "123 Admin HQ, Tech Park",
+                    City = "Mumbai",
+                    PostCode = "400001",
+                    Country = "India",
+                    Email = adminEmail,
+                    Contact = "022-7654321",
+                    GSTIN = "27AAAAA0000A1Z5"
+                };
+                context.Stores.Add(adminStore);
+                context.SaveChanges();
+
                 adminProfile = new UserProfile
                 {
                     UserId = adminUser.Id,
                     FirstName = "System",
                     LastName = "Administrator",
-                    ITSNumber = "ADMIN-001",
+                    ITSNumber = "30455623",
                     Profession = "Global Admin",
                     About = "System generated administrator profile.",
                     IsProfileVisible = true,
                     IsImageApproved = true,
-
-                    // Address Mapping
-                    HomeAddress = "123 Admin HQ, Tech Park",
-                    HomePhoneNumber = "022-1234567",
-                    BusinessAddress = "Main Office Tower, Floor 10",
-                    BusinessPhoneNumber = "022-7654321",
-                    WhatsAppNumber = "910000000000",
-
-                    // Defaults
-                    ProfileImagePath = "/images/defaults/admin-profile.png",
-                    ServicesProvided = "System Management, Support"
+                    StoreId = adminStore.Id,
+                    ProfileImagePath = "/images/defaults/admin-profile.png"
                 };
                 context.UserProfiles.Add(adminProfile);
                 context.SaveChanges();
@@ -183,11 +151,11 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating the database or seeding data.");
+        logger.LogError(ex, "An error occurred during seeding.");
     }
 }
 
-app.UseSession();
+// --- 3. MIDDLEWARE PIPELINE (CORRECT ORDER) ---
 
 if (!app.Environment.IsDevelopment())
 {
@@ -196,52 +164,44 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// UseStaticFiles MUST come before Routing to serve images efficiently
 app.UseStaticFiles();
+
 app.UseRouting();
+
+// Localization should be before Authentication but after Routing
+var culture = new CultureInfo("en-IN");
+var localizationOptions = new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(culture),
+    SupportedCultures = new[] { culture },
+    SupportedUICultures = new[] { culture }
+};
+app.UseRequestLocalization(localizationOptions);
+
+app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Hub and Razor Pages mapping
+// --- 4. ROUTE MAPPING ---
 app.MapHub<CMSECommerce.Hubs.ChatHub>("/chatHub");
 app.MapRazorPages();
 
-// --- ROUTE CONFIGURATION ---
+// Area Route
 app.MapControllerRoute(
- name: "areas",
- pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
+    name: "areas",
+    pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
 
-app.MapControllerRoute(
- name: "product",
- pattern: "products/product/{slug?}",
- defaults: new { controller = "Products", action = "Product" });
+// Custom Specialized Routes
+app.MapControllerRoute(name: "product", pattern: "products/product/{slug?}", defaults: new { controller = "Products", action = "Product" });
+app.MapControllerRoute(name: "cart", pattern: "cart/{action}/{id?}", defaults: new { controller = "Cart", action = "Index" });
+app.MapControllerRoute(name: "account", pattern: "account/{action}", defaults: new { controller = "Account", action = "Index" });
+app.MapControllerRoute(name: "orders", pattern: "orders/{action}", defaults: new { controller = "Orders", action = "Index" });
+app.MapControllerRoute(name: "products", pattern: "products/{slug?}", defaults: new { controller = "Products", action = "Index" });
 
-app.MapControllerRoute(
- name: "cart",
- pattern: "cart/{action}/{id?}",
- defaults: new { controller = "Cart", action = "Index" });
-
-app.MapControllerRoute(
- name: "account",
- pattern: "account/{action}",
- defaults: new { controller = "Account", action = "Index" });
-
-app.MapControllerRoute(
- name: "orders",
- pattern: "orders/{action}",
- defaults: new { controller = "Orders", action = "Index" });
-
-app.MapControllerRoute(
- name: "products",
- pattern: "products/{slug?}",
- defaults: new { controller = "Products", action = "Index" });
-
-app.MapControllerRoute(
- name: "default",
- pattern: "{controller=Products}/{action=Index}/{id?}");
-
-app.MapControllerRoute(
- name: "pages",
- pattern: "{slug?}",
- defaults: new { controller = "Pages", action = "Index" });
+// Default and Slug Routes
+app.MapControllerRoute(name: "default", pattern: "{controller=Products}/{action=Index}/{id?}");
+app.MapControllerRoute(name: "pages", pattern: "{slug?}", defaults: new { controller = "Pages", action = "Index" });
 
 app.Run();

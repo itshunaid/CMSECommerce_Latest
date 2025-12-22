@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <Folder Include="Views\Cart\" />
+    <Folder Include="wwwroot\images\useruploads\" />
   </ItemGroup>
 
 </Project>

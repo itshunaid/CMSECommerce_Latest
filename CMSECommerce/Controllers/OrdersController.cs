@@ -254,7 +254,7 @@ namespace CMSECommerce.Controllers
                 HttpContext.Session.Remove("Cart");
                 TempData["Success"] = $"Order #{order.Id} placed successfully!";
 
-                return RedirectToAction("MyOrders", "Account"); // Redirecting to the list we just built
+                return RedirectToAction("MyOrders", "Orders"); // Redirecting to the list we just built
             }
             catch (Exception ex)
             {

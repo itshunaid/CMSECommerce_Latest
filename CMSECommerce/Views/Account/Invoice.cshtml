@@ -4,9 +4,10 @@
     Layout = "_Layout";
     ViewData["Title"] = "Tax Invoice - #" + Model.Order.Id;
     var indianCulture = new CultureInfo("en-IN");
-    
+
     // Safety check for Profile and Store
     var profile = Model.UserProfile;
+    // Note: Model.UserProfile.Store is populated via .Include() in the Controller
     var store = Model.UserProfile?.Store;
 }
 
@@ -34,14 +35,15 @@
         @* --- Header Section --- *@
         <div class="row mb-5 align-items-center">
             <div class="col-6">
-                @if (store != null)
+                @if (!string.IsNullOrEmpty(store?.StoreName))
                 {
                     <h2 class="fw-bold text-dark mb-0">@store.StoreName</h2>
-                    <p class="text-muted small">@store.StreetAddress, @store.City</p>
+                    <p class="text-muted small mb-0">@store.StreetAddress, @store.City</p>
+                    <p class="text-muted x-small">Contact: @store.Contact | @store.Email</p>
                 }
                 else
                 {
-                    <h2 class="fw-bold text-dark mb-0">YOUR STORE</h2>
+                    <h2 class="fw-bold text-dark mb-0">Independent Seller</h2>
                     <p class="text-muted small">Quality Goods Delivered to Your Door</p>
                 }
             </div>
@@ -77,7 +79,7 @@
             <div class="col-6 text-end">
                 <h6 class="text-muted text-uppercase fw-bold border-bottom pb-2 mb-3">Sold By</h6>
                 <div class="pe-1">
-                    @if (store != null)
+                    @if (store != null && !string.IsNullOrEmpty(store.StoreName))
                     {
                         <p class="fw-bold mb-1">@store.StoreName</p>
                         <p class="text-muted small mb-1">@store.StreetAddress</p>
@@ -90,15 +92,13 @@
                     }
                     else
                     {
-                        <p class="fw-bold mb-1">Official Platform Store</p>
-                        <p class="text-muted small mb-1">123 eCommerce Ave, Digital Square</p>
-                        <p class="text-muted small mb-0">support@yourstore.com</p>
+                        <p class="fw-bold mb-1">@(profile?.FirstName) @(profile?.LastName)</p>
+                        <p class="text-muted small mb-1">@profile?.BusinessAddress</p>
+                        <p class="text-muted small mb-0">@profile?.WhatsAppNumber</p>
                     }
                 </div>
             </div>
         </div>
-
-        
 
         @* --- Line Items Table --- *@
         <div class="table-responsive mb-5">
@@ -117,7 +117,7 @@
                         <tr>
                             <td class="py-3">
                                 <div class="fw-bold text-dark">@item.ProductName</div>
-                                <div class="text-muted x-small">Owner: @(item.ProductOwner ?? "N/A")</div>
+                                <div class="text-muted x-small">Category: @(item.ProductOwner ?? "General")</div>
                             </td>
                             <td class="py-3 text-center align-middle">@item.Price.ToString("C", indianCulture)</td>
                             <td class="py-3 text-center align-middle">@item.Quantity</td>
@@ -141,8 +141,8 @@
                 <h6 class="fw-bold text-dark border-bottom pb-2">Terms & Conditions</h6>
                 <p class="text-muted x-small">
                     1. Goods once sold will not be taken back.<br />
-                    2. Delivery logistics are managed via <strong>@store?.StoreName</strong>.<br />
-                    3. For support, contact <strong>@store?.Contact</strong> or WhatsApp <strong>@profile?.WhatsAppNumber</strong>.
+                    2. Fulfillment managed by: <strong>@(store?.StoreName ?? "Independent Seller")</strong>.<br />
+                    3. For support, contact: <strong>@(store?.Contact ?? profile?.WhatsAppNumber)</strong>.
                 </p>
             </div>
             <div class="col-5 text-center">
@@ -150,21 +150,21 @@
                     @if (!string.IsNullOrEmpty(profile?.GpayQRCodePath))
                     {
                         <div class="text-center">
-                            <img src="@profile.GpayQRCodePath" style="width: 80px; height: 80px; border: 1px solid #eee;" />
+                            <img src="/@profile.GpayQRCodePath.TrimStart('/')" style="width: 80px; height: 80px; border: 1px solid #eee;" />
                             <p class="x-small mt-1 mb-0">GPay</p>
                         </div>
                     }
                     @if (!string.IsNullOrEmpty(profile?.PhonePeQRCodePath))
                     {
                         <div class="text-center">
-                            <img src="@profile.PhonePeQRCodePath" style="width: 80px; height: 80px; border: 1px solid #eee;" />
+                            <img src="/@profile.PhonePeQRCodePath.TrimStart('/')" style="width: 80px; height: 80px; border: 1px solid #eee;" />
                             <p class="x-small mt-1 mb-0">PhonePe</p>
                         </div>
                     }
                 </div>
                 <div class="pt-2 border-top">
                     <p class="small fw-bold text-dark mb-0">Authorized Signatory</p>
-                    <p class="x-small text-muted">@DateTime.Now.ToString("f")</p>
+                    <p class="x-small text-muted">@DateTime.Now.ToString("dd-MMM-yyyy HH:mm")</p>
                 </div>
             </div>
         </div>
@@ -179,7 +179,7 @@
                 margin:       [0.5, 0.5, 0.5, 0.5],
                 filename:     'Invoice_#@(Model.Order.Id).pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
                 jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
             };
             html2pdf().set(options).from(element).save();
@@ -189,12 +189,32 @@
 
 @section Styles {
     <style>
-        .invoice-wrapper { max-width: 850px; margin: auto; }
-        .x-small { font-size: 0.75rem; }
-        .border-top-2 { border-top: 2px solid #000 !important; }
+        .invoice-wrapper {
+            max-width: 850px;
+            margin: auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .x-small {
+            font-size: 0.75rem;
+        }
+
         @@media print {
-            .no-print, header, footer, .navbar { display: none !important; }
-            .invoice-wrapper { border: none !important; box-shadow: none !important; padding: 0 !important; }
+            .no-print, header, footer, .navbar {
+                display: none !important;
+            }
+
+            .invoice-wrapper {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            body {
+                background-color: white !important;
+            }
         }
     </style>
 }

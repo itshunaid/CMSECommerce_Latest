@@ -1,7 +1,7 @@
 ﻿@model IEnumerable<CMSECommerce.Models.ViewModels.ProfileUpdateViewModel>
 
 @{
-    ViewData["Title"] = "Registered Seller List";
+    ViewData["Title"] = "Business Directory";
 }
 
 <div class="container mt-5">
@@ -48,30 +48,53 @@
                                 <div class="d-flex align-items-center">
                                     @if (!string.IsNullOrEmpty(user.ExistingProfileImagePath))
                                     {
-                                        <img src="/@user.ExistingProfileImagePath" class="rounded-circle me-2" style="width: 35px; height: 35px; object-fit: cover; border: 1px solid #ddd;" />
+                                        <img src="/@user.ExistingProfileImagePath.TrimStart('/')" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover; border: 1px solid #ddd;" />
                                     }
                                     else
                                     {
-                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
-                                            <i class="fas fa-user text-white" style="font-size: 0.8rem;"></i>
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user text-white" style="font-size: 0.9rem;"></i>
                                         </div>
                                     }
                                     <div>
-                                        <div class="fw-bold text-dark">@(string.IsNullOrEmpty(user.StoreName) ? $"{user.FirstName} {user.LastName}" : user.StoreName)</div>
-                                        @if (!string.IsNullOrEmpty(user.StoreName))
+                                        @* Prioritize Store Name, Fallback to Full Name *@
+                                        <div class="fw-bold text-dark">
+                                            @(!string.IsNullOrEmpty(user.StoreName) && user.StoreName != "Independent" ? user.StoreName : $"{user.FirstName} {user.LastName}")
+                                        </div>
+
+                                        @* If it's a store, show the Proprietor name underneath *@
+                                        @if (!string.IsNullOrEmpty(user.StoreName) && user.StoreName != "Independent")
                                         {
-                                            <small class="text-muted">Prop: @user.FirstName @user.LastName</small>
+                                            <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                                <i class="fas fa-user-tie me-1"></i>Prop: @user.FirstName @user.LastName
+                                            </small>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                                <i class="fas fa-user me-1"></i>Independent Seller
+                                            </small>
                                         }
                                     </div>
                                 </div>
                             </td>
-                            <td>@(user.StoreCity ?? "N/A")</td>
-                            <td>@(user.StoreEmail ?? user.Email)</td>
-                            <td>@(user.StoreContact ?? user.PhoneNumber ?? "N/A")</td>
-                            <td><span class="badge bg-light text-dark border">@(user.Profession ?? "Seller")</span></td>
-                            <td class="text-center">
-                                <a asp-action="UserDetails" asp-route-id="@user.UserId" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-id-card me-1"></i> Profile
+                            <td class="align-middle">@(user.StoreCity ?? "N/A")</td>
+                            <td class="align-middle">
+                                <a href="mailto:@(user.StoreEmail ?? user.Email)" class="text-decoration-none text-muted small">
+                                    <i class="fas fa-envelope me-1"></i>@(user.StoreEmail ?? user.Email)
+                                </a>
+                            </td>
+                            <td class="align-middle">
+                                <a href="tel:@(user.StoreContact ?? user.PhoneNumber)" class="text-decoration-none text-muted small">
+                                    <i class="fas fa-phone-alt me-1"></i>@(user.StoreContact ?? user.PhoneNumber ?? "N/A")
+                                </a>
+                            </td>
+                            <td class="align-middle">
+                                <span class="badge bg-light text-dark border">@(user.Profession ?? "Seller")</span>
+                            </td>
+                            <td class="text-center align-middle">
+                                <a asp-action="UserDetails" asp-route-id="@user.UserId" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                    <i class="fas fa-id-card me-1"></i> View Profile
                                 </a>
                             </td>
                         </tr>
@@ -83,7 +106,7 @@
         <div class="d-flex justify-content-between align-items-center mt-3">
             <p class="text-muted small">Showing <span id="visibleCount" class="fw-bold">@Model.Count()</span> matching businesses</p>
             <nav aria-label="Table status">
-                <span class="badge bg-info text-dark">Public Directory</span>
+                <span class="badge bg-info text-dark">Verified Directory</span>
             </nav>
         </div>
     }
@@ -94,7 +117,7 @@
         .bg-primary {
             background-color: #004d40 !important;
         }
-        /* Dark Teal for Business look */
+
         .column-filter {
             border: 1px solid #ced4da;
             font-size: 0.85rem;
@@ -111,12 +134,12 @@
             font-weight: 600;
         }
 
-        .table tbody tr {
-            transition: background 0.2s;
-        }
-
         .table-hover tbody tr:hover {
             background-color: rgba(0, 77, 64, 0.05);
+        }
+
+        .rounded-pill {
+            border-radius: 50px !important;
         }
     </style>
 }
