@@ -1036,7 +1036,7 @@ namespace CMSECommerce.Controllers
                 userProfile.Store.Country = model.StoreCountry;
 
                 // Update the Store entity state if it's not new
-                if (userProfile.StoreId.HasValue)
+                if (userProfile.StoreId!=0)
                 {
                     _context.Entry(userProfile.Store).State = EntityState.Modified;
                 }
@@ -1264,17 +1264,31 @@ namespace CMSECommerce.Controllers
         /// </summary>
         private async Task<IdentityUser> ResolveUserAsync(string identifier)
         {
-            // Strategy: Check ITS Profile first as it's the most specific business requirement
+            if (string.IsNullOrWhiteSpace(identifier)) return null;
+
+            // 1. Check Profile-specific identifiers (ITS Number and WhatsApp)
             var profile = await _context.UserProfiles
-                .AsNoTracking() // Performance optimization for read-only
-                .FirstOrDefaultAsync(up => up.ITSNumber == identifier);
+                .AsNoTracking()
+                .FirstOrDefaultAsync(up => up.ITSNumber == identifier || up.WhatsAppNumber == identifier);
 
             if (profile != null)
             {
                 return await _userManager.FindByIdAsync(profile.UserId);
             }
 
-            // Fallback: Standard Identity Lookups
+            // 2. Check Store-specific identifiers (Store Email, Store Contact, and GSTIN)
+            var store = await _context.Stores
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Email == identifier ||
+                                          s.Contact == identifier ||
+                                          s.GSTIN == identifier);
+
+            if (store != null)
+            {
+                return await _userManager.FindByIdAsync(store.UserId);
+            }
+
+            // 3. Fallback: Standard Identity Lookups (Username, Email, Identity Phone)
             return await _userManager.FindByNameAsync(identifier)
                    ?? await _userManager.FindByEmailAsync(identifier)
                    ?? await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == identifier);

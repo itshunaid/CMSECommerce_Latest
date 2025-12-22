@@ -1,0 +1,204 @@
+﻿@model CMSECommerce.Models.ViewModels.ProfileUpdateViewModel
+
+@{
+    ViewData["Title"] = "Update Account Profile";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="Index" asp-controller="Home">Home</a></li>
+                    <li class="breadcrumb-item active">Edit Profile</li>
+                </ol>
+            </nav>
+            <h2 class="mb-4">Edit Profile: <span class="text-primary">@Model.UserName</span></h2>
+        </div>
+    </div>
+
+    <form asp-action="EditProfile" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <input type="hidden" asp-for="UserId" />
+        <input type="hidden" asp-for="StoreId" />
+        <input type="hidden" asp-for="ExistingProfileImagePath" />
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <ul class="nav nav-tabs card-header-tabs" id="profileTab" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal" type="button" role="tab">Personal Info</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="business-tab" data-bs-toggle="tab" data-bs-target="#business" type="button" role="tab">Business & Social</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="store-tab" data-bs-toggle="tab" data-bs-target="#store" type="button" role="tab">Store & Tax</button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="card-body">
+                <div class="tab-content" id="profileTabContent">
+
+                    <div class="tab-pane fade show active" id="personal" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-3 text-center border-end">
+                                <label class="form-label fw-bold">Profile Picture</label>
+                                <div class="mb-3">
+                                    <img src="@(string.IsNullOrEmpty(Model.ExistingProfileImagePath) ? "/images/default-user.png" : Model.ExistingProfileImagePath)"
+                                         class="rounded-circle img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;" alt="Profile" />
+                                </div>
+                                <input asp-for="ProfileImageUpload" class="form-control form-control-sm" type="file" accept="image/*" />
+                                <span asp-validation-for="ProfileImageUpload" class="text-danger small"></span>
+                                @if (Model.IsImagePending)
+                                {
+                                    <div class="badge bg-warning text-dark mt-2">Update Pending Approval</div>
+                                }
+                            </div>
+                            <div class="col-md-9">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="FirstName" class="form-label fw-bold"></label>
+                                        <input asp-for="FirstName" class="form-control" />
+                                        <span asp-validation-for="FirstName" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="LastName" class="form-label fw-bold"></label>
+                                        <input asp-for="LastName" class="form-control" />
+                                        <span asp-validation-for="LastName" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="Email" class="form-label fw-bold"></label>
+                                        <input asp-for="Email" class="form-control" />
+                                        <span asp-validation-for="Email" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="PhoneNumber" class="form-label fw-bold"></label>
+                                        <input asp-for="PhoneNumber" class="form-control" />
+                                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check form-switch mt-2">
+                                            <input class="form-check-input" type="checkbox" asp-for="IsProfileVisible">
+                                            <label class="form-check-label" asp-for="IsProfileVisible">Show my profile in public directory</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="business" role="tabpanel">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label asp-for="ITSNumber" class="form-label fw-bold"></label>
+                                <input asp-for="ITSNumber" class="form-control" />
+                                <span asp-validation-for="ITSNumber" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Profession" class="form-label fw-bold"></label>
+                                <input asp-for="Profession" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="WhatsappNumber" class="form-label fw-bold"></label>
+                                <input asp-for="WhatsappNumber" class="form-control" />
+                                <span asp-validation-for="WhatsappNumber" class="text-danger"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="About" class="form-label fw-bold"></label>
+                                <textarea asp-for="About" class="form-control" rows="3" placeholder="Tell us about yourself..."></textarea>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="LinkedInUrl" class="form-label fw-bold"></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-linkedin"></i></span>
+                                    <input asp-for="LinkedInUrl" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="FacebookUrl" class="form-label fw-bold"></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-facebook"></i></span>
+                                    <input asp-for="FacebookUrl" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="InstagramUrl" class="form-label fw-bold"></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-instagram"></i></span>
+                                    <input asp-for="InstagramUrl" class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="store" role="tabpanel">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="StoreName" class="form-label fw-bold"></label>
+                                <input asp-for="StoreName" class="form-control border-primary" />
+                                <span asp-validation-for="StoreName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="GSTIN" class="form-label fw-bold"></label>
+                                <input asp-for="GSTIN" class="form-control" placeholder="27AAAAA0000A1Z5" />
+                                <span asp-validation-for="GSTIN" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-12">
+                                <label asp-for="StoreStreetAddress" class="form-label fw-bold"></label>
+                                <input asp-for="StoreStreetAddress" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="StoreCity" class="form-label fw-bold"></label>
+                                <input asp-for="StoreCity" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="StorePostCode" class="form-label fw-bold"></label>
+                                <input asp-for="StorePostCode" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="StoreCountry" class="form-label fw-bold"></label>
+                                <input asp-for="StoreCountry" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="StoreEmail" class="form-label fw-bold"></label>
+                                <input asp-for="StoreEmail" class="form-control" />
+                                <span asp-validation-for="StoreEmail" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="StoreContact" class="form-label fw-bold"></label>
+                                <input asp-for="StoreContact" class="form-control" />
+                                <span asp-validation-for="StoreContact" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="card-footer bg-white d-flex justify-content-between py-3">
+                <a asp-action="Index" asp-controller="Home" class="btn btn-outline-secondary">Back to Home</a>
+                <button type="submit" class="btn btn-primary px-5">Save All Changes</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Script to keep the current tab active after postback/refresh
+        $(document).ready(function() {
+            $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
+                localStorage.setItem('activeTab', $(e.target).attr('data-bs-target'));
+            });
+            var activeTab = localStorage.getItem('activeTab');
+            if(activeTab){
+                $('#profileTab button[data-bs-target="' + activeTab + '"]').tab('show');
+            }
+        });
+    </script>
+}

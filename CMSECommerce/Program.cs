@@ -125,7 +125,8 @@ using (var scope = app.Services.CreateScope())
                     Country = "India",
                     Email = adminEmail,
                     Contact = "022-7654321",
-                    GSTIN = "27AAAAA0000A1Z5"
+                    GSTIN = "27AAAAA0000A1Z5",
+                    UserId=adminProfile.User.Id
                 };
                 context.Stores.Add(adminStore);
                 context.SaveChanges();
