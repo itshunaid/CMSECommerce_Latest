@@ -21,6 +21,8 @@ namespace CMSECommerce.Models
         public bool IsProcessed { get; set; } = false;
         public string ProductOwner { get; set; } = "";
         public string Customer { get; set; } = "";
-        public string CustomerNumber { get; set; }= "";
+        public string CustomerNumber { get; set; } = "";
+        // Navigation property back to Order
+        public virtual Order Order { get; set; }
     }
 }

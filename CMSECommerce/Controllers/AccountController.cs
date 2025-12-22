@@ -32,105 +32,64 @@ namespace CMSECommerce.Controllers
         private readonly IUserService _userService = userService;
 
 
-        private async Task UpdateOrderShippedStatus(string username)
-        {
-            if (string.IsNullOrWhiteSpace(username))
-            {
-                return; // No username provided, exit early.
-            }
-
-            try
-            {
-                // The current 'username' variable is assumed to hold the case-insensitive username to match.
-                string usernameLower = username.ToLower();
-
-                // 1. Get ALL Order IDs for the current user (case-insensitive)
-                var userOrderIds = await _context.Orders
-                    .Where(o => o.UserName.ToLower() == usernameLower) // Convert both sides to lowercase for comparison
-                    .Select(o => o.Id)
-                    .ToListAsync();
-
-                // 2. Find all OrderDetail items for those orders
-                var allOrderDetails = await _context.OrderDetails
-                    .Where(d => userOrderIds.Contains(d.OrderId))
-                    .ToListAsync();
-
-                // 3. Group the OrderDetails by OrderId
-                var ordersGroupedByDetail = allOrderDetails
-                    .GroupBy(d => d.OrderId)
-                    .ToList();
-
-                // 4. Find the Order IDs where ALL details are processed
-                var ordersReadyToShipIds = ordersGroupedByDetail
-                    .Where(group => group.All(d => d.IsProcessed == true))
-                    .Select(group => group.Key)
-                    .ToList();
-
-                // 5. Retrieve the actual Order entities that need updating and haven't been shipped yet
-                var ordersToUpdate = await _context.Orders
-                    .Where(o => ordersReadyToShipIds.Contains(o.Id) && o.Shipped == false)
-                    .ToListAsync();
-
-                // 6. Update the 'Shipped' status
-                foreach (var order in ordersToUpdate)
-                {
-                    order.Shipped = true;
-                }
-
-                // 7. Save changes to the database
-                if (ordersToUpdate.Any())
-                {
-                    // The critical database save operation
-                    await _context.SaveChangesAsync();
-                }
-            }
-            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
-            {
-                // Log the concurrency error (e.g., another process updated the same record)
-                // _logger.LogError(ex, "Concurrency error occurred while updating shipment status for user: {username}", username);
-                // Depending on requirements, you might retry the operation or log and continue.
-            }
-            catch (Exception ex)
-            {
-                // Log all other database access or logic errors
-                // _logger.LogError(ex, "An error occurred while updating shipment status for user: {username}", username);
-                // Optionally, re-throw the exception if the calling method needs to know the operation failed.
-                // throw; 
-            }
-        }
-
-
         [Authorize]
         public async Task<IActionResult> Index()
         {
-            var username = User.Identity.Name;
+            // Best practice: Use the unique User ID instead of Name for database queries
+            var userId = _userManager.GetUserId(User);
             List<CMSECommerce.Models.Order> orders = new();
 
             try
             {
-                // Call the dedicated method to update statuses before displaying the list
-                await UpdateOrderShippedStatus(username);
+                // 1. Update statuses before displaying the list
+                await UpdateOrderShippedStatus(userId);
 
-                // Now, fetch the complete, updated list of orders for the user
+                // 2. Fetch the updated list using UserId
                 orders = await _context.Orders
-                    .OrderByDescending(x => x.Id)
-                    // Note: Your original code used a case-sensitive check here, 
-                    // but the Status update used case-insensitive. Be consistent.
-                    .Where(x => x.UserName == username)
-                    .ToListAsync();
+    .Include(o => o.OrderDetails) // Add this line!
+    .Where(x => x.UserId == userId)
+    .OrderByDescending(x => x.Id)
+    .ToListAsync();
             }
             catch (Exception ex)
             {
-                // Log the error during order fetching or status update
-                // _logger.LogError(ex, "Error retrieving orders for user: {username}", username);
+                // _logger.LogError(ex, "Error retrieving orders for user: {userId}", userId);
                 TempData["error"] = "An error occurred while loading your orders.";
-                // Fallback: return an empty list or redirect if necessary
                 return View(orders);
             }
 
             return View(orders);
         }
 
+        private async Task UpdateOrderShippedStatus(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId)) return;
+
+            try
+            {
+                // Optimized Query: Find orders belonging to the user where:
+                // 1. The order is not yet marked as Shipped
+                // 2. ALL associated OrderDetails have IsProcessed set to true
+                var ordersToUpdate = await _context.Orders
+                    .Where(o => o.UserId == userId && !o.Shipped)
+                    .Where(o => o.OrderDetails.All(d => d.IsProcessed))
+                    .ToListAsync();
+
+                if (ordersToUpdate.Any())
+                {
+                    foreach (var order in ordersToUpdate)
+                    {
+                        order.Shipped = true;
+                    }
+
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                // _logger.LogError(ex, "Failed to auto-update order status for {userId}", userId);
+            }
+        }
 
         public IActionResult Register()
         {
@@ -268,10 +227,7 @@ namespace CMSECommerce.Controllers
         [HttpPost]
         public async Task<IActionResult> Register(User user)
         {
-            // 1. Validation and Uniqueness Checks (Same as before)
-            user.FirstName ??= "First Name";
-            user.LastName ??= "Last Name";
-
+            // 1. Basic Validations
             if (!ModelState.IsValid) return View(user);
 
             var existingEmail = await _userManager.FindByEmailAsync(user.Email);
@@ -295,10 +251,28 @@ namespace CMSECommerce.Controllers
 
                 if (result.Succeeded)
                 {
+                    // Use a Database Transaction to ensure both Store and Profile are created together
+                    using var transaction = await _context.Database.BeginTransactionAsync();
+
                     try
                     {
-                        // 3. Map Address details to the UserProfile model
-                        // We combine the registration address fields into a single string for the Profile
+                        // 3. Create the Store FIRST
+                        var newStore = new Store
+                        {
+                            StoreName = $"{user.FirstName}'s Shop", // Fallback name
+                            StreetAddress = user.StreetAddress,
+                            City = user.City,
+                            PostCode = user.PostalCode,
+                            Country = user.Country,
+                            Email = user.Email,
+                            Contact = user.PhoneNumber,
+                            GSTIN = string.Empty // Ensure your User model has this field
+                        };
+
+                        _context.Stores.Add(newStore);
+                        await _context.SaveChangesAsync(); // This generates the newStore.Id
+
+                        // 4. Create the UserProfile using the newStore.Id
                         string fullAddress = $"{user.StreetAddress}, {user.City}, {user.State} {user.PostalCode}, {user.Country}";
 
                         var newProfile = new UserProfile
@@ -306,12 +280,13 @@ namespace CMSECommerce.Controllers
                             UserId = newUser.Id,
                             FirstName = user.FirstName,
                             LastName = user.LastName,
-                            // Mapping Address details to UserProfile fields
                             HomeAddress = fullAddress,
                             HomePhoneNumber = user.PhoneNumber,
-                            BusinessPhoneNumber = user.PhoneNumber, // Defaulting to same as home
+                            BusinessPhoneNumber = user.PhoneNumber,
 
-                            // Setting default visibility and status
+                            // Link to the Store we just created
+                            StoreId = newStore.Id,
+
                             IsProfileVisible = true,
                             IsImageApproved = false,
                             IsImagePending = false
@@ -319,7 +294,7 @@ namespace CMSECommerce.Controllers
 
                         _context.UserProfiles.Add(newProfile);
 
-                        // 4. Map Address details to the separate Address table (Relational)
+                        // 5. Create Address entry
                         var newAddress = new CMSECommerce.Models.Address
                         {
                             UserId = newUser.Id,
@@ -332,20 +307,23 @@ namespace CMSECommerce.Controllers
 
                         _context.Addresses.Add(newAddress);
 
-                        // Save all changes to the database
+                        // Save Profile and Address
                         await _context.SaveChangesAsync();
 
-                        // 5. Finalize
-                        await _userManager.AddToRoleAsync(newUser, "Customer");
+                        // Commit the transaction
+                        await transaction.CommitAsync();
 
-                        TempData["success"] = "You have registered successfully!";
+                        // 6. Assign Role and Finalize
+                        await _userManager.AddToRoleAsync(newUser, "Seller"); // Changed to 'Seller' since they have a store
+
+                        TempData["success"] = "Registration and Store setup successful!";
                         return RedirectToAction("Login");
                     }
                     catch (Exception dbEx)
                     {
-                        // Rollback Identity user if Profile/Address fails
-                        await _userManager.DeleteAsync(newUser);
-                        ModelState.AddModelError("", "Database error occurred while saving profile details.");
+                        await transaction.RollbackAsync();
+                        await _userManager.DeleteAsync(newUser); // Clean up the Identity user
+                        ModelState.AddModelError("", "Error creating store or profile. Please check your data.");
                         return View(user);
                     }
                 }
@@ -357,7 +335,7 @@ namespace CMSECommerce.Controllers
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", "A critical error occurred. Please try again later.");
+                ModelState.AddModelError("", "A critical error occurred.");
             }
 
             return View(user);
@@ -439,12 +417,11 @@ namespace CMSECommerce.Controllers
         {
             try
             {
-                // 1. ADMIN AUTHORIZATION CHECK (Recommended for multi-user edit actions)
+                // 1. ADMIN AUTHORIZATION CHECK
                 var currentUser = await _userManager.GetUserAsync(User);
                 if (currentUser == null || !await _userManager.IsInRoleAsync(currentUser, "Admin"))
                 {
                     TempData["error"] = "You are not authorized to edit other user profiles.";
-                    // Redirect to the user's own profile page or a restricted access page
                     return RedirectToAction("Profile");
                 }
 
@@ -456,11 +433,12 @@ namespace CMSECommerce.Controllers
                     return RedirectToAction("ProfileDetails");
                 }
 
-                // Attempt to find existing profile data
+                // 2. RETRIEVE DATA (Including Store information)
                 var userProfile = await _context.UserProfiles
+                    .Include(p => p.Store)
                     .FirstOrDefaultAsync(p => p.UserId == id);
 
-                // Map data to the ViewModel
+                // Map base Identity data to the ViewModel
                 var viewModel = new ProfileUpdateViewModel
                 {
                     UserId = identityUser.Id,
@@ -471,44 +449,57 @@ namespace CMSECommerce.Controllers
 
                 if (userProfile != null)
                 {
-                    // Map common properties
+                    // --- PROFILE BASIC FIELDS ---
                     viewModel.FirstName = userProfile.FirstName;
                     viewModel.LastName = userProfile.LastName;
-                    viewModel.IsProfileVisible = userProfile.IsProfileVisible;
                     viewModel.ITSNumber = userProfile.ITSNumber;
-                    viewModel.About = userProfile.About;
                     viewModel.Profession = userProfile.Profession;
+                    viewModel.About = userProfile.About;
                     viewModel.ServicesProvided = userProfile.ServicesProvided;
+                    viewModel.IsProfileVisible = userProfile.IsProfileVisible;
+
+                    // --- SOCIAL & CONTACT ---
                     viewModel.LinkedInUrl = userProfile.LinkedInUrl;
                     viewModel.FacebookUrl = userProfile.FacebookUrl;
                     viewModel.InstagramUrl = userProfile.InstagramUrl;
                     viewModel.WhatsappNumber = userProfile.WhatsAppNumber;
+
+                    // --- USER ADDRESSES ---
                     viewModel.HomeAddress = userProfile.HomeAddress;
                     viewModel.HomePhoneNumber = userProfile.HomePhoneNumber;
                     viewModel.BusinessAddress = userProfile.BusinessAddress;
                     viewModel.BusinessPhoneNumber = userProfile.BusinessPhoneNumber;
 
-                    // --- NECESSARY CHANGES START HERE: Mapping Image Approval Fields ---
+                    // --- IMAGES & STATUS ---
                     viewModel.ExistingProfileImagePath = userProfile.ProfileImagePath;
                     viewModel.IsImageApproved = userProfile.IsImageApproved;
-
-                    // Map the new pending image path and pending status
                     viewModel.PendingProfileImagePath = userProfile.PendingProfileImagePath;
                     viewModel.IsImagePending = userProfile.IsImagePending;
-                    // --- NECESSARY CHANGES END HERE ---
 
+                    // --- PAYMENT QR CODES ---
                     viewModel.ExistingGpayQRCodePath = userProfile.GpayQRCodePath;
                     viewModel.ExistingPhonePeQRCodePath = userProfile.PhonePeQRCodePath;
+
+                    // --- NEW: STORE FIELDS (All Fields Mapped) ---
+                    if (userProfile.Store != null)
+                    {
+                        viewModel.StoreId = userProfile.Store.Id; // Hidden field in view
+                        viewModel.StoreName = userProfile.Store.StoreName;
+                        viewModel.StoreStreetAddress = userProfile.Store.StreetAddress;
+                        viewModel.StoreCity = userProfile.Store.City;
+                        viewModel.StorePostCode = userProfile.Store.PostCode;
+                        viewModel.StoreCountry = userProfile.Store.Country;
+                        viewModel.GSTIN = userProfile.Store.GSTIN;
+                        viewModel.StoreEmail = userProfile.Store.Email;
+                        viewModel.StoreContact = userProfile.Store.Contact;
+                    }
                 }
 
-                // Return the common profile edit view with the data
                 return View("Profile", viewModel);
             }
             catch (Exception ex)
             {
-                // Log the error
-                // _logger.LogError(ex, "Error fetching profile for editing for ID: {id}", id);
-                TempData["error"] = "An error occurred while preparing the profile for editing.";
+                TempData["error"] = "An error occurred while preparing the profile.";
                 return RedirectToAction("ProfileDetails");
             }
         }
@@ -531,14 +522,15 @@ namespace CMSECommerce.Controllers
                     return NotFound();
                 }
 
-                // ** NEW: Fetch UserProfile **
-                var userProfile = await _context.UserProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == id);
-                // If profile doesn't exist, create a new one (optional: depends on business rules)
-                // For simplicity, we assume profile exists or we handle nulls gracefully.
+                // ** UPDATED: Fetch UserProfile with Store details included **
+                var userProfile = await _context.UserProfiles
+                    .Include(p => p.Store) // Join with Stores table
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.UserId == id);
 
                 var roles = await _userManager.GetRolesAsync(user);
 
-                // ** NEW: Map all Identity and UserProfile fields to EditUserModel **
+                // ** UPDATED: Map all Identity, UserProfile, and Store fields **
                 var model = new EditUserModel
                 {
                     // IdentityUser Fields
@@ -548,7 +540,7 @@ namespace CMSECommerce.Controllers
                     PhoneNumber = user.PhoneNumber,
                     Role = roles.FirstOrDefault(),
 
-                    // UserProfile Fields (using null-conditional operator '?.' for safety)
+                    // UserProfile Fields
                     FirstName = userProfile?.FirstName,
                     LastName = userProfile?.LastName,
                     ITSNumber = userProfile?.ITSNumber,
@@ -567,16 +559,31 @@ namespace CMSECommerce.Controllers
                     BusinessAddress = userProfile?.BusinessAddress,
                     BusinessPhoneNumber = userProfile?.BusinessPhoneNumber,
                     GpayQRCodePath = userProfile?.GpayQRCodePath,
-                    PhonePeQRCodePath = userProfile?.PhonePeQRCodePath
+                    PhonePeQRCodePath = userProfile?.PhonePeQRCodePath,
+
+                    // ** NEW: Store Fields Mapping **
+                    StoreId = userProfile?.Store?.Id,
+                    StoreName = userProfile?.Store?.StoreName,
+                    StoreStreetAddress = userProfile?.Store?.StreetAddress,
+                    StoreCity = userProfile?.Store?.City,
+                    StorePostCode = userProfile?.Store?.PostCode,
+                    StoreCountry = userProfile?.Store?.Country,
+                    GSTIN = userProfile?.Store?.GSTIN,
+                    StoreEmail = userProfile?.Store?.Email,
+                    StoreContact = userProfile?.Store?.Contact
                 };
 
                 ViewBag.Roles = _roleManager.Roles.Select(r => r.Name).ToList();
+
+                // Pass the ITSAvailable flag to ViewBag if needed for view logic
+                ViewBag.ITSAvailable = ITSAvailable;
+
                 return View(model);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading user ID: {UserId} for editing.", id);
-                TempData["error"] = "Failed to load user details for editing.";
+                _logger.LogError(ex, "Error loading user ID: {UserId} for details.", id);
+                TempData["error"] = "Failed to load user details.";
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -900,18 +907,15 @@ namespace CMSECommerce.Controllers
             return View("ProfileDetailsView", model);
         }
 
-       
 
         [HttpPost]
         [Authorize]
-        [ValidateAntiForgeryToken] // Recommended for security
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateProfile(ProfileUpdateViewModel viewModel)
         {
             // 1. Model Validation
             if (!ModelState.IsValid)
             {
-                // If validation fails, return to the view with errors.
-                // You may need to repopulate ViewBag.ITSAvailable here if it's dynamic
                 ViewBag.ITSAvailable = !string.IsNullOrEmpty(viewModel.ITSNumber);
                 return View("ProfileDetails", viewModel);
             }
@@ -921,60 +925,76 @@ namespace CMSECommerce.Controllers
                 // 2. Retrieve Existing Data
                 var identityUser = await _userManager.FindByIdAsync(viewModel.UserId);
 
-                // Ensure user exists
                 if (identityUser == null)
                 {
                     TempData["error"] = "Error: User not found.";
                     return RedirectToAction("Login", "Account");
                 }
 
-                // Retrieve or create the UserProfile record
+                // Retrieve the UserProfile including the Store data
                 var userProfile = await _context.UserProfiles
+                                                .Include(p => p.Store)
                                                 .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);
 
-                // If UserProfile doesn't exist, create a new one (This ensures data integrity)
+                // If UserProfile doesn't exist, create a new one
                 if (userProfile == null)
                 {
                     userProfile = new UserProfile { UserId = identityUser.Id };
                     _context.UserProfiles.Add(userProfile);
                 }
 
+                // --- NEW: Store Management Logic ---
+                // If the user is currently not linked to a store (happens after migration), 
+                // we link them to a default store or create one for them.
+                if (userProfile.StoreId == null)
+                {
+                    var defaultStore = await _context.Stores.FirstOrDefaultAsync();
+                    if (defaultStore != null)
+                    {
+                        userProfile.StoreId = defaultStore.Id;
+                    }
+                    else
+                    {
+                        // Create a placeholder store if none exists to avoid FK errors
+                        var placeholderStore = new Store
+                        {
+                            StoreName = $"{viewModel.FirstName}'s Store",
+                            StreetAddress = viewModel.HomeAddress ?? "Pending",
+                            City = "Pending",
+                            PostCode = "0000",
+                            Country = "Pending",
+                            Email = identityUser.Email,
+                            Contact = viewModel.PhoneNumber
+                        };
+                        _context.Stores.Add(placeholderStore);
+                        await _context.SaveChangesAsync(); // Generate ID
+                        userProfile.StoreId = placeholderStore.Id;
+                    }
+                }
+
                 // 3. Handle File Uploads (Profile Image)
                 if (viewModel.ProfileImageUpload != null)
                 {
-                    // NOTE: This assumes you have a helper method (e.g., SaveFile)
-                    // and a storage path injected/defined (e.g., _webHostEnvironment.WebRootPath).
-                    // Image saving logic MUST be implemented securely.
-
-                    // 3a. Save the new file to a temporary/pending location
                     string newImagePath = await SaveFile(viewModel.ProfileImageUpload, "profileimages/pending");
-
-                    // 3b. Update the pending path and set review flags
                     userProfile.PendingProfileImagePath = newImagePath;
                     userProfile.IsImagePending = true;
-
-                    // Optionally clear the old approved image path if a new one is pending
-                    // userProfile.ProfileImagePath = null; 
                     userProfile.IsImageApproved = false;
 
                     TempData["message"] = "Profile image uploaded successfully and is awaiting administrator approval.";
                 }
 
-                // 3. Handle File Uploads (Gpay QR)
+                // Handle QR Code Uploads
                 if (viewModel.GpayQRCodeUpload != null)
                 {
                     userProfile.GpayQRCodePath = await SaveFile(viewModel.GpayQRCodeUpload, "qrcodes/gpay");
                 }
 
-                // 3. Handle File Uploads (PhonePe QR)
                 if (viewModel.PhonePeQRCodeUpload != null)
                 {
                     userProfile.PhonePeQRCodePath = await SaveFile(viewModel.PhonePeQRCodeUpload, "qrcodes/phonepe");
                 }
 
                 // 4. Update IdentityUser Data
-                // The IdentityUser.Email and UserName are often handled through separate, more rigorous flows.
-                // We focus on the PhoneNumber here as it's directly editable in the view.
                 if (identityUser.PhoneNumber != viewModel.PhoneNumber)
                 {
                     identityUser.PhoneNumber = viewModel.PhoneNumber;
@@ -982,7 +1002,6 @@ namespace CMSECommerce.Controllers
                     if (!result.Succeeded)
                     {
                         TempData["error"] = "Error updating phone number.";
-                        // Optionally add errors to ModelState here
                     }
                 }
 
@@ -1006,28 +1025,18 @@ namespace CMSECommerce.Controllers
                 userProfile.BusinessAddress = viewModel.BusinessAddress;
                 userProfile.BusinessPhoneNumber = viewModel.BusinessPhoneNumber;
 
-                // NOTE: ITSNumber is usually read-only/mapped in the GET action, 
-                // but ensure you don't overwrite it here if the ViewModel property is empty.
-                // If the database is the source of truth, it should retain its value.
-
                 // 6. Save Changes
                 await _context.SaveChangesAsync();
 
                 TempData["success"] = TempData["message"] != null ?
-                                      TempData["message"] :
+                                      TempData["message"].ToString() :
                                       "Profile details updated successfully!";
 
-                // Redirect back to the GET action to show the updated data
                 return RedirectToAction("ProfileDetails", new { userId = viewModel.UserId });
             }
             catch (Exception ex)
             {
-                // 7. Error Handling
-                // Log the error (if using ILogger)
-                // _logger.LogError(ex, "Error updating profile for user ID: {UserId}", viewModel.UserId);
-
-                TempData["error"] = "An unexpected error occurred while saving your profile. Please try again.";
-                // Return to view with error state
+                TempData["error"] = "An unexpected error occurred. Please try again.";
                 ViewBag.ITSAvailable = !string.IsNullOrEmpty(viewModel.ITSNumber);
                 return View("ProfileDetails", viewModel);
             }
@@ -1066,15 +1075,14 @@ namespace CMSECommerce.Controllers
         public async Task<IActionResult> Profile(ProfileUpdateViewModel model)
         {
             // Note: Assumes necessary services (_userManager, _context, _webHostEnvironment) 
-            // and using statements (System.IO, etc.) are available in the Controller.
+            // and using statements (System.IO, Microsoft.EntityFrameworkCore, etc.) are available.
 
             if (!ModelState.IsValid)
             {
-                // Re-display the form with validation errors
                 return View(model);
             }
 
-            // Find Identity User - wrap in try-catch for identity/db failure
+            // Find Identity User
             IdentityUser identityUser;
             try
             {
@@ -1082,8 +1090,6 @@ namespace CMSECommerce.Controllers
             }
             catch (Exception ex)
             {
-                // Log Identity lookup failure
-                // _logger.LogError(ex, "Identity lookup failed for user ID: {UserId}", model.UserId);
                 TempData["error"] = "A database error occurred during user verification.";
                 return RedirectToAction("ProfileDetails");
             }
@@ -1099,7 +1105,6 @@ namespace CMSECommerce.Controllers
             identityUser.Email = model.Email;
             identityUser.PhoneNumber = model.PhoneNumber;
 
-            // Save IdentityUser changes (includes checking for username/email conflicts)
             try
             {
                 var identityResult = await _userManager.UpdateAsync(identityUser);
@@ -1114,12 +1119,9 @@ namespace CMSECommerce.Controllers
             }
             catch (Exception ex)
             {
-                // Log Identity update failure (e.g., database connection)
-                // _logger.LogError(ex, "Error updating IdentityUser data for ID: {UserId}", model.UserId);
                 ModelState.AddModelError("", "A critical error occurred while updating your login details.");
                 return View(model);
             }
-
 
             // --- 2. Handle UserProfile and File Uploads ---
             var userProfile = await _context.UserProfiles
@@ -1131,42 +1133,32 @@ namespace CMSECommerce.Controllers
                 userProfile = new UserProfile { UserId = identityUser.Id };
             }
 
-            // FIX: Declared at this scope so it is accessible outside the I/O try block
             bool profileImageUploaded = false;
 
-            // Separate the I/O logic for better error handling visibility
             try
             {
-                // File Upload Helper Function
+                // Internal Helper for File Uploads
                 async Task<string> ProcessFileUpload(IFormFile file, string subFolder)
                 {
                     if (file == null) return null;
-
                     string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", subFolder);
                     string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
                     string filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
-                    // Ensure the directory exists (I/O operation)
-                    if (!Directory.Exists(uploadsFolder))
-                    {
-                        Directory.CreateDirectory(uploadsFolder);
-                    }
+                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
                     using (var fileStream = new FileStream(filePath, FileMode.Create))
                     {
-                        // File Copy operation (I/O operation)
                         await file.CopyToAsync(fileStream);
                     }
                     return Path.Combine("images", subFolder, uniqueFileName).Replace("\\", "/");
                 }
 
-                // --- Process Profile Image for Approval ---
+                // Process Profile Image for Approval
                 if (model.ProfileImageUpload != null)
                 {
-                    // 1. Save the new image to the PENDING folder/path
                     string newPendingPath = await ProcessFileUpload(model.ProfileImageUpload, "profiles/pending");
 
-                    // 2. Delete the previously pending image (if one existed)
                     if (!string.IsNullOrEmpty(userProfile.PendingProfileImagePath))
                     {
                         try
@@ -1174,113 +1166,78 @@ namespace CMSECommerce.Controllers
                             string oldPendingPath = Path.Combine(_webHostEnvironment.WebRootPath, userProfile.PendingProfileImagePath);
                             if (System.IO.File.Exists(oldPendingPath)) System.IO.File.Delete(oldPendingPath);
                         }
-                        catch (Exception deleteEx)
-                        {
-                            // Log but don't stop the update
-                            // _logger.LogWarning(deleteEx, "Failed to delete old pending profile image: {Path}", userProfile.PendingProfileImagePath);
-                        }
+                        catch { /* Log non-critical delete failure */ }
                     }
 
-                    // 3. Update the UserProfile properties
                     userProfile.PendingProfileImagePath = newPendingPath;
-                    userProfile.IsImageApproved = false; // Must be reset to false when a new image is pending
-                    userProfile.IsImagePending = true;  // Mark as pending
-
-                    profileImageUploaded = true; // Set the flag
+                    userProfile.IsImageApproved = false;
+                    userProfile.IsImagePending = true;
+                    profileImageUploaded = true;
                 }
 
-                // Process GPay/PhonePe QR Codes (omitting old file delete for brevity, but it should be added)
+                // Process QR Codes
                 if (model.GpayQRCodeUpload != null)
-                {
-                    // DELETE existing GPay QR code before saving new one
-                    if (!string.IsNullOrEmpty(userProfile.GpayQRCodePath))
-                    {
-                        // Delete old file logic here
-                    }
                     userProfile.GpayQRCodePath = await ProcessFileUpload(model.GpayQRCodeUpload, "qrcodes");
-                }
+
                 if (model.PhonePeQRCodeUpload != null)
-                {
-                    // DELETE existing PhonePe QR code before saving new one
-                    if (!string.IsNullOrEmpty(userProfile.PhonePeQRCodePath))
-                    {
-                        // Delete old file logic here
-                    }
                     userProfile.PhonePeQRCodePath = await ProcessFileUpload(model.PhonePeQRCodeUpload, "qrcodes");
-                }
             }
-            catch (IOException ioEx)
+            catch (IOException)
             {
-                // Log File I/O failure (permission, disk full, etc.)
-                // _logger.LogError(ioEx, "File I/O error during profile update for user ID: {UserId}", model.UserId);
-                ModelState.AddModelError("", "Error saving file attachments. Check server disk space or permissions.");
-                return View(model);
-            }
-            catch (Exception ex)
-            {
-                // Log any other file upload processing errors
-                // _logger.LogError(ex, "Unexpected error during file upload for user ID: {UserId}", model.UserId);
-                ModelState.AddModelError("", "An unexpected error occurred during file upload.");
+                ModelState.AddModelError("", "Error saving file attachments. Check server disk space.");
                 return View(model);
             }
 
-            // --- 3. Update UserProfile Details and Save to DB ---
-            // Map data fields from ViewModel to UserProfile
+            // --- 3. Update UserProfile & Store Details ---
+            // Personal Info
             userProfile.FirstName = model.FirstName;
             userProfile.LastName = model.LastName;
-            userProfile.IsProfileVisible = model.IsProfileVisible;
             userProfile.ITSNumber = model.ITSNumber;
             userProfile.About = model.About;
             userProfile.Profession = model.Profession;
             userProfile.ServicesProvided = model.ServicesProvided;
+            userProfile.IsProfileVisible = model.IsProfileVisible;
+
+            // Contact & Social
             userProfile.LinkedInUrl = model.LinkedInUrl;
             userProfile.FacebookUrl = model.FacebookUrl;
             userProfile.InstagramUrl = model.InstagramUrl;
             userProfile.WhatsAppNumber = model.WhatsappNumber;
             userProfile.HomeAddress = model.HomeAddress;
             userProfile.HomePhoneNumber = model.HomePhoneNumber;
-            userProfile.BusinessAddress = model.BusinessAddress;
-            userProfile.BusinessPhoneNumber = model.BusinessPhoneNumber;
+
+            // NEW: Store & Business Mapping
+            // This assumes your UserProfile model now contains these specific Store fields
+            userProfile.Store.StoreName = model.StoreName;
+            userProfile.Store.GSTIN = model.GSTIN;
+            userProfile.Store.Email = model.StoreEmail;
+            userProfile.Store.Contact = model.StoreContact;
+            userProfile.Store.StreetAddress = model.StoreStreetAddress;
+            userProfile.Store.City = model.StoreCity;
+            userProfile.Store.PostCode = model.StorePostCode;
+            userProfile.Store.Country = model.StoreCountry;
+
+            // Legacy Support: If your system still uses 'BusinessAddress', sync it with Street Address
+            userProfile.BusinessAddress = model.StoreStreetAddress;
 
             try
             {
-                if (isNewProfile)
-                {
-                    _context.UserProfiles.Add(userProfile);
-                }
-                else
-                {
-                    _context.UserProfiles.Update(userProfile);
-                }
+                if (isNewProfile) _context.UserProfiles.Add(userProfile);
+                else _context.UserProfiles.Update(userProfile);
 
                 await _context.SaveChangesAsync();
             }
-            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            catch (DbUpdateException)
             {
-                // Log the DB save error (e.g., constraint violation, data too long)
-                // _logger.LogError(dbEx, "Database update failed for UserProfile ID: {UserId}", model.UserId);
                 ModelState.AddModelError("", "Error saving profile details due to a database constraint.");
                 return View(model);
             }
-            catch (Exception ex)
-            {
-                // Log generic DB save error
-                // _logger.LogError(ex, "Unexpected database error during UserProfile save for ID: {UserId}", model.UserId);
-                ModelState.AddModelError("", "An unexpected error occurred while saving profile data.");
-                return View(model);
-            }
 
-            // Set success message based on whether an image upload was submitted
-            if (profileImageUploaded)
-            {
-                TempData["success"] = "Your profile and new image have been saved. The new profile image is now **pending review** by an administrator.";
-            }
-            else
-            {
-                TempData["success"] = "Your profile details have been updated successfully.";
-            }
+            // Success Handling
+            TempData["success"] = profileImageUploaded
+                ? "Profile updated. Your new image is pending administrator review."
+                : "Profile details updated successfully.";
 
-            // Redirect to the Profile Details page
             return RedirectToAction("ProfileDetails", new { userId = userProfile.UserId });
         }
 
@@ -1302,7 +1259,7 @@ namespace CMSECommerce.Controllers
 
                 if (userProfile != null)
                 {
-                    // Helper function for file deletion to keep the main logic clean
+                    // Helper function for file deletion
                     void DeleteFileIfPresent(string relativePath)
                     {
                         if (string.IsNullOrEmpty(relativePath)) return;
@@ -1314,36 +1271,40 @@ namespace CMSECommerce.Controllers
                                 System.IO.File.Delete(fullPath);
                             }
                         }
-                        catch (Exception deleteEx)
+                        catch (Exception)
                         {
-                            // Log a warning if deletion fails (e.g., file lock), but continue the database operation
-                            // _logger.LogWarning(deleteEx, "Failed to delete file: {Path}", relativePath);
+                            // Log warning but don't break the flow
                         }
                     }
 
-                    // Delete associated files (images, QR codes)
+                    // --- 1. Delete associated files ---
+                    // Existing approved image
                     DeleteFileIfPresent(userProfile.ProfileImagePath);
+
+                    // NEW: Ensure pending profile images are also wiped
+                    DeleteFileIfPresent(userProfile.PendingProfileImagePath);
+
+                    // QR Codes
                     DeleteFileIfPresent(userProfile.GpayQRCodePath);
                     DeleteFileIfPresent(userProfile.PhonePeQRCodePath);
 
-                    // Remove and save
+                    // --- 2. Remove Profile Record ---
+                    // This automatically wipes StoreName, GSTIN, StoreCity, etc.
                     _context.UserProfiles.Remove(userProfile);
                     await _context.SaveChangesAsync();
 
-                    TempData["success"] = "Your custom profile data has been deleted!";
+                    TempData["success"] = "Your business and profile data has been completely removed!";
                 }
                 else
                 {
                     TempData["info"] = "No custom profile data found to delete.";
                 }
 
-                // Redirect back to the profile page (which will now show default values)
-                return RedirectToAction("ProfileDetails");
+                return RedirectToAction("ProfileDetails", new { userId = identityUser.Id });
             }
             catch (Exception ex)
             {
-                // Log the error during DB save or file deletion lookup
-                // _logger.LogError(ex, "Error deleting profile data for user ID: {UserId}", identityUser.Id);
+                // _logger.LogError(ex, "Error deleting profile for user {UserId}", identityUser.Id);
                 TempData["error"] = "An error occurred while deleting your profile data.";
                 return RedirectToAction("ProfileDetails");
             }
@@ -1557,45 +1518,46 @@ namespace CMSECommerce.Controllers
         }
         public async Task<IActionResult> OrderDetails(int id)
         {
-            // The commented-out lines are ignored as they are not executed.
-
             try
             {
-                // Fetch the specific Order
-                Order order = await _context.Orders
-                    .Where(x => x.Id == id)
-                    .FirstOrDefaultAsync();
+                // 1. Fetch Order with its Details in a single query using Include
+                // This is more efficient than two separate database calls
+                var order = await _context.Orders
+                    .Include(o => o.OrderDetails)
+                    .FirstOrDefaultAsync(x => x.Id == id);
 
-                // Check if the order was found before proceeding
+                // 2. Safety Check
                 if (order == null)
                 {
                     TempData["error"] = $"Order with ID {id} not found.";
-                    return RedirectToAction("Index", "Orders"); // Assuming an Orders list view
+                    return RedirectToAction("Index", "Orders");
                 }
 
-                // Fetch related Order Details
-                List<OrderDetail> orderDetails = await _context.OrderDetails
-                    .Where(x => x.OrderId == id)
-                    .ToListAsync();
+                // 3. Fetch the UserProfile associated with the ORDER owner
+                // We use order.UserId to ensure we see the correct profile even if an Admin is viewing
+                var userProfile = await _context.UserProfiles
+                    .FirstOrDefaultAsync(p => p.UserId == order.UserId);
 
-                // Use GetUserId(User) instead of GetUserIdAsync
-                string userId = _userManager.GetUserId(User);
+                // 4. If no profile exists yet, initialize a blank one to prevent NullReference in the View
+                if (userProfile == null)
+                {
+                    userProfile = new UserProfile { UserId = order.UserId };
+                }
 
-                UserProfile userProfile = await _context.UserProfiles
-                    .FirstOrDefaultAsync(p => p.UserId == userId);
+                // 5. Return the combined ViewModel
+                var viewModel = new OrderDetailsViewModel
+                {
+                    Order = order,
+                    OrderDetails = order.OrderDetails.ToList(),
+                    UserProfile = userProfile
+                };
 
-                // Return the combined ViewModel
-                return View(new OrderDetailsViewModel { Order = order, OrderDetails = orderDetails, UserProfile=userProfile });
+                return View(viewModel);
             }
             catch (Exception ex)
             {
-                // Log the detailed exception (e.g., database connection failure)
                 // _logger.LogError(ex, "Error retrieving order details for Order ID: {OrderId}", id);
-
-                // Inform the user about the failure
                 TempData["error"] = "A database error occurred while trying to load the order details.";
-
-                // Redirect to a safe page (e.g., the Orders list or Home)
                 return RedirectToAction("Index", "Orders");
             }
         }
@@ -1797,32 +1759,39 @@ namespace CMSECommerce.Controllers
             }
         }
 
-
         [HttpGet]
-        [Authorize(Roles = "Admin,Subscriber")] // Restrict access to authorized users
+        [Authorize(Roles = "Admin,Subscriber")]
         public async Task<IActionResult> UserList()
         {
             try
             {
-                // 1. Get all IdentityUsers (Database/Identity Operation)
+                // 1. Fetch all Identity Users
                 var allIdentityUsers = await _userManager.Users.ToListAsync();
 
-                // 2. Get all UserProfiles (Database Operation)
-                var allUserProfiles = await _context.UserProfiles.ToListAsync();
-                var profilesDictionary = allUserProfiles.ToDictionary(p => p.UserId, p => p);
+                // 2. Fetch all Profiles with Stores (One database hit)
+                var allUserProfiles = await _context.UserProfiles
+                    .Include(p => p.Store)
+                    .AsNoTracking()
+                    .ToListAsync();
 
-                // 3. Create a list of the ProfileUpdateViewModel by combining IdentityUser and UserProfile
-                // Includes asynchronous calls to GetRolesAsync
-                var userListTasks = allIdentityUsers.Select(async user =>
+                // 3. Fetch ALL User-Role mappings at once (Avoids the threading error)
+                // This links UserIds to RoleNames in a flat list
+                var userRoles = await (from ur in _context.UserRoles
+                                       join r in _context.Roles on ur.RoleId equals r.Id
+                                       select new { ur.UserId, r.Name }).ToListAsync();
+
+                // Map for fast lookup
+                var profilesDict = allUserProfiles.ToDictionary(p => p.UserId, p => p);
+                var rolesDict = userRoles.GroupBy(ur => ur.UserId)
+                                         .ToDictionary(g => g.Key, g => g.First().Name);
+
+                // 4. Map to ViewModel in memory (No async calls inside this loop)
+                var finalUserList = allIdentityUsers.Select(user =>
                 {
-                    // The dictionary lookup itself is safe and fast
-                    profilesDictionary.TryGetValue(user.Id, out var profile);
+                    profilesDict.TryGetValue(user.Id, out var profile);
+                    rolesDict.TryGetValue(user.Id, out var roleName);
 
-                    // Critical Identity Operation: GetRolesAsync
-                    var roles = await _userManager.GetRolesAsync(user);
-
-                    // Accessing profile properties (using null conditional operator `?` for safety)
-                    var viewModel = new ProfileUpdateViewModel
+                    return new ProfileUpdateViewModel
                     {
                         UserId = user.Id,
                         UserName = user.UserName,
@@ -1832,48 +1801,39 @@ namespace CMSECommerce.Controllers
                         LastName = profile?.LastName,
                         ITSNumber = profile?.ITSNumber,
                         Profession = profile?.Profession,
-                        // Handle potential null profile before accessing IsProfileVisible
                         IsProfileVisible = profile?.IsProfileVisible ?? false,
-                        // Assign the user's highest role, or "None"
-                        CurrentRole = roles.FirstOrDefault() ?? "None"
-                    };
+                        CurrentRole = roleName ?? "None",
 
-                    return viewModel;
+                        // Safe navigation for Store
+                        StoreName = profile?.Store?.StoreName ?? "Independent",
+                        StoreCity = profile?.Store?.City,
+                        StoreContact = profile?.Store?.Contact,
+                        StoreEmail = profile?.Store?.Email,
+                        ExistingProfileImagePath = profile?.ProfileImagePath
+                    };
                 }).ToList();
 
-                // Critical Task Management: Wait for all the role lookups to complete
-                var finalUserList = await Task.WhenAll(userListTasks);
-
-                // 4. Implementation of the Filter: Exclude users who are not visible or are Admins (for non-Admin viewers).
-                List<ProfileUpdateViewModel> filteredUserList = new();
+                // 5. Apply Filtering
+                IEnumerable<ProfileUpdateViewModel> filteredList;
                 if (User.IsInRole("Admin"))
                 {
-                    // Admins see all visible profiles
-                    filteredUserList = finalUserList
-                        .Where(u => u.IsProfileVisible)
-                        .OrderBy(u => u.UserName)
-                        .ToList();
+                    filteredList = finalUserList.Where(u => u.IsProfileVisible);
                 }
                 else
                 {
-                    // Subscribers see visible profiles that are NOT Admins
-                    filteredUserList = finalUserList
-                        .Where(u => u.CurrentRole != "Admin" && u.IsProfileVisible)
-                        .OrderBy(u => u.UserName)
-                        .ToList();
+                    filteredList = finalUserList.Where(u => u.IsProfileVisible && u.CurrentRole != "Admin");
                 }
 
-                return View(filteredUserList);
+                var result = filteredList
+                    .OrderBy(u => u.StoreName == "Independent")
+                    .ThenBy(u => u.StoreName)
+                    .ToList();
+
+                return View(result);
             }
             catch (Exception ex)
             {
-                // Log the detailed exception (e.g., database connection failure, Identity service error)
-                // _logger.LogError(ex, "Error occurred while generating the UserList.");
-
-                // Inform the user about the failure
-                TempData["error"] = "A system error occurred while trying to load the list of users.";
-
-                // Redirect to a safe page or return an empty list
+                TempData["error"] = "Unable to load the business directory.";
                 return RedirectToAction("Index", "Home");
             }
         }
@@ -1964,7 +1924,7 @@ namespace CMSECommerce.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")] // ⬅️ IMPORTANT: Only Admins should delete other users
+        [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteUser(string userId)
         {
@@ -1976,104 +1936,119 @@ namespace CMSECommerce.Controllers
 
             try
             {
-                // 1. Find the IdentityUser (Identity Operation)
                 var userToDelete = await _userManager.FindByIdAsync(userId);
-
                 if (userToDelete == null)
                 {
                     TempData["info"] = $"User with ID {userId} not found.";
                     return RedirectToAction("UserList");
                 }
 
-                // IMPORTANT: Prevent accidental deletion of the current Admin user's account
                 if (userToDelete.Id == _userManager.GetUserId(User))
                 {
                     TempData["error"] = "You cannot delete your own account via the Admin panel.";
                     return RedirectToAction("UserList");
                 }
 
-                // --- 2. Delete related custom data (UserProfile, Address, Orders, etc.) ---
-
-                // Helper function for file path resolution
-                string GetFullPath(string relativePath)
+                // Helper function for file deletion
+                void DeleteFile(string relativePath)
                 {
-                    if (string.IsNullOrEmpty(relativePath)) return null;
-                    return Path.Combine(_webHostEnvironment.WebRootPath, relativePath.TrimStart('/', '\\'));
+                    if (string.IsNullOrEmpty(relativePath)) return;
+                    try
+                    {
+                        var fullPath = Path.Combine(_webHostEnvironment.WebRootPath, relativePath.TrimStart('/', '\\'));
+                        if (System.IO.File.Exists(fullPath))
+                        {
+                            System.IO.File.Delete(fullPath);
+                        }
+                    }
+                    catch { /* Log warning if needed */ }
                 }
 
-                // a. Find and remove UserProfile (Database Operation)
+                // 1. Remove User Profile & Associated Files
                 var userProfile = await _context.UserProfiles
                     .FirstOrDefaultAsync(p => p.UserId == userId);
 
                 if (userProfile != null)
                 {
-                    // Delete Profile Image (File System Operation)
-                    try
-                    {
-                        string profileImagePath = GetFullPath(userProfile.ProfileImagePath);
-                        if (System.IO.File.Exists(profileImagePath))
-                        {
-                            System.IO.File.Delete(profileImagePath);
-                        }
-                    }
-                    catch (Exception fileEx)
-                    {
-                        // Log file deletion error but continue with database cleanup
-                        // _logger.LogWarning(fileEx, "Failed to delete profile image for user {UserId}", userId);
-                    }
+                    // Delete all associated business/profile files
+                    DeleteFile(userProfile.ProfileImagePath);
+                    DeleteFile(userProfile.PendingProfileImagePath);
+                    DeleteFile(userProfile.GpayQRCodePath);
+                    DeleteFile(userProfile.PhonePeQRCodePath);
 
                     _context.UserProfiles.Remove(userProfile);
                 }
 
-                // b. Delete Address records (Database Operation)
-                var userAddresses = await _context.Addresses
-                    .Where(a => a.UserId == userId)
-                    .ToListAsync();
+                // 2. Remove Addresses
+                var userAddresses = await _context.Addresses.Where(a => a.UserId == userId).ToListAsync();
                 _context.Addresses.RemoveRange(userAddresses);
 
-                // c. Delete Orders (Database Operation)
-                var userOrders = await _context.Orders
-                    .Where(o => o.UserName == userToDelete.UserName)
-                    .ToListAsync();
+                // 3. Remove Orders (Linked via UserId for better accuracy)
+                var userOrders = await _context.Orders.Where(o => o.UserId == userId).ToListAsync();
                 _context.Orders.RemoveRange(userOrders);
 
-                // d. Save all custom context changes before deleting the IdentityUser (Database Operation)
+                // 4. Commit changes to Custom Tables
                 await _context.SaveChangesAsync();
 
-                // --- 3. Delete the IdentityUser (Identity Operation) ---
+                // 5. Delete the Identity User
                 IdentityResult result = await _userManager.DeleteAsync(userToDelete);
 
                 if (result.Succeeded)
                 {
-                    TempData["success"] = $"User '{userToDelete.UserName}' and all associated data deleted successfully.";
+                    TempData["success"] = $"User '{userToDelete.UserName}' and all associated business data deleted.";
                 }
                 else
                 {
-                    // Identity operation failed (e.g., due to configuration issue)
                     string errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                    TempData["error"] = $"Error deleting user: {errors}";
+                    TempData["error"] = $"Error deleting identity account: {errors}";
                 }
 
-                // Redirect to the list of users
-                return RedirectToAction("UserList");
-            }
-            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
-            {
-                // Log the specific database update error
-                // _logger.LogError(dbEx, "Database concurrency or foreign key error during user data cleanup for ID: {UserId}", userId);
-                TempData["error"] = "Database error occurred while cleaning up user data. Deletion failed.";
                 return RedirectToAction("UserList");
             }
             catch (Exception ex)
             {
-                // Log the general unexpected error (e.g., connection issue, general Identity failure)
-                // _logger.LogCritical(ex, "Critical unexpected error during user deletion for ID: {UserId}", userId);
-                TempData["error"] = "A critical system error occurred during the deletion process.";
+                TempData["error"] = "A critical error occurred while deleting user data.";
                 return RedirectToAction("UserList");
             }
         }
 
+        public async Task<IActionResult> Invoice(int id)
+        {
+            // 1. Fetch the Order
+            // Using AsNoTracking() as this is a read-only view for an invoice
+            var order = await _context.Orders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == id);
 
+            if (order == null)
+            {
+                return NotFound();
+            }
+
+            // 2. Fetch Order Details (the items inside the order)
+            var orderDetails = await _context.OrderDetails
+                .AsNoTracking()
+                .Where(od => od.OrderId == id)
+                .ToListAsync();
+
+            // 3. Fetch UserProfile AND the related Store
+            // IMPORTANT: .Include(u => u.Store) is required to access store details in the view
+            var userProfile = await _context.UserProfiles
+                .AsNoTracking()
+                .Include(u => u.User)  // Standard Identity User data
+                .Include(u => u.Store) // The new Store model data
+                .FirstOrDefaultAsync(u => u.UserId == order.UserId);
+
+            // 4. Populate the ViewModel
+            var viewModel = new OrderDetailsViewModel
+            {
+                Order = order,
+                OrderDetails = orderDetails,
+                UserProfile = userProfile
+            };
+
+            return View(viewModel);
+        }
 
     }
 }

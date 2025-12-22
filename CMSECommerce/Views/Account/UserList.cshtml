@@ -7,14 +7,14 @@
 <div class="container mt-5">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="display-5 fw-bold text-dark"><i class="fas fa-users me-2"></i> Registered Sellers</h2>
+        <h2 class="display-5 fw-bold text-dark"><i class="fas fa-store me-2"></i> Business Directory</h2>
     </div>
 
     @if (!Model.Any())
     {
         <div class="alert alert-info py-3 shadow-sm" role="alert">
-            <h4 class="alert-heading"><i class="fas fa-info-circle me-2"></i>No Users Found</h4>
-            <p class="mb-0">There are currently no registered sellers in the system to display.</p>
+            <h4 class="alert-heading"><i class="fas fa-info-circle me-2"></i>No Businesses Found</h4>
+            <p class="mb-0">There are currently no registered sellers or businesses to display.</p>
         </div>
     }
     else
@@ -23,19 +23,19 @@
             <table class="table table-hover table-striped mb-0" id="sellerTable">
                 <thead class="bg-primary text-white">
                     <tr>
-                        <th scope="col">Name</th>
+                        <th scope="col">Business / Seller</th>
+                        <th scope="col">Location (City)</th>
                         <th scope="col">Email</th>
-                        <th scope="col">Phone Number</th>
-                        <th scope="col">ITS Number</th>
+                        <th scope="col">Contact</th>
                         <th scope="col">Profession</th>
-                        <th scope="col">Actions</th>
+                        <th scope="col" class="text-center">Actions</th>
                     </tr>
                     @* Filter Row *@
                     <tr class="bg-light">
-                        <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter Name..." data-col="0"></th>
-                        <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter Email..." data-col="1"></th>
-                        <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter Phone..." data-col="2"></th>
-                        <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter ITS..." data-col="3"></th>
+                        <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter Business..." data-col="0"></th>
+                        <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter City..." data-col="1"></th>
+                        <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter Email..." data-col="2"></th>
+                        <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter Contact..." data-col="3"></th>
                         <th><input type="text" class="form-control form-control-sm column-filter" placeholder="Filter Profession..." data-col="4"></th>
                         <th><button id="clearFilters" class="btn btn-sm btn-secondary w-100">Reset</button></th>
                     </tr>
@@ -45,20 +45,33 @@
                     {
                         <tr>
                             <td>
-                                @{
-                                    var firstName = user.FirstName ?? "N/A";
-                                    var lastName = user.LastName ?? "";
-                                    var fullName = string.IsNullOrWhiteSpace(lastName) ? firstName : $"{firstName} {lastName}";
-                                }
-                                @fullName
+                                <div class="d-flex align-items-center">
+                                    @if (!string.IsNullOrEmpty(user.ExistingProfileImagePath))
+                                    {
+                                        <img src="/@user.ExistingProfileImagePath" class="rounded-circle me-2" style="width: 35px; height: 35px; object-fit: cover; border: 1px solid #ddd;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
+                                            <i class="fas fa-user text-white" style="font-size: 0.8rem;"></i>
+                                        </div>
+                                    }
+                                    <div>
+                                        <div class="fw-bold text-dark">@(string.IsNullOrEmpty(user.StoreName) ? $"{user.FirstName} {user.LastName}" : user.StoreName)</div>
+                                        @if (!string.IsNullOrEmpty(user.StoreName))
+                                        {
+                                            <small class="text-muted">Prop: @user.FirstName @user.LastName</small>
+                                        }
+                                    </div>
+                                </div>
                             </td>
-                            <td>@user.Email</td>
-                            <td>@(user.PhoneNumber ?? "N/A")</td>
-                            <td>@(user.ITSNumber ?? "-")</td>
-                            <td>@(user.Profession ?? "-")</td>
-                            <td>
-                                <a asp-action="UserDetails" asp-route-id="@user.UserId" class="btn btn-sm btn-outline-info">
-                                    <i class="fas fa-eye me-1"></i> View
+                            <td>@(user.StoreCity ?? "N/A")</td>
+                            <td>@(user.StoreEmail ?? user.Email)</td>
+                            <td>@(user.StoreContact ?? user.PhoneNumber ?? "N/A")</td>
+                            <td><span class="badge bg-light text-dark border">@(user.Profession ?? "Seller")</span></td>
+                            <td class="text-center">
+                                <a asp-action="UserDetails" asp-route-id="@user.UserId" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-id-card me-1"></i> Profile
                                 </a>
                             </td>
                         </tr>
@@ -67,31 +80,43 @@
             </table>
         </div>
 
-        <p class="text-muted small mt-3">Total Registered Sellers: <span id="visibleCount">@Model.Count()</span></p>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <p class="text-muted small">Showing <span id="visibleCount" class="fw-bold">@Model.Count()</span> matching businesses</p>
+            <nav aria-label="Table status">
+                <span class="badge bg-info text-dark">Public Directory</span>
+            </nav>
+        </div>
     }
 </div>
 
 @section Styles {
     <style>
         .bg-primary {
-            background-color: #1e3a8a !important;
+            background-color: #004d40 !important;
         }
-
-        /* Styling for the filter inputs */
+        /* Dark Teal for Business look */
         .column-filter {
             border: 1px solid #ced4da;
             font-size: 0.85rem;
         }
 
             .column-filter:focus {
-                border-color: #007bff;
+                border-color: #004d40;
                 box-shadow: none;
             }
 
-        /* Keep header clean */
         .table thead th {
-            border-bottom: 2px solid #007bff;
+            border-bottom: 2px solid #004d40;
             vertical-align: middle;
+            font-weight: 600;
+        }
+
+        .table tbody tr {
+            transition: background 0.2s;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 77, 64, 0.05);
         }
     </style>
 }
@@ -106,33 +131,21 @@
 
             function filterTable() {
                 let visibleCount = 0;
-
                 rows.forEach(row => {
                     let isVisible = true;
-
                     filters.forEach(filter => {
                         const colIndex = filter.getAttribute("data-col");
                         const filterValue = filter.value.toLowerCase();
                         const cellText = row.cells[colIndex].textContent.toLowerCase();
-
-                        if (!cellText.includes(filterValue)) {
-                            isVisible = false;
-                        }
+                        if (!cellText.includes(filterValue)) { isVisible = false; }
                     });
-
                     row.style.display = isVisible ? "" : "none";
                     if (isVisible) visibleCount++;
                 });
-
                 countDisplay.textContent = visibleCount;
             }
 
-            // Trigger filtering on input
-            filters.forEach(filter => {
-                filter.addEventListener("keyup", filterTable);
-            });
-
-            // Reset functionality
+            filters.forEach(filter => { filter.addEventListener("keyup", filterTable); });
             clearBtn.addEventListener("click", function () {
                 filters.forEach(filter => filter.value = "");
                 filterTable();

@@ -5,6 +5,8 @@ namespace CMSECommerce.Models
     public class Order
     {
         public int Id { get; set; }
+        // ADD THIS LINE
+        public string UserId { get; set; }
 
         public string UserName { get; set; }
 
@@ -16,5 +18,7 @@ namespace CMSECommerce.Models
         public decimal GrandTotal { get; set; }
 
         public DateTime DateTime { get; set; } = DateTime.Now;
+        // ADD THIS LINE:
+        public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
     }
 }

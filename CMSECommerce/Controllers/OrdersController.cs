@@ -46,45 +46,34 @@ namespace CMSECommerce.Controllers
 
             try
             {
-                // 2. Identity Handling & Name Formatting
-                var rawUserName = _userManager.GetUserName(User);
-                string usernameLower = rawUserName?.ToLower() ?? string.Empty;
+                // 2. Identity Handling (Using UserId for reliable database linking)
+                var userId = _userManager.GetUserId(User);
 
+                // Fetch profile for UI display purposes (ViewBag)
                 var userProfile = await _context.UserProfiles
-                    .Where(p => p.User.UserName.ToLower() == usernameLower)
-                    .FirstOrDefaultAsync();
-
-                // Architect Note: Handle potential null profile gracefully
-                string finalUserName = userProfile != null
-                    ? $"{userProfile.FirstName} {userProfile.LastName} ({rawUserName})".ToLower()
-                    : rawUserName.ToLower();
+                    .FirstOrDefaultAsync(p => p.UserId == userId);
 
                 const int pageSize = 10;
                 int pageNumber = page ?? 1;
 
                 // 3. Status Synchronization Logic (Architectural Efficiency)
-                // We use a projection to check completion status in a single DB round-trip
-                var ordersQuery = _context.Orders
-                    .Where(o => o.UserName.ToLower() == finalUserName);
-
-                var ordersWithStatus = await ordersQuery
+                // Check completion status in a single DB round-trip using projection
+                var ordersToCheck = await _context.Orders
+                    .Where(o => o.UserId == userId && !o.Shipped) // Only check orders not yet shipped
                     .Select(o => new
                     {
                         Order = o,
                         // Condition: True if EVERY item in OrderDetails is processed
-                        AllItemsProcessed = _context.OrderDetails
-                            .Where(od => od.OrderId == o.Id)
-                            .All(od => od.IsProcessed)
+                        AllItemsProcessed = o.OrderDetails.All(od => od.IsProcessed)
                     })
                     .ToListAsync();
 
                 bool hasChanges = false;
-                foreach (var item in ordersWithStatus)
+                foreach (var item in ordersToCheck)
                 {
-                    // Only trigger update if the database value is out of sync
-                    if (item.Order.Shipped != item.AllItemsProcessed)
+                    if (item.AllItemsProcessed)
                     {
-                        item.Order.Shipped = item.AllItemsProcessed;
+                        item.Order.Shipped = true;
                         _context.Update(item.Order);
                         hasChanges = true;
                     }
@@ -96,10 +85,9 @@ namespace CMSECommerce.Controllers
                 }
 
                 // 4. Build Filtered Query for UI Display
-                // We re-initialize the query to ensure it uses the newly updated 'Shipped' statuses
                 var filteredOrders = _context.Orders
                     .AsNoTracking()
-                    .Where(o => o.UserName.ToLower() == finalUserName);
+                    .Where(o => o.UserId == userId);
 
                 // Apply Filters
                 if (!string.IsNullOrEmpty(orderId) && int.TryParse(orderId, out int id))
@@ -121,7 +109,7 @@ namespace CMSECommerce.Controllers
                 if (minDate.HasValue) filteredOrders = filteredOrders.Where(o => o.DateTime.Date >= minDate.Value.Date);
                 if (maxDate.HasValue) filteredOrders = filteredOrders.Where(o => o.DateTime.Date <= maxDate.Value.Date);
 
-                // 5. Store UI State
+                // 5. Store UI State for the Filter Form
                 ViewData["CurrentOrderId"] = orderId;
                 ViewData["CurrentStatus"] = status;
                 ViewData["CurrentMinTotal"] = minTotal?.ToString();
@@ -153,10 +141,10 @@ namespace CMSECommerce.Controllers
             }
         }
 
-
         // Note: This method should be placed in the appropriate controller (likely OrdersController or CheckoutController).
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create()
         {
             List<CartItem> cart = HttpContext.Session.GetJson<List<CartItem>>("Cart");
@@ -164,7 +152,7 @@ namespace CMSECommerce.Controllers
             // Scenario 1: Empty Cart
             if (cart == null || !cart.Any())
             {
-                TempData["Error"] = "Your shopping cart is empty. Please add items before checking out.";
+                TempData["Error"] = "Your shopping cart is empty.";
                 return RedirectToAction("Index", "Cart");
             }
 
@@ -173,160 +161,138 @@ namespace CMSECommerce.Controllers
             if (user == null)
             {
                 TempData["Error"] = "You must be logged in to place an order.";
-                return RedirectToAction("Login", "Account", new { area = "Identity" }); // Redirect to login page
+                return RedirectToAction("Login", "Account", new { area = "Identity" });
             }
 
-            // 1. Safely retrieve the UserProfile object
+            // 1. Safely retrieve the UserProfile for display metadata
             var userProfile = await _context.UserProfiles
-                .Where(x => x.UserId == user.Id)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(x => x.UserId == user.Id);
 
-            // 2. Check if the profile exists and concatenate the names
             string fullName = userProfile != null
-                ? userProfile.FirstName + " " + userProfile.LastName
-                : User.Identity.Name; // Fallback to Identity Username
+                ? $"{userProfile.FirstName} {userProfile.LastName}"
+                : user.UserName;
 
-            // Use a database transaction to ensure atomicity (all or nothing)
+            // Use a transaction to ensure stock is only deducted if the order is fully recorded
             await using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
-                // --- 🛠️ Final Stock Check and Product Fetching ---
-
-                // Get IDs of all products in the cart
-                var productIds = cart.Select(item => item.ProductId).ToList();
-
-                // Fetch all required Product entities from the database, tracking them for update
-                // Use .Include(p => p.StockQuantity) if StockQuantity is in a related entity, but here it seems direct.
+                // 2. Critical Stock Check
+                var productIds = cart.Select(item => item.ProductId).Distinct().ToList();
                 var products = await _context.Products
-                                             .Where(p => productIds.Contains(p.Id))
-                                             .ToListAsync();
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToListAsync();
 
-                // Use a dictionary for fast lookup
                 var productMap = products.ToDictionary(p => p.Id);
-
-                // Scenario 3: Critical Stock Issue Check (Prevents Race Conditions)
                 var stockIssues = new List<string>();
 
                 foreach (var item in cart)
                 {
                     if (productMap.TryGetValue(item.ProductId, out var product))
                     {
-                        // Check if ordered quantity exceeds currently available stock
                         if (item.Quantity > product.StockQuantity)
                         {
-                            stockIssues.Add($"{item.ProductName} ({item.Quantity} requested) - Only {product.StockQuantity} available.");
+                            stockIssues.Add($"{item.ProductName}: Only {product.StockQuantity} left.");
                         }
                     }
                     else
                     {
-                        // Product missing (deleted from store)
-                        stockIssues.Add($"Product ID {item.ProductId} ({item.ProductName}) is no longer available in the store. Please remove it from your cart.");
+                        stockIssues.Add($"{item.ProductName} is no longer available.");
                     }
                 }
 
                 if (stockIssues.Any())
                 {
-                    // Abort the transaction and notify the user of specific shortages
                     await transaction.RollbackAsync();
-                    TempData["Error"] = "Order failed due to critical issues. Please review and adjust the following items: <br/>- " + string.Join("<br/>- ", stockIssues);
+                    TempData["Error"] = "Stock levels changed. Please review: <br/>- " + string.Join("<br/>- ", stockIssues);
                     return RedirectToAction("Index", "Cart");
                 }
 
-
-                // --- If all checks pass, proceed with Order Transaction ---
-
-                // 1. Create the Order header
+                // 3. Create the Order Header
                 Order order = new Order
                 {
-                    // Use a combination of full name and unique username for clarity
-                    UserName = $"{fullName} ({User.Identity.Name})",
-                    PhoneNumber = user.PhoneNumber,
+                    UserId = user.Id, // Link by ID for database stability
+                    UserName = fullName,
+                    PhoneNumber = user.PhoneNumber ?? "No Phone Provided",
                     GrandTotal = cart.Sum(x => x.Price * x.Quantity),
-                    DateTime = DateTime.UtcNow // Set creation time
+                    DateTime = DateTime.Now,
+                    Shipped = false // Default status
                 };
 
                 _context.Add(order);
-                await _context.SaveChangesAsync(); // Save to get the Order ID
+                await _context.SaveChangesAsync();
 
-                int orderId = order.Id;
-
-                // 2. Process Order Details and Update Stock
+                // 4. Process Order Details & Stock Deduction
                 foreach (var item in cart)
                 {
-                    // Retrieve the tracked product entity using the map
                     var product = productMap[item.ProductId];
 
-                    // 🛠️ CORE LOGIC: Subtract the ordered quantity from the stock
+                    // Core Logic: Deduct Stock
                     product.StockQuantity -= item.Quantity;
-                    // Note: Since 'products' was fetched using ToListAsync(), EF Core is already tracking it.
-                    // _context.Update(product) is technically optional here but harmless.
 
-                    // Create the OrderDetail entry
                     OrderDetail orderDetail = new()
                     {
-                        OrderId = orderId,
+                        OrderId = order.Id,
                         ProductId = item.ProductId,
                         ProductName = item.ProductName,
                         Quantity = item.Quantity,
                         Price = item.Price,
                         Image = item.Image,
-                        // Assuming these properties exist on OrderDetail, otherwise adjust
-                        ProductOwner = item.ProductOwner ?? "N/A",
-                        Customer = User.Identity.Name,
-                        CustomerNumber = user.PhoneNumber
+                        ProductOwner = item.ProductOwner ?? "Store",
+                        Customer = user.UserName,
+                        CustomerNumber = user.PhoneNumber ?? "N/A",
+                        IsProcessed = false // Link for your MyOrders sync logic
                     };
 
                     _context.Add(orderDetail);
                 }
 
-                // 3. Save all Order Details and Stock Quantity updates
                 await _context.SaveChangesAsync();
-
-                // Commit the transaction only if SaveChangesAsync succeeded
                 await transaction.CommitAsync();
 
-                // 4. Success: Clear the cart and notify the user
+                // 5. Success
                 HttpContext.Session.Remove("Cart");
-                TempData["Success"] = $"Your order (ID: {orderId}) has been placed successfully! A confirmation has been sent.";
+                TempData["Success"] = $"Order #{order.Id} placed successfully!";
 
-                // Redirect to the Order Details page
-                return RedirectToAction("OrderDetails", "Account", new { area = "Identity", id = orderId });
+                return RedirectToAction("MyOrders", "Account"); // Redirecting to the list we just built
             }
-            // Scenario 4A: Database error during SaveChanges (e.g., concurrency, constraint violation)
-            catch (DbUpdateException dbEx)
-            {
-                await transaction.RollbackAsync();
-                // _logger.LogError(dbEx, "DbUpdateException occurred while placing order for user {Username}.", User.Identity.Name);
-                TempData["Error"] = "A database error prevented the order from being placed. This may be a temporary issue or a data conflict. Please try again.";
-                return RedirectToAction("Index", "Cart");
-            }
-            // Scenario 4B: General Exception Error
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                // _logger.LogError(ex, "Unexpected error occurred while placing order for user {Username}", User.Identity.Name);
-
-                TempData["Error"] = "An unexpected error occurred while processing your order. The transaction was cancelled. Please try again or contact support.";
-                return RedirectToAction("Index", "Cart"); // Redirect back to cart or an error page
+                // _logger.LogError(ex, "Checkout failure");
+                TempData["Error"] = "A system error occurred. Your card was not charged.";
+                return RedirectToAction("Index", "Cart");
             }
         }
 
-        // Add this to your OrdersController
         public async Task<IActionResult> Invoice(int id)
         {
-            // Reuse your existing logic to get order details
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null) return NotFound();
+            // 1. Fetch the Order
+            // Using AsNoTracking() as this is a read-only view for an invoice
+            var order = await _context.Orders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == id);
 
+            if (order == null)
+            {
+                return NotFound();
+            }
+
+            // 2. Fetch Order Details (the items inside the order)
             var orderDetails = await _context.OrderDetails
+                .AsNoTracking()
                 .Where(od => od.OrderId == id)
                 .ToListAsync();
 
-            // Assuming you have a way to get the UserProfile associated with the order
+            // 3. Fetch UserProfile AND the related Store
+            // IMPORTANT: .Include(u => u.Store) is required to access store details in the view
             var userProfile = await _context.UserProfiles
-                .FirstOrDefaultAsync(u => u.User.UserName == order.UserName);
+                .AsNoTracking()
+                .Include(u => u.User)  // Standard Identity User data
+                .Include(u => u.Store) // The new Store model data
+                .FirstOrDefaultAsync(u => u.UserId == order.UserId);
 
+            // 4. Populate the ViewModel
             var viewModel = new OrderDetailsViewModel
             {
                 Order = order,

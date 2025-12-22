@@ -17,7 +17,7 @@ namespace CMSECommerce.Controllers
             List<CartItem> cart = [];
             try
             {
-                // 1. Retrieve cart from session (Session Operation)
+                // 1. Retrieve cart from session
                 cart = HttpContext.Session.GetJson<List<CartItem>>("Cart") ?? [];
 
                 if (cart.Count == 0)
@@ -25,45 +25,28 @@ namespace CMSECommerce.Controllers
                     return View(new CartViewModel { CartItems = [], GrandTotal = 0 });
                 }
 
-                // 2. Get a list of all Product IDs in the cart
-                IEnumerable<int> productIds = cart.Select(c => c.ProductId).ToList();
-
-                // 3. Fetch Product Data and Stock Quantity from the database (Database Operation)
+                // 2. Fetch Product Metadata and Stock in one trip
+                var productIds = cart.Select(c => c.ProductId).Distinct().ToList();
                 var productData = _context.Products
                     .Where(p => productIds.Contains(p.Id))
-                    .Select(p => new
-                    {
-                        p.Id,
-                        p.StockQuantity,
-                        p.Image,
-                        p.Slug
-                    })
+                    .Select(p => new { p.Id, p.StockQuantity, p.Image, p.Slug })
                     .ToDictionary(p => p.Id);
 
-                // 4. Iterate through the cart items, validate stock, and update metadata
+                // 3. Update Cart based on current DB state
                 foreach (var item in cart)
                 {
-                    if (productData.TryGetValue(item.ProductId, out var productDetails))
+                    if (productData.TryGetValue(item.ProductId, out var details))
                     {
-                        item.Image = productDetails.Image;
-                        item.ProductSlug = productDetails.Slug;
+                        item.Image = details.Image;
+                        item.ProductSlug = details.Slug;
 
-                        // Stock Check Logic
-                        if (item.Quantity > productDetails.StockQuantity)
+                        if (item.Quantity > details.StockQuantity)
                         {
                             item.IsOutOfStock = true;
-                            // Reset quantity to max stock if exceeding
-                            if (productDetails.StockQuantity > 0)
-                            {
-                                item.Quantity = productDetails.StockQuantity;
-                            }
-                            else
-                            {
-                                // If stock is zero, set quantity to 1 for display, but keep IsOutOfStock true
-                                // A more robust solution might remove items with zero stock entirely.
-                                item.Quantity = 1;
-                            }
-                            TempData["warning"] = $"Quantity for '{item.ProductName}' adjusted due to low stock.";
+                            item.Quantity = Math.Max(0, details.StockQuantity);
+                            if (item.Quantity == 0) item.Quantity = 1; // Keep 1 for UI display but flag as OutOfStock
+
+                            TempData["warning"] = $"Quantity for '{item.ProductName}' adjusted due to available stock.";
                         }
                         else
                         {
@@ -72,37 +55,28 @@ namespace CMSECommerce.Controllers
                     }
                     else
                     {
-                        // Product no longer exists in DB
-                        item.IsOutOfStock = true;
+                        item.IsOutOfStock = true; // Product deleted from DB
                     }
                 }
 
-                // 5. Update the session cart with the modified items (Session Operation)
+                // 4. Save adjusted cart back to session
                 HttpContext.Session.SetJson("Cart", cart);
 
-                // 6. Create and return the ViewModel
-                var userProfile = new List<UserProfile>();
-                foreach (var product in cart)
-                {
-                    if (!userProfile.Any(u => u.User.UserName == product.ProductOwner))
-                    {
-                        var profile = _context.UserProfiles.Include(p => p.User).FirstOrDefault(u => u.User.UserName == product.ProductOwner);
-                        if (profile != null)
-                        {
+                // 5. OPTIMIZED: Fetch all required UserProfiles in a single query
+                var ownerNames = cart.Select(c => c.ProductOwner).Distinct().ToList();
+                var profiles = _context.UserProfiles
+                    .Include(p => p.User)
+                    .Where(p => ownerNames.Contains(p.User.UserName))
+                    .ToDictionary(p => p.User.UserName);
 
-                            userProfile.Add(profile);
-                        }
+                // 6. Map profiles back to cart items
+                foreach (var item in cart)
+                {
+                    if (profiles.TryGetValue(item.ProductOwner, out var profile))
+                    {
+                        item.UserProfile = profile;
                     }
                 }
-
-                cart.ForEach(c =>
-                {
-                    var profile = userProfile.FirstOrDefault(u => u.User.UserName == c.ProductOwner);
-                    if (profile != null)
-                    {
-                        c.UserProfile = profile;
-                    }
-                });
 
                 CartViewModel cartVM = new()
                 {
@@ -110,23 +84,11 @@ namespace CMSECommerce.Controllers
                     GrandTotal = cart.Sum(x => x.Price * x.Quantity)
                 };
 
-
-                
-              
-
                 return View(cartVM);
-            }
-            catch (DbUpdateException dbEx)
-            {
-                // Log the database error
-                // _logger.LogError(dbEx, "Database error while fetching product data for cart Index.");
-                TempData["error"] = "We couldn't verify product details due to a database issue. Please try refreshing.";
-                return View(new CartViewModel { CartItems = cart, GrandTotal = cart.Sum(x => x.Price * x.Quantity) });
             }
             catch (Exception ex)
             {
-                // Log general session or unexpected errors
-                // _logger.LogError(ex, "Unexpected error in Cart Index action.");
+                // _logger.LogError(ex, "Error loading cart");
                 TempData["error"] = "An error occurred while loading your shopping cart.";
                 return RedirectToAction("Index", "Home");
             }
@@ -178,19 +140,20 @@ namespace CMSECommerce.Controllers
 
         // --- NEW ACTION: Handle Quantity Change from Amazon-style Dropdown ---
         [HttpPost]
+        [ValidateAntiForgeryToken] // Added for security
         public async Task<IActionResult> UpdateQuantity(int id, int quantity)
         {
+            // 1. If quantity is 0 or less, remove the item entirely
             if (quantity <= 0)
             {
-                // Use the existing Remove action if quantity is zero or less
-                return await Task.FromResult(Remove(id));
+                return Remove(id);
             }
 
             try
             {
-                // 1. Get current cart and item
+                // 2. Retrieve current cart
                 List<CartItem> cart = HttpContext.Session.GetJson<List<CartItem>>("Cart") ?? [];
-                CartItem cartItem = cart.Where(x => x.ProductId == id).FirstOrDefault();
+                CartItem cartItem = cart.FirstOrDefault(x => x.ProductId == id);
 
                 if (cartItem == null)
                 {
@@ -198,26 +161,43 @@ namespace CMSECommerce.Controllers
                     return RedirectToAction("Index");
                 }
 
-                // 2. Validate against stock
-                var product = await _context.Products.FindAsync(id);
-                if (product != null && quantity > product.StockQuantity)
+                // 3. Optimized Stock Check: Fetch only what is necessary
+                var productInfo = await _context.Products
+                    .Where(p => p.Id == id)
+                    .Select(p => new { p.StockQuantity, p.Name })
+                    .FirstOrDefaultAsync();
+
+                if (productInfo != null)
                 {
-                    TempData["error"] = $"Cannot set quantity to {quantity}. Only {product.StockQuantity} are in stock for '{cartItem.ProductName}'.";
-                    cartItem.Quantity = product.StockQuantity; // Adjust quantity to max stock
+                    if (quantity > productInfo.StockQuantity)
+                    {
+                        // Cap the quantity at available stock
+                        cartItem.Quantity = productInfo.StockQuantity;
+                        cartItem.IsOutOfStock = productInfo.StockQuantity == 0;
+
+                        TempData["warning"] = $"Only {productInfo.StockQuantity} units available for '{productInfo.Name}'. Quantity adjusted.";
+                    }
+                    else
+                    {
+                        cartItem.Quantity = quantity;
+                        cartItem.IsOutOfStock = false;
+                        TempData["success"] = $"Updated '{cartItem.ProductName}' quantity to {quantity}.";
+                    }
                 }
                 else
                 {
-                    cartItem.Quantity = quantity; // Apply new quantity
+                    // Product no longer exists in Database
+                    TempData["error"] = "This product is no longer available.";
+                    return Remove(id);
                 }
 
-                // 3. Save cart
+                // 4. Save the updated cart to session
                 HttpContext.Session.SetJson("Cart", cart);
-                TempData["success"] = $"Quantity for '{cartItem.ProductName}' updated to {cartItem.Quantity}.";
             }
             catch (Exception ex)
             {
                 // _logger.LogError(ex, "Error updating cart quantity for product ID {Id}.", id);
-                TempData["error"] = "A system error occurred while trying to update the quantity.";
+                TempData["error"] = "An error occurred while updating the quantity.";
             }
 
             return RedirectToAction("Index");

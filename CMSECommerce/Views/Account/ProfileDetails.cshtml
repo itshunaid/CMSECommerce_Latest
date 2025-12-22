@@ -2,303 +2,236 @@
 @model EditUserModel
 
 @{
-    ViewData["Title"] = "Edit User";
+    ViewData["Title"] = "Edit User Profile";
 }
 
 <style>
-    /* Custom styling to mimic Amazon-like cards and buttons */
+    /* Amazon-Style UI Definitions */
     .amazon-card {
-        border: 1px solid #ddd; /* Light border */
-        border-radius: 8px; /* Slightly rounded corners */
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 24px;
         margin-bottom: 25px;
-        background-color: #fff; /* White background */
+        background-color: #fff;
     }
 
     .amazon-button {
-        background-color: #FFD814; /* Amazon Yellow */
-        border-color: #FCD200;
-        color: #111; /* Black text */
-        border-radius: 50px; /* Highly rounded button */
-        padding: 8px 18px;
+        background-color: #FFD814;
+        border: 1px solid #FCD200;
+        color: #111;
+        border-radius: 50px;
+        padding: 10px 25px;
         font-weight: 500;
+        transition: 0.2s;
     }
 
         .amazon-button:hover {
-            background-color: #F7CA00; /* Darker yellow on hover */
-            border-color: #F7CA00;
-            color: #111;
+            background-color: #F7CA00;
+            border-color: #F2C200;
         }
 
+    .section-icon {
+        margin-right: 10px;
+        width: 24px;
+        text-align: center;
+    }
+
     .current-image-preview {
-        max-width: 100px;
-        max-height: 100px;
+        max-width: 120px;
+        max-height: 120px;
         margin-top: 10px;
-        border: 1px solid #ccc;
-        padding: 5px;
-        border-radius: 4px;
+        border: 2px solid #f0f0f0;
+        padding: 4px;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+    .form-label {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #333;
+    }
+
+    /* Highlight for Store Section */
+    .store-section {
+        border-left: 5px solid #e77600;
     }
 </style>
 
-<div class="row">
-    <div class="col-lg-9 offset-lg-1">
-        <h1 class="mb-4">Edit User: @Model.UserName</h1>
-
-        <form asp-controller="Account" asp-action="ProfileDetails" method="post" enctype="multipart/form-data">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="Id" />
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-            <div class="amazon-card">
-                <h3 class="mt-0 text-dark">🔐 Identity & Security</h3>
-                <hr />
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="UserName" class="form-label"></label>
-                            <input asp-for="UserName" class="form-control" />
-                            <span asp-validation-for="UserName" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="NewPassword" class="form-label">New Password (leave blank to keep existing)</label>
-                            <input asp-for="NewPassword" class="form-control" type="password" />
-                            <span asp-validation-for="NewPassword" class="text-danger"></span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="Email" class="form-label"></label>
-                            <input asp-for="Email" class="form-control" />
-                            <span asp-validation-for="Email" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="PhoneNumber" class="form-label">Phone Number (Identity)</label>
-                            <input asp-for="PhoneNumber" class="form-control" />
-                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group mt-3">
-                    <label asp-for="Role" class="amazon-input-label">Role</label>
-                    <div class="detail-value">
-                        @(string.IsNullOrEmpty(Model.Role) ? "None Assigned" : Model.Role)
-                    </div>
-
-                    <input type="hidden" asp-for="Role" />
-                </div>
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-10 offset-lg-1">
+            <div class="d-flex align-items-center mb-4">
+                <h1 class="h2 mb-0">Edit Account: <span class="text-muted">@Model.UserName</span></h1>
             </div>
 
-            <div class="amazon-card">
-                <h3 class="mt-0 text-dark">👤 Basic Profile Information</h3>
-                <hr />
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
+            <form asp-controller="Account" asp-action="ProfileDetails" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+
+                @* HIDDEN FIELDS: Preserving state for DB joins *@
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="StoreId" />
+                <input type="hidden" asp-for="Role" />
+                <input type="hidden" asp-for="ProfileImagePath" />
+                <input type="hidden" asp-for="GpayQRCodePath" />
+                <input type="hidden" asp-for="PhonePeQRCodePath" />
+                <input type="hidden" asp-for="IsImageApproved" />
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                @* 1. ACCOUNT & SECURITY *@
+                <div class="amazon-card">
+                    <h4 class="text-dark"><i class="fas fa-shield-alt section-icon"></i>Login & Security</h4>
+                    <hr />
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="UserName" class="form-label">Username</label>
+                            <input asp-for="UserName" class="form-control" />
+                            <span asp-validation-for="UserName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label">Email Address</label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="NewPassword" class="form-label">Update Password</label>
+                            <input asp-for="NewPassword" class="form-control" type="password" placeholder="Leave blank to keep current" />
+                            <span asp-validation-for="NewPassword" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Assigned Role</label>
+                            <div class="form-control bg-light">@(Model.Role ?? "Customer")</div>
+                        </div>
+                    </div>
+                </div>
+
+                @* 2. STORE & BUSINESS INFORMATION *@
+                <div class="amazon-card store-section">
+                    <h4 class="text-dark"><i class="fas fa-store section-icon" style="color:#e77600"></i>Business & Store Information</h4>
+                    <p class="text-muted small">These details appear on invoices and public store pages.</p>
+                    <hr />
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label asp-for="StoreName" class="form-label">Display Store Name</label>
+                            <input asp-for="StoreName" class="form-control" placeholder="e.g., Global Tech Solutions" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="GSTIN" class="form-label">GSTIN / Tax ID</label>
+                            <input asp-for="GSTIN" class="form-control" />
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="StoreStreetAddress" class="form-label">Store Registered Address</label>
+                            <input asp-for="StoreStreetAddress" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="StoreCity" class="form-label">City</label>
+                            <input asp-for="StoreCity" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="StorePostCode" class="form-label">Post Code</label>
+                            <input asp-for="StorePostCode" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="StoreCountry" class="form-label">Country</label>
+                            <input asp-for="StoreCountry" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="StoreEmail" class="form-label">Business Email</label>
+                            <input asp-for="StoreEmail" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="StoreContact" class="form-label">Business Phone</label>
+                            <input asp-for="StoreContact" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+
+                @* 3. PERSONAL PROFILE *@
+                <div class="amazon-card">
+                    <h4 class="text-dark"><i class="fas fa-user-circle section-icon"></i>Personal Details</h4>
+                    <hr />
+                    <div class="row g-3">
+                        <div class="col-md-6">
                             <label asp-for="FirstName" class="form-label"></label>
                             <input asp-for="FirstName" class="form-control" />
-                            <span asp-validation-for="FirstName" class="text-danger"></span>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
+                        <div class="col-md-6">
                             <label asp-for="LastName" class="form-label"></label>
                             <input asp-for="LastName" class="form-control" />
-                            <span asp-validation-for="LastName" class="text-danger"></span>
                         </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
+                        <div class="col-md-4">
                             <label asp-for="ITSNumber" class="form-label"></label>
                             <input asp-for="ITSNumber" class="form-control" />
-                            <span asp-validation-for="ITSNumber" class="text-danger"></span>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
+                        <div class="col-md-8">
                             <label asp-for="Profession" class="form-label"></label>
                             <input asp-for="Profession" class="form-control" />
-                            <span asp-validation-for="Profession" class="text-danger"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="About" class="form-label">Bio / About Me</label>
+                            <textarea asp-for="About" class="form-control" rows="3"></textarea>
                         </div>
                     </div>
                 </div>
 
-                <div class="form-group mt-3">
-                    <label asp-for="About" class="form-label"></label>
-                    <textarea asp-for="About" class="form-control" rows="3"></textarea>
-                    <span asp-validation-for="About" class="text-danger"></span>
-                </div>
-
-                <div class="form-group mt-3">
-                    <label asp-for="ServicesProvided" class="form-label"></label>
-                    <input asp-for="ServicesProvided" class="form-control" placeholder="e.g., Web Design, Consulting, Plumbing (comma-separated)" />
-                    <span asp-validation-for="ServicesProvided" class="text-danger"></span>
-                </div>
-            </div>
-
-            <div class="amazon-card">
-                <h3 class="mt-0 text-dark">📞 Contact & Social Links</h3>
-                <hr />
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="WhatsAppNumber" class="form-label"></label>
-                            <input asp-for="WhatsAppNumber" class="form-control" />
-                            <span asp-validation-for="WhatsAppNumber" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="LinkedInUrl" class="form-label"></label>
-                            <input asp-for="LinkedInUrl" class="form-control" />
-                            <span asp-validation-for="LinkedInUrl" class="text-danger"></span>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="FacebookUrl" class="form-label"></label>
-                            <input asp-for="FacebookUrl" class="form-control" />
-                            <span asp-validation-for="FacebookUrl" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="InstagramUrl" class="form-label"></label>
-                            <input asp-for="InstagramUrl" class="form-control" />
-                            <span asp-validation-for="InstagramUrl" class="text-danger"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="amazon-card">
-                <h3 class="mt-0 text-dark">🏠 Addresses & Phones</h3>
-                <hr />
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="HomeAddress" class="form-label"></label>
-                            <input asp-for="HomeAddress" class="form-control" />
-                            <span asp-validation-for="HomeAddress" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="HomePhoneNumber" class="form-label"></label>
-                            <input asp-for="HomePhoneNumber" class="form-control" />
-                            <span asp-validation-for="HomePhoneNumber" class="text-danger"></span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="BusinessAddress" class="form-label"></label>
-                            <input asp-for="BusinessAddress" class="form-control" />
-                            <span asp-validation-for="BusinessAddress" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="BusinessPhoneNumber" class="form-label"></label>
-                            <input asp-for="BusinessPhoneNumber" class="form-control" />
-                            <span asp-validation-for="BusinessPhoneNumber" class="text-danger"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="amazon-card">
-                <h3 class="mt-0 text-dark">🖼️ Images, QR Codes & Visibility</h3>
-                <hr />
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="ProfileImageFile" class="form-label"></label>
-                            <input asp-for="ProfileImageFile" class="form-control" type="file" accept="image/*" />
-                            <span asp-validation-for="ProfileImageFile" class="text-danger"></span>
-
-                            <input type="hidden" asp-for="ProfileImagePath" />
-
-                            @if (!string.IsNullOrWhiteSpace(Model.ProfileImagePath))
+                @* 4. MEDIA & PAYMENTS *@
+                <div class="amazon-card">
+                    <h4 class="text-dark"><i class="fas fa-camera section-icon"></i>Media & Payment Setup</h4>
+                    <hr />
+                    <div class="row g-4">
+                        <div class="col-md-6 border-end">
+                            <label asp-for="ProfileImageFile" class="form-label">Profile Photo</label>
+                            <input asp-for="ProfileImageFile" class="form-control" type="file" />
+                            @if (!string.IsNullOrEmpty(Model.ProfileImagePath))
                             {
-                                <p class="mt-2 mb-0">Current Image:</p>
-                                <img src="@Model.ProfileImagePath" class="current-image-preview" alt="Current Profile Image" />
-                            }
-                        </div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group form-check mt-4">
-                                    <input asp-for="IsProfileVisible" class="form-check-input" />
-                                    <label asp-for="IsProfileVisible" class="form-check-label"></label>
-                                    <small class="text-muted d-block">Check to make the user's profile publicly visible.</small>
+                                <div class="text-center mt-3 p-2 bg-light rounded">
+                                    <img src="@Model.ProfileImagePath" class="current-image-preview" alt="Profile" />
+                                    <p class="small text-muted mb-0">Current Photo</p>
                                 </div>
+                            }
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Public Visibility</label>
+                            <div class="form-check form-switch mt-2">
+                                <input asp-for="IsProfileVisible" class="form-check-input" type="checkbox" style="width: 3em; height: 1.5em;">
+                                <label asp-for="IsProfileVisible" class="form-check-label ms-2 mt-1">Make profile public</label>
                             </div>
-                            <input type="hidden" asp-for="IsImageApproved" />
+                            <p class="small text-muted mt-2">When enabled, your store details and services are visible to other users.</p>
                         </div>
                     </div>
-                </div>
 
-                <h5 class="mt-4 mb-3 text-secondary">Payment QR Codes</h5>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="GpayQRCodeFile" class="form-label"></label>
-                            <input asp-for="GpayQRCodeFile" class="form-control" type="file" accept="image/*" />
-                            <span asp-validation-for="GpayQRCodeFile" class="text-danger"></span>
-
-                            <input type="hidden" asp-for="GpayQRCodePath" />
-                            @if (!string.IsNullOrWhiteSpace(Model.GpayQRCodePath))
+                    <h5 class="mt-4 mb-3 text-secondary border-bottom pb-2">Payment QR Codes</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="GpayQRCodeFile" class="form-label">Google Pay QR</label>
+                            <input asp-for="GpayQRCodeFile" class="form-control" type="file" />
+                            @if (!string.IsNullOrEmpty(Model.GpayQRCodePath))
                             {
-                                <p class="mt-2 mb-0">Current QR:</p>
-                                <img src="@Model.GpayQRCodePath" class="current-image-preview" alt="Current GPay QR" />
+                                <img src="@Model.GpayQRCodePath" class="current-image-preview" />
                             }
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group mt-3">
-                            <label asp-for="PhonePeQRCodeFile" class="form-label"></label>
-                            <input asp-for="PhonePeQRCodeFile" class="form-control" type="file" accept="image/*" />
-                            <span asp-validation-for="PhonePeQRCodeFile" class="text-danger"></span>
-
-                            <input type="hidden" asp-for="PhonePeQRCodePath" />
-                            @if (!string.IsNullOrWhiteSpace(Model.PhonePeQRCodePath))
+                        <div class="col-md-6">
+                            <label asp-for="PhonePeQRCodeFile" class="form-label">PhonePe QR</label>
+                            <input asp-for="PhonePeQRCodeFile" class="form-control" type="file" />
+                            @if (!string.IsNullOrEmpty(Model.PhonePeQRCodePath))
                             {
-                                <p class="mt-2 mb-0">Current QR:</p>
-                                <img src="@Model.PhonePeQRCodePath" class="current-image-preview" alt="Current PhonePe QR" />
+                                <img src="@Model.PhonePeQRCodePath" class="current-image-preview" />
                             }
                         </div>
                     </div>
                 </div>
-            </div>
 
-
-            <hr class="mt-5" />
-
-            <div class="form-group mt-4 mb-5">
-                <button type="submit" class="btn amazon-button btn-lg">💾 Save Changes</button>
-                <a asp-action="ProfileDetailsView" class="btn btn-secondary ms-2">Back to User Profile</a>
-            </div>
-        </form>
+                @* ACTION BUTTONS *@
+                <div class="d-flex align-items-center mb-5 mt-4">
+                    <button type="submit" class="amazon-button me-3">
+                        <i class="fas fa-save me-2"></i>Save All Changes
+                    </button>
+                    <a asp-action="ProfileDetailsView" asp-route-id="@Model.Id" class="text-decoration-none text-muted">Cancel</a>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

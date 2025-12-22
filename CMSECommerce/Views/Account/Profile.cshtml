@@ -12,9 +12,9 @@
             --amazon-yellow-action: #FFD814;
             --amazon-yellow-action-hover: #F7CA00;
             --amazon-link-teal: #007185;
-            --amazon-page-bg: #f7f7f7; /* Light grey background */
+            --amazon-page-bg: #f7f7f7;
             --amazon-border-color: #D5DBDB;
-            --amazon-warning-orange: #FEBD69; /* For pending state */
+            --amazon-warning-orange: #FEBD69;
         }
 
         .amazon-page-container {
@@ -30,27 +30,23 @@
             color: var(--amazon-link-teal) !important;
         }
 
-        /* Central Form Box/Card Styling - Clean White with subtle border/shadow */
         .amazon-form-box {
             border: 1px solid var(--amazon-border-color);
             border-radius: 8px;
             box-shadow: 0 1px 2px rgba(15, 17, 17, 0.15);
-            background-color: white; /* Important: ensures card is white */
+            background-color: white;
         }
 
-        /* Header Section - Light background, not a heavy gradient */
         .amazon-header-section {
-            background-color: #FAFAFA; /* Very light header */
+            background-color: #FAFAFA;
             border-bottom: 1px solid var(--amazon-border-color);
         }
 
-        /* Primary Action Button (Save Changes) - Amazon Yellow/Orange */
         .btn-amazon-checkout {
             background-color: var(--amazon-yellow-action);
             border-color: #FCD200;
             color: var(--amazon-dark-text);
             font-weight: 700;
-            /* Subtler shadow for the button */
             box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
             border-radius: 7px;
             height: 35px;
@@ -64,7 +60,6 @@
                 background-color: var(--amazon-yellow-action-hover);
             }
 
-        /* Form Headers */
         .form-section-header-amazon {
             color: var(--amazon-dark-text);
             font-weight: 700;
@@ -75,21 +70,23 @@
             font-size: 1.25rem;
         }
 
-        /* Danger Zone Card */
         .danger-zone-card-amazon {
             border: 1px solid #dc3545;
             border-radius: 8px;
             background-color: #fff9fa;
         }
 
-            .danger-zone-card-amazon .card-body p {
-                font-size: 0.875rem;
-            }
-
-        /* Input Field Styling - Focus border changes to Amazon teal */
         .form-control:focus {
             border-color: var(--amazon-link-teal);
             box-shadow: 0 0 0 0.25rem rgba(0, 113, 133, 0.25);
+        }
+
+        .address-card {
+            background-color: #fcfcfc;
+            border: 1px solid #e7e7e7;
+            border-radius: 8px;
+            padding: 1.25rem;
+            height: 100%;
         }
     </style>
 }
@@ -100,19 +97,18 @@
 
             <div class="text-center mb-4">
                 <h1 class="display-5 fw-bold text-amazon-dark">Update Your Profile 🛠️</h1>
-                <p class="text-muted">Manage your account, contact, and payment details securely.</p>
+                <p class="text-muted">Manage your account, store, and payment details securely.</p>
             </div>
 
             <div class="amazon-form-box">
                 <div class="p-4 text-center amazon-header-section rounded-top">
-                    @* --- HEADER IMAGE LOGIC START (Shows approved image or placeholder) --- *@
+                    @* --- HEADER IMAGE LOGIC --- *@
                     @if (Model.IsImageApproved == true && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
                     {
                         <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle border border-2 border-light-subtle mb-3" style="width: 100px; height: 100px; object-fit: cover;" />
                     }
                     else if (Model.IsImagePending == true && !string.IsNullOrEmpty(Model.PendingProfileImagePath))
                     {
-                        @* Show the pending image, perhaps with a slight visual indication *@
                         <div class="position-relative d-inline-block">
                             <img src="/@Model.PendingProfileImagePath" alt="Pending Profile Image" class="img-fluid rounded-circle border border-3 border-warning mb-3" style="width: 100px; height: 100px; object-fit: cover; opacity: 0.7;" />
                             <i class="fas fa-hourglass-half text-warning position-absolute top-0 end-0 bg-white rounded-circle p-1" style="font-size: 1.5rem; transform: translate(10%, -10%);"></i>
@@ -122,7 +118,6 @@
                     {
                         <i class="fas fa-user-circle fa-4x text-muted mb-3"></i>
                     }
-                    @* --- HEADER IMAGE LOGIC END --- *@
                     <h2 class="h4 fw-bold text-amazon-dark mb-0">@Model.UserName</h2>
                     <p class="text-muted small">@Model.Profession</p>
                 </div>
@@ -139,32 +134,29 @@
                         <input type="hidden" asp-for="IsImageApproved" />
                         <input type="hidden" asp-for="IsImagePending" />
                         <input type="hidden" asp-for="PendingProfileImagePath" />
-                        @* --- END HIDDEN FIELDS --- *@
-
 
                         <div class="form-check form-switch pt-2">
                             <input class="form-check-input" type="checkbox" role="switch" asp-for="IsProfileVisible" id="IsProfileVisibleSwitch" />
                             <label class="form-check-label" for="IsProfileVisibleSwitch">
                                 <i class="fas fa-eye me-1"></i> Keep Profile Publicly Visible on <strong>Business Directory</strong>
                             </label>
-                            <p class="text-muted small mt-1 mb-0">Uncheck this to hide your profile from public view across the site.</p>
+                            <p class="text-muted small mt-1 mb-0">Uncheck this to hide your profile from public view.</p>
                         </div>
+
+                        @* --- SECTION 1: ACCOUNT DETAILS --- *@
                         <h4 class="form-section-header-amazon"><i class="fas fa-user-circle me-2 text-amazon-link"></i> Account Details</h4>
-
                         <div class="row g-3 mb-4">
-
                             <div class="col-md-4 text-center">
-                                @* --- PROFILE IMAGE DISPLAY IN FORM START (With pending warning) --- *@
                                 @if (Model.IsImagePending == true && !string.IsNullOrEmpty(Model.PendingProfileImagePath))
                                 {
                                     <div class="alert alert-warning p-2 small mb-2">
-                                        <i class="fas fa-clock me-1"></i> New image pending approval.
+                                        <i class="fas fa-clock me-1"></i> Image pending approval.
                                     </div>
-                                    <img src="/@Model.PendingProfileImagePath" alt="Pending Profile Image" class="img-fluid rounded-circle mb-3 border border-3 border-warning" style="width: 100px; height: 100px; object-fit: cover;" />
+                                    <img src="/@Model.PendingProfileImagePath" alt="Pending" class="img-fluid rounded-circle mb-3 border border-3 border-warning" style="width: 100px; height: 100px; object-fit: cover;" />
                                 }
                                 else if (Model.IsImageApproved == true && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
                                 {
-                                    <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle mb-3 border border-1" style="width: 100px; height: 100px; object-fit: cover;" />
+                                    <img src="/@Model.ExistingProfileImagePath" alt="Profile" class="img-fluid rounded-circle mb-3 border border-1" style="width: 100px; height: 100px; object-fit: cover;" />
                                 }
                                 else
                                 {
@@ -175,7 +167,6 @@
                                 <label class="form-label small text-muted">Profile Photo</label>
                                 <input type="file" asp-for="ProfileImageUpload" class="form-control form-control-sm" />
                                 <span asp-validation-for="ProfileImageUpload" class="text-danger small"></span>
-                                @* --- PROFILE IMAGE DISPLAY IN FORM END --- *@
                             </div>
 
                             <div class="col-md-8">
@@ -189,161 +180,176 @@
                                         <div class="form-floating mb-3">
                                             <input asp-for="FirstName" class="form-control" placeholder="First Name" />
                                             <label asp-for="FirstName"></label>
-                                            <span asp-validation-for="FirstName" class="text-danger small"></span>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-floating mb-3">
                                             <input asp-for="LastName" class="form-control" placeholder="Last Name" />
                                             <label asp-for="LastName"></label>
-                                            <span asp-validation-for="LastName" class="text-danger small"></span>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="form-floating mb-3">
                                     <input type="email" asp-for="Email" class="form-control" placeholder="Email" />
                                     <label asp-for="Email"></label>
-                                    <span asp-validation-for="Email" class="text-danger small"></span>
                                 </div>
                                 <div class="form-floating mb-3">
-                                    <input asp-for="PhoneNumber" class="form-control" placeholder="Mobile Number" />
+                                    <input asp-for="PhoneNumber" class="form-control" placeholder="Mobile" />
                                     <label asp-for="PhoneNumber"></label>
-                                    <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
                                 </div>
-
-
                             </div>
                         </div>
 
-                        <h4 class="form-section-header-amazon"><i class="fas fa-briefcase me-2 text-amazon-link"></i> Professional & Contact</h4>
+                        @* --- SECTION 2: PROFESSIONAL --- *@
+                        <h4 class="form-section-header-amazon"><i class="fas fa-briefcase me-2 text-amazon-link"></i> Professional</h4>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
                                 <div class="form-floating mb-3">
                                     <input asp-for="ITSNumber" class="form-control" placeholder="ITS Number" />
                                     <label asp-for="ITSNumber"></label>
-                                    <span asp-validation-for="ITSNumber" class="text-danger small"></span>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-floating mb-3">
                                     <input asp-for="Profession" class="form-control" placeholder="Profession" />
                                     <label asp-for="Profession"></label>
-                                    <span asp-validation-for="Profession" class="text-danger small"></span>
                                 </div>
                             </div>
                             <div class="col-12">
                                 <div class="form-floating mb-3">
                                     <textarea asp-for="About" class="form-control" placeholder="About Me" style="height: 100px"></textarea>
                                     <label asp-for="About"></label>
-                                    <span asp-validation-for="About" class="text-danger small"></span>
                                 </div>
                             </div>
-                            <div class="col-12">
+                        </div>
+
+                        @* --- SECTION 3: STORE & BUSINESS (NEW) --- *@
+                        <h4 class="form-section-header-amazon"><i class="fas fa-store me-2 text-amazon-link"></i> Store & Business Details</h4>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-8">
                                 <div class="form-floating mb-3">
-                                    <input asp-for="ServicesProvided" class="form-control" placeholder="Services Provided (Comma Separated)" />
-                                    <label asp-for="ServicesProvided"></label>
-                                    <span asp-validation-for="ServicesProvided" class="text-danger small"></span>
+                                    <input asp-for="StoreName" class="form-control" placeholder="Business Name" />
+                                    <label asp-for="StoreName">Business / Store Name</label>
+                                    <span asp-validation-for="StoreName" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <input asp-for="GSTIN" class="form-control" placeholder="GSTIN" />
+                                    <label asp-for="GSTIN">GSTIN (Optional)</label>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-floating mb-3">
-                                    <input asp-for="WhatsappNumber" class="form-control" placeholder="WhatsApp Number" />
-                                    <label asp-for="WhatsappNumber"></label>
-                                    <span asp-validation-for="WhatsappNumber" class="text-danger small"></span>
+                                    <input type="email" asp-for="StoreEmail" class="form-control" placeholder="Store Email" />
+                                    <label asp-for="StoreEmail">Business Email</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input asp-for="StoreContact" class="form-control" placeholder="Store Contact" />
+                                    <label asp-for="StoreContact">Business Contact Number</label>
                                 </div>
                             </div>
                         </div>
 
-                        <h4 class="form-section-header-amazon"><i class="fas fa-share-alt me-2 text-amazon-link"></i> Social Media Links</h4>
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-4">
-                                <div class="form-floating mb-3">
-                                    <input asp-for="LinkedInUrl" class="form-control" placeholder="LinkedIn URL" />
-                                    <label asp-for="LinkedInUrl"></label>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-floating mb-3">
-                                    <input asp-for="FacebookUrl" class="form-control" placeholder="Facebook URL" />
-                                    <label asp-for="FacebookUrl"></label>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-floating mb-3">
-                                    <input asp-for="InstagramUrl" class="form-control" placeholder="Instagram URL" />
-                                    <label asp-for="InstagramUrl"></label>
-                                </div>
-                            </div>
-                        </div>
-
+                        @* --- SECTION 4: ADDRESSES --- *@
                         <h4 class="form-section-header-amazon"><i class="fas fa-map-marker-alt me-2 text-amazon-link"></i> Addresses</h4>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold small text-muted mb-2">Home Address</label>
-                                <div class="form-floating mb-3">
-                                    <input asp-for="HomeAddress" class="form-control" placeholder="Home Address" />
-                                    <label asp-for="HomeAddress"></label>
-                                </div>
-                                <div class="form-floating">
-                                    <input asp-for="HomePhoneNumber" class="form-control" placeholder="Home Phone Number" />
-                                    <label asp-for="HomePhoneNumber"></label>
+                                <div class="address-card">
+                                    <label class="form-label fw-bold small text-muted mb-3"><i class="fas fa-home me-1"></i> Home Address</label>
+                                    <div class="form-floating mb-3">
+                                        <input asp-for="HomeAddress" class="form-control" placeholder="Address" />
+                                        <label asp-for="HomeAddress">Full Home Address</label>
+                                    </div>
+                                    <div class="form-floating">
+                                        <input asp-for="HomePhoneNumber" class="form-control" placeholder="Phone" />
+                                        <label asp-for="HomePhoneNumber">Landline/Home Phone</label>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold small text-muted mb-2">Business Address</label>
-                                <div class="form-floating mb-3">
-                                    <input asp-for="BusinessAddress" class="form-control" placeholder="Business Address" />
-                                    <label asp-for="BusinessAddress"></label>
-                                </div>
-                                <div class="form-floating">
-                                    <input asp-for="BusinessPhoneNumber" class="form-control" placeholder="Business Phone Number" />
-                                    <label asp-for="BusinessPhoneNumber"></label>
+                                <div class="address-card">
+                                    <label class="form-label fw-bold small text-muted mb-3"><i class="fas fa-building me-1"></i> Store/Business Address</label>
+                                    <div class="form-floating mb-2">
+                                        <input asp-for="StoreStreetAddress" class="form-control" placeholder="Street" />
+                                        <label asp-for="StoreStreetAddress">Street Address</label>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-7">
+                                            <div class="form-floating mb-2">
+                                                <input asp-for="StoreCity" class="form-control" placeholder="City" />
+                                                <label asp-for="StoreCity">City</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="form-floating mb-2">
+                                                <input asp-for="StorePostCode" class="form-control" placeholder="PostCode" />
+                                                <label asp-for="StorePostCode">Post Code</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-floating">
+                                        <input asp-for="StoreCountry" class="form-control" placeholder="Country" />
+                                        <label asp-for="StoreCountry">Country</label>
+                                    </div>
+                                    @* Keep hidden for legacy compatibility if backend expects BusinessAddress string *@
+                                    <input type="hidden" asp-for="BusinessAddress" />
                                 </div>
                             </div>
                         </div>
 
-                        <h4 class="form-section-header-amazon"><i class="fas fa-qrcode me-2 text-amazon-link"></i> Payment Details (QR Codes)</h4>
+                        @* --- SECTION 5: PAYMENTS & SOCIAL --- *@
+                        <h4 class="form-section-header-amazon"><i class="fas fa-qrcode me-2 text-amazon-link"></i> Payment & Social</h4>
                         <div class="row g-4 mb-4">
                             <div class="col-md-6 text-center">
                                 <label class="form-label small text-muted">GPay QR Code</label>
                                 @if (!string.IsNullOrEmpty(Model.ExistingGpayQRCodePath))
                                 {
-                                    <img src="/@Model.ExistingGpayQRCodePath" alt="GPay QR" class="img-fluid border rounded mb-2" style="max-height: 150px; max-width: 150px;" />
+                                    <img src="/@Model.ExistingGpayQRCodePath" alt="GPay" class="img-fluid border rounded d-block mx-auto mb-2" style="max-height: 120px;" />
                                 }
                                 <input type="file" asp-for="GpayQRCodeUpload" class="form-control form-control-sm" />
-                                <span asp-validation-for="GpayQRCodeUpload" class="text-danger small"></span>
                             </div>
                             <div class="col-md-6 text-center">
                                 <label class="form-label small text-muted">PhonePe QR Code</label>
                                 @if (!string.IsNullOrEmpty(Model.ExistingPhonePeQRCodePath))
                                 {
-                                    <img src="/@Model.ExistingPhonePeQRCodePath" alt="PhonePe QR" class="img-fluid border rounded mb-2" style="max-height: 150px; max-width: 150px;" />
+                                    <img src="/@Model.ExistingPhonePeQRCodePath" alt="PhonePe" class="img-fluid border rounded d-block mx-auto mb-2" style="max-height: 120px;" />
                                 }
                                 <input type="file" asp-for="PhonePeQRCodeUpload" class="form-control form-control-sm" />
-                                <span asp-validation-for="PhonePeQRCodeUpload" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input asp-for="WhatsappNumber" class="form-control" placeholder="WhatsApp" />
+                                    <label asp-for="WhatsappNumber">WhatsApp Number</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input asp-for="LinkedInUrl" class="form-control" placeholder="LinkedIn" />
+                                    <label asp-for="LinkedInUrl">LinkedIn Profile URL</label>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="d-grid mt-4">
-                            <button type="submit" class="btn btn-amazon-checkout fw-bold">
-                                <i class="fas fa-save me-2"></i> Save Changes
+                        <div class="d-grid mt-5">
+                            <button type="submit" class="btn btn-amazon-checkout fw-bold py-2">
+                                <i class="fas fa-save me-2"></i> Save Changes & Update Directory
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <hr class="my-5 border-amazon-border-color" />
-
-            <div class="card danger-zone-card-amazon">
-                <div class="card-body p-4">
+            @* --- DANGER ZONE --- *@
+            <div class="card danger-zone-card-amazon mt-5">
+                <div class="card-body p-4 text-center">
                     <h5 class="text-danger mb-3 fw-bold small"><i class="fas fa-exclamation-triangle me-2"></i> Danger Zone</h5>
-                    <p class="text-muted small">
-                        Permanently delete all custom profile data (ITS number, addresses, social links, images, QR codes, etc.) without deleting your main login credentials.
-                    </p>
-                    <form asp-action="DeleteProfileData" method="post" onsubmit="return confirm('WARNING: Are you sure you want to delete all your custom profile data? This action is irreversible.');">
-                        <button type="submit" class="btn btn-danger btn-sm">
-                            <i class="fas fa-trash me-1"></i> Delete Profile Data Only
+                    <p class="text-muted small">This will wipe your directory profile but keep your login active.</p>
+                    <form asp-action="DeleteProfileData" method="post" onsubmit="return confirm('Erase all profile data?');">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            Delete Profile Information
                         </button>
                     </form>
                 </div>

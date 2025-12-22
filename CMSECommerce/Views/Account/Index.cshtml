@@ -23,55 +23,80 @@
     else
     {
         <div class="orders-list-container">
-            @foreach (var order in Model.OrderByDescending(o => o.DateTime))
+            @foreach (var order in Model)
             {
                 var isShipped = order.Shipped;
-                var statusText = isShipped ? "Shipped" : "Processing";
-                var statusClass = isShipped ? "text-success" : "text-warning";
+                var statusText = isShipped ? "Shipped / Delivered" : "Processing";
+                var statusClass = isShipped ? "text-success" : "text-amazon-orange";
+
+                // Calculate Progress (Assumes OrderDetails collection is loaded)
+                int totalItems = order.OrderDetails?.Count() ?? 0;
+                int processedItems = order.OrderDetails?.Count(d => d.IsProcessed) ?? 0;
+                double progressPercent = totalItems > 0 ? (double)processedItems / totalItems * 100 : 0;
 
                 <div class="card mb-4 shadow-sm border amazon-order-card">
+                    @* --- Card Header: Order Metadata --- *@
                     <div class="card-header d-flex justify-content-between align-items-center bg-light p-3">
-
-                        
-                        <div class="d-flex flex-column me-3">
-                            <span class="small text-muted mb-0">ORDER PLACED</span>
-                            <span class="fw-bold">@order.DateTime.ToString("MMMM dd, yyyy")</span>
+                        <div class="d-flex">
+                            <div class="d-flex flex-column me-4">
+                                <span class="small text-muted mb-0">ORDER PLACED</span>
+                                <span class="text-secondary fw-semibold">@order.DateTime.ToString("MMMM dd, yyyy")</span>
+                            </div>
+                            <div class="d-flex flex-column me-4">
+                                <span class="small text-muted mb-0">TOTAL</span>
+                                <span class="fw-bold price-red">@order.GrandTotal.ToString("C2")</span>
+                            </div>
+                            <div class="d-flex flex-column">
+                                <span class="small text-muted mb-0">SHIP TO</span>
+                                <span class="text-amazon-link fw-semibold">@order.UserName</span>
+                            </div>
                         </div>
 
-                        <div class="d-flex flex-column me-3">
-                            <span class="small text-muted mb-0">TOTAL</span>
-                            <span class="fw-bold price-red fs-5">@order.GrandTotal.ToString("C2")</span>
-                        </div>
-
-                        
                         <div class="d-flex flex-column text-end">
-                            <span class="small text-muted mb-0">ORDER #</span>
-                            <span class="fw-bold text-amazon-link">@order.Id</span>
+                            <span class="small text-muted mb-0">ORDER # @order.Id</span>
+                            <div class="d-flex gap-2 mt-1">
+                                <a asp-action="OrderDetails" asp-route-id="@order.Id" class="small text-amazon-link text-decoration-none">View details</a>
+                                <span class="text-muted small">|</span>
+                                <a asp-action="Invoice" asp-route-id="@order.Id" target="_blank" class="small text-amazon-link text-decoration-none">Invoice</a>
+                            </div>
                         </div>
                     </div>
 
+                    @* --- Card Body: Status and Progress --- *@
                     <div class="card-body p-4">
                         <div class="row align-items-center">
-
-                            
-                            <div class="col-lg-8">
+                            <div class="col-lg-7">
                                 <h5 class="fw-bold @statusClass mb-2">
-                                    <i class="fas @(isShipped ? "fa-box" : "fa-truck") me-2"></i> @statusText
+                                    <i class="fas @(isShipped ? "fa-check-circle" : "fa-sync fa-spin") me-2"></i> @statusText
                                 </h5>
-                                <p class="small text-muted mb-0">
-                                    Estimated Delivery: @(isShipped ? "Delivered" : "In 3-5 business days")
-                                </p>
+
+                                @if (!isShipped)
+                                {
+                                    <div class="mb-2">
+                                        <div class="progress" style="height: 8px; width: 250px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: @progressPercent%"></div>
+                                        </div>
+                                        <small class="text-muted">@processedItems of @totalItems items processed by sellers</small>
+                                    </div>
+                                    <p class="small text-muted mb-0">
+                                        Estimated: Delivery coordinates will be shared once all sellers process items.
+                                    </p>
+                                }
+                                else
+                                {
+                                    <p class="small text-muted mb-0">Package was handed over for delivery.</p>
+                                }
                             </div>
 
-                        
-                            <div class="col-lg-4 text-lg-end text-start mt-3 mt-lg-0">
+                            <div class="col-lg-5 text-lg-end text-start mt-3 mt-lg-0">
                                 <a asp-action="OrderDetails" asp-route-id="@order.Id"
-                                   class="btn btn-amazon-view-order btn-sm fw-bold">
-                                    View Order Details
+                                   class="btn btn-amazon-view-order btn-sm fw-bold w-100 mb-2" style="max-width: 200px;">
+                                    Track / View Order
                                 </a>
-                                <button type="button" class="btn btn-secondary btn-sm ms-2" disabled>
-                                    Invoice
-                                </button>
+                                <a asp-action="Invoice" asp-route-id="@order.Id" target="_blank"
+                                   class="btn btn-outline-secondary btn-sm fw-bold w-100" style="max-width: 200px;">
+                                    Download Invoice
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -79,21 +104,18 @@
             }
         </div>
     }
-
 </div>
 
 @section Styles {
     <style>
-        /* --- AMAZON COLOR PALETTE (From previous view) --- */
         :root {
             --amazon-price-red: #B12704;
             --amazon-dark-text: #0F1111;
             --amazon-yellow-action: #FFD814;
-            --amazon-yellow-action-hover: #F7CA00;
             --amazon-link-teal: #007185;
             --amazon-link-teal-hover: #C7511F;
-            --amazon-background-light: #f7f7f7;
             --amazon-card-border: #ddd;
+            --amazon-orange: #C7511F;
         }
 
         .amazon-orders-page {
@@ -102,6 +124,7 @@
 
         .price-red {
             color: var(--amazon-price-red) !important;
+            font-size: 1.1rem;
         }
 
         .text-amazon-link {
@@ -110,43 +133,48 @@
 
             .text-amazon-link:hover {
                 color: var(--amazon-link-teal-hover) !important;
+                text-decoration: underline !important;
             }
 
-        /* --- ORDER CARD STYLING --- */
+        .text-amazon-orange {
+            color: var(--amazon-orange) !important;
+        }
+
         .amazon-order-card {
             border: 1px solid var(--amazon-card-border) !important;
             background-color: #fff;
             border-radius: 8px;
+            overflow: hidden;
         }
 
             .amazon-order-card .card-header {
-                background-color: #f0f2f2 !important; /* Lighter header */
+                background-color: #f0f2f2 !important;
                 border-bottom: 1px solid var(--amazon-card-border);
             }
 
-        /* View Order Button (Light Action Button) */
         .btn-amazon-view-order {
             background-color: #f0f2f2;
             border: 1px solid #c9c9c9;
             color: var(--amazon-dark-text) !important;
             border-radius: 7px;
             box-shadow: 0 1px 2px rgba(15, 17, 17, 0.15);
-            padding: 5px 15px;
         }
 
             .btn-amazon-view-order:hover {
                 background-color: #e0e0e0;
-                border-color: #a2a2a2;
             }
 
-        /* Empty State Button */
         .btn-amazon-checkout {
             background-color: var(--amazon-yellow-action) !important;
             border-color: #FCD200 !important;
             color: #0F1111 !important;
             font-weight: 700;
-            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
             border-radius: 7px !important;
+        }
+
+        .progress {
+            background-color: #e9ecef;
+            border-radius: 10px;
         }
     </style>
 }
