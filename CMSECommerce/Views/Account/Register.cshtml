@@ -1,4 +1,4 @@
-﻿@model User
+﻿@model CMSECommerce.Models.ViewModels.RegisterViewModel
 
 @{
     ViewData["Title"] = "Create Account";
@@ -6,15 +6,39 @@
 
 <div class="amazon-login-page py-4">
     <div class="container d-flex justify-content-center">
-        <div class="col-lg-5 col-md-7 col-sm-10">
+        <div class="col-lg-6 col-md-8 col-sm-10">
 
             <div class="amazon-form-box p-4 border rounded shadow-sm bg-white">
                 <h1 class="h3 fw-bold mb-4 text-amazon-dark">Create account</h1>
 
-                <form asp-action="Register" method="post" id="registrationForm">
+                <form asp-action="Register" method="post" id="registrationForm" novalidate>
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger small p-2" role="alert"></div>
 
-                    @* --- Basic Info --- *@
+                    @* --- Section 1: Account Identity --- *@
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Username" class="form-label fw-bold small text-amazon-dark mb-1">User Name</label>
+                                <input asp-for="Username" id="UserInput" class="form-control amazon-input-field" placeholder="Unique username" />
+                                <span asp-validation-for="Username" id="UserError" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Email" class="form-label fw-bold small text-amazon-dark mb-1">Email</label>
+                                <input asp-for="Email" id="EmailInput" class="form-control amazon-input-field" type="email" placeholder="example@domain.com" />
+                                <span asp-validation-for="Email" id="EmailError" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Password" class="form-label fw-bold small text-amazon-dark mb-1">Password</label>
+                        <input asp-for="Password" type="password" class="form-control amazon-input-field" placeholder="At least 6 characters" />
+                        <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                    @* --- Section 2: Personal Info --- *@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group mb-3">
@@ -32,40 +56,53 @@
                         </div>
                     </div>
 
-                    <div class="form-group mb-3">
-                        <label asp-for="UserName" class="form-label fw-bold small text-amazon-dark mb-1">User name</label>
-                        <input asp-for="UserName" id="UserNameInput" class="form-control amazon-input-field" placeholder="Username" />
-                        <span asp-validation-for="UserName" id="UserNameError" class="text-danger small mt-1 d-block"></span>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="PhoneNumber" class="form-label fw-bold small text-amazon-dark mb-1">Mobile Number</label>
+                                <input asp-for="PhoneNumber" id="PhoneInput" class="form-control amazon-input-field" placeholder="10-digit mobile" maxlength="10" inputmode="numeric" />
+                                <span asp-validation-for="PhoneNumber" id="PhoneError" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="WhatsAppNumber" class="form-label fw-bold small text-amazon-dark mb-1">WhatsApp Number</label>
+                                <input asp-for="WhatsAppNumber" id="WhatsAppInput" class="form-control amazon-input-field" placeholder="Optional" maxlength="10" inputmode="numeric" />
+                                <span asp-validation-for="WhatsAppNumber" id="WhatsAppError" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                        </div>
                     </div>
+
+                    @* --- Section 3: Business Details --- *@
+                    <hr class="my-4" />
+                    <h4 class="h6 fw-bold mb-3 text-amazon-dark"><i class="fas fa-briefcase me-2 text-muted"></i>Business Details</h4>
 
                     <div class="form-group mb-3">
-                        <label asp-for="Email" class="form-label fw-bold small text-amazon-dark mb-1">Email</label>
-                        <input type="email" asp-for="Email" id="EmailInput" class="form-control amazon-input-field" placeholder="example@domain.com" />
-                        <span asp-validation-for="Email" id="EmailError" class="text-danger small mt-1 d-block"></span>
+                        <label asp-for="StoreName" class="form-label fw-bold small text-amazon-dark mb-1">Store Name</label>
+                        <input asp-for="StoreName" class="form-control amazon-input-field" placeholder="Business name" />
+                        <span asp-validation-for="StoreName" class="text-danger small mt-1 d-block"></span>
                     </div>
 
-                    <div class="form-group mb-3">
-                        <label asp-for="PhoneNumber" class="form-label fw-bold small text-amazon-dark mb-1">Mobile Number</label>
-                        <input asp-for="PhoneNumber" id="PhoneInput" class="form-control amazon-input-field" placeholder="10-digit mobile number" maxlength="10" />
-                        <span asp-validation-for="PhoneNumber" id="PhoneError" class="text-danger small mt-1 d-block"></span>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="ITSNumber" class="form-label fw-bold small text-amazon-dark mb-1">ITS Number (8-Digits)</label>
+                                <input asp-for="ITSNumber" id="ITSInput" class="form-control amazon-input-field" placeholder="8-digit ID" maxlength="8" inputmode="numeric" />
+                                <span asp-validation-for="ITSNumber" id="ITSError" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="GSTIN" class="form-label fw-bold small text-amazon-dark mb-1">GSTIN</label>
+                                <input asp-for="GSTIN" id="GSTInput" class="form-control amazon-input-field" placeholder="15-digit GSTIN" maxlength="15" style="text-transform: uppercase;" />
+                                <span asp-validation-for="GSTIN" id="GSTError" class="text-danger small mt-1 d-block"></span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="form-group mb-3">
-                        <label asp-for="Password" class="form-label fw-bold small text-amazon-dark mb-1">Password</label>
-                        <input asp-for="Password" type="password" class="form-control amazon-input-field" placeholder="At least 6 characters" />
-                        <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
-                    </div>
-
-                    <div class="form-group mb-4">
-                        <label asp-for="ConfirmPassword" class="form-label fw-bold small text-amazon-dark mb-1">Re-enter password</label>
-                        <input asp-for="ConfirmPassword" type="password" class="form-control amazon-input-field" />
-                        <span asp-validation-for="ConfirmPassword" class="text-danger small mt-1 d-block"></span>
-                    </div>
-
-                    @* --- Shipping & Business Address --- *@
-                    @* Note: The Controller uses these fields for Store, UserProfile, and Address tables *@
-                    <hr class="mb-4" />
-                    <h4 class="h5 fw-bold mb-3 text-amazon-dark"><i class="fas fa-map-marker-alt me-2 text-muted"></i>Address Details</h4>
+                    @* --- Section 4: Address --- *@
+                    <hr class="my-4" />
+                    <h4 class="h6 fw-bold mb-3 text-amazon-dark"><i class="fas fa-map-marker-alt me-2 text-muted"></i>Address Details</h4>
 
                     <div class="form-group mb-3">
                         <label asp-for="StreetAddress" class="form-label fw-bold small text-amazon-dark mb-1">Street Address</label>
@@ -74,32 +111,22 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="form-group mb-3">
                                 <label asp-for="City" class="form-label fw-bold small text-amazon-dark mb-1">City</label>
                                 <input asp-for="City" class="form-control amazon-input-field" />
                                 <span asp-validation-for="City" class="text-danger small mt-1 d-block"></span>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="form-group mb-3">
-                                <label asp-for="State" class="form-label fw-bold small text-amazon-dark mb-1">State/Province</label>
-                                <input asp-for="State" class="form-control amazon-input-field" />
-                                <span asp-validation-for="State" class="text-danger small mt-1 d-block"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-4">
                                 <label asp-for="PostalCode" class="form-label fw-bold small text-amazon-dark mb-1">Postal Code</label>
-                                <input asp-for="PostalCode" class="form-control amazon-input-field" />
+                                <input asp-for="PostalCode" class="form-control amazon-input-field" maxlength="10" inputmode="numeric" />
                                 <span asp-validation-for="PostalCode" class="text-danger small mt-1 d-block"></span>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-4">
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
                                 <label asp-for="Country" class="form-label fw-bold small text-amazon-dark mb-1">Country</label>
                                 <input asp-for="Country" class="form-control amazon-input-field" />
                                 <span asp-validation-for="Country" class="text-danger small mt-1 d-block"></span>
@@ -107,20 +134,14 @@
                         </div>
                     </div>
 
-                    <div class="d-grid mt-2 mb-3">
+                    <div class="d-grid mt-4 mb-3">
                         <button type="submit" id="submitBtn" class="btn btn-amazon-checkout w-100 fw-bold">
-                            Create your CMSECommerce account
+                            Create your account
                         </button>
                     </div>
 
                     <p class="small text-muted mb-4 text-center">
-                        By creating an account, you agree to CMSECommerce's <a href="#" class="text-amazon-link">Conditions of Use</a> and <a href="#" class="text-amazon-link">Privacy Notice</a>.
-                    </p>
-
-                    <hr />
-                    <p class="text-center mt-3 mb-0 small text-muted">
-                        Already have an account?
-                        <a asp-controller="Account" asp-action="Login" class="text-amazon-link fw-semibold">Sign in</a>.
+                        By creating an account, you agree to CMSECommerce's <a href="#" class="text-amazon-link">Conditions of Use</a>.
                     </p>
                 </form>
             </div>
@@ -132,16 +153,13 @@
     <style>
         :root {
             --amazon-dark-text: #0F1111;
-            --amazon-yellow-action: #FFD814;
-            --amazon-yellow-action-hover: #F7CA00;
-            --amazon-link-teal: #007185;
-            --amazon-link-teal-hover: #C7511F;
-            --amazon-page-bg: #f7f7f7;
-            --amazon-error-red: #c40000;
+            --amazon-yellow: #FFD814;
+            --amazon-yellow-hover: #F7CA00;
+            --amazon-error: #c40000;
         }
 
         .amazon-login-page {
-            background-color: var(--amazon-page-bg);
+            background-color: #f7f7f7;
             min-height: 100vh;
         }
 
@@ -149,29 +167,20 @@
             color: var(--amazon-dark-text);
         }
 
-        .text-amazon-link {
-            color: var(--amazon-link-teal) !important;
-            text-decoration: none;
-        }
-
-            .text-amazon-link:hover {
-                color: var(--amazon-link-teal-hover) !important;
-                text-decoration: underline;
-            }
-
         .amazon-form-box {
-            max-width: 450px;
-            border-color: #ddd !important;
+            max-width: 550px;
             background-color: #fff;
+            border-color: #ddd !important;
+            margin-top: 20px;
         }
 
         .amazon-input-field {
             height: 35px;
-            padding: 3px 7px;
             font-size: 14px;
             border-radius: 3px;
             border: 1px solid #a6a6a6;
-            box-shadow: 0 1px 0 rgba(0,0,0,.04);
+            padding: 3px 7px;
+            width: 100%;
         }
 
             .amazon-input-field:focus {
@@ -181,21 +190,20 @@
             }
 
         .input-error-border {
-            border-color: var(--amazon-error-red) !important;
+            border-color: var(--amazon-error) !important;
             box-shadow: 0 0 3px rgba(196, 0, 0, 0.5) !important;
         }
 
         .btn-amazon-checkout {
-            background-color: var(--amazon-yellow-action) !important;
+            background-color: var(--amazon-yellow) !important;
             border: 1px solid #FCD200 !important;
-            color: var(--amazon-dark-text) !important;
+            color: #0F1111 !important;
             border-radius: 7px !important;
             height: 38px;
-            font-size: 14px;
         }
 
             .btn-amazon-checkout:hover {
-                background-color: var(--amazon-yellow-action-hover) !important;
+                background-color: var(--amazon-yellow-hover) !important;
             }
 
             .btn-amazon-checkout:disabled {
@@ -212,86 +220,86 @@
 
     <script>
         $(document).ready(function () {
-            const userNameInput = $('#UserNameInput');
-            const emailInput = $('#EmailInput');
-            const phoneInput = $('#PhoneInput');
-            const submitBtn = $('#submitBtn');
+            // 1. Real-time Sanitization
+            $('#PhoneInput, #WhatsAppInput, #ITSInput, #PostalCode').on('input', function () {
+                this.value = this.value.replace(/\D/g, '');
+            });
 
-            function checkUniqueness(inputElement, errorElement, url, dataParamName, defaultErrorMessage) {
-                const value = inputElement.val().trim();
+            // GST Sanitization (Alpha-numeric & UpperCase)
+            $('#GSTInput').on('input', function () {
+                this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            });
 
-                if (value === "") {
-                    clearError(inputElement, errorElement);
+            // 2. Validation Map (Added GSTIN)
+            const fields = [
+                { id: $('#UserInput'), err: $('#UserError'), type: 'Username' },
+                { id: $('#EmailInput'), err: $('#EmailError'), type: 'Email' },
+                { id: $('#PhoneInput'), err: $('#PhoneError'), type: 'Mobile Number' },
+                { id: $('#ITSInput'), err: $('#ITSError'), type: 'ITS Number' },
+                { id: $('#GSTInput'), err: $('#GSTError'), type: 'GSTIN' }
+            ];
+
+            // 3. Logic to check Uniqueness & Formats
+            function validateField(field) {
+                const val = field.id.val().trim();
+                if (val === "") {
+                    clearError(field.id, field.err);
                     return;
                 }
 
-                // Field specific pre-validations
-                if (dataParamName === 'email') {
-                    const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
-                    if (!emailRegex.test(value)) {
-                        setError(inputElement, errorElement, "Please enter a valid email address.");
+                // Format Checks
+                if (field.type === 'ITS Number' && val.length !== 8) {
+                    setError(field.id, field.err, "ITS must be exactly 8 digits.");
+                    return;
+                }
+                if (field.type === 'Mobile Number' && !/^[6-9]\d{9}$/.test(val)) {
+                    setError(field.id, field.err, "Enter a valid 10-digit mobile number.");
+                    return;
+                }
+                if (field.type === 'GSTIN') {
+                    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+                    if (!gstRegex.test(val)) {
+                        setError(field.id, field.err, "Invalid GSTIN format.");
                         return;
                     }
                 }
 
-                if (dataParamName === 'phoneNumber') {
-                    if (value.length !== 10 || isNaN(value)) {
-                        setError(inputElement, errorElement, "Please enter a valid 10-digit numeric mobile number.");
-                        return;
-                    }
-                }
-
+                // AJAX Uniqueness Check
                 $.ajax({
-                    url: url,
+                    url: '@Url.Action("ValidateIdentifier", "Account")',
                     type: 'GET',
-                    data: { [dataParamName]: value },
-                    success: function (response) {
-                        const isAvailable = typeof response === 'object' ? response.isAvailable : response;
-                        const serverMsg = typeof response === 'object' ? response.message : null;
-
-                        if (!isAvailable) {
-                            setError(inputElement, errorElement, serverMsg || defaultErrorMessage);
+                    data: { value: val, type: field.type },
+                    success: function (res) {
+                        if (!res.isAvailable) {
+                            setError(field.id, field.err, res.message);
                         } else {
-                            clearError(inputElement, errorElement);
+                            clearError(field.id, field.err);
                         }
                     }
                 });
             }
 
-            function setError(input, errorSpan, msg) {
-                errorSpan.text(msg);
+            // 4. Listeners
+            fields.forEach(f => {
+                f.id.on('blur', () => validateField(f));
+            });
+
+            function setError(input, span, msg) {
+                span.text(msg);
                 input.addClass("input-error-border");
-                updateButtonState();
+                $('#submitBtn').prop("disabled", true);
             }
 
-            function clearError(input, errorSpan) {
-                errorSpan.text("");
+            function clearError(input, span) {
+                span.text("");
                 input.removeClass("input-error-border");
-                updateButtonState();
+                $('#submitBtn').prop("disabled", $(".input-error-border").length > 0);
             }
 
-            function updateButtonState() {
-                const hasErrors = $(".input-error-border").length > 0;
-                submitBtn.prop("disabled", hasErrors);
-            }
-
-            // Blur events for uniqueness check
-            userNameInput.on("blur", function () {
-                checkUniqueness(userNameInput, $('#UserNameError'), '@Url.Action("CheckUserNameUnique", "Account")', 'userName', "This username is already taken.");
-            });
-
-            emailInput.on("blur", function () {
-                checkUniqueness(emailInput, $('#EmailError'), '@Url.Action("CheckEmailUnique", "Account")', 'email', "Email address is already in use.");
-            });
-
-            phoneInput.on("blur", function () {
-                checkUniqueness(phoneInput, $('#PhoneError'), '@Url.Action("CheckPhoneUnique", "Account")', 'phoneNumber', "This number is already registered.");
-            });
-
-            $('#registrationForm').on("submit", function(e) {
+            $('#registrationForm').on("submit", function (e) {
                 if ($(".input-error-border").length > 0) {
                     e.preventDefault();
-                    alert("Please fix the highlighted errors before proceeding.");
+                    alert("Please resolve highlighted errors first.");
                 }
             });
         });

@@ -226,6 +226,7 @@ namespace CMSECommerce.Controllers
             }
         }
 
+
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -233,47 +234,64 @@ namespace CMSECommerce.Controllers
         {
             if (!ModelState.IsValid) return View(model);
 
+            // Final Server-Side Uniqueness Check for all 8 identifiers
+            bool isDuplicate = await _userManager.Users.AnyAsync(u => u.UserName == model.Username || u.Email == model.Email || u.PhoneNumber == model.PhoneNumber) ||
+                               await _context.UserProfiles.AnyAsync(up => up.ITSNumber == model.ITSNumber || up.WhatsAppNumber == model.WhatsAppNumber) ||
+                               await _context.Stores.AnyAsync(s => s.GSTIN == model.GSTIN);
+
+            if (isDuplicate)
+            {
+                ModelState.AddModelError("", "One or more details (Username, Email, Phone, ITS, or GSTIN) are already in use.");
+                return View(model);
+            }
+
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Create Identity User
+                // 1. Create Identity User using the NEW Username field
                 var newUser = new IdentityUser
                 {
-                    UserName = model.Email,
+                    UserName = model.Username, // Mapping specific Username
                     Email = model.Email,
-                    PhoneNumber = model.PhoneNumber
+                    PhoneNumber = model.PhoneNumber,
+                    EmailConfirmed = true
                 };
 
                 var result = await _userManager.CreateAsync(newUser, model.Password);
 
                 if (result.Succeeded)
                 {
-                    // 2. Create the Store first (so we have an ID for the Profile)
+                    // 2. Create the Store
                     var newStore = new Store
                     {
-                        StoreName = $"{model.FirstName}'s Store",
-                        StreetAddress = model.StreetAddress ?? "Not Provided",
-                        City = model.City ?? "Not Provided",
-                        PostCode = model.PostalCode ?? "00000",
-                        Country = model.Country ?? "Not Provided",
+                        StoreName = model.StoreName,
+                        StreetAddress = model.StreetAddress,
+                        City = model.City,
+                        PostCode = model.PostalCode,
+                        Country = model.Country,
                         Email = model.Email,
-                        Contact = model.PhoneNumber
+                        Contact = model.PhoneNumber,
+                        GSTIN = model.GSTIN
                     };
-                    _context.Stores.Add(newStore);
-                    await _context.SaveChangesAsync(); // Generates Store Id
 
-                    // 3. Create UserProfile linked to the new Store
+                    _context.Stores.Add(newStore);
+                    await _context.SaveChangesAsync();
+
+                    // 3. Create UserProfile with 8-digit ITS and WhatsApp
                     var userProfile = new UserProfile
                     {
                         UserId = newUser.Id,
                         FirstName = model.FirstName,
                         LastName = model.LastName,
-                        StoreId = newStore.Id, // Linking the Store
+                        ITSNumber = model.ITSNumber,       // Enforced 8-digit from ViewModel
+                        WhatsAppNumber = model.WhatsAppNumber,
+                        StoreId = newStore.Id,
                         IsProfileVisible = true
                     };
+
                     _context.UserProfiles.Add(userProfile);
 
-                    // 4. Assign Default Role
+                    // 4. Role Assignment
                     await _userManager.AddToRoleAsync(newUser, "Customer");
 
                     await _context.SaveChangesAsync();
@@ -288,12 +306,46 @@ namespace CMSECommerce.Controllers
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "Registration failed");
-                ModelState.AddModelError("", "An error occurred during registration.");
+                _logger.LogError(ex, "Transaction failed for user {Username}", model.Username);
+                ModelState.AddModelError("", "An internal error occurred. Please try again.");
             }
 
             return View(model);
         }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> ValidateIdentifier(string value, string type)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return Json(true);
+
+            // 1. Check Identity Tables
+            bool existsInIdentity = await _userManager.Users.AnyAsync(u =>
+                u.UserName == value || u.Email == value || u.PhoneNumber == value);
+
+            // 2. Check Profile Tables
+            bool existsInProfile = await _context.UserProfiles.AnyAsync(up =>
+                up.ITSNumber == value || up.WhatsAppNumber == value);
+
+            // 3. Check Store Tables
+            bool existsInStore = await _context.Stores.AnyAsync(s =>
+                s.Email == value || s.Contact == value || s.GSTIN == value);
+
+            if (existsInIdentity || existsInProfile || existsInStore)
+            {
+                return Json(new
+                {
+                    isAvailable = false,
+                    message = $"This {type} is already associated with an account. Please verify your details or sign in."
+                });
+            }
+
+            return Json(new { isAvailable = true });
+        }
+
+
+
+
 
         [HttpGet]
         [Authorize]
