@@ -267,40 +267,70 @@ namespace CMSECommerce.Controllers
 
         public async Task<IActionResult> Invoice(int id)
         {
-            // 1. Fetch the Order
-            // Using AsNoTracking() as this is a read-only view for an invoice
-            var order = await _context.Orders
-                .AsNoTracking()
-                .FirstOrDefaultAsync(o => o.Id == id);
-
-            if (order == null)
+            try
             {
-                return NotFound();
+                // 1. Fetch the Order and its Line Items in a single optimized query
+                // Using .Include(o => o.OrderDetails) reduces database round-trips
+                var order = await _context.Orders
+                    .Include(o => o.OrderDetails)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(o => o.Id == id);
+
+                if (order == null)
+                {
+                    return NotFound();
+                }
+
+                // 2. Fetch Buyer Profile (for billing details)
+                var buyerProfile = await _context.UserProfiles
+                    .Include(u => u.User)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.UserId == order.UserId);
+
+                // 3. Fetch unique ProductOwners (sellers) from OrderDetails
+                var productOwners = order.OrderDetails
+                    .Select(od => od.ProductOwner)
+                    .Distinct()
+                    .Where(po => !string.IsNullOrEmpty(po))
+                    .ToList();
+
+                // 4. Fetch Seller Profiles including their Stores
+                var sellerProfiles = await _context.UserProfiles
+                    .Include(u => u.Store)
+                    .AsNoTracking()
+                    .Where(u => productOwners.Contains(u.UserId))
+                    .ToDictionaryAsync(u => u.UserId, u => u);
+
+                // 5. Null-Safety for Invoice Rendering
+                // Ensure that even if profiles/stores are missing, the invoice doesn't crash
+                if (buyerProfile == null)
+                {
+                    buyerProfile = new UserProfile
+                    {
+                        UserId = order.UserId,
+                        FirstName = "Guest",
+                        LastName = "User"
+                    };
+                }
+
+                // 6. Map to the ViewModel
+                var viewModel = new OrderDetailsViewModel
+                {
+                    Order = order,
+                    OrderDetails = order.OrderDetails?.ToList() ?? new List<OrderDetail>(),
+                    UserProfile = buyerProfile,
+                    SellerProfiles = sellerProfiles
+                };
+
+                // 7. Return to the Invoice view
+                return View(viewModel);
             }
-
-            // 2. Fetch Order Details (the items inside the order)
-            var orderDetails = await _context.OrderDetails
-                .AsNoTracking()
-                .Where(od => od.OrderId == id)
-                .ToListAsync();
-
-            // 3. Fetch UserProfile AND the related Store
-            // IMPORTANT: .Include(u => u.Store) is required to access store details in the view
-            var userProfile = await _context.UserProfiles
-                .AsNoTracking()
-                .Include(u => u.User)  // Standard Identity User data
-                .Include(u => u.Store) // The new Store model data
-                .FirstOrDefaultAsync(u => u.UserId == order.UserId);
-
-            // 4. Populate the ViewModel
-            var viewModel = new OrderDetailsViewModel
+            catch (Exception ex)
             {
-                Order = order,
-                OrderDetails = orderDetails,
-                UserProfile = userProfile
-            };
-
-            return View(viewModel);
+                // Log error if logger is available
+                TempData["error"] = "An error occurred while generating the invoice.";
+                return RedirectToAction("Index", "Orders");
+            }
         }
     }
 }

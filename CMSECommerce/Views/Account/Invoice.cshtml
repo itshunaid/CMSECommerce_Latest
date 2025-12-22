@@ -5,198 +5,199 @@
     ViewData["Title"] = "Tax Invoice - #" + Model.Order.Id;
     var indianCulture = new CultureInfo("en-IN");
 
-    // Safety check for Profile and Store
+    var details = Model.OrderDetails as IEnumerable<OrderDetail> ?? new List<OrderDetail>();
+    var sellerProfiles = Model.SellerProfiles as IDictionary<string, UserProfile> ?? new Dictionary<string, UserProfile>();
+
     var profile = Model.UserProfile;
-    // Note: Model.UserProfile.Store is populated via .Include() in the Controller
     var store = Model.UserProfile?.Store;
+
+    var groupedItems = details
+        .GroupBy(od => od.ProductOwner ?? "Store")
+        .ToDictionary(g => g.Key, g => g.ToList());
 }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <div class="container my-4 no-print">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <a asp-action="MyOrders" class="btn btn-sm btn-outline-secondary">
+        <a asp-action="MyOrders" class="btn btn-sm btn-outline-secondary shadow-sm">
             <i class="fas fa-arrow-left me-1"></i> Back to Orders
         </a>
-        <div class="btn-group shadow-sm">
-            <button onclick="downloadInvoice()" class="btn btn-primary fw-bold">
+        <div class="btn-group">
+            <button onclick="downloadInvoice()" class="btn btn-warning fw-bold px-4 shadow-sm" style="background-color: #FFD814; border-color: #FCD200; color: #0F1111;">
                 <i class="fas fa-file-pdf me-2"></i> Download PDF
             </button>
-            <button onclick="window.print()" class="btn btn-dark fw-bold">
-                <i class="fas fa-print me-2"></i> Print Invoice
+            <button onclick="window.print()" class="btn btn-light fw-bold border shadow-sm px-4">
+                <i class="fas fa-print me-2"></i> Print
             </button>
         </div>
     </div>
 </div>
 
 <div id="invoice-document">
-    <div class="container invoice-wrapper bg-white shadow-sm border p-5 mb-5">
+    <div class="container invoice-wrapper bg-white p-5 mb-5">
 
-        @* --- Header Section --- *@
-        <div class="row mb-5 align-items-center">
+        @* --- Amazon Header --- *@
+        <div class="row border-bottom pb-3 mb-4">
             <div class="col-6">
-                @if (!string.IsNullOrEmpty(store?.StoreName))
-                {
-                    <h2 class="fw-bold text-dark mb-0">@store.StoreName</h2>
-                    <p class="text-muted small mb-0">@store.StreetAddress, @store.City</p>
-                    <p class="text-muted x-small">Contact: @store.Contact | @store.Email</p>
-                }
-                else
-                {
-                    <h2 class="fw-bold text-dark mb-0">Independent Seller</h2>
-                    <p class="text-muted small">Quality Goods Delivered to Your Door</p>
-                }
+                <h3 class="fw-bold mb-0">Final Details for Order #@Model.Order.Id</h3>
+                <p class="text-muted small">Print this page for your records.</p>
             </div>
             <div class="col-6 text-end">
-                <h1 class="display-6 fw-bold text-uppercase text-secondary">Tax Invoice</h1>
-                <p class="mb-0 fw-bold">Invoice #: @Model.Order.Id</p>
-                <p class="text-muted small">Date: @Model.Order.DateTime.ToString("MMMM dd, yyyy")</p>
+                <p class="mb-0 small"><strong>Order Placed:</strong> @Model.Order.DateTime.ToString("MMMM dd, yyyy")</p>
+                <p class="mb-0 small"><strong>Amazon.in order number:</strong> @Model.Order.Id</p>
+                <p class="mb-0 small"><strong>Order Total: @Model.Order.GrandTotal.ToString("C", indianCulture)</strong></p>
             </div>
         </div>
 
-        @* --- Addresses Section --- *@
-        <div class="row mb-5">
-            <div class="col-6">
-                <h6 class="text-muted text-uppercase fw-bold border-bottom pb-2 mb-3">Billed To</h6>
-                <div class="ps-1">
-                    @if (profile != null)
+        @* --- Address Block --- *@
+        <div class="row mb-4">
+            <div class="col-4">
+                <h6 class="fw-bold small mb-2">Shipping Address</h6>
+                <div class="small">
+                    <p class="mb-0 fw-bold">@profile?.FirstName @profile?.LastName</p>
+                    <p class="mb-0">@profile?.HomeAddress</p>
+                    <p class="mb-0">Phone: @profile?.HomePhoneNumber</p>
+                    @if (!string.IsNullOrEmpty(profile?.ITSNumber))
                     {
-                        <p class="fw-bold mb-1">@profile.FirstName @profile.LastName</p>
-                        <p class="text-muted small mb-1">@profile.HomeAddress</p>
-                        <p class="text-muted small mb-1"><i class="fas fa-phone me-1"></i> @profile.HomePhoneNumber</p>
-                        @if (!string.IsNullOrEmpty(profile.ITSNumber))
-                        {
-                            <p class="text-muted x-small mb-0">ITS ID: @profile.ITSNumber</p>
-                        }
-                    }
-                    else
-                    {
-                        <p class="fw-bold mb-1">@Model.Order.UserName</p>
-                        <p class="text-muted small mb-1">Contact: @Model.Order.PhoneNumber</p>
+                        <p class="mb-0 text-muted">ITS: @profile.ITSNumber</p>
                     }
                 </div>
             </div>
-            <div class="col-6 text-end">
-                <h6 class="text-muted text-uppercase fw-bold border-bottom pb-2 mb-3">Sold By</h6>
-                <div class="pe-1">
-                    @if (store != null && !string.IsNullOrEmpty(store.StoreName))
+            <div class="col-4">
+                <h6 class="fw-bold small mb-2">Payment Method</h6>
+                <div class="small">
+                    <p class="mb-0 text-muted">Cash on Delivery / Digital Transfer</p>
+                    @if (!string.IsNullOrEmpty(profile?.GpayQRCodePath) || !string.IsNullOrEmpty(profile?.PhonePeQRCodePath))
                     {
-                        <p class="fw-bold mb-1">@store.StoreName</p>
-                        <p class="text-muted small mb-1">@store.StreetAddress</p>
-                        <p class="text-muted small mb-1">@store.City, @store.PostCode, @store.Country</p>
-                        @if (!string.IsNullOrEmpty(store.GSTIN))
-                        {
-                            <p class="text-muted small mb-1"><strong>GSTIN:</strong> @store.GSTIN</p>
-                        }
-                        <p class="text-muted small mb-0">@store.Email</p>
+                        <p class="mb-0 mt-1 text-success fw-bold"><i class="fas fa-qrcode"></i> QR Payment Available</p>
                     }
-                    else
-                    {
-                        <p class="fw-bold mb-1">@(profile?.FirstName) @(profile?.LastName)</p>
-                        <p class="text-muted small mb-1">@profile?.BusinessAddress</p>
-                        <p class="text-muted small mb-0">@profile?.WhatsAppNumber</p>
-                    }
+                </div>
+            </div>
+            <div class="col-4 border p-3 rounded bg-light">
+                <h6 class="fw-bold small mb-2">Order Summary</h6>
+                <div class="small">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Item(s) Subtotal:</span>
+                        <span>@Model.Order.GrandTotal.ToString("C", indianCulture)</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Shipping:</span>
+                        <span>₹0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between border-top pt-1 mt-1 fw-bold fs-6">
+                        <span>Grand Total:</span>
+                        <span class="text-danger">@Model.Order.GrandTotal.ToString("C", indianCulture)</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        @* --- Line Items Table --- *@
-        <div class="table-responsive mb-5">
-            <table class="table table-hover border">
-                <thead class="table-light text-uppercase small">
-                    <tr>
-                        <th class="py-3">Description</th>
-                        <th class="py-3 text-center">Unit Price</th>
-                        <th class="py-3 text-center">Qty</th>
-                        <th class="py-3 text-end">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model.OrderDetails)
-                    {
-                        <tr>
-                            <td class="py-3">
-                                <div class="fw-bold text-dark">@item.ProductName</div>
-                                <div class="text-muted x-small">Category: @(item.ProductOwner ?? "General")</div>
-                            </td>
-                            <td class="py-3 text-center align-middle">@item.Price.ToString("C", indianCulture)</td>
-                            <td class="py-3 text-center align-middle">@item.Quantity</td>
-                            <td class="py-3 text-end align-middle fw-bold">@((item.Price * item.Quantity).ToString("C", indianCulture))</td>
-                        </tr>
-                    }
-                </tbody>
-                <tfoot class="border-0">
-                    <tr>
-                        <td colspan="2" class="border-0"></td>
-                        <td class="text-end py-2 fw-bold text-muted border-0">Grand Total:</td>
-                        <td class="text-end py-2 border-0 fs-5 fw-bold text-danger">@Model.Order.GrandTotal.ToString("C", indianCulture)</td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
+        @* --- Grouped Items --- *@
+        @foreach (var sellerGroup in groupedItems)
+        {
+            var sellerId = sellerGroup.Key;
+            var items = sellerGroup.Value;
+            var sellerProfile = sellerProfiles.ContainsKey(sellerId) ? sellerProfiles[sellerId] : null;
+            var sellerStore = sellerProfile?.Store;
 
-        @* --- Payment & QR Section --- *@
-        <div class="row mt-5">
-            <div class="col-7">
-                <h6 class="fw-bold text-dark border-bottom pb-2">Terms & Conditions</h6>
-                <p class="text-muted x-small">
-                    1. Goods once sold will not be taken back.<br />
-                    2. Fulfillment managed by: <strong>@(store?.StoreName ?? "Independent Seller")</strong>.<br />
-                    3. For support, contact: <strong>@(store?.Contact ?? profile?.WhatsAppNumber)</strong>.
-                </p>
+            <div class="card mb-4 border shadow-none">
+                <div class="card-header bg-light py-2">
+                    <div class="row align-items-center">
+                        <div class="col-6">
+                            <span class="small text-muted">Sold by:</span>
+                            <span class="small fw-bold">@(sellerStore?.StoreName ?? $"{sellerProfile?.FirstName} {sellerProfile?.LastName}" ?? "Official Store")</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            @if (!string.IsNullOrEmpty(sellerStore?.GSTIN))
+                            {
+                                <span class="x-small text-muted">GSTIN: @sellerStore.GSTIN</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-borderless mb-0 small">
+                        <thead>
+                            <tr class="border-bottom text-muted x-small">
+                                <th class="ps-3 py-2">Items Ordered</th>
+                                <th class="text-center py-2">Price</th>
+                                <th class="text-center py-2">Qty</th>
+                                <th class="text-end pe-3 py-2">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in items)
+                            {
+                                <tr class="border-bottom">
+                                    <td class="ps-3 py-3">
+                                        <div class="text-primary fw-bold">@item.ProductName</div>
+                                        <div class="text-muted x-small">Condition: New</div>
+                                    </td>
+                                    <td class="text-center align-middle">@item.Price.ToString("C", indianCulture)</td>
+                                    <td class="text-center align-middle">@item.Quantity</td>
+                                    <td class="text-end pe-3 align-middle fw-bold">@((item.Price * item.Quantity).ToString("C", indianCulture))</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <div class="col-5 text-center">
-                <div class="d-flex justify-content-center gap-3 mb-2">
+        }
+
+        @* --- Digital Payment QR Footer (Amazon Style) --- *@
+        <div class="row mt-5 pt-4 border-top">
+            <div class="col-8">
+                <h6 class="fw-bold small">Digital Payment Instructions</h6>
+                <p class="text-muted x-small mb-1">Scan the QR code to pay the seller directly. Please mention Order #@Model.Order.Id in payment remarks.</p>
+                <p class="text-muted x-small italic">Returns Policy: Contact the seller directly for returns and refunds as per store policy.</p>
+            </div>
+            <div class="col-4">
+                <div class="d-flex justify-content-end gap-3">
                     @if (!string.IsNullOrEmpty(profile?.GpayQRCodePath))
                     {
-                        <div class="text-center">
-                            <img src="/@profile.GpayQRCodePath.TrimStart('/')" style="width: 80px; height: 80px; border: 1px solid #eee;" />
-                            <p class="x-small mt-1 mb-0">GPay</p>
+                        <div class="text-center border p-1 rounded">
+                            <img src="/@profile.GpayQRCodePath.TrimStart('/')" style="width: 70px; height: 70px;" />
+                            <p class="x-small mt-1 mb-0 fw-bold">GPay</p>
                         </div>
                     }
                     @if (!string.IsNullOrEmpty(profile?.PhonePeQRCodePath))
                     {
-                        <div class="text-center">
-                            <img src="/@profile.PhonePeQRCodePath.TrimStart('/')" style="width: 80px; height: 80px; border: 1px solid #eee;" />
-                            <p class="x-small mt-1 mb-0">PhonePe</p>
+                        <div class="text-center border p-1 rounded">
+                            <img src="/@profile.PhonePeQRCodePath.TrimStart('/')" style="width: 70px; height: 70px;" />
+                            <p class="x-small mt-1 mb-0 fw-bold">PhonePe</p>
                         </div>
                     }
                 </div>
-                <div class="pt-2 border-top">
-                    <p class="small fw-bold text-dark mb-0">Authorized Signatory</p>
-                    <p class="x-small text-muted">@DateTime.Now.ToString("dd-MMM-yyyy HH:mm")</p>
-                </div>
             </div>
+        </div>
+
+        <div class="text-center mt-5">
+            <p class="x-small text-muted border-top pt-3">To view the status of your order, return to Order Summary.</p>
         </div>
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        function downloadInvoice() {
-            const element = document.getElementById('invoice-document');
-            const options = {
-                margin:       [0.5, 0.5, 0.5, 0.5],
-                filename:     'Invoice_#@(Model.Order.Id).pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, logging: false },
-                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-            };
-            html2pdf().set(options).from(element).save();
-        }
-    </script>
-}
-
 @section Styles {
     <style>
         .invoice-wrapper {
-            max-width: 850px;
+            max-width: 900px;
             margin: auto;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #0F1111;
+            font-family: "Amazon Ember", Arial, sans-serif;
+            border: 1px solid #ddd;
         }
 
         .x-small {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
+        }
+
+        .text-primary {
+            color: #007185 !important;
+        }
+
+        .bg-light {
+            background-color: #F8F9FA !important;
         }
 
         @@media print {
@@ -206,14 +207,17 @@
 
             .invoice-wrapper {
                 border: none !important;
-                box-shadow: none !important;
                 padding: 0 !important;
-                width: 100% !important;
                 max-width: 100% !important;
             }
 
             body {
                 background-color: white !important;
+            }
+
+            .card {
+                border: 1px solid #ddd !important;
+                break-inside: avoid;
             }
         }
     </style>

@@ -671,6 +671,26 @@ namespace CMSECommerce.Controllers
                     _context.UserProfiles.Add(userProfile);
                 }
 
+                // Ensure Store exists
+                if (userProfile.StoreId == null)
+                {
+                    var newStore = new Store
+                    {
+                        StoreName = model.StoreName ?? $"{model.FirstName}'s Store",
+                        StreetAddress = model.StoreStreetAddress ?? "Not Provided",
+                        City = model.StoreCity ?? "Not Provided",
+                        PostCode = model.StorePostCode ?? "00000",
+                        Country = model.StoreCountry ?? "Not Provided",
+                        GSTIN = model.GSTIN,
+                        Email = model.StoreEmail ?? model.Email,
+                        Contact = model.StoreContact ?? model.PhoneNumber
+                    };
+                    _context.Stores.Add(newStore);
+                    await _context.SaveChangesAsync(); // Generate Store Id
+                    userProfile.StoreId = newStore.Id;
+                    userProfile.Store = newStore;
+                }
+
                 // --- RECTIFIED IMAGE UPLOAD LOGIC ---
                 // We use Path.Combine for the physical folder on the server
                 string subPath = Path.Combine("images", "useruploads");
@@ -716,7 +736,35 @@ namespace CMSECommerce.Controllers
                     userProfile.PhonePeQRCodePath = "/images/useruploads/" + fileName;
                 }
 
-                // ... (Keep your Store logic and User mapping as is) ...
+                // Map Store fields from model to userProfile.Store
+                if (userProfile.Store != null)
+                {
+                    userProfile.Store.StoreName = model.StoreName ?? userProfile.Store.StoreName;
+                    userProfile.Store.StreetAddress = model.StoreStreetAddress ?? userProfile.Store.StreetAddress;
+                    userProfile.Store.City = model.StoreCity ?? userProfile.Store.City;
+                    userProfile.Store.PostCode = model.StorePostCode ?? userProfile.Store.PostCode;
+                    userProfile.Store.Country = model.StoreCountry ?? userProfile.Store.Country;
+                    userProfile.Store.GSTIN = model.GSTIN ?? userProfile.Store.GSTIN;
+                    userProfile.Store.Email = model.StoreEmail ?? userProfile.Store.Email;
+                    userProfile.Store.Contact = model.StoreContact ?? userProfile.Store.Contact;
+                }
+
+                // Map UserProfile fields from model
+                userProfile.FirstName = model.FirstName;
+                userProfile.LastName = model.LastName;
+                userProfile.ITSNumber = model.ITSNumber;
+                userProfile.About = model.About;
+                userProfile.Profession = model.Profession;
+                userProfile.ServicesProvided = model.ServicesProvided;
+                userProfile.IsProfileVisible = model.IsProfileVisible;
+                userProfile.LinkedInUrl = model.LinkedInUrl;
+                userProfile.FacebookUrl = model.FacebookUrl;
+                userProfile.InstagramUrl = model.InstagramUrl;
+                userProfile.WhatsAppNumber = model.WhatsAppNumber;
+                userProfile.HomeAddress = model.HomeAddress;
+                userProfile.HomePhoneNumber = model.HomePhoneNumber;
+                userProfile.BusinessAddress = model.BusinessAddress;
+                userProfile.BusinessPhoneNumber = model.BusinessPhoneNumber;
 
                 _context.Entry(userProfile).State = EntityState.Modified;
                 var updateResult = await _userManager.UpdateAsync(user);
@@ -904,6 +952,8 @@ namespace CMSECommerce.Controllers
         {
             if (!ModelState.IsValid) return View(model);
 
+            _logger.LogInformation("Profile update request received. Method: {Method}, Path: {Path}", HttpContext.Request.Method, HttpContext.Request.Path);
+
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
@@ -915,8 +965,8 @@ namespace CMSECommerce.Controllers
                     return RedirectToAction("Login");
                 }
 
-                // Update Identity
-                identityUser.UserName = model.UserName;
+                // Update Identity - Note: UserName cannot be changed once set in ASP.NET Identity
+                // Only update Email and PhoneNumber
                 identityUser.Email = model.Email;
                 identityUser.PhoneNumber = model.PhoneNumber;
 
@@ -940,7 +990,6 @@ namespace CMSECommerce.Controllers
                 bool profileImageUpdated = false;
                 if (model.ProfileImageUpload != null)
                 {
-                    // Optional: Delete old pending file from disk if it exists
                     userProfile.PendingProfileImagePath = await ProcessFileUpload(model.ProfileImageUpload, "profiles/pending");
                     userProfile.IsImageApproved = false;
                     userProfile.IsImagePending = true;
@@ -953,26 +1002,30 @@ namespace CMSECommerce.Controllers
                 if (model.PhonePeQRCodeUpload != null)
                     userProfile.PhonePeQRCodePath = await ProcessFileUpload(model.PhonePeQRCodeUpload, "qrcodes");
 
-                // Map Profile Fields
+                // Map ALL Profile Fields from ViewModel
                 userProfile.FirstName = model.FirstName;
                 userProfile.LastName = model.LastName;
                 userProfile.ITSNumber = model.ITSNumber;
                 userProfile.About = model.About;
                 userProfile.Profession = model.Profession;
+                userProfile.ServicesProvided = model.ServicesProvided; // Was missing
                 userProfile.IsProfileVisible = model.IsProfileVisible;
                 userProfile.WhatsAppNumber = model.WhatsappNumber;
                 userProfile.LinkedInUrl = model.LinkedInUrl;
+                userProfile.FacebookUrl = model.FacebookUrl; // Was missing
+                userProfile.InstagramUrl = model.InstagramUrl; // Was missing
                 userProfile.HomeAddress = model.HomeAddress;
                 userProfile.HomePhoneNumber = model.HomePhoneNumber;
+                userProfile.BusinessAddress = model.BusinessAddress; // Was missing
+                userProfile.BusinessPhoneNumber = model.BusinessPhoneNumber; // Was missing
 
                 // Ensure Store object exists
                 if (userProfile.Store == null)
                 {
                     userProfile.Store = new Store();
-                    // Link the store back to the profile if your schema requires it
                 }
 
-                // Map Store Fields
+                // Map ALL Store Fields from ViewModel
                 userProfile.Store.StoreName = model.StoreName;
                 userProfile.Store.GSTIN = model.GSTIN;
                 userProfile.Store.Email = model.StoreEmail;
@@ -982,11 +1035,14 @@ namespace CMSECommerce.Controllers
                 userProfile.Store.PostCode = model.StorePostCode;
                 userProfile.Store.Country = model.StoreCountry;
 
-                // Sync legacy field
-                userProfile.BusinessAddress = model.StoreStreetAddress;
+                // Update the Store entity state if it's not new
+                if (userProfile.StoreId.HasValue)
+                {
+                    _context.Entry(userProfile.Store).State = EntityState.Modified;
+                }
 
                 if (isNewProfile) _context.UserProfiles.Add(userProfile);
-                else _context.UserProfiles.Update(userProfile);
+                else _context.Entry(userProfile).State = EntityState.Modified;
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -1863,38 +1919,48 @@ namespace CMSECommerce.Controllers
                     return NotFound();
                 }
 
-                // 2. Fetch UserProfile including Identity User and Store details
-                // This provides the Seller/Business info needed for the invoice header
-                var userProfile = await _context.UserProfiles
+                // 2. Fetch Buyer Profile (for billing details)
+                var buyerProfile = await _context.UserProfiles
                     .Include(u => u.User)
-                    .Include(u => u.Store)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(u => u.UserId == order.UserId);
 
-                // 3. Null-Safety for Invoice Rendering
-                // Ensure that even if a profile/store is missing, the invoice doesn't crash
-                if (userProfile == null)
+                // 3. Fetch unique ProductOwners (sellers) from OrderDetails
+                var productOwners = order.OrderDetails
+                    .Select(od => od.ProductOwner)
+                    .Distinct()
+                    .Where(po => !string.IsNullOrEmpty(po))
+                    .ToList();
+
+                // 4. Fetch Seller Profiles including their Stores
+                var sellerProfiles = await _context.UserProfiles
+                    .Include(u => u.Store)
+                    .AsNoTracking()
+                    .Where(u => productOwners.Contains(u.UserId))
+                    .ToDictionaryAsync(u => u.UserId, u => u);
+
+                // 5. Null-Safety for Invoice Rendering
+                // Ensure that even if profiles/stores are missing, the invoice doesn't crash
+                if (buyerProfile == null)
                 {
-                    userProfile = new UserProfile
+                    buyerProfile = new UserProfile
                     {
                         UserId = order.UserId,
-                        Store = new Store { StoreName = "General Seller" }
+                        FirstName = "Guest",
+                        LastName = "User"
                     };
                 }
-                else if (userProfile.Store == null)
-                {
-                    userProfile.Store = new Store { StoreName = "Independent Business" };
-                }
 
-                // 4. Map to the ViewModel
+                // 6. Map to the ViewModel
                 var viewModel = new OrderDetailsViewModel
                 {
                     Order = order,
                     OrderDetails = order.OrderDetails?.ToList() ?? new List<OrderDetail>(),
-                    UserProfile = userProfile
+                    UserProfile = buyerProfile,
+                    SellerProfiles = sellerProfiles
                 };
 
-                // 5. Return to the Invoice view
+                // 7. Return to the Invoice view
                 return View(viewModel);
             }
             catch (Exception ex)

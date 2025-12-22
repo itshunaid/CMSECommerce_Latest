@@ -1,344 +1,454 @@
-﻿@using CMSECommerce.Areas.Admin.Models
-@model EditUserModel
+@model CMSECommerce.Areas.Admin.Models.EditUserModel
 
 @{
     ViewData["Title"] = "Profile Details";
+    var displayName = string.IsNullOrEmpty(Model.FirstName) || string.IsNullOrEmpty(Model.LastName)
+        ? Model.UserName
+        : $"{Model.FirstName} {Model.LastName}";
 }
 
 <style>
-    /* LinkedIn-Style CSS Definitions */
-    :root {
-        --linkedin-blue: #0A66C2;
-        --linkedin-gray: #EBEBEB;
-        --text-dark: #191919;
-        --text-secondary: #666666;
-        --shadow-subtle: 0 0 0 1px rgb(0 0 0 / 15%), 0 2px 3px rgb(0 0 0 / 20%);
-        --business-gold: #B87333;
-    }
-
-    .linkedin-card {
-        background-color: #fff;
-        border-radius: 12px;
-        margin-bottom: 20px;
-        border: 1px solid var(--linkedin-gray);
-        position: relative;
+    .amazon-card {
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         overflow: hidden;
     }
 
-    .profile-hero {
-        background: linear-gradient(to right, #0A66C2, #004182);
-        height: 150px;
-        position: relative;
+    .amazon-header {
+        background: linear-gradient(135deg, #FF9900 0%, #FF6600 100%);
+        padding: 2rem 0;
+        color: white;
+        text-align: center;
     }
 
-    .profile-photo {
-        width: 130px;
-        height: 130px;
-        border-radius: 50%;
-        border: 4px solid #fff;
-        position: absolute;
-        top: 85px;
-        left: 25px;
-        z-index: 10;
-        object-fit: cover;
-        box-shadow: 0 0 0 1px rgba(0,0,0,.15);
+    .amazon-section {
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid #FF9900;
     }
 
-    .main-info {
-        padding: 75px 24px 24px 24px;
-        position: relative;
-    }
-
-    .main-name {
-        font-size: 28px;
+    .amazon-section h5 {
+        color: #232F3E;
         font-weight: 600;
-        color: var(--text-dark);
-        margin-bottom: 4px;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
     }
 
-    .main-profession {
-        font-size: 18px;
-        color: var(--text-dark);
-        margin-bottom: 8px;
+    .amazon-btn-primary {
+        background: linear-gradient(135deg, #FF9900 0%, #FF6600 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        font-weight: 500;
+        transition: all 0.3s ease;
     }
 
-    .section-header {
-        font-size: 18px;
+    .amazon-btn-primary:hover {
+        background: linear-gradient(135deg, #FF6600 0%, #FF9900 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
+    }
+
+    .amazon-btn-secondary {
+        background: #232F3E;
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .amazon-btn-secondary:hover {
+        background: #37475A;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(35, 47, 62, 0.3);
+    }
+
+    .nav-tabs .nav-link {
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: #666;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .nav-tabs .nav-link.active {
+        background: none;
+        border-bottom-color: #FF9900;
+        color: #FF9900;
         font-weight: 600;
-        color: var(--text-dark);
-        border-bottom: 1px solid var(--linkedin-gray);
-        padding-bottom: 8px;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
     }
 
-    .detail-label {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--text-secondary);
-        margin-top: 12px;
-        display: block;
-        text-transform: uppercase;
+    .nav-tabs .nav-link:hover {
+        border-bottom-color: #FF9900;
+        color: #FF9900;
     }
 
-    .detail-value {
-        font-size: 15px;
-        color: var(--text-dark);
-        margin-bottom: 5px;
-    }
-
-    .linkedin-btn {
-        background-color: var(--linkedin-blue);
-        color: #fff;
-        border-radius: 20px;
-        padding: 8px 16px;
-        font-weight: 600;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        transition: 0.2s;
-    }
-
-        .linkedin-btn:hover {
-            background-color: #004182;
-            color: #fff;
-        }
-
-    .qr-code-display {
-        max-width: 100px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        margin-top: 5px;
-        padding: 5px;
+    .tab-content {
         background: white;
+        border-radius: 0 0 8px 8px;
     }
 
-    .business-badge {
-        background-color: #f8faff;
-        border: 1px solid #dce6f1;
-        padding: 12px;
-        border-radius: 8px;
-        margin-top: 15px;
+    .dl-horizontal dt {
+        font-weight: 600;
+        color: #232F3E;
+        margin-bottom: 0.5rem;
     }
 
-    .social-icon-btn {
-        font-size: 20px;
-        margin-right: 15px;
-        transition: transform 0.2s;
+    .dl-horizontal dd {
+        margin-bottom: 1rem;
+        color: #666;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.75rem;
+    }
+
+    .social-btn {
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        color: #666;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-decoration: none;
         display: inline-block;
+        transition: all 0.3s ease;
     }
 
-        .social-icon-btn:hover {
-            transform: scale(1.2);
-        }
+    .social-btn:hover {
+        background: #FF9900;
+        border-color: #FF9900;
+        color: white;
+        text-decoration: none;
+    }
+
+    .qr-code-container {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .qr-code-container img {
+        max-width: 180px;
+        height: auto;
+        border-radius: 4px;
+    }
 </style>
 
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 style="font-weight: 600; color: var(--text-dark);">Account Overview</h2>
-
-        @if (User.IsInRole("Admin") || User.Identity.Name == Model.UserName)
-        {
-            <a asp-action="ProfileDetails"
-               asp-controller="Account"
-               asp-route-id="@Model.Id"
-               class="linkedin-btn">
-                <i class="fas fa-edit me-2"></i> Edit Profile
-            </a>
-        }
-    </div>
-
-    <div class="row">
-        @* LEFT COLUMN: Main Profile & Business *@
-        <div class="col-lg-8">
-            @* HERO CARD *@
-            <div class="linkedin-card">
-                <div class="profile-hero"></div>
-                <img src="@Model.ProfileImagePath" alt="Profile Photo" class="profile-photo">
-
-                <div class="main-info">
-                    <div class="d-flex justify-content-end mb-3">
-                        <span class="badge @(Model.IsProfileVisible ? "bg-success" : "bg-warning text-dark")">
-                            <i class="fas @(Model.IsProfileVisible ? "fa-eye" : "fa-eye-slash") me-1"></i>
-                            @(Model.IsProfileVisible ? "Public Profile" : "Private Profile")
-                        </span>
-                    </div>
-
-                    <div class="main-name">@Model.FirstName @Model.LastName</div>
-                    <div class="main-profession">@(Model.Profession ?? "Professional")</div>
-                    <div class="text-muted mb-3"><i class="fas fa-user-tag me-1"></i> @Model.Role</div>
-
-                    @if (!string.IsNullOrEmpty(Model.StoreName) && Model.StoreName != "No Store Assigned")
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-xl-8">
+            <div class="amazon-card">
+                <div class="amazon-header">
+                    @if (!string.IsNullOrEmpty(Model.ProfileImagePath))
                     {
-                        <div class="business-badge">
-                            <span class="text-secondary small d-block mb-1">Affiliated Business:</span>
-                            <strong class="text-primary" style="font-size: 1.1rem;">
-                                <i class="fas fa-store-alt me-2"></i>@Model.StoreName
-                            </strong>
-                        </div>
-                    }
-                </div>
-            </div>
-
-            @* BUSINESS DETAILS *@
-            <div class="linkedin-card p-4">
-                <div class="section-header" style="color: var(--business-gold);">
-                    <i class="fas fa-building me-2"></i> Business & Store Details
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <span class="detail-label">Tax ID / GSTIN</span>
-                        <div class="detail-value">@(Model.GSTIN ?? "Not Provided")</div>
-
-                        <span class="detail-label">Business Email</span>
-                        <div class="detail-value">@(Model.StoreEmail ?? "Not Provided")</div>
-                    </div>
-                    <div class="col-md-6">
-                        <span class="detail-label">Business Phone</span>
-                        <div class="detail-value">@(Model.StoreContact ?? "Not Provided")</div>
-
-                        <span class="detail-label">Location</span>
-                        <div class="detail-value">
-                            @if (!string.IsNullOrEmpty(Model.StoreCity))
-                            {
-                                <text>@Model.StoreStreetAddress, @Model.StoreCity, @Model.StoreCountry</text>
-                            }
-                            else
-                            {
-                                <text>Address not listed</text>
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            @* ABOUT SECTION *@
-            <div class="linkedin-card p-4">
-                <div class="section-header">About</div>
-                <div class="detail-value" style="white-space: pre-wrap; line-height: 1.6;">
-                    @(string.IsNullOrEmpty(Model.About) ? "This user hasn't written a bio yet." : Model.About)
-                </div>
-            </div>
-
-            @* SERVICES *@
-            <div class="linkedin-card p-4">
-                <div class="section-header">Services Provided</div>
-                <div class="d-flex flex-wrap gap-2">
-                    @if (!string.IsNullOrEmpty(Model.ServicesProvided))
-                    {
-                        @foreach (var service in Model.ServicesProvided.Split(','))
-                        {
-                            <span class="badge bg-light text-dark border p-2">@service.Trim()</span>
-                        }
+                        <img src="@Model.ProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle border border-2 border-light-subtle mb-3" style="width: 100px; height: 100px; object-fit: cover;" />
                     }
                     else
                     {
-                        <span class="text-muted italic">No services listed.</span>
+                        <i class="fas fa-user-circle fa-4x text-light mb-3"></i>
                     }
-                </div>
-            </div>
-        </div>
-
-        @* RIGHT COLUMN: Contact & Social *@
-        <div class="col-lg-4">
-            @* CONTACT CARD *@
-            <div class="linkedin-card p-4">
-                <div class="section-header">Contact Information</div>
-
-                <span class="detail-label">Email Address</span>
-                <div class="detail-value text-primary">@Model.Email</div>
-
-                <span class="detail-label">Mobile Number</span>
-                <div class="detail-value">@(Model.PhoneNumber ?? "Not Provided")</div>
-
-                @if (!string.IsNullOrEmpty(Model.ITSNumber))
-                {
-                    <span class="detail-label">ITS Number</span>
-                    <div class="detail-value">@Model.ITSNumber</div>
-                }
-
-                <hr />
-
-                <span class="detail-label">Home Address</span>
-                <div class="detail-value small">@(Model.HomeAddress ?? "Not Provided")</div>
-
-                <span class="detail-label">Work Address</span>
-                <div class="detail-value small">@(Model.BusinessAddress ?? "Not Provided")</div>
-            </div>
-
-            @* SOCIAL MEDIA *@
-            <div class="linkedin-card p-4 text-center">
-                <div class="section-header justify-content-center">Social Profiles</div>
-                <div class="mt-2">
-                    @if (!string.IsNullOrEmpty(Model.WhatsAppNumber))
+                    <h2 class="h4 fw-bold mb-0">@displayName</h2>
+                    <p class="text-light small mb-0">@Model.Profession</p>
+                    @if (!string.IsNullOrEmpty(Model.Role))
                     {
-                        <a href="https://wa.me/@Model.WhatsAppNumber" target="_blank" class="social-icon-btn text-success">
-                            <i class="fab fa-whatsapp"></i>
-                        </a>
-                    }
-                    @if (!string.IsNullOrEmpty(Model.LinkedInUrl))
-                    {
-                        <a href="@Model.LinkedInUrl" target="_blank" class="social-icon-btn text-primary">
-                            <i class="fab fa-linkedin"></i>
-                        </a>
-                    }
-                    @if (!string.IsNullOrEmpty(Model.FacebookUrl))
-                    {
-                        <a href="@Model.FacebookUrl" target="_blank" class="social-icon-btn text-primary">
-                            <i class="fab fa-facebook"></i>
-                        </a>
-                    }
-                    @if (!string.IsNullOrEmpty(Model.InstagramUrl))
-                    {
-                        <a href="@Model.InstagramUrl" target="_blank" class="social-icon-btn text-danger">
-                            <i class="fab fa-instagram"></i>
-                        </a>
-                    }
-                </div>
-            </div>
-
-            @* VERIFICATION & QR *@
-            <div class="linkedin-card p-4">
-                <div class="section-header">Payments & Trust</div>
-
-                <div class="mb-4">
-                    <span class="detail-label">Status</span>
-                    @if (Model.IsImageApproved)
-                    {
-                        <span class="badge bg-success w-100 py-2"><i class="fas fa-check-circle me-1"></i> Verified Profile</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-secondary w-100 py-2">Verification Pending</span>
+                        <span class="badge bg-light text-primary">@Model.Role</span>
                     }
                 </div>
 
-                <div class="row g-2 text-center">
-                    <div class="col-6">
-                        <span class="detail-label">GPay</span>
-                        @if (!string.IsNullOrEmpty(Model.GpayQRCodePath) && !Model.GpayQRCodePath.Contains("default"))
+                <div class="card-body">
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-end mb-4">
+                        @if (User.IsInRole("Admin") || User.Identity.Name == Model.UserName)
                         {
-                            <img src="@Model.GpayQRCodePath" class="qr-code-display" />
+                            <a asp-action="ProfileDetails" asp-route-id="@Model.Id" class="amazon-btn-primary me-2">
+                                <i class="fas fa-edit me-1"></i>Edit Profile
+                            </a>
                         }
-                        else
-                        {
-                            <div class="small text-muted border rounded p-3 mt-2">N/A</div>
-                        }
+                        <a asp-action="Index" asp-controller="Home" class="amazon-btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Home
+                        </a>
                     </div>
-                    <div class="col-6">
-                        <span class="detail-label">PhonePe</span>
-                        @if (!string.IsNullOrEmpty(Model.PhonePeQRCodePath) && !Model.PhonePeQRCodePath.Contains("default"))
-                        {
-                            <img src="@Model.PhonePeQRCodePath" class="qr-code-display" />
-                        }
-                        else
-                        {
-                            <div class="small text-muted border rounded p-3 mt-2">N/A</div>
-                        }
+
+                    <!-- Profile Information Tabs -->
+                    <ul class="nav nav-tabs" id="profileTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab">Basic Info</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="professional-tab" data-bs-toggle="tab" data-bs-target="#professional" type="button" role="tab">Professional</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact" type="button" role="tab">Contact & Address</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="store-tab" data-bs-toggle="tab" data-bs-target="#store" type="button" role="tab">Store Info</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment" type="button" role="tab">Payment</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content mt-4" id="profileTabsContent">
+                        <!-- Basic Information Tab -->
+                        <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                            <div class="amazon-section">
+                                <h5><i class="fas fa-user me-2"></i>Basic Information</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <dl class="dl-horizontal">
+                                            <dt>First Name:</dt>
+                                            <dd>@(string.IsNullOrEmpty(Model.FirstName) ? "Not provided" : Model.FirstName)</dd>
+
+                                            <dt>Last Name:</dt>
+                                            <dd>@(string.IsNullOrEmpty(Model.LastName) ? "Not provided" : Model.LastName)</dd>
+
+                                            <dt>Username:</dt>
+                                            <dd>@Model.UserName</dd>
+
+                                            <dt>Email:</dt>
+                                            <dd>
+                                                <a href="mailto:@Model.Email" class="text-decoration-none">@Model.Email</a>
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <dl class="dl-horizontal">
+                                            <dt>Phone:</dt>
+                                            <dd>@(string.IsNullOrEmpty(Model.PhoneNumber) ? "Not provided" : Model.PhoneNumber)</dd>
+
+                                            <dt>ITS Number:</dt>
+                                            <dd>@(string.IsNullOrEmpty(Model.ITSNumber) ? "Not provided" : Model.ITSNumber)</dd>
+
+                                            <dt>Profile Status:</dt>
+                                            <dd>
+                                                <span class="badge @(Model.IsProfileVisible ? "bg-success" : "bg-secondary")">
+                                                    @(Model.IsProfileVisible ? "Visible" : "Hidden")
+                                                </span>
+                                            </dd>
+
+                                            <dt>Image Status:</dt>
+                                            <dd>
+                                                <span class="badge @(Model.IsImageApproved ? "bg-success" : "bg-warning")">
+                                                    @(Model.IsImageApproved ? "Approved" : "Pending/None")
+                                                </span>
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(Model.About))
+                                {
+                                    <div class="mt-4">
+                                        <h6 class="fw-bold text-dark">About</h6>
+                                        <p class="text-muted">@Model.About</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Professional Information Tab -->
+                        <div class="tab-pane fade" id="professional" role="tabpanel">
+                            <div class="amazon-section">
+                                <h5><i class="fas fa-briefcase me-2"></i>Professional Information</h5>
+                                <dl class="dl-horizontal">
+                                    <dt>Profession:</dt>
+                                    <dd>@(string.IsNullOrEmpty(Model.Profession) ? "Not specified" : Model.Profession)</dd>
+
+                                    <dt>Services:</dt>
+                                    <dd>
+                                        @if (!string.IsNullOrEmpty(Model.ServicesProvided))
+                                        {
+                                            foreach (var service in Model.ServicesProvided.Split(','))
+                                            {
+                                                <span class="badge bg-primary me-2">@service.Trim()</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No services specified</span>
+                                        }
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+
+                        <!-- Contact & Address Tab -->
+                        <div class="tab-pane fade" id="contact" role="tabpanel">
+                            <div class="amazon-section">
+                                <h5><i class="fas fa-address-book me-2"></i>Contact Information</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-secondary mb-3"><i class="fas fa-home me-1"></i>Home Contact</h6>
+                                        <dl class="dl-horizontal">
+                                            <dt>Address:</dt>
+                                            <dd>@(string.IsNullOrEmpty(Model.HomeAddress) ? "Not provided" : Model.HomeAddress)</dd>
+
+                                            <dt>Phone:</dt>
+                                            <dd>@(string.IsNullOrEmpty(Model.HomePhoneNumber) ? "Not provided" : Model.HomePhoneNumber)</dd>
+                                        </dl>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-secondary mb-3"><i class="fas fa-building me-1"></i>Business Contact</h6>
+                                        <dl class="dl-horizontal">
+                                            <dt>Address:</dt>
+                                            <dd>@(string.IsNullOrEmpty(Model.BusinessAddress) ? "Not provided" : Model.BusinessAddress)</dd>
+
+                                            <dt>Phone:</dt>
+                                            <dd>@(string.IsNullOrEmpty(Model.BusinessPhoneNumber) ? "Not provided" : Model.BusinessPhoneNumber)</dd>
+                                        </dl>
+                                    </div>
+                                </div>
+
+                                <h6 class="fw-bold text-dark mt-4 mb-3"><i class="fas fa-share-alt me-2"></i>Social Media</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        @if (!string.IsNullOrEmpty(Model.LinkedInUrl))
+                                        {
+                                            <a href="@Model.LinkedInUrl" target="_blank" class="social-btn w-100">
+                                                <i class="fab fa-linkedin me-2"></i>LinkedIn
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">LinkedIn not provided</span>
+                                        }
+                                    </div>
+                                    <div class="col-md-4">
+                                        @if (!string.IsNullOrEmpty(Model.FacebookUrl))
+                                        {
+                                            <a href="@Model.FacebookUrl" target="_blank" class="social-btn w-100">
+                                                <i class="fab fa-facebook me-2"></i>Facebook
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Facebook not provided</span>
+                                        }
+                                    </div>
+                                    <div class="col-md-4">
+                                        @if (!string.IsNullOrEmpty(Model.InstagramUrl))
+                                        {
+                                            <a href="@Model.InstagramUrl" target="_blank" class="social-btn w-100">
+                                                <i class="fab fa-instagram me-2"></i>Instagram
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Instagram not provided</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(Model.WhatsAppNumber))
+                                {
+                                    <div class="mt-3">
+                                        <strong>WhatsApp:</strong>
+                                        <a href="https://wa.me/@Model.WhatsAppNumber" target="_blank" class="text-decoration-none ms-2">
+                                            @Model.WhatsAppNumber <i class="fab fa-whatsapp text-success"></i>
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Store Information Tab -->
+                        <div class="tab-pane fade" id="store" role="tabpanel">
+                            <div class="amazon-section">
+                                <h5><i class="fas fa-store me-2"></i>Store Information</h5>
+                                @if (!string.IsNullOrEmpty(Model.StoreName))
+                                {
+                                    <dl class="dl-horizontal">
+                                        <dt>Store Name:</dt>
+                                        <dd>@Model.StoreName</dd>
+
+                                        <dt>GSTIN:</dt>
+                                        <dd>@(string.IsNullOrEmpty(Model.GSTIN) ? "Not provided" : Model.GSTIN)</dd>
+
+                                        <dt>Email:</dt>
+                                        <dd>
+                                            <a href="mailto:@Model.StoreEmail" class="text-decoration-none">
+                                                @(string.IsNullOrEmpty(Model.StoreEmail) ? "Not provided" : Model.StoreEmail)
+                                            </a>
+                                        </dd>
+
+                                        <dt>Contact:</dt>
+                                        <dd>@(string.IsNullOrEmpty(Model.StoreContact) ? "Not provided" : Model.StoreContact)</dd>
+
+                                        <dt>Address:</dt>
+                                        <dd>
+                                            @(string.IsNullOrEmpty(Model.StoreStreetAddress) ? "Not provided" :
+                                              $"{Model.StoreStreetAddress}, {Model.StoreCity}, {Model.StorePostCode}, {Model.StoreCountry}")
+                                        </dd>
+                                    </dl>
+                                }
+                                else
+                                {
+                                    <p class="text-muted">No store information available.</p>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Payment Tab -->
+                        <div class="tab-pane fade" id="payment" role="tabpanel">
+                            <div class="amazon-section">
+                                <h5><i class="fas fa-credit-card me-2"></i>Payment QR Codes</h5>
+                                <div class="row justify-content-center g-4">
+                                    <div class="col-md-6">
+                                        <div class="qr-code-container">
+                                            <h6 class="text-success mb-3"><i class="fab fa-google-pay me-1"></i>GPay</h6>
+                                            @if (!string.IsNullOrEmpty(Model.GpayQRCodePath))
+                                            {
+                                                <img src="@Model.GpayQRCodePath" alt="GPay QR Code" class="img-fluid" />
+                                            }
+                                            else
+                                            {
+                                                <p class="text-muted">No GPay QR code available</p>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="qr-code-container">
+                                            <h6 class="text-info mb-3"><i class="fas fa-mobile-alt me-1"></i>PhonePe</h6>
+                                            @if (!string.IsNullOrEmpty(Model.PhonePeQRCodePath))
+                                            {
+                                                <img src="@Model.PhonePeQRCodePath" alt="PhonePe QR Code" class="img-fluid" />
+                                            }
+                                            else
+                                            {
+                                                <p class="text-muted">No PhonePe QR code available</p>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Initialize Bootstrap tabs
+        var triggerTabList = [].slice.call(document.querySelectorAll('#profileTabs button'))
+        triggerTabList.forEach(function (triggerEl) {
+            var tabTrigger = new bootstrap.Tab(triggerEl)
+            triggerEl.addEventListener('click', function (event) {
+                event.preventDefault()
+                tabTrigger.show()
+            })
+        })
+    </script>
+}
