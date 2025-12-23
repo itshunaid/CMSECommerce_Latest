@@ -16,7 +16,12 @@ builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
 
 // Database Configuration
-var connectionString = builder.Configuration.GetConnectionString("DbConnection");
+var connectionString = builder.Configuration.GetConnectionString("DbConnection")
+    ?? throw new InvalidOperationException("Connection string 'DbConnection' not found.");
+
+Console.WriteLine($"--> Current Environment: {builder.Environment.EnvironmentName}");
+Console.WriteLine($"--> Using Connection String: {connectionString?.Split(';')[0]}..."); // Log only the server part for security
+
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlServer(connectionString)
 );
@@ -70,93 +75,60 @@ builder.Services.Configure<RouteOptions>(options =>
 
 var app = builder.Build();
 
-// --- 2. SEEDING LOGIC ---
-using (var scope = app.Services.CreateScope())
+// --- DEBUG: Configuration Verification ---
+if (app.Environment.IsDevelopment())
 {
-    var services = scope.ServiceProvider;
+    var config = (IConfigurationRoot)app.Configuration;
+    Console.WriteLine("=========================================");
+    Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");
+
+    // This shows which 'provider' the connection string is coming from
+    var provider = config.GetSection("ConnectionStrings:DbConnection");
+    foreach (var source in config.Providers.Reverse())
+    {
+        if (source.TryGet("ConnectionStrings:DbConnection", out _))
+        {
+            Console.WriteLine($"--> Connection String Source: {source}");
+            break;
+        }
+    }
+    Console.WriteLine("=========================================");
+}
+
+// --- 2. SEEDING LOGIC (ENVIRONMENT SENSITIVE) ---
+if (app.Environment.IsDevelopment())
+{
     try
     {
-        var context = services.GetRequiredService<DataContext>();
-        context.Database.Migrate();
-
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
-
-        // Ensure Roles exist
-        var roles = new[] { "Admin", "Customer", "Subscriber" };
-        foreach (var role in roles)
+        // In Development: Run Migrations AND Seed Admin/Roles/Stores
+        DbSeeder.SeedData(app.Services);
+    }
+    catch (Exception ex)
+    {
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred during DEVELOPMENT seeding.");
+    }
+}
+else
+{
+    try
+    {
+        // In Production: ONLY Run Migrations (No dummy data seeding)
+        using (var scope = app.Services.CreateScope())
         {
-            if (!roleManager.RoleExistsAsync(role).GetAwaiter().GetResult())
-            {
-                roleManager.CreateAsync(new IdentityRole(role)).GetAwaiter().GetResult();
-            }
-        }
-
-        // Ensure Admin User exists
-        var adminEmail = "admin@local.local";
-        var adminUser = userManager.FindByEmailAsync(adminEmail).GetAwaiter().GetResult();
-        if (adminUser == null)
-        {
-            adminUser = new IdentityUser
-            {
-                UserName = "admin",
-                Email = adminEmail,
-                EmailConfirmed = true
-            };
-            var createResult = userManager.CreateAsync(adminUser, "Pass@local110").GetAwaiter().GetResult();
-            if (createResult.Succeeded)
-            {
-                userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
-            }
-        }
-
-        // Ensure Admin Profile and Store exist
-        if (adminUser != null)
-        {
-            var adminProfile = context.UserProfiles.Include(p => p.Store).FirstOrDefault(p => p.UserId == adminUser.Id);
-            if (adminProfile == null)
-            {
-                var adminStore = new Store
-                {
-                    StoreName = "Admin Central Store",
-                    StreetAddress = "123 Admin HQ, Tech Park",
-                    City = "Mumbai",
-                    PostCode = "400001",
-                    Country = "India",
-                    Email = adminEmail,
-                    Contact = "022-7654321",
-                    GSTIN = "27AAAAA0000A1Z5",
-                    UserId=adminProfile.User.Id
-                };
-                context.Stores.Add(adminStore);
-                context.SaveChanges();
-
-                adminProfile = new UserProfile
-                {
-                    UserId = adminUser.Id,
-                    FirstName = "System",
-                    LastName = "Administrator",
-                    ITSNumber = "30455623",
-                    Profession = "Global Admin",
-                    About = "System generated administrator profile.",
-                    IsProfileVisible = true,
-                    IsImageApproved = true,
-                    StoreId = adminStore.Id,
-                    ProfileImagePath = "/images/defaults/admin-profile.png"
-                };
-                context.UserProfiles.Add(adminProfile);
-                context.SaveChanges();
-            }
+            var context = scope.ServiceProvider.GetRequiredService<DataContext>();
+            context.Database.Migrate();
         }
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred during seeding.");
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred applying migrations in PRODUCTION.");
     }
 }
 
-// --- 3. MIDDLEWARE PIPELINE (CORRECT ORDER) ---
+// --- 3. MIDDLEWARE PIPELINE ---
+
 
 if (!app.Environment.IsDevelopment())
 {
@@ -165,13 +137,11 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// UseStaticFiles MUST come before Routing to serve images efficiently
 app.UseStaticFiles();
 
 app.UseRouting();
 
-// Localization should be before Authentication but after Routing
+// Localization
 var culture = new CultureInfo("en-IN");
 var localizationOptions = new RequestLocalizationOptions
 {
@@ -189,19 +159,16 @@ app.UseAuthorization();
 app.MapHub<CMSECommerce.Hubs.ChatHub>("/chatHub");
 app.MapRazorPages();
 
-// Area Route
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
 
-// Custom Specialized Routes
 app.MapControllerRoute(name: "product", pattern: "products/product/{slug?}", defaults: new { controller = "Products", action = "Product" });
 app.MapControllerRoute(name: "cart", pattern: "cart/{action}/{id?}", defaults: new { controller = "Cart", action = "Index" });
 app.MapControllerRoute(name: "account", pattern: "account/{action}", defaults: new { controller = "Account", action = "Index" });
 app.MapControllerRoute(name: "orders", pattern: "orders/{action}", defaults: new { controller = "Orders", action = "Index" });
 app.MapControllerRoute(name: "products", pattern: "products/{slug?}", defaults: new { controller = "Products", action = "Index" });
 
-// Default and Slug Routes
 app.MapControllerRoute(name: "default", pattern: "{controller=Products}/{action=Index}/{id?}");
 app.MapControllerRoute(name: "pages", pattern: "{slug?}", defaults: new { controller = "Pages", action = "Index" });
 

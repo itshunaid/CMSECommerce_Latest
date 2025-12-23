@@ -2037,5 +2037,107 @@ namespace CMSECommerce.Controllers
             }
         }
 
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetChatContacts()
+        {
+            try
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser == null)
+                {
+                    return Json(new { success = false, message = "User not authenticated" });
+                }
+
+                var userId = currentUser.Id;
+                var userName = currentUser.UserName;
+
+                // Get user roles
+                var roles = await _userManager.GetRolesAsync(currentUser);
+                bool isSeller = roles.Contains("Subscriber") || roles.Contains("Admin");
+
+                List<string> contactUserIds = new List<string>();
+
+                if (isSeller)
+                {
+                    // For sellers: get customers who bought their products
+                    var customerUserNames = await _context.OrderDetails
+                        .Where(od => od.ProductOwner == userName && od.IsProcessed)
+                        .Select(od => od.Customer)
+                        .Distinct()
+                        .ToListAsync();
+
+                    // Convert usernames to userIds
+                    foreach (var customerName in customerUserNames)
+                    {
+                        var customerUser = await _userManager.FindByNameAsync(customerName);
+                        if (customerUser != null)
+                        {
+                            contactUserIds.Add(customerUser.Id);
+                        }
+                    }
+                }
+                else
+                {
+                    // For buyers: get product owners from their orders
+                    var productOwnerUserNames = await _context.Orders
+                        .Where(o => o.UserId == userId)
+                        .Join(_context.OrderDetails,
+                              o => o.Id,
+                              od => od.OrderId,
+                              (o, od) => od.ProductOwner)
+                        .Distinct()
+                        .ToListAsync();
+
+                    // Convert usernames to userIds
+                    foreach (var ownerName in productOwnerUserNames)
+                    {
+                        if (!string.IsNullOrEmpty(ownerName))
+                        {
+                            var ownerUser = await _userManager.FindByNameAsync(ownerName);
+                            if (ownerUser != null)
+                            {
+                                contactUserIds.Add(ownerUser.Id);
+                            }
+                        }
+                    }
+                }
+
+                // Remove current user from contacts if present
+                contactUserIds = contactUserIds.Where(id => id != userId).Distinct().ToList();
+
+                // Get user profiles and online status
+                var contacts = new List<object>();
+                foreach (var contactId in contactUserIds)
+                {
+                    var contactUser = await _userManager.FindByIdAsync(contactId);
+                    if (contactUser != null)
+                    {
+                        var profile = await _context.UserProfiles
+                            .FirstOrDefaultAsync(p => p.UserId == contactId);
+
+                        var status = await _context.UserStatuses
+                            .FirstOrDefaultAsync(s => s.UserId == contactId);
+
+                        contacts.Add(new
+                        {
+                            id = contactId,
+                            name = profile != null ? $"{profile.FirstName} {profile.LastName}".Trim() : contactUser.UserName,
+                            userName = contactUser.UserName,
+                            isOnline = status?.IsOnline ?? false,
+                            lastActivity = status?.LastActivity
+                        });
+                    }
+                }
+
+                return Json(new { success = true, contacts });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching chat contacts for user {UserId}", _userManager.GetUserId(User));
+                return Json(new { success = false, message = "Error loading contacts" });
+            }
+        }
+
     }
 }
