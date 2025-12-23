@@ -24,11 +24,11 @@
             <i class="fas fa-arrow-left me-1"></i> Back to Orders
         </a>
         <div class="btn-group">
-            <button onclick="downloadInvoice()" class="btn btn-warning fw-bold px-4 shadow-sm" style="background-color: #FFD814; border-color: #FCD200; color: #0F1111;">
+            <button onclick="downloadInvoice(event)" class="btn btn-warning fw-bold px-4 shadow-sm" style="background-color: #FFD814; border-color: #FCD200; color: #0F1111;">
                 <i class="fas fa-file-pdf me-2"></i> Download PDF
             </button>
             <button onclick="window.print()" class="btn btn-light fw-bold border shadow-sm px-4">
-                <i class="fas fa-print me-2"></i> Print
+                <i class="fas fa-print me-2"></i> Print Invoice
             </button>
         </div>
     </div>
@@ -157,14 +157,14 @@
                     @if (!string.IsNullOrEmpty(profile?.GpayQRCodePath))
                     {
                         <div class="text-center border p-1 rounded">
-                            <img src="/@profile.GpayQRCodePath.TrimStart('/')" style="width: 70px; height: 70px;" />
+                            <img src="/@profile.GpayQRCodePath.TrimStart('/')" style="width:70px; height:70px;" />
                             <p class="x-small mt-1 mb-0 fw-bold">GPay</p>
                         </div>
                     }
                     @if (!string.IsNullOrEmpty(profile?.PhonePeQRCodePath))
                     {
                         <div class="text-center border p-1 rounded">
-                            <img src="/@profile.PhonePeQRCodePath.TrimStart('/')" style="width: 70px; height: 70px;" />
+                            <img src="/@profile.PhonePeQRCodePath.TrimStart('/')" style="width:70px; height:70px;" />
                             <p class="x-small mt-1 mb-0 fw-bold">PhonePe</p>
                         </div>
                     }
@@ -220,5 +220,255 @@
                 break-inside: avoid;
             }
         }
+
+        /* Progress overlay */
+        #pdfProgressOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        #pdfProgressBox {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            width: 320px;
+            text-align: center;
+        }
+
     </style>
+}
+
+@section Scripts {
+    <script>
+        // Helper: Convert Blob to Data URL
+        function blobToDataURL(blob) {
+            return new Promise(function (resolve, reject) {
+                var reader = new FileReader();
+                reader.onerror = function (e) { reject(e); };
+                reader.onloadend = function () { resolve(reader.result); };
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        // Wait until all images inside root element are loaded or errored (with timeout)
+        function waitForImages(root, timeoutMs = 8000) {
+            var imgs = Array.from(root.querySelectorAll('img'));
+            var promises = imgs.map(function (img) {
+                return new Promise(function (resolve) {
+                    if (!img.src) return resolve();
+                    if (img.complete) return resolve();
+                    var resolved = false;
+                    var onDone = function () { if (!resolved) { resolved = true; resolve(); } };
+                    img.addEventListener('load', onDone);
+                    img.addEventListener('error', onDone);
+                    // fallback timeout
+                    setTimeout(onDone, timeoutMs);
+                });
+            });
+            return Promise.all(promises);
+        }
+
+        // Inline cross-origin images by fetching them and converting to data URLs.
+        async function inlineImages(rootElement) {
+            var imgs = Array.from(rootElement.querySelectorAll('img'));
+            await Promise.all(imgs.map(async function (img) {
+                try {
+                    if (!img.src) return;
+                    // Already data URL -> leave as-is
+                    if (img.src.startsWith('data:')) return;
+
+                    var imgUrl;
+                    try {
+                        imgUrl = new URL(img.src, window.location.href);
+                    } catch (e) {
+                        // Invalid URL, skip
+                        return;
+                    }
+
+                    // If same-origin, try to fetch with credentials
+                    if (imgUrl.origin === window.location.origin) {
+                        try {
+                            var resp = await fetch(img.src, { credentials: 'same-origin' });
+                            if (resp.ok) {
+                                var blob = await resp.blob();
+                                img.src = await blobToDataURL(blob);
+                                return;
+                            }
+                        } catch (e) {
+                            console.warn('Same-origin fetch failed, will leave image reference:', img.src, e);
+                            // leave original src and hope browser will render it for html2canvas
+                            return;
+                        }
+                    }
+
+                    // Cross-origin: try fetch with CORS
+                    try {
+                        var response = await fetch(img.src, { mode: 'cors', credentials: 'omit' });
+                        if (response.ok) {
+                            var blob = await response.blob();
+                            var dataUrl = await blobToDataURL(blob);
+                            img.src = dataUrl;
+                            return;
+                        }
+                        throw new Error('Network response not ok: ' + response.status);
+                    }
+                    catch (err) {
+                        // If we can't inline, replace the image with a lightweight placeholder to avoid tainting the canvas
+                        console.warn('Could not inline image for PDF generation:', img.src, err);
+                        try {
+                            var placeholder = document.createElement('div');
+                            placeholder.style.width = (img.width ? img.width + 'px' : '70px');
+                            placeholder.style.height = (img.height ? img.height + 'px' : '70px');
+                            placeholder.style.border = '1px solid #ddd';
+                            placeholder.style.display = 'inline-block';
+                            placeholder.style.background = '#f8f8f8';
+                            placeholder.style.verticalAlign = 'middle';
+                            if (img.alt) {
+                                placeholder.innerText = img.alt;
+                            }
+                            img.parentNode.replaceChild(placeholder, img);
+                        } catch (replaceErr) {
+                            console.warn('Failed to replace image:', replaceErr);
+                        }
+                    }
+                } catch (finalErr) {
+                    console.warn('Unexpected error while processing image:', img.src, finalErr);
+                }
+            }));
+        }
+
+        // --------------------------------------------------------------------------------------
+        // Client-side html2pdf download (existing) - exposed on window
+        // --------------------------------------------------------------------------------------
+        window.downloadInvoice = async function (evt) {
+            try {
+                var element = document.getElementById('invoice-document');
+                if (!element) {
+                    alert('Invoice content not found.');
+                    return;
+                }
+
+                // Give user feedback
+                var originalButton = evt && evt.currentTarget;
+                if (originalButton) {
+                    originalButton.disabled = true;
+                    var originalText = originalButton.innerHTML;
+                    originalButton.innerHTML = 'Preparing PDF...';
+                }
+
+                // Wait for images to load (so we can inline them reliably)
+                await waitForImages(element,8000);
+                // Inline images to avoid tainting the canvas used by html2canvas
+                await inlineImages(element);
+
+                var opt = {
+                    margin:0.5,
+                    filename: 'Invoice-#@(Model.Order.Id).pdf',
+                    image: { type: 'jpeg', quality:0.98 },
+                    html2canvas: { scale:2, useCORS: true, allowTaint: false, logging: false },
+                    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                };
+
+                // Use html2pdf library to generate and save PDF
+                // Add small delay to allow DOM updates after inlining
+                setTimeout(function () {
+                    html2pdf().set(opt).from(element).save().then(function () {
+                        console.info('PDF generated');
+                    }).catch(function (err) {
+                        console.error('html2pdf error:', err);
+                        // Automatically fall back to server-side PDF generation by opening the server endpoint in a new tab
+                        try {
+                            console.info('Falling back to server-side PDF generation (opening server endpoint)');
+                            var serverUrl = '@Url.Action("InvoicePdf", "PlaywrightPdf", new { id = Model.Order.Id })';
+                            window.open(serverUrl, '_blank');
+                        } catch (fallbackErr) {
+                            console.error('Fallback failed:', fallbackErr);
+                            if (confirm('Unable to generate PDF in browser. Open printable server page (use Print -> Save as PDF)?')) {
+                                window.open('@Url.Action("Printable", "Orders", new { id = Model.Order.Id })', '_blank');
+                            }
+                        }
+                    }).finally(function () {
+                        if (originalButton) {
+                            originalButton.disabled = false;
+                            originalButton.innerHTML = originalText;
+                        }
+                    });
+                },250);
+            }
+            catch (e) {
+                console.error(e);
+                // Fallback to opening server PDF endpoint
+                try {
+                    var serverUrl = '@Url.Action("InvoicePdf", "PlaywrightPdf", new { id = Model.Order.Id })';
+                    window.open(serverUrl, '_blank');
+                } catch (fallbackErr) {
+                    console.error('Fallback failed:', fallbackErr);
+                    if (confirm('An unexpected error occurred while generating the PDF. Open printable server page as fallback?')) {
+                        window.open('@Url.Action("Printable", "Orders", new { id = Model.Order.Id })', '_blank');
+                    }
+                }
+                if (evt && evt.currentTarget) {
+                    evt.currentTarget.disabled = false;
+                }
+            }
+        };
+
+        // --------------------------------------------------------------------------------------
+        // Server-side PDF download via Playwright endpoint with simplified behavior - exposed on window
+        // --------------------------------------------------------------------------------------
+        window.downloadServerPdf = async function (evt) {
+            if (serverPdfInProgress) {
+                alert('A server PDF generation is already in progress. Please wait.');
+                return;
+            }
+
+            serverPdfInProgress = true;
+            var btn = document.getElementById('btnServerPdf');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Generating...'; }
+            showPdfOverlay();
+            try {
+                var url = '@Url.Action("InvoicePdf", "PlaywrightPdf", new { id = Model.Order.Id })';
+                // Open in new tab to let browser handle download and cookies
+                window.open(url, '_blank');
+                // hide overlay after short delay
+                setTimeout(hidePdfOverlay,3000);
+            } catch (err) {
+                console.error('Server PDF error:', err);
+                alert('Failed to start server PDF generation. Opening printable view as fallback.');
+                window.open('@Url.Action("Printable", "Orders", new { id = Model.Order.Id })', '_blank');
+            } finally {
+                serverPdfInProgress = false;
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-server me-2"></i> Download (Server PDF)'; }
+                hidePdfOverlay();
+            }
+        };
+
+        function getFilenameFromResponse(response) {
+            var cd = response.headers.get('content-disposition');
+            if (!cd) return null;
+            var match = cd.match(/filename\*=UTF-8''(.+)|filename="?([^";]+)"?/i);
+            if (match) return decodeURIComponent(match[1] || match[2]);
+            return null;
+        }
+
+        function triggerDownload(blob, filename) {
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = filename || 'invoice.pdf';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+        }
+
+    </script>
 }

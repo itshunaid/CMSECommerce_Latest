@@ -3,11 +3,10 @@ using CMSECommerce.Models.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-// using Microsoft.Extensions.Logging; // Include this if logging is required
 
 namespace CMSECommerce.Controllers
 {
-    // Injecting dependencies in the primary constructor (C# 12 feature)
+    // Injecting dependencies in the primary constructor (C#12 feature)
     public class OrdersController(
                                  DataContext context,
                                  UserManager<IdentityUser> userManager,
@@ -37,7 +36,7 @@ namespace CMSECommerce.Controllers
             DateTime? minDate,
             DateTime? maxDate)
         {
-            // 1. Authentication Guard Clause
+            //1. Authentication Guard Clause
             if (!User.Identity.IsAuthenticated)
             {
                 TempData["Error"] = "You must be logged in to view your orders.";
@@ -46,17 +45,17 @@ namespace CMSECommerce.Controllers
 
             try
             {
-                // 2. Identity Handling (Using UserId for reliable database linking)
+                //2. Identity Handling (Using UserId for reliable database linking)
                 var userId = _userManager.GetUserId(User);
 
                 // Fetch profile for UI display purposes (ViewBag)
                 var userProfile = await _context.UserProfiles
                     .FirstOrDefaultAsync(p => p.UserId == userId);
 
-                const int pageSize = 10;
-                int pageNumber = page ?? 1;
+                const int pageSize =10;
+                int pageNumber = page ??1;
 
-                // 3. Status Synchronization Logic (Architectural Efficiency)
+                //3. Status Synchronization Logic (Architectural Efficiency)
                 // Check completion status in a single DB round-trip using projection
                 var ordersToCheck = await _context.Orders
                     .Where(o => o.UserId == userId && !o.Shipped) // Only check orders not yet shipped
@@ -84,7 +83,7 @@ namespace CMSECommerce.Controllers
                     await _context.SaveChangesAsync();
                 }
 
-                // 4. Build Filtered Query for UI Display
+                //4. Build Filtered Query for UI Display
                 var filteredOrders = _context.Orders
                     .AsNoTracking()
                     .Where(o => o.UserId == userId);
@@ -109,7 +108,7 @@ namespace CMSECommerce.Controllers
                 if (minDate.HasValue) filteredOrders = filteredOrders.Where(o => o.DateTime.Date >= minDate.Value.Date);
                 if (maxDate.HasValue) filteredOrders = filteredOrders.Where(o => o.DateTime.Date <= maxDate.Value.Date);
 
-                // 5. Store UI State for the Filter Form
+                //5. Store UI State for the Filter Form
                 ViewData["CurrentOrderId"] = orderId;
                 ViewData["CurrentStatus"] = status;
                 ViewData["CurrentMinTotal"] = minTotal?.ToString();
@@ -117,11 +116,11 @@ namespace CMSECommerce.Controllers
                 ViewData["CurrentMinDate"] = minDate?.ToString("yyyy-MM-dd");
                 ViewData["CurrentMaxDate"] = maxDate?.ToString("yyyy-MM-dd");
 
-                // 6. Pagination & Execution
+                //6. Pagination & Execution
                 var totalCount = await filteredOrders.CountAsync();
                 var pagedItems = await filteredOrders
                     .OrderByDescending(o => o.DateTime)
-                    .Skip((pageNumber - 1) * pageSize)
+                    .Skip((pageNumber -1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
 
@@ -132,7 +131,7 @@ namespace CMSECommerce.Controllers
             catch (DbUpdateException)
             {
                 TempData["Error"] = "A database error occurred. Your history might be temporarily unavailable.";
-                return View(new PagedList<Order>(new List<Order>(), 0, page ?? 1, 10));
+                return View(new PagedList<Order>(new List<Order>(),0, page ??1,10));
             }
             catch (Exception)
             {
@@ -149,14 +148,14 @@ namespace CMSECommerce.Controllers
         {
             List<CartItem> cart = HttpContext.Session.GetJson<List<CartItem>>("Cart");
 
-            // Scenario 1: Empty Cart
+            // Scenario1: Empty Cart
             if (cart == null || !cart.Any())
             {
                 TempData["Error"] = "Your shopping cart is empty.";
                 return RedirectToAction("Index", "Cart");
             }
 
-            // Scenario 2: Unauthenticated User
+            // Scenario2: Unauthenticated User
             var user = await _signInManager.UserManager.GetUserAsync(User);
             if (user == null)
             {
@@ -164,7 +163,7 @@ namespace CMSECommerce.Controllers
                 return RedirectToAction("Login", "Account", new { area = "Identity" });
             }
 
-            // 1. Safely retrieve the UserProfile for display metadata
+            //1. Safely retrieve the UserProfile for display metadata
             var userProfile = await _context.UserProfiles
                 .FirstOrDefaultAsync(x => x.UserId == user.Id);
 
@@ -177,7 +176,7 @@ namespace CMSECommerce.Controllers
 
             try
             {
-                // 2. Critical Stock Check
+                //2. Critical Stock Check
                 var productIds = cart.Select(item => item.ProductId).Distinct().ToList();
                 var products = await _context.Products
                     .Where(p => productIds.Contains(p.Id))
@@ -208,7 +207,7 @@ namespace CMSECommerce.Controllers
                     return RedirectToAction("Index", "Cart");
                 }
 
-                // 3. Create the Order Header
+                //3. Create the Order Header
                 Order order = new Order
                 {
                     UserId = user.Id, // Link by ID for database stability
@@ -222,7 +221,7 @@ namespace CMSECommerce.Controllers
                 _context.Add(order);
                 await _context.SaveChangesAsync();
 
-                // 4. Process Order Details & Stock Deduction
+                //4. Process Order Details & Stock Deduction
                 foreach (var item in cart)
                 {
                     var product = productMap[item.ProductId];
@@ -250,7 +249,7 @@ namespace CMSECommerce.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // 5. Success
+                //5. Success
                 HttpContext.Session.Remove("Cart");
                 TempData["Success"] = $"Order #{order.Id} placed successfully!";
 
@@ -269,7 +268,7 @@ namespace CMSECommerce.Controllers
         {
             try
             {
-                // 1. Fetch the Order and its Line Items in a single optimized query
+                //1. Fetch the Order and its Line Items in a single optimized query
                 // Using .Include(o => o.OrderDetails) reduces database round-trips
                 var order = await _context.Orders
                     .Include(o => o.OrderDetails)
@@ -281,27 +280,27 @@ namespace CMSECommerce.Controllers
                     return NotFound();
                 }
 
-                // 2. Fetch Buyer Profile (for billing details)
+                //2. Fetch Buyer Profile (for billing details)
                 var buyerProfile = await _context.UserProfiles
                     .Include(u => u.User)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(u => u.UserId == order.UserId);
 
-                // 3. Fetch unique ProductOwners (sellers) from OrderDetails
+                //3. Fetch unique ProductOwners (sellers) from OrderDetails
                 var productOwners = order.OrderDetails
                     .Select(od => od.ProductOwner)
                     .Distinct()
                     .Where(po => !string.IsNullOrEmpty(po))
                     .ToList();
 
-                // 4. Fetch Seller Profiles including their Stores
+                //4. Fetch Seller Profiles including their Stores
                 var sellerProfiles = await _context.UserProfiles
                     .Include(u => u.Store)
                     .AsNoTracking()
                     .Where(u => productOwners.Contains(u.UserId))
                     .ToDictionaryAsync(u => u.UserId, u => u);
 
-                // 5. Null-Safety for Invoice Rendering
+                //5. Null-Safety for Invoice Rendering
                 // Ensure that even if profiles/stores are missing, the invoice doesn't crash
                 if (buyerProfile == null)
                 {
@@ -313,7 +312,7 @@ namespace CMSECommerce.Controllers
                     };
                 }
 
-                // 6. Map to the ViewModel
+                //6. Map to the ViewModel
                 var viewModel = new OrderDetailsViewModel
                 {
                     Order = order,
@@ -322,7 +321,7 @@ namespace CMSECommerce.Controllers
                     SellerProfiles = sellerProfiles
                 };
 
-                // 7. Return to the Invoice view
+                //7. Return to the Invoice view
                 return View(viewModel);
             }
             catch (Exception ex)
@@ -330,6 +329,66 @@ namespace CMSECommerce.Controllers
                 // Log error if logger is available
                 TempData["error"] = "An error occurred while generating the invoice.";
                 return RedirectToAction("Index", "Orders");
+            }
+        }
+
+        // Printable invoice view that renders a minimal page suitable for browser Print -> Save as PDF
+        public async Task<IActionResult> Printable(int id, bool autoPrint = true)
+        {
+            try
+            {
+                var order = await _context.Orders
+                    .Include(o => o.OrderDetails)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(o => o.Id == id);
+
+                if (order == null)
+                {
+                    return NotFound();
+                }
+
+                var buyerProfile = await _context.UserProfiles
+                    .Include(u => u.User)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.UserId == order.UserId);
+
+                var productOwners = order.OrderDetails
+                    .Select(od => od.ProductOwner)
+                    .Distinct()
+                    .Where(po => !string.IsNullOrEmpty(po))
+                    .ToList();
+
+                var sellerProfiles = await _context.UserProfiles
+                    .Include(u => u.Store)
+                    .AsNoTracking()
+                    .Where(u => productOwners.Contains(u.UserId))
+                    .ToDictionaryAsync(u => u.UserId, u => u);
+
+                if (buyerProfile == null)
+                {
+                    buyerProfile = new UserProfile
+                    {
+                        UserId = order.UserId,
+                        FirstName = "Guest",
+                        LastName = "User"
+                    };
+                }
+
+                var viewModel = new OrderDetailsViewModel
+                {
+                    Order = order,
+                    OrderDetails = order.OrderDetails?.ToList() ?? new List<OrderDetail>(),
+                    UserProfile = buyerProfile,
+                    SellerProfiles = sellerProfiles
+                };
+
+                ViewData["AutoPrint"] = autoPrint;
+                return View("InvoicePrintable", viewModel);
+            }
+            catch
+            {
+                TempData["Error"] = "Unable to prepare printable invoice.";
+                return RedirectToAction("Invoice", new { id });
             }
         }
     }
