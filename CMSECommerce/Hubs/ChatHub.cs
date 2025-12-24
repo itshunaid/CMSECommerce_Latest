@@ -130,5 +130,79 @@ namespace CMSECommerce.Hubs
  await Clients.Caller.SendAsync("LoadHistory", msgs);
  }
  }
+
+ // Get order-related contacts (buyers for sellers, sellers for buyers) with online status
+ public async Task GetOrderContacts()
+ {
+ var userId = Context.UserIdentifier ?? Context.User?.Identity?.Name;
+ if (string.IsNullOrEmpty(userId)) return;
+
+ // Get all user statuses for quick lookup
+ var allStatuses = await _userStatusService.GetAllOtherUsersStatusAsync(userId);
+ var statusDict = allStatuses.ToDictionary(s => s.User.Id, s => s.IsOnline);
+
+ // Find contacts based on orders
+ var contacts = new List<dynamic>();
+
+ // Check if user is a seller (has products)
+ var userProducts = await _context.Products.Where(p => p.OwnerId == userId).Select(p => p.Id).ToListAsync();
+ if (userProducts.Any())
+ {
+ // User is a seller: get buyers who ordered their products
+ var buyerIds = await _context.OrderDetails
+ .Where(od => userProducts.Contains(od.ProductId))
+ .Select(od => od.Order.UserId)
+ .Distinct()
+ .ToListAsync();
+
+ var buyers = await _context.UserProfiles
+ .Where(up => buyerIds.Contains(up.UserId))
+ .Select(up => new { up.UserId, up.FirstName, up.LastName })
+ .ToListAsync();
+
+ foreach (var buyer in buyers)
+ {
+ var fullName = $"{buyer.FirstName} {buyer.LastName}".Trim();
+ contacts.Add(new
+ {
+ UserId = buyer.UserId,
+ Name = string.IsNullOrEmpty(fullName) ? "Unknown Buyer" : fullName,
+ IsOnline = statusDict.GetValueOrDefault(buyer.UserId, false)
+ });
+ }
+ }
+
+ // Get sellers of products the user has ordered
+ var sellerIds = await _context.OrderDetails
+ .Where(od => od.Order.UserId == userId)
+ .Select(od => od.ProductOwner)
+ .Distinct()
+ .Where(s => !string.IsNullOrEmpty(s))
+ .ToListAsync();
+
+ var sellers = await _context.UserProfiles
+ .Where(up => sellerIds.Contains(up.UserId))
+ .Select(up => new { up.UserId, up.FirstName, up.LastName })
+ .ToListAsync();
+
+ foreach (var seller in sellers)
+ {
+ var fullName = $"{seller.FirstName} {seller.LastName}".Trim();
+ contacts.Add(new
+ {
+ UserId = seller.UserId,
+ Name = string.IsNullOrEmpty(fullName) ? "Unknown Seller" : fullName,
+ IsOnline = statusDict.GetValueOrDefault(seller.UserId, false)
+ });
+ }
+
+ // Remove duplicates (in case user is both buyer and seller with same person)
+ contacts = contacts
+ .GroupBy(c => c.UserId)
+ .Select(g => g.First())
+ .ToList();
+
+ await Clients.Caller.SendAsync("LoadContacts", contacts);
+ }
  }
 }

@@ -1,21 +1,26 @@
-# TODO: Implement Dynamic Chat Contacts
+# Order-Specific Chat Implementation
 
 ## Tasks
-- [x] Add new API endpoint in AccountController to fetch chat contacts based on user role
-- [x] Modify _ChatWidget.cshtml to load contacts dynamically via AJAX
-- [x] Update chat-widget-init.js to populate contacts from API response
-- [x] Test chat functionality for buyers and sellers (Limited by database connectivity issues)
-- [x] Ensure only authorized users are visible in chat
+- [x] Add GetOrderContacts method to ChatHub.cs
+- [x] Update _ChatWidget.cshtml to display contacts list
+- [x] Add JavaScript logic to load and display order contacts
+- [x] Test chat functionality between buyers and sellers
+- [x] Ensure proper status updates
 
-## Progress
-- API endpoint implemented with role-based contact fetching logic
-- Chat widget updated to load contacts dynamically via AJAX
-- JavaScript updated to fetch and populate contacts from API response
-- Implementation complete but testing limited due to database connectivity issues
+## Information Gathered
+- SignalR-based chat with ChatHub, ChatMessage model, and chat widget
+- User online/offline status tracked via UserStatusService and UserStatusTracker
+- Orders link buyers to sellers via OrderDetail.ProductOwner
+- Products have OwnerId for sellers
+- Chat widget exists but needs modification for order-based contacts
 
-## Implementation Summary
-- **GetChatContacts API**: Returns relevant chat contacts based on user role (buyers see product owners, sellers see customers)
-- **Dynamic Contacts Loading**: Chat widget now loads contacts via AJAX instead of hardcoded entries
-- **Role-Based Logic**: Sellers see customers who bought their products, buyers see product owners from their orders
-- **Security**: Only authenticated users can access contacts, contacts exclude the current user
-- **User Information**: Contacts show user names, online status, and last activity
+## Plan
+- Add GetOrderContacts method to ChatHub: Returns contacts with online status based on orders
+- Modify _ChatWidget.cshtml to display contacts list with online/offline indicators
+- Add JavaScript to load order-based contacts on chat open and update status
+- Ensure private messaging and history work for these contacts
+
+## Dependent Files
+- Hubs/ChatHub.cs: Add GetOrderContacts method
+- Views/Shared/_ChatWidget.cshtml: Update HTML for contacts list
+- wwwroot/js/chat-widget-init.js: Add logic to load and display contacts

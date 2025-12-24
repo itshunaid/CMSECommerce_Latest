@@ -130,6 +130,15 @@
     // Normalize sender function to return a Promise (evaluated per-call)
     function getSender() {
         return function (text, $input) {
+            // Check if we have a current chat user for private messaging
+            if (window.currentChatUserId && window.chat && window.chat.connection && window.chat.connection.state === signalR.HubConnectionState.Connected) {
+                try {
+                    return window.chat.connection.invoke('SendPrivateMessage', window.currentChatUserId, text).then(() => ({}));
+                } catch (ex) {
+                    return Promise.reject(ex);
+                }
+            }
+
             // If a consumer set a custom sender on window.chat, prefer it
             if (window.chat && typeof window.chat.sendMessage === 'function') {
                 try {
@@ -416,6 +425,12 @@
         if (typeof fn === 'function') {
             window.chat.sendMessage = fn;
         }
+    };
+
+    // Handler for LoadContacts event
+    window.chat.handleLoadContacts = function(contacts) {
+        // This will be overridden by chat-widget-init.js if present
+        console.log('LoadContacts received:', contacts);
     };
 
     // init

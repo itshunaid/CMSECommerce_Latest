@@ -15,7 +15,13 @@
     $('#chat-widget .chat-header').on('click keypress', function(e){
       if(e.type==='click' || (e.type==='keypress' && (e.key==='Enter' || e.key===' '))){
         const minimized = $('#chat-widget').hasClass('minimized');
-        setMinimized(!minimized);
+        const newMinimized = !minimized;
+        setMinimized(newMinimized);
+
+        // Load contacts when opening chat
+        if (!newMinimized && window.chat && window.chat.connection && window.chat.connection.state === signalR.HubConnectionState.Connected) {
+          loadOrderContacts();
+        }
       }
     });
 
@@ -83,6 +89,70 @@
     $('#floating-chat-input').on('keydown', function(e){
       if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); $('#floating-chat-send').click(); }
     });
+
+    // Load order contacts function
+    function loadOrderContacts() {
+      if (window.chat && window.chat.connection && window.chat.connection.state === signalR.HubConnectionState.Connected) {
+        $('.contacts-loading').show();
+        $('.contacts-list').hide();
+        $('#contactsContainer').empty();
+        window.chat.connection.invoke('GetOrderContacts').catch(function (err) {
+          console.error('Error loading contacts:', err);
+          $('.contacts-loading').html('<small>Error loading contacts</small>');
+        });
+      }
+    }
+
+    // Handler for LoadContacts from server
+    window.chat.handleLoadContacts = function(contacts) {
+      $('.contacts-loading').hide();
+      $('.contacts-list').show();
+      $('#contactsContainer').empty();
+
+      if (!contacts || contacts.length === 0) {
+        $('#contactsContainer').append('<div class="text-muted small p-2">No order contacts found</div>');
+        return;
+      }
+
+      contacts.forEach(function(contact) {
+        const statusClass = contact.IsOnline ? 'online' : 'offline';
+        const statusText = contact.IsOnline ? 'Online' : 'Offline';
+        const contactHtml = `
+          <div class="contact-item d-flex align-items-center p-2 border-bottom" data-userid="${contact.UserId}" style="cursor: pointer;">
+            <div class="contact-status ${statusClass} me-2" style="width: 8px; height: 8px; border-radius: 50%; background-color: ${contact.IsOnline ? 'green' : 'gray'};"></div>
+            <div class="contact-name flex-grow-1">${escapeHtml(contact.Name)}</div>
+            <small class="text-muted">${statusText}</small>
+          </div>
+        `;
+        $('#contactsContainer').append(contactHtml);
+      });
+
+      // Click handler for contacts
+      $('#contactsContainer').on('click', '.contact-item', function() {
+        const userId = $(this).data('userid');
+        const userName = $(this).find('.contact-name').text();
+
+        // Set active contact
+        $('.contact-item').removeClass('active');
+        $(this).addClass('active');
+
+        // Clear messages and load history
+        $('#chatMessages').empty();
+        appendSystemMessage(`Starting conversation with ${userName}`, 'info');
+
+        if (window.chat && window.chat.connection) {
+          window.chat.connection.invoke('GetRecentMessages', userId, false).catch(function(err) {
+            console.error('Error loading message history:', err);
+          });
+        }
+
+        // Store current chat user for sending messages
+        window.currentChatUserId = userId;
+      });
+    };
+
+    // Expose loadOrderContacts globally
+    window.loadOrderContacts = loadOrderContacts;
 
   });
 })(jQuery);
