@@ -83,21 +83,10 @@
                         <span asp-validation-for="StoreName" class="text-danger small mt-1 d-block"></span>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label asp-for="ITSNumber" class="form-label fw-bold small text-amazon-dark mb-1">ITS Number (8-Digits)</label>
-                                <input asp-for="ITSNumber" id="ITSInput" class="form-control amazon-input-field" placeholder="8-digit ID" maxlength="8" inputmode="numeric" />
-                                <span asp-validation-for="ITSNumber" id="ITSError" class="text-danger small mt-1 d-block"></span>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label asp-for="GSTIN" class="form-label fw-bold small text-amazon-dark mb-1">GSTIN</label>
-                                <input asp-for="GSTIN" id="GSTInput" class="form-control amazon-input-field" placeholder="15-digit GSTIN" maxlength="15" style="text-transform: uppercase;" />
-                                <span asp-validation-for="GSTIN" id="GSTError" class="text-danger small mt-1 d-block"></span>
-                            </div>
-                        </div>
+                    <div class="form-group mb-3">
+                        <label asp-for="ITSNumber" class="form-label fw-bold small text-amazon-dark mb-1">ITS Number (8-Digits)</label>
+                        <input asp-for="ITSNumber" id="ITSInput" class="form-control amazon-input-field" placeholder="8-digit ID" maxlength="8" inputmode="numeric" />
+                        <span asp-validation-for="ITSNumber" id="ITSError" class="text-danger small mt-1 d-block"></span>
                     </div>
 
                     @* --- Section 4: Address --- *@
@@ -225,18 +214,12 @@
                 this.value = this.value.replace(/\D/g, '');
             });
 
-            // GST Sanitization (Alpha-numeric & UpperCase)
-            $('#GSTInput').on('input', function () {
-                this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-            });
-
-            // 2. Validation Map (Added GSTIN)
+            // 2. Validation Map
             const fields = [
                 { id: $('#UserInput'), err: $('#UserError'), type: 'Username' },
                 { id: $('#EmailInput'), err: $('#EmailError'), type: 'Email' },
                 { id: $('#PhoneInput'), err: $('#PhoneError'), type: 'Mobile Number' },
-                { id: $('#ITSInput'), err: $('#ITSError'), type: 'ITS Number' },
-                { id: $('#GSTInput'), err: $('#GSTError'), type: 'GSTIN' }
+                { id: $('#ITSInput'), err: $('#ITSError'), type: 'ITS Number' }
             ];
 
             // 3. Logic to check Uniqueness & Formats

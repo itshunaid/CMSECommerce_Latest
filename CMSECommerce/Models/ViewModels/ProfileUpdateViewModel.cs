@@ -114,7 +114,6 @@ namespace CMSECommerce.Models.ViewModels
         [Display(Name = "Store Country")]
         public string StoreCountry { get; set; }
 
-        [Required(ErrorMessage = "GSTIN is required")]
         [RegularExpression(@"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$",
             ErrorMessage = "Invalid GSTIN format (e.g., 27AAAAA0000A1Z5)")]
         [Display(Name = "GSTIN (Tax ID)")]

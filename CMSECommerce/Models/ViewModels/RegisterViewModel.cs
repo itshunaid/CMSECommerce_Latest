@@ -34,11 +34,7 @@ namespace CMSECommerce.Models.ViewModels
         [StringLength(10, MinimumLength = 10, ErrorMessage = "Mobile number must be exactly 10 digits.")]
         public string PhoneNumber { get; set; }
 
-        [StringLength(15)]
-        [Display(Name = "GST Number")]
-        [RegularExpression(@"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$",
-    ErrorMessage = "Invalid GSTIN format. (Ex: 22AAAAA0000A1Z5)")]
-        public string? GSTIN { get; set; }
+
 
         [Required(ErrorMessage = "ITS Number is required")]
         [StringLength(20)]
@@ -51,6 +47,9 @@ namespace CMSECommerce.Models.ViewModels
         [Required(ErrorMessage = "Store name is required")]
         [StringLength(100)]
         public string StoreName { get; set; }
+
+        [StringLength(15)]
+        public string GSTIN { get; set; }
 
         // --- ADDRESS VALIDATION ---
         [Required(ErrorMessage = "Street address is required")]

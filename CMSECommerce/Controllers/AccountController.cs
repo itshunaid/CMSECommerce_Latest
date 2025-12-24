@@ -234,10 +234,9 @@ namespace CMSECommerce.Controllers
         {
             if (!ModelState.IsValid) return View(model);
 
-            // Final Server-Side Uniqueness Check for all 8 identifiers
+            // Final Server-Side Uniqueness Check for identifiers
             bool isDuplicate = await _userManager.Users.AnyAsync(u => u.UserName == model.Username || u.Email == model.Email || u.PhoneNumber == model.PhoneNumber) ||
-                               await _context.UserProfiles.AnyAsync(up => up.ITSNumber == model.ITSNumber || up.WhatsAppNumber == model.WhatsAppNumber) ||
-                               await _context.Stores.AnyAsync(s => s.GSTIN == model.GSTIN);
+                               await _context.UserProfiles.AnyAsync(up => up.ITSNumber == model.ITSNumber || up.WhatsAppNumber == model.WhatsAppNumber);
 
             if (isDuplicate)
             {
