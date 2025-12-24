@@ -1,8 +1,10 @@
 ﻿using CMSECommerce.Infrastructure;
 using CMSECommerce.Models.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace CMSECommerce.Controllers
 {
@@ -140,7 +142,7 @@ namespace CMSECommerce.Controllers
             }
         }
 
-        // Note: This method should be placed in the appropriate controller (likely OrdersController or CheckoutController).
+      
 
         [HttpPost]
         [ValidateAntiForgeryToken]

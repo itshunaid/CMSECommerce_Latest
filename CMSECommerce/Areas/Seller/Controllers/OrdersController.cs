@@ -70,6 +70,33 @@ namespace CMSECommerce.Areas.Seller.Controllers
             }
         }
 
+
+        public async Task<IActionResult> Cancelled(string searchString, string searchField)
+        {
+            string currentUserName = _userManager.GetUserName(User);
+
+            // Fetch only cancelled items for this seller
+            var cancelledItems = _context.OrderDetails
+                .Where(od => od.ProductOwner == currentUserName && od.IsCancelled == true);
+
+            // Apply Search Logic (Matching your existing Index pattern)
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                cancelledItems = searchField switch
+                {
+                    "Product" => cancelledItems.Where(s => s.ProductName.Contains(searchString)),
+                    "Customer" => cancelledItems.Where(s => s.Customer.Contains(searchString)),
+                    "OrderId" => cancelledItems.Where(s => s.OrderId.ToString().Contains(searchString)),
+                    _ => cancelledItems
+                };
+            }
+
+            ViewBag.CurrentSearchString = searchString;
+            ViewBag.CurrentSearchField = searchField;
+
+            return View(await cancelledItems.OrderByDescending(od => od.Id).ToListAsync());
+        }
+
         // GET /seller/orders/shipped (Processed Orders)
         [HttpGet]
         public async Task<IActionResult> Shipped(string searchString, string searchField)

@@ -1,0 +1,32 @@
+@if (!Model.Shipped && !Model.Order.IsCancelled && (DateTime.Now - Model.Order.DateTime).TotalHours <= 24)
+{
+    <div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cancelOrderModalLabel">Cancel Order #@Model.Order.Id</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form asp-action="CancelOrder" method="post">
+                    <div class="modal-body">
+                        <p class="text-muted">Please provide a reason for cancelling this order:</p>
+                        <div class="mb-3">
+                            <label for="cancellationReason" class="form-label">Cancellation Reason <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="cancellationReason" name="cancellationReason" rows="3"
+                                      placeholder="Please explain why you want to cancel this order..." required></textarea>
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Note:</strong> This action cannot be undone. The order will be cancelled and you may need to place a new order if required.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Order</button>
+                        <button type="submit" class="btn btn-danger">Cancel Order</button>
+                        <input type="hidden" name="id" value="@Model.Order.Id" />
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}

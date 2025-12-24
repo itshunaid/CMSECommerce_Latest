@@ -41,7 +41,9 @@ namespace CMSECommerce.Areas.Seller.Controllers
 
                 // Filter products by OwnerId (the current logged-in seller)
                 var currentUserId = _userManager.GetUserName(User);
-                var productsQuery = _context.Products.Where(x => x.OwnerId == currentUserId).AsQueryable();
+                var productsQuery = _context.Products
+    .Where(x => x.OwnerId == currentUserId && x.StockQuantity > 0)
+    .AsQueryable();
 
                 // 1. Apply category filter
                 if (categoryId != 0)
@@ -78,6 +80,73 @@ namespace CMSECommerce.Areas.Seller.Controllers
                     .ToListAsync();
 
                 return View(products);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading Products Index for seller {User}.", _userManager.GetUserName(User));
+                TempData["Error"] = "Failed to load products due to a system error.";
+                // Return empty list and initialize view bag values to prevent runtime errors in the view
+                ViewBag.TotalPages = 1;
+                ViewBag.Categories = new SelectList(new List<Category>());
+                return View(new List<Product>());
+            }
+        }
+
+        public async Task<IActionResult> OutOfStock(int categoryId = 0, string search = "", string status = "", int p = 1)
+        {
+            int pageSize = 3;
+            try
+            {
+                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
+
+                ViewBag.SelectedCategory = categoryId.ToString();
+                ViewBag.CurrentSearch = search;
+                ViewBag.CurrentStatus = status;
+
+                ViewBag.PageNumber = p;
+                ViewBag.PageRange = pageSize;
+
+                // Filter products by OwnerId (the current logged-in seller)
+                var currentUserId = _userManager.GetUserName(User);
+                var productsQuery = _context.Products
+    .Where(x => x.OwnerId == currentUserId && x.StockQuantity == 0)
+    .AsQueryable();
+
+                // 1. Apply category filter
+                if (categoryId != 0)
+                {
+                    productsQuery = productsQuery.Where(x => x.CategoryId == categoryId);
+                }
+
+                // 2. Apply search filter
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    string searchLower = search.ToLower();
+                    productsQuery = productsQuery.Where(x =>
+                        EF.Functions.Like(x.Name.ToLower(), $"%{searchLower}%") ||
+                        EF.Functions.Like(x.Description.ToLower(), $"%{searchLower}%")
+                    );
+                }
+
+                // 3. Apply status filter
+                if (!string.IsNullOrWhiteSpace(status))
+                {
+                    if (Enum.TryParse(status, true, out ProductStatus productStatus))
+                    {
+                        productsQuery = productsQuery.Where(x => x.Status == productStatus);
+                    }
+                }
+
+                ViewBag.TotalPages = (int)Math.Ceiling((decimal)await productsQuery.CountAsync() / pageSize);
+
+                List<Product> products = await productsQuery
+                    .Include(x => x.Category)
+                    .OrderByDescending(x => x.Id)
+                    .Skip((p - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                return View("Index",products);
             }
             catch (Exception ex)
             {

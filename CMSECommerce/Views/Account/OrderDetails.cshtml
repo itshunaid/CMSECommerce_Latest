@@ -14,6 +14,9 @@
     // Safety references
     var profile = Model.UserProfile;
     var store = Model.UserProfile?.Store;
+
+    // 24-Hour Rule Calculation
+    bool isWithinCancellationWindow = (DateTime.Now - Model.Order.DateTime).TotalHours <= 24;
 }
 
 <div class="container my-4 amazon-order-page">
@@ -35,7 +38,7 @@
                                 @(isOrderShipped ? "Delivered / Completed" : "Processing / Preparing for Shipment")
                             </h3>
                             <p class="text-muted small mb-1">
-                                Placed on: <strong>@Model.Order.DateTime.ToString("MMMM dd, yyyy")</strong>
+                                Placed on: <strong>@Model.Order.DateTime.ToString("MMMM dd, yyyy HH:mm")</strong>
                             </p>
                             <p class="text-muted small mb-0">
                                 Order Total: <span class="fw-bold price-red">@Model.Order.GrandTotal.ToString("C2")</span>
@@ -56,7 +59,7 @@
 
             @foreach (var item in Model.OrderDetails)
             {
-                <div class="card mb-3 border amazon-card-item">
+                <div class="card mb-3 border amazon-card-item @(item.IsCancelled ? "bg-light opacity-75" : "")">
                     <div class="card-body p-3">
                         <div class="row align-items-center">
                             <div class="col-2 col-md-1">
@@ -87,15 +90,31 @@
                             </div>
 
                             <div class="col-6 col-md-4 text-end mt-3 mt-md-0">
-                                @{
-                                    string statusClass = item.IsProcessed ? "text-success" : "text-danger";
-                                    string statusText = item.IsProcessed ? "Shipped" : "Pending Seller Action";
-                                    string statusIcon = item.IsProcessed ? "fa-check-circle" : "fa-clock";
-                                }
                                 <div class="d-flex flex-column align-items-end">
-                                    <span class="small @statusClass fw-semibold">
-                                        <i class="fas @statusIcon me-1"></i> @statusText
-                                    </span>
+                                    @if (item.IsCancelled)
+                                    {
+                                        <span class="badge bg-danger mb-1"><i class="fas fa-ban-circle me-1"></i> Cancelled</span>
+                                        <small class="text-muted fw-bold">By @item.CancelledByRole</small>
+                                        <small class="text-muted fst-italic text-truncate" style="max-width: 200px;">Reason: @item.CancellationReason</small>
+                                    }
+                                    else
+                                    {
+                                        string statusClass = item.IsProcessed ? "text-success" : "text-danger";
+                                        string statusText = item.IsProcessed ? "Shipped" : "Pending Seller Action";
+                                        string statusIcon = item.IsProcessed ? "fa-check-circle" : "fa-clock";
+
+                                        <span class="small @statusClass fw-semibold mb-2">
+                                            <i class="fas @statusIcon me-1"></i> @statusText
+                                        </span>
+
+                                        @if (isWithinCancellationWindow)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-danger px-3"
+                                                    onclick="openCancelModal(@item.Id, '@item.ProductName')">
+                                                Cancel Item
+                                            </button>
+                                        }
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -138,29 +157,24 @@
 
                     <hr class="my-3" />
 
-                    @* --- SHIPPING ADDRESS SECTION (From Profile) --- *@
+                    @* --- SHIPPING ADDRESS SECTION --- *@
                     <h6 class="fw-bold mb-2"><i class="fas fa-truck me-1"></i> Shipping To</h6>
                     <div class="shipping-info-box small text-muted">
                         @if (profile != null)
                         {
                             <p class="fw-bold text-dark mb-1">@profile.FirstName @profile.LastName</p>
                             <p class="mb-1">@profile.HomeAddress</p>
-                            <p class="mb-1">@profile.Store.City, @profile.Store.PostCode</p>
+                            <p class="mb-1">@profile.Store?.City, @profile.Store?.PostCode</p>
 
                             @if (!string.IsNullOrEmpty(profile.WhatsAppNumber))
                             {
                                 <p class="mb-1 text-success"><i class="fab fa-whatsapp"></i> @profile.WhatsAppNumber</p>
                             }
-
-                            @if (!string.IsNullOrEmpty(profile.HomePhoneNumber))
-                            {
-                                <p class="mb-0"><i class="fas fa-phone-alt"></i> @profile.HomePhoneNumber</p>
-                            }
                         }
                         else
                         {
                             <p class="mb-1 fw-bold text-dark">@Model.Order.UserName</p>
-                            <p class="fst-italic text-danger">Address details not found in profile.</p>
+                            <p class="fst-italic text-danger">Address details not found.</p>
                         }
                     </div>
                 </div>
@@ -168,6 +182,51 @@
         </div>
     </div>
 </div>
+
+@* --- Cancellation Modal --- *@
+<div class="modal fade" id="cancelItemModal" tabindex="-1" aria-labelledby="cancelItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-controller="Account" asp-action="CancelItem" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="cancelItemModalLabel fw-bold">Cancel Order Item</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="orderDetailId" id="modalOrderDetailId" />
+                    <p class="mb-3">Are you sure you want to cancel <strong id="modalProductName" class="text-dark"></strong>?</p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted">Reason for Cancellation</label>
+                        <textarea name="reason" class="form-control" rows="3" required
+                                  placeholder="E.g., Out of stock, customer requested, etc."></textarea>
+                    </div>
+
+                    <div class="alert alert-warning py-2 mb-0" style="font-size: 0.85rem;">
+                        <i class="fas fa-info-circle me-1"></i> This action is only available within 24 hours of placement.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4 fw-bold">Confirm Cancellation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openCancelModal(id, productName) {
+            document.getElementById('modalOrderDetailId').value = id;
+            document.getElementById('modalProductName').innerText = productName;
+
+            var cancelModal = new bootstrap.Modal(document.getElementById('cancelItemModal'));
+            cancelModal.show();
+        }
+    </script>
+}
 
 @section Styles {
     <style>
@@ -209,9 +268,8 @@
             transition: transform 0.2s;
         }
 
-            .amazon-card-item:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            .amazon-card-item.opacity-75 {
+                opacity: 0.7;
             }
 
         .status-heading {
@@ -239,16 +297,8 @@
             box-shadow: 0 2px 5px rgba(213,217,217,.5);
         }
 
-            .btn-amazon-checkout-light:hover {
-                background-color: #e3e6e6;
-            }
-
         .border-amazon-orange {
             border-color: var(--amazon-orange) !important;
-        }
-
-        .shipping-info-box p {
-            margin-bottom: 2px;
         }
     </style>
 }

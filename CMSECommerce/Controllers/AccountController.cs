@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace CMSECommerce.Controllers
 {
@@ -342,8 +343,59 @@ namespace CMSECommerce.Controllers
             return Json(new { isAvailable = true });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelItem(int orderDetailId, string reason)
+        {
+            var detail = await _context.OrderDetails
+                .Include(od => od.Order)
+                .FirstOrDefaultAsync(od => od.Id == orderDetailId);
 
+            if (detail == null) return NotFound();
 
+            // 1. Time Validation (24-hour rule)
+            var timeLimit = detail.Order.DateTime.AddHours(24);
+            if (DateTime.Now > timeLimit)
+            {
+                TempData["Error"] = "Cancellation period (24 hours) has expired.";
+                return RedirectToAction("OrderDetails", new { id = detail.OrderId });
+            }
+
+            // 2. Role-Based Permission Logic
+            bool canCancel = false;
+            string roleTag = "";
+
+            if (User.IsInRole("Admin"))
+            {
+                canCancel = true;
+                roleTag = "Admin";
+            }
+            else if (User.IsInRole("Seller") && detail.ProductOwner == User.Identity.Name)
+            {
+                canCancel = true;
+                roleTag = "Seller";
+            }
+            else if (detail.Customer == User.Identity.Name) // Matches user who placed order
+            {
+                canCancel = true;
+                roleTag = "User";
+            }
+
+            if (!canCancel) return Forbid();
+
+            // 3. Apply Cancellation
+            detail.IsCancelled = true;
+            detail.CancellationReason = reason;
+            detail.CancelledByRole = roleTag;
+
+            // Optional: Update GrandTotal of the Order
+            detail.Order.GrandTotal -= (detail.Price * detail.Quantity);
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Item cancelled successfully.";
+
+            return RedirectToAction("Details", "Orders", new { id = detail.OrderId });
+        }
 
 
         [HttpGet]

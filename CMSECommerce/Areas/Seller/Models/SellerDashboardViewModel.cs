@@ -12,5 +12,6 @@ namespace CMSECommerce.Areas.Seller.Models
         public int IsProcessedCount { get; set; }
         public int Categories { get;  set; }
         public int LowProductsCount { get;  set; }
+        public int IsOrderCancelledCount { get; set; }
     }
 }

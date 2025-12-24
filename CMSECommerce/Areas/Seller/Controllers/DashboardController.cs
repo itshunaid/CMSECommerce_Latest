@@ -59,9 +59,11 @@ namespace CMSECommerce.Areas.Seller.Controllers
             model.LowProductsCount = await SafeCountAsync(() => _context.Products.Where(p => p.OwnerId == currentUserName && p.StockQuantity == 0).CountAsync(), "Low Stock Count");
 
             // 3. Seller-Specific Order Counts
-            model.OrdersCount = await SafeCountAsync(() => _context.OrderDetails.Where(p => p.ProductOwner == currentUserName && p.IsProcessed == false).CountAsync(), "Pending Orders Count");
+            model.OrdersCount = await SafeCountAsync(() => _context.OrderDetails.Where(p => p.ProductOwner == currentUserName && p.IsProcessed == false && !p.IsCancelled).CountAsync(), "Pending Orders Count");
             model.IsProcessedCount = await SafeCountAsync(() => _context.OrderDetails.Where(p => p.ProductOwner == currentUserName && p.IsProcessed == true).CountAsync(), "Processed Orders Count");
-
+            // UPDATED: Count only items that ARE cancelled and belong to this seller
+            model.IsOrderCancelledCount = await SafeCountAsync(() => _context.OrderDetails
+                .Where(p => p.ProductOwner == currentUserName && p.IsCancelled == true).CountAsync(), "Cancelled Orders Count");
             // 4. Global Counts (Admin-like metrics visible to seller)
             model.Categories = await SafeCountAsync(() => _context.Categories.CountAsync(), "Categories Count");
             // NOTE: The original code showed pending requests (r => !r.Approved) which seems like an Admin metric.
