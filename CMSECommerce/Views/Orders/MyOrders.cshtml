@@ -66,6 +66,10 @@
     
     .filter-box { background: white; border: 1px solid #D5D9D9; border-radius: 8px; }
     .pagination .page-item.active .page-link { background-color: @amazonYellow; border-color: @amazonYellow; color: black; }
+    
+    /* Spinner Helper */
+    .spinner-border-sm { width: 1rem; height: 1rem; border-width: 0.2em; }
+    .time-warning { font-size: 0.75rem; color: #B12704; font-weight: bold; }
 </style>
 
 <div class="container py-4">
@@ -124,6 +128,9 @@
     {
         @foreach (var item in Model)
         {
+            // Logic for 24-hour rule
+            bool isWithin24Hours = (DateTime.Now - item.DateTime).TotalHours <= 24;
+
             <div class="card order-card shadow-sm @(item.IsCancelled ? "cancelled-card" : "")">
                 @* Card Header *@
                 <div class="order-header">
@@ -148,7 +155,7 @@
                             <div class="d-flex gap-2 justify-content-md-end">
                                 <a asp-controller="Account" asp-action="OrderDetails" asp-route-id="@item.Id" class="text-decoration-none">Order Details</a>
                                 <span class="text-muted">|</span>
-                                <a asp-action="Invoice" asp-route-id="@item.Id" target="_blank" class="text-decoration-none @(item.IsCancelled ? "text-muted" : "")">Invoice</a>
+                                <a asp-action="Invoice" asp-route-id="@item.Id" target="_blank" class="text-decoration-none @(item.IsCancelled ? "text-muted disabled" : "")">Invoice</a>
                             </div>
                         </div>
                     </div>
@@ -175,46 +182,60 @@
                             
                             @if (item.IsCancelled)
                             {
-                                <p class="text-muted small mb-0">This order was cancelled. Re-activate it to send the items back to processing.</p>
+                                <p class="text-muted small mb-0">This order was cancelled. Re-activate it below if needed.</p>
                             }
-                            else if (item.Shipped)
+                            else if (!item.Shipped && !isWithin24Hours)
                             {
-                                <p class="text-muted small mb-0">Delivered on @item.DateTime.AddDays(3).ToString("MMM dd").</p>
+                                <p class="time-warning mb-0"><i class="fas fa-lock me-1"></i> Cancellation period ended (24h passed).</p>
                             }
-                            else
+                            else if (!item.Shipped)
                             {
-                                <p class="text-muted small mb-0">Items are being verified by our fulfillment center.</p>
+                                <p class="text-muted small mb-0">Items are being verified. You have 24 hours from purchase to cancel.</p>
                             }
                         </div>
-                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                            @* Action 1: Track Package *@
-                            @if (!item.IsCancelled)
-                            {
-                                <a asp-controller="Account" asp-action="OrderDetails" asp-route-id="@item.Id" class="btn btn-amazon-primary btn-sm w-100 mb-2" style="max-width:200px">Track Package</a>
-                            }
-                            else
-                            {
-                                <button disabled class="btn btn-secondary btn-sm w-100 mb-2 opacity-50" style="max-width:200px">Track Package</button>
-                            }
 
-                            @* Action 2: Unified Re-Order Form *@
-                            <form asp-action="ReOrder" asp-controller="Account" method="post">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="orderId" value="@item.Id" />
-                                
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <div class="d-flex flex-column gap-2 align-items-end">
+
+                                @if (!item.IsCancelled)
+                                {
+                                    <a asp-controller="Account" asp-action="OrderDetails" asp-route-id="@item.Id" 
+                                       class="btn btn-amazon-primary btn-sm w-100" style="max-width:200px">Track Package</a>
+                                }
+
+                                @* --- Cancel Button (Only if < 24h & not shipped) --- *@
+                                @if (!item.Shipped && !item.IsCancelled && isWithin24Hours)
+                                {
+                                    <button type="button" class="btn btn-amazon-secondary btn-sm w-100" style="max-width:200px" 
+                                            onclick="triggerCancelModal(@item.Id)">
+                                        Cancel Order
+                                    </button>
+                                }
+
                                 @if (item.IsCancelled)
                                 {
-                                    <button type="submit" class="btn btn-amazon-primary btn-sm w-100" style="max-width:200px">
-                                        <i class="fas fa-redo me-1"></i> Buy it again
-                                    </button>
+                                    <form asp-action="ReActivateOrder" asp-controller="Account" method="post" class="w-100 js-form-submit" style="max-width:200px">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@item.Id" />
+                                        <button type="submit" class="btn btn-amazon-primary btn-sm w-100">
+                                            <span class="btn-text">Re-activate Order</span>
+                                            <span class="spinner-border spinner-border-sm d-none"></span>
+                                        </button>
+                                    </form>
                                 }
-                                else
+
+                                @if (item.Shipped && !item.IsCancelled)
                                 {
-                                    <button type="submit" class="btn btn-amazon-secondary btn-sm w-100" style="max-width:200px">
-                                        <i class="fas fa-shopping-cart me-1"></i> Buy it again
-                                    </button>
+                                    <form asp-action="ReOrder" asp-controller="Account" method="post" class="w-100 js-form-submit" style="max-width:200px">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@item.Id" />
+                                        <button type="submit" class="btn btn-amazon-secondary btn-sm w-100">
+                                            <span class="btn-text">Buy it again</span>
+                                            <span class="spinner-border spinner-border-sm d-none"></span>
+                                        </button>
+                                    </form>
                                 }
-                            </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -236,7 +257,7 @@
         
 
         <nav class="d-flex justify-content-between align-items-center mb-5">
-            <div class="small text-muted">Showing page @Model.PageIndex of @Model.TotalPages</div>
+            <div class="small text-muted">Page @Model.PageIndex of @Model.TotalPages</div>
             <ul class="pagination pagination-sm mb-0">
                 @if (Model.HasPreviousPage)
                 {
@@ -261,3 +282,59 @@
         </nav>
     }
 </div>
+
+@* --- Cancellation Modal --- *@
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="CancelOrder" asp-controller="Account" method="post" id="cancelForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold">Cancel Your Order</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="orderId" id="modalOrderId" />
+                    <p>Are you sure? You can only cancel an order within <strong>24 hours</strong> of placement.</p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Reason for cancellation</label>
+                        <select name="reason" class="form-select" required>
+                            <option value="Ordered by mistake">Ordered by mistake</option>
+                            <option value="Found a better price elsewhere">Found a better price elsewhere</option>
+                            <option value="Need to change shipping address">Need to change shipping address</option>
+                            <option value="Changed my mind">Changed my mind</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4 fw-bold" id="confirmBtn">Confirm Cancellation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function triggerCancelModal(id) {
+        document.getElementById('modalOrderId').value = id;
+        new bootstrap.Modal(document.getElementById('cancelModal')).show();
+    }
+
+    document.getElementById('cancelForm').addEventListener('submit', function() {
+        const btn = document.getElementById('confirmBtn');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cancelling...';
+        btn.classList.add('disabled');
+    });
+
+    document.querySelectorAll('.js-form-submit').forEach(form => {
+        form.addEventListener('submit', function() {
+            const btn = this.querySelector('button');
+            const text = btn.querySelector('.btn-text');
+            const loader = btn.querySelector('.spinner-border');
+            btn.classList.add('disabled');
+            if(text) text.classList.add('d-none');
+            if(loader) loader.classList.remove('d-none');
+        });
+    });
+</script>

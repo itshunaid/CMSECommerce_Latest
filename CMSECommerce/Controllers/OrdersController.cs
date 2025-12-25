@@ -157,6 +157,59 @@ namespace CMSECommerce.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelOrder(int orderId, string reason)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            var order = await _context.Orders
+                .Include(o => o.OrderDetails)
+                .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
+
+            if (order == null)
+            {
+                TempData["Error"] = "Order not found.";
+                return RedirectToAction("MyOrders");
+            }
+
+            // --- 24 Hour Logic ---
+            var timeElapsed = DateTime.Now - order.DateTime;
+            if (timeElapsed.TotalHours > 24)
+            {
+                TempData["Error"] = "Orders can only be cancelled within 24 hours of placement.";
+                return RedirectToAction("MyOrders");
+            }
+
+            if (order.Shipped)
+            {
+                TempData["Error"] = "Shipped orders cannot be cancelled.";
+                return RedirectToAction("MyOrders");
+            }
+
+            try
+            {
+                order.IsCancelled = true;
+                foreach (var item in order.OrderDetails)
+                {
+                    item.IsCancelled = true;
+                    item.CancellationReason = reason ?? "Customer requested";
+                    item.CancelledByRole = "Customer";
+                }
+
+                _context.Update(order);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"Order #{orderId} cancelled successfully.";
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "An error occurred during cancellation.";
+            }
+
+            return RedirectToAction("MyOrders");
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create()
         {
             List<CartItem> cart = HttpContext.Session.GetJson<List<CartItem>>("Cart");

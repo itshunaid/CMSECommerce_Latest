@@ -407,6 +407,66 @@ namespace CMSECommerce.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelOrder(int orderId, string reason)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            // Fetch the order, including items, ensuring it belongs to the logged-in user
+            var order = await _context.Orders
+                .Include(o => o.OrderDetails)          
+                
+               .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
+
+            if (order == null)
+            {
+                TempData["Error"] = "Order not found.";
+                return RedirectToAction("MyOrders");
+            }
+
+            // 1. Time Validation (24-hour rule)
+            var timeLimit = order.DateTime.AddHours(24);
+            if (DateTime.Now > timeLimit)
+            {
+                TempData["Error"] = "Cancellation period (24 hours) has expired.";
+                return RedirectToAction("OrderDetails", new { id = order.Id });
+            }
+
+            // Business Logic: Prevent cancellation if already shipped
+            if (order.Shipped)
+            {
+                TempData["Error"] = "Shipped orders cannot be cancelled. Please contact support for a return.";
+                return RedirectToAction("OrderDetails", new { id = orderId });
+            }
+
+            try
+            {
+                // 1. Update the Main Order Status
+                order.IsCancelled = true;
+
+                // 2. Update all associated items
+                foreach (var item in order.OrderDetails)
+                {
+                    item.IsCancelled = true;
+                    item.CancellationReason = reason ?? "Cancelled by customer";
+                    item.CancelledByRole = "Customer";
+                    item.IsProcessed = false;
+                }
+
+                _context.Update(order);
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"Order #{orderId} has been successfully cancelled.";
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "An error occurred while trying to cancel the order.";
+            }
+
+            return RedirectToAction("MyOrders");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReActivateOrder(int orderId)
         {
             var userId = _userManager.GetUserId(User);
