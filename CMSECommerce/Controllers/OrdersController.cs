@@ -30,40 +30,39 @@ namespace CMSECommerce.Controllers
         /// Synchronizes the 'Shipped' status: Sets to true only if ALL associated items are processed.
         /// </summary>
         public async Task<IActionResult> MyOrders(
-     int? page,
-     string orderId,
-     string status,
-     decimal? minTotal,
-     decimal? maxTotal,
-     DateTime? minDate,
-     DateTime? maxDate)
+    int? page,
+    string orderId,
+    string status,
+    decimal? minTotal,
+    decimal? maxTotal,
+    DateTime? minDate,
+    DateTime? maxDate)
         {
-            //1. Authentication Guard Clause
+            // 1. Authentication Guard Clause
             if (!User.Identity.IsAuthenticated)
             {
                 TempData["Error"] = "You must be logged in to view your orders.";
                 return RedirectToAction("Login", "Account", new { area = "Identity" });
             }
 
+            // UPDATED: Changed pageSize from 10 to 5
+            const int pageSize = 3;
+            int pageNumber = page ?? 1;
+
             try
             {
-                //2. Identity Handling
+                // 2. Identity Handling
                 var userId = _userManager.GetUserId(User);
 
                 var userProfile = await _context.UserProfiles
                     .FirstOrDefaultAsync(p => p.UserId == userId);
 
-                const int pageSize = 10;
-                int pageNumber = page ?? 1;
-
-                //3. Status Synchronization Logic
-                // We only check orders that are NEITHER Shipped NOR Cancelled
+                // 3. Status Synchronization Logic
                 var ordersToCheck = await _context.Orders
                     .Where(o => o.UserId == userId && !o.Shipped && !o.IsCancelled)
                     .Select(o => new
                     {
                         Order = o,
-                        // An order is "Shipped" only if all items are processed AND not all items are cancelled
                         AllItemsProcessed = o.OrderDetails.All(od => od.IsProcessed || od.IsCancelled),
                         AllItemsCancelled = o.OrderDetails.All(od => od.IsCancelled)
                     })
@@ -72,14 +71,12 @@ namespace CMSECommerce.Controllers
                 bool hasChanges = false;
                 foreach (var item in ordersToCheck)
                 {
-                    // If all items became cancelled while we weren't looking
                     if (item.AllItemsCancelled && !item.Order.IsCancelled)
                     {
                         item.Order.IsCancelled = true;
                         _context.Update(item.Order);
                         hasChanges = true;
                     }
-                    // If all items are processed (or cancelled), mark as Shipped
                     else if (item.AllItemsProcessed && !item.Order.Shipped)
                     {
                         item.Order.Shipped = true;
@@ -93,7 +90,7 @@ namespace CMSECommerce.Controllers
                     await _context.SaveChangesAsync();
                 }
 
-                //4. Build Filtered Query
+                // 4. Build Filtered Query
                 var filteredOrders = _context.Orders
                     .AsNoTracking()
                     .Where(o => o.UserId == userId);
@@ -122,7 +119,7 @@ namespace CMSECommerce.Controllers
                 if (minDate.HasValue) filteredOrders = filteredOrders.Where(o => o.OrderDate.Value.Date >= minDate.Value.Date);
                 if (maxDate.HasValue) filteredOrders = filteredOrders.Where(o => o.OrderDate.Value.Date <= maxDate.Value.Date);
 
-                //5. Store UI State
+                // 5. Store UI State
                 ViewData["CurrentOrderId"] = orderId;
                 ViewData["CurrentStatus"] = status;
                 ViewData["CurrentMinTotal"] = minTotal?.ToString();
@@ -130,7 +127,7 @@ namespace CMSECommerce.Controllers
                 ViewData["CurrentMinDate"] = minDate?.ToString("yyyy-MM-dd");
                 ViewData["CurrentMaxDate"] = maxDate?.ToString("yyyy-MM-dd");
 
-                //6. Pagination & Execution
+                // 6. Pagination & Execution (Uses Updated pageSize)
                 var totalCount = await filteredOrders.CountAsync();
                 var pagedItems = await filteredOrders
                     .OrderByDescending(o => o.OrderDate)
@@ -145,7 +142,8 @@ namespace CMSECommerce.Controllers
             catch (DbUpdateException)
             {
                 TempData["Error"] = "A database error occurred. Your history might be temporarily unavailable.";
-                return View(new PagedList<Order>(new List<Order>(), 0, page ?? 1, 10));
+                // Resetting to updated pageSize here as well
+                return View(new PagedList<Order>(new List<Order>(), 0, pageNumber, pageSize));
             }
             catch (Exception)
             {
@@ -153,7 +151,6 @@ namespace CMSECommerce.Controllers
                 return RedirectToAction("Index", "Home");
             }
         }
-
 
         [HttpPost]
         [ValidateAntiForgeryToken]

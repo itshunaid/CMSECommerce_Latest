@@ -65,7 +65,15 @@
     .status-cancelled { color: @cancelledRed; font-weight: 700; }
     
     .filter-box { background: white; border: 1px solid #D5D9D9; border-radius: 8px; }
-    .pagination .page-item.active .page-link { background-color: @amazonYellow; border-color: @amazonYellow; color: black; }
+    
+    /* Pagination Styling */
+    .pagination .page-link { color: #007185; border-radius: 4px; margin: 0 2px; }
+    .pagination .page-item.active .page-link { 
+        background-color: @amazonYellow !important; 
+        border-color: #f3a847 !important; 
+        color: black !important; 
+        font-weight: bold; 
+    }
     
     /* Spinner Helper */
     .spinner-border-sm { width: 1rem; height: 1rem; border-width: 0.2em; }
@@ -128,7 +136,6 @@
     {
         @foreach (var item in Model)
         {
-            // Logic for 24-hour rule
             bool isWithin24Hours = (DateTime.Now - item.OrderDate.Value).TotalHours <= 24;
 
             <div class="card order-card shadow-sm @(item.IsCancelled ? "cancelled-card" : "")">
@@ -196,14 +203,12 @@
 
                         <div class="col-md-4 text-md-end mt-3 mt-md-0">
                             <div class="d-flex flex-column gap-2 align-items-end">
-
                                 @if (!item.IsCancelled)
                                 {
                                     <a asp-controller="Account" asp-action="OrderDetails" asp-route-id="@item.Id" 
                                        class="btn btn-amazon-primary btn-sm w-100" style="max-width:200px">Track Package</a>
                                 }
 
-                                @* --- Cancel Button (Only if < 24h & not shipped) --- *@
                                 @if (!item.Shipped && !item.IsCancelled && isWithin24Hours)
                                 {
                                     <button type="button" class="btn btn-amazon-secondary btn-sm w-100" style="max-width:200px" 
@@ -214,7 +219,7 @@
 
                                 @if (item.IsCancelled)
                                 {
-                                    <form asp-action="ReActivateOrder" asp-controller="Account" method="post" class="w-100 js-form-submit" style="max-width:200px">
+                                    <form asp-action="ReOrder" asp-controller="Account" method="post" class="w-100 js-form-submit" style="max-width:200px">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="orderId" value="@item.Id" />
                                         <button type="submit" class="btn btn-amazon-primary btn-sm w-100">
@@ -253,30 +258,42 @@
                 { "minDate", currentMinDate },
                 { "maxDate", currentMaxDate }
             };
-            var filteredRoute = routeData.Where(x => x.Value != null).ToDictionary(x => x.Key, x => x.Value);
+            var baseRoute = routeData.Where(x => x.Value != null).ToDictionary(x => x.Key, x => x.Value);
         
 
-        <nav class="d-flex justify-content-between align-items-center mb-5">
-            <div class="small text-muted">Page @Model.PageIndex of @Model.TotalPages</div>
+        <nav class="d-flex justify-content-between align-items-center mt-4 mb-5">
+            <div class="small text-muted">
+                Showing page <strong>@Model.PageIndex</strong> of <strong>@Model.TotalPages</strong> 
+                <span class="ms-1">(@Model.TotalCount total orders)</span>
+            </div>
+            
             <ul class="pagination pagination-sm mb-0">
                 @if (Model.HasPreviousPage)
                 {
-                    filteredRoute["page"] = (Model.PageIndex - 1).ToString();
-                    <li class="page-item"><a class="page-link" asp-action="MyOrders" asp-all-route-data="filteredRoute">Previous</a></li>
+                    var prevRoute = new Dictionary<string, string>(baseRoute) { ["page"] = (Model.PageIndex - 1).ToString() };
+                    <li class="page-item"><a class="page-link" asp-action="MyOrders" asp-all-route-data="prevRoute"><i class="fas fa-chevron-left small"></i> Previous</a></li>
+                }
+                else
+                {
+                    <li class="page-item disabled"><span class="page-link">Previous</span></li>
                 }
 
                 @for (int i = 1; i <= Model.TotalPages; i++)
                 {
-                    filteredRoute["page"] = i.ToString();
+                    var pageRoute = new Dictionary<string, string>(baseRoute) { ["page"] = i.ToString() };
                     <li class="page-item @(i == Model.PageIndex ? "active" : "")">
-                        <a class="page-link" asp-action="MyOrders" asp-all-route-data="filteredRoute">@i</a>
+                        <a class="page-link" asp-action="MyOrders" asp-all-route-data="pageRoute">@i</a>
                     </li>
                 }
 
                 @if (Model.HasNextPage)
                 {
-                    filteredRoute["page"] = (Model.PageIndex + 1).ToString();
-                    <li class="page-item"><a class="page-link" asp-action="MyOrders" asp-all-route-data="filteredRoute">Next</a></li>
+                    var nextRoute = new Dictionary<string, string>(baseRoute) { ["page"] = (Model.PageIndex + 1).ToString() };
+                    <li class="page-item"><a class="page-link" asp-action="MyOrders" asp-all-route-data="nextRoute">Next <i class="fas fa-chevron-right small"></i></a></li>
+                }
+                else
+                {
+                    <li class="page-item disabled"><span class="page-link">Next</span></li>
                 }
             </ul>
         </nav>
