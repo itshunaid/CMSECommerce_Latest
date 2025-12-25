@@ -14,6 +14,8 @@ namespace CMSECommerce.Models
         public decimal GrandTotal { get; set; }
 
         public DateTime DateTime { get; set; } = DateTime.Now;
+        // --- NEW PROPERTY ---
+        public bool IsCancelled { get; set; } = false;
         public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
     }
 }

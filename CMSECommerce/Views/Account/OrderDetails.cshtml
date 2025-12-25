@@ -34,10 +34,22 @@
                 <div class="card-body p-4">
                     <div class="row">
                         <div class="col-md-9">
-                            <h3 class="h4 fw-bold mb-2 status-heading">
-                                @(isOrderShipped ? "Delivered / Completed" : "Processing / Preparing for Shipment")
-                            </h3>
-                            <p class="text-muted small mb-1">
+                            @* --- Check if Entire Order is Cancelled --- *@
+                            @if (Model.Order.IsCancelled)
+                            {
+                                <h3 class="h4 fw-bold mb-2 text-danger">
+                                    <i class="fas fa-exclamation-circle me-2"></i>This Order Has Been Cancelled
+                                </h3>
+                                <p class="text-muted small mb-0">No further actions can be taken on this order.</p>
+                            }
+                            else
+                            {
+                                <h3 class="h4 fw-bold mb-2 status-heading">
+                                    @(isOrderShipped ? "Delivered / Completed" : "Processing / Preparing for Shipment")
+                                </h3>
+                            }
+
+                            <p class="text-muted small mb-1 mt-2">
                                 Placed on: <strong>@Model.Order.DateTime.ToString("MMMM dd, yyyy HH:mm")</strong>
                             </p>
                             <p class="text-muted small mb-0">
@@ -46,7 +58,7 @@
                         </div>
                         <div class="col-md-3 text-end d-flex align-items-center justify-content-end">
                             <a asp-controller="Orders" asp-action="Invoice" asp-route-id="@Model.Order.Id" target="_blank"
-                               class="btn btn-sm btn-amazon-checkout-light fw-bold">
+                               class="btn btn-sm btn-amazon-checkout-light fw-bold @(Model.Order.IsCancelled ? "disabled" : "")">
                                 <i class="fas fa-file-invoice me-1"></i> Invoice
                             </a>
                         </div>
@@ -73,7 +85,6 @@
                                 </a>
                                 <p class="small text-muted mb-1">Qty: @item.Quantity</p>
 
-                                @* --- Seller Info logic --- *@
                                 <div class="mt-2 p-2 rounded-2 bg-light border-start border-3 border-amazon-orange">
                                     <div class="small">
                                         <span class="text-muted">Sold by:</span>
@@ -93,9 +104,11 @@
                                 <div class="d-flex flex-column align-items-end">
                                     @if (item.IsCancelled)
                                     {
-                                        <span class="badge bg-danger mb-1"><i class="fas fa-ban-circle me-1"></i> Cancelled</span>
+                                        <span class="badge bg-danger mb-1"><i class="fas fa-ban me-1"></i> Cancelled</span>
                                         <small class="text-muted fw-bold">By @item.CancelledByRole</small>
-                                        <small class="text-muted fst-italic text-truncate" style="max-width: 200px;">Reason: @item.CancellationReason</small>
+                                        <small class="text-muted fst-italic text-truncate" style="max-width: 200px;" title="@item.CancellationReason">
+                                            Reason: @item.CancellationReason
+                                        </small>
                                     }
                                     else
                                     {
@@ -107,7 +120,8 @@
                                             <i class="fas @statusIcon me-1"></i> @statusText
                                         </span>
 
-                                        @if (isWithinCancellationWindow)
+                                        @* --- Only show Cancel Button if Order is NOT fully cancelled and within time limit --- *@
+                                        @if (isWithinCancellationWindow && !Model.Order.IsCancelled && !isOrderShipped)
                                         {
                                             <button type="button" class="btn btn-sm btn-outline-danger px-3"
                                                     onclick="openCancelModal(@item.Id, '@item.ProductName')">
@@ -144,9 +158,6 @@
                         <span class="small text-muted">Shipping:</span>
                         <div class="text-end">
                             <div class="text-success fw-bold small">Calculated by Seller</div>
-                            <div class="text-muted" style="font-size: 0.75rem; line-height: 1.2;">
-                                Based on @(store?.City ?? "Seller Location")
-                            </div>
                         </div>
                     </div>
 
@@ -190,7 +201,7 @@
             <form asp-controller="Account" asp-action="CancelItem" method="post">
                 @Html.AntiForgeryToken()
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="cancelItemModalLabel fw-bold">Cancel Order Item</h5>
+                    <h5 class="modal-title" id="cancelItemModalLabel">Cancel Order Item</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -222,7 +233,8 @@
             document.getElementById('modalOrderDetailId').value = id;
             document.getElementById('modalProductName').innerText = productName;
 
-            var cancelModal = new bootstrap.Modal(document.getElementById('cancelItemModal'));
+            var cancelModalElement = document.getElementById('cancelItemModal');
+            var cancelModal = new bootstrap.Modal(cancelModalElement);
             cancelModal.show();
         }
     </script>
@@ -299,6 +311,12 @@
 
         .border-amazon-orange {
             border-color: var(--amazon-orange) !important;
+        }
+
+        /* Disabled Invoice button styling */
+        .btn-amazon-checkout-light.disabled {
+            opacity: 0.5;
+            pointer-events: none;
         }
     </style>
 }

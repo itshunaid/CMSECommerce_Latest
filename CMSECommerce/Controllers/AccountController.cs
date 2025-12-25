@@ -347,8 +347,10 @@ namespace CMSECommerce.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelItem(int orderDetailId, string reason)
         {
+            // Include OrderDetails to check the sibling items
             var detail = await _context.OrderDetails
                 .Include(od => od.Order)
+                .ThenInclude(o => o.OrderDetails)
                 .FirstOrDefaultAsync(od => od.Id == orderDetailId);
 
             if (detail == null) return NotFound();
@@ -391,10 +393,139 @@ namespace CMSECommerce.Controllers
             // Optional: Update GrandTotal of the Order
             detail.Order.GrandTotal -= (detail.Price * detail.Quantity);
 
+            // --- NEW LOGIC: Check if all items in this order are now cancelled ---
+            if (detail.Order.OrderDetails.All(od => od.IsCancelled))
+            {
+                detail.Order.IsCancelled = true;
+            }
+
             await _context.SaveChangesAsync();
             TempData["Success"] = "Item cancelled successfully.";
 
-            return RedirectToAction("Details", "Orders", new { id = detail.OrderId });
+            return RedirectToAction("orderdetails", new { id = detail.OrderId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReActivateOrder(int orderId)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            // 1. Fetch the order and include the OrderDetails
+            var order = await _context.Orders
+                .Include(o => o.OrderDetails)
+                .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
+
+            if (order == null)
+            {
+                TempData["Error"] = "Order not found.";
+                return RedirectToAction("MyOrders", "Orders");
+            }
+
+            // 2. Security/Business Logic: Only allow re-activation if it was cancelled
+            if (!order.IsCancelled)
+            {
+                TempData["Info"] = "This order is already active.";
+                return RedirectToAction("MyOrders", "Orders");
+            }
+
+            try
+            {
+                // 3. Re-activate the Main Order
+                order.IsCancelled = false;
+                order.DateTime = DateTime.Now; // Optional: Reset date to move it to the top of the list
+
+                // 4. Re-activate every item under the order
+                foreach (var item in order.OrderDetails)
+                {
+                    item.IsCancelled = false;
+                    item.CancellationReason = null;
+                    item.CancelledByRole = null;
+                    // Note: Keep IsProcessed as false so the seller sees it as a new task
+                    item.IsProcessed = false;
+                }
+
+                _context.Update(order);
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"Order #{orderId} has been successfully re-activated!";
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "An error occurred while trying to re-activate the order.";
+            }
+
+            return RedirectToAction("MyOrders", "Orders");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReOrder(int orderId)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            // Fetch the old order including items
+            var oldOrder = await _context.Orders
+                .Include(o => o.OrderDetails)
+                .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
+
+            if (oldOrder == null)
+            {
+                TempData["Error"] = "Original order not found.";
+                return RedirectToAction("MyOrders", "Orders");
+            }
+
+            try
+            {
+                if (oldOrder.IsCancelled)
+                {
+                    // CASE 1: RE-ACTIVATE EXISTING ORDER
+                    oldOrder.IsCancelled = false;
+                    oldOrder.DateTime = DateTime.Now; // Move to top of list
+                    oldOrder.Shipped = false;
+
+                    foreach (var item in oldOrder.OrderDetails)
+                    {
+                        item.IsCancelled = false;
+                        item.IsProcessed = false; // Send back to seller's queue
+                    }
+                    _context.Update(oldOrder);
+                    TempData["Success"] = $"Order #{orderId} has been successfully re-activated!";
+                }
+                else
+                {
+                    // CASE 2: CREATE NEW DUPLICATE ORDER (For Shipped/Pending)
+                    var newOrder = new Order
+                    {
+                        UserId = userId,
+                        UserName = oldOrder.UserName,
+                        DateTime = DateTime.Now,
+                        GrandTotal = oldOrder.GrandTotal,
+                        Shipped = false,
+                        IsCancelled = false,
+                        OrderDetails = oldOrder.OrderDetails.Select(d => new OrderDetail
+                        {
+                            ProductId = d.ProductId,
+                            Quantity = d.Quantity,
+                            Price = d.Price, // Use historical price or look up current price here
+                            IsProcessed = false,
+                            IsCancelled = false
+                        }).ToList()
+                    };
+
+                    _context.Orders.Add(newOrder);
+                    await _context.SaveChangesAsync();
+                    TempData["Success"] = $"New order #{newOrder.Id} has been placed based on your previous purchase.";
+                }
+
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "An error occurred while trying to process the re-order.";
+            }
+
+            return RedirectToAction("MyOrders", "Orders");
         }
 
 

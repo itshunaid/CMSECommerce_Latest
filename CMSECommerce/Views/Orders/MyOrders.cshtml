@@ -14,8 +14,9 @@
     var amazonLinkBlue = "#0066c0";
     var shippedGreen = "#1A7525"; 
     var pendingOrange = "#E08F00";
+    var cancelledRed = "#B12704"; 
 
-    // --- Filter Capture (From Controller via ViewData) ---
+    // --- Filter Capture ---
     var currentOrderId = ViewData["CurrentOrderId"] as string;
     var currentStatus = ViewData["CurrentStatus"] as string;
     var currentMinTotal = ViewData["CurrentMinTotal"] as string;
@@ -23,17 +24,12 @@
     var currentMinDate = ViewData["CurrentMinDate"] as string;
     var currentMaxDate = ViewData["CurrentMaxDate"] as string;
 
-    // --- Profile Handling ---
     var profile = ViewBag.UserProfile as UserProfile;
 }
 
 <style>
-    body {
-        background-color: #EAEDED;
-        color: @amazonDarkBlue;
-    }
+    body { background-color: #EAEDED; color: @amazonDarkBlue; }
 
-    /* Amazon Styles */
     .btn-amazon-primary {
         background-color: #FFD814;
         border-color: #FCD200;
@@ -43,10 +39,7 @@
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
-    .btn-amazon-primary:hover {
-        background-color: #F7CA00;
-        border-color: #F2C200;
-    }
+    .btn-amazon-primary:hover { background-color: #F7CA00; border-color: #F2C200; }
 
     .btn-amazon-secondary {
         background-color: #FFFFFF;
@@ -56,55 +49,23 @@
         box-shadow: 0 2px 5px rgba(213,217,217,.5);
     }
 
-    .btn-amazon-secondary:hover {
-        background-color: #F7FAFA;
-    }
+    .btn-amazon-secondary:hover { background-color: #F7FAFA; }
 
     /* Card Styling */
-    .order-card {
-        border: 1px solid #D5D9D9;
-        border-radius: 8px;
-        margin-bottom: 25px;
-        background-color: white;
-        overflow: hidden;
-    }
+    .order-card { border: 1px solid #D5D9D9; border-radius: 8px; margin-bottom: 25px; background-color: white; overflow: hidden; position: relative; }
+    .order-card.cancelled-card { border-left: 5px solid @cancelledRed; }
 
-    .order-header {
-        background-color: #F0F2F2;
-        padding: 12px 20px;
-        border-bottom: 1px solid #D5D9D9;
-        font-size: 0.85rem;
-    }
-
-    .order-header .label-text {
-        text-transform: uppercase;
-        color: #565959;
-        display: block;
-        margin-bottom: 2px;
-    }
-
-    .order-header .value-text {
-        font-weight: 500;
-        color: #0F1111;
-    }
+    .order-header { background-color: #F0F2F2; padding: 12px 20px; border-bottom: 1px solid #D5D9D9; font-size: 0.85rem; }
+    .order-header .label-text { text-transform: uppercase; color: #565959; display: block; margin-bottom: 2px; }
+    .order-header .value-text { font-weight: 500; color: #0F1111; }
 
     /* Status Styles */
     .status-shipped { color: @shippedGreen; font-weight: 700; }
     .status-pending { color: @pendingOrange; font-weight: 700; }
-    .price-red { color: #B12704; font-weight: 700; font-size: 1.1rem; }
-
-    /* Filter Box */
-    .filter-box {
-        background: white;
-        border: 1px solid #D5D9D9;
-        border-radius: 8px;
-    }
-
-    .pagination .page-item.active .page-link {
-        background-color: @amazonYellow;
-        border-color: @amazonYellow;
-        color: black;
-    }
+    .status-cancelled { color: @cancelledRed; font-weight: 700; }
+    
+    .filter-box { background: white; border: 1px solid #D5D9D9; border-radius: 8px; }
+    .pagination .page-item.active .page-link { background-color: @amazonYellow; border-color: @amazonYellow; color: black; }
 </style>
 
 <div class="container py-4">
@@ -126,6 +87,7 @@
                     <option value="">All Statuses</option>
                     <option value="Shipped" selected="@(currentStatus == "Shipped")">Shipped</option>
                     <option value="Pending" selected="@(currentStatus == "Pending")">Pending</option>
+                    <option value="Cancelled" selected="@(currentStatus == "Cancelled")">Cancelled</option>
                 </select>
             </div>
             <div class="col-md-3">
@@ -162,7 +124,7 @@
     {
         @foreach (var item in Model)
         {
-            <div class="card order-card shadow-sm">
+            <div class="card order-card shadow-sm @(item.IsCancelled ? "cancelled-card" : "")">
                 @* Card Header *@
                 <div class="order-header">
                     <div class="row">
@@ -186,7 +148,7 @@
                             <div class="d-flex gap-2 justify-content-md-end">
                                 <a asp-controller="Account" asp-action="OrderDetails" asp-route-id="@item.Id" class="text-decoration-none">Order Details</a>
                                 <span class="text-muted">|</span>
-                                <a asp-action="Invoice" asp-route-id="@item.Id" target="_blank" class="text-decoration-none">Invoice</a>
+                                <a asp-action="Invoice" asp-route-id="@item.Id" target="_blank" class="text-decoration-none @(item.IsCancelled ? "text-muted" : "")">Invoice</a>
                             </div>
                         </div>
                     </div>
@@ -197,7 +159,11 @@
                     <div class="row align-items-center">
                         <div class="col-md-8">
                             <h5 class="fw-bold mb-1">
-                                @if (item.Shipped)
+                                @if (item.IsCancelled)
+                                {
+                                    <span class="status-cancelled"><i class="fas fa-times-circle me-1"></i> Order Cancelled</span>
+                                }
+                                else if (item.Shipped)
                                 {
                                     <span class="status-shipped"><i class="fas fa-check-circle me-1"></i> Shipped</span>
                                 }
@@ -206,11 +172,49 @@
                                     <span class="status-pending"><i class="fas fa-sync-alt fa-spin me-1"></i> Preparing for Shipment</span>
                                 }
                             </h5>
-                            <p class="text-muted small mb-0">Your package is handled by our regional fulfillment partners.</p>
+                            
+                            @if (item.IsCancelled)
+                            {
+                                <p class="text-muted small mb-0">This order was cancelled. Re-activate it to send the items back to processing.</p>
+                            }
+                            else if (item.Shipped)
+                            {
+                                <p class="text-muted small mb-0">Delivered on @item.DateTime.AddDays(3).ToString("MMM dd").</p>
+                            }
+                            else
+                            {
+                                <p class="text-muted small mb-0">Items are being verified by our fulfillment center.</p>
+                            }
                         </div>
                         <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                            <a asp-controller="Account" asp-action="OrderDetails" asp-route-id="@item.Id" class="btn btn-amazon-primary btn-sm w-100 mb-2" style="max-width:200px">Track Package</a>
-                            <a asp-controller="Products" asp-action="Index" class="btn btn-amazon-secondary btn-sm w-100" style="max-width:200px">Buy it again</a>
+                            @* Action 1: Track Package *@
+                            @if (!item.IsCancelled)
+                            {
+                                <a asp-controller="Account" asp-action="OrderDetails" asp-route-id="@item.Id" class="btn btn-amazon-primary btn-sm w-100 mb-2" style="max-width:200px">Track Package</a>
+                            }
+                            else
+                            {
+                                <button disabled class="btn btn-secondary btn-sm w-100 mb-2 opacity-50" style="max-width:200px">Track Package</button>
+                            }
+
+                            @* Action 2: Unified Re-Order Form *@
+                            <form asp-action="ReOrder" asp-controller="Account" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="orderId" value="@item.Id" />
+                                
+                                @if (item.IsCancelled)
+                                {
+                                    <button type="submit" class="btn btn-amazon-primary btn-sm w-100" style="max-width:200px">
+                                        <i class="fas fa-redo me-1"></i> Buy it again
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="submit" class="btn btn-amazon-secondary btn-sm w-100" style="max-width:200px">
+                                        <i class="fas fa-shopping-cart me-1"></i> Buy it again
+                                    </button>
+                                }
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -228,22 +232,16 @@
                 { "minDate", currentMinDate },
                 { "maxDate", currentMaxDate }
             };
-
-            // Remove null entries
             var filteredRoute = routeData.Where(x => x.Value != null).ToDictionary(x => x.Key, x => x.Value);
         
 
         <nav class="d-flex justify-content-between align-items-center mb-5">
-            <div class="small text-muted">
-                Showing page @Model.PageIndex of @Model.TotalPages
-            </div>
+            <div class="small text-muted">Showing page @Model.PageIndex of @Model.TotalPages</div>
             <ul class="pagination pagination-sm mb-0">
                 @if (Model.HasPreviousPage)
                 {
                     filteredRoute["page"] = (Model.PageIndex - 1).ToString();
-                    <li class="page-item">
-                        <a class="page-link" asp-action="MyOrders" asp-all-route-data="filteredRoute">Previous</a>
-                    </li>
+                    <li class="page-item"><a class="page-link" asp-action="MyOrders" asp-all-route-data="filteredRoute">Previous</a></li>
                 }
 
                 @for (int i = 1; i <= Model.TotalPages; i++)
@@ -257,9 +255,7 @@
                 @if (Model.HasNextPage)
                 {
                     filteredRoute["page"] = (Model.PageIndex + 1).ToString();
-                    <li class="page-item">
-                        <a class="page-link" asp-action="MyOrders" asp-all-route-data="filteredRoute">Next</a>
-                    </li>
+                    <li class="page-item"><a class="page-link" asp-action="MyOrders" asp-all-route-data="filteredRoute">Next</a></li>
                 }
             </ul>
         </nav>

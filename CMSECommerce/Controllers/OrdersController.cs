@@ -30,13 +30,13 @@ namespace CMSECommerce.Controllers
         /// Synchronizes the 'Shipped' status: Sets to true only if ALL associated items are processed.
         /// </summary>
         public async Task<IActionResult> MyOrders(
-            int? page,
-            string orderId,
-            string status,
-            decimal? minTotal,
-            decimal? maxTotal,
-            DateTime? minDate,
-            DateTime? maxDate)
+     int? page,
+     string orderId,
+     string status,
+     decimal? minTotal,
+     decimal? maxTotal,
+     DateTime? minDate,
+     DateTime? maxDate)
         {
             //1. Authentication Guard Clause
             if (!User.Identity.IsAuthenticated)
@@ -47,32 +47,40 @@ namespace CMSECommerce.Controllers
 
             try
             {
-                //2. Identity Handling (Using UserId for reliable database linking)
+                //2. Identity Handling
                 var userId = _userManager.GetUserId(User);
 
-                // Fetch profile for UI display purposes (ViewBag)
                 var userProfile = await _context.UserProfiles
                     .FirstOrDefaultAsync(p => p.UserId == userId);
 
-                const int pageSize =10;
-                int pageNumber = page ??1;
+                const int pageSize = 10;
+                int pageNumber = page ?? 1;
 
-                //3. Status Synchronization Logic (Architectural Efficiency)
-                // Check completion status in a single DB round-trip using projection
+                //3. Status Synchronization Logic
+                // We only check orders that are NEITHER Shipped NOR Cancelled
                 var ordersToCheck = await _context.Orders
-                    .Where(o => o.UserId == userId && !o.Shipped) // Only check orders not yet shipped
+                    .Where(o => o.UserId == userId && !o.Shipped && !o.IsCancelled)
                     .Select(o => new
                     {
                         Order = o,
-                        // Condition: True if EVERY item in OrderDetails is processed
-                        AllItemsProcessed = o.OrderDetails.All(od => od.IsProcessed)
+                        // An order is "Shipped" only if all items are processed AND not all items are cancelled
+                        AllItemsProcessed = o.OrderDetails.All(od => od.IsProcessed || od.IsCancelled),
+                        AllItemsCancelled = o.OrderDetails.All(od => od.IsCancelled)
                     })
                     .ToListAsync();
 
                 bool hasChanges = false;
                 foreach (var item in ordersToCheck)
                 {
-                    if (item.AllItemsProcessed)
+                    // If all items became cancelled while we weren't looking
+                    if (item.AllItemsCancelled && !item.Order.IsCancelled)
+                    {
+                        item.Order.IsCancelled = true;
+                        _context.Update(item.Order);
+                        hasChanges = true;
+                    }
+                    // If all items are processed (or cancelled), mark as Shipped
+                    else if (item.AllItemsProcessed && !item.Order.Shipped)
                     {
                         item.Order.Shipped = true;
                         _context.Update(item.Order);
@@ -85,7 +93,7 @@ namespace CMSECommerce.Controllers
                     await _context.SaveChangesAsync();
                 }
 
-                //4. Build Filtered Query for UI Display
+                //4. Build Filtered Query
                 var filteredOrders = _context.Orders
                     .AsNoTracking()
                     .Where(o => o.UserId == userId);
@@ -99,9 +107,13 @@ namespace CMSECommerce.Controllers
                 if (!string.IsNullOrEmpty(status))
                 {
                     if (status.Equals("Shipped", StringComparison.OrdinalIgnoreCase))
-                        filteredOrders = filteredOrders.Where(o => o.Shipped);
+                        filteredOrders = filteredOrders.Where(o => o.Shipped && !o.IsCancelled);
+
                     else if (status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
-                        filteredOrders = filteredOrders.Where(o => !o.Shipped);
+                        filteredOrders = filteredOrders.Where(o => !o.Shipped && !o.IsCancelled);
+
+                    else if (status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+                        filteredOrders = filteredOrders.Where(o => o.IsCancelled);
                 }
 
                 if (minTotal.HasValue) filteredOrders = filteredOrders.Where(o => o.GrandTotal >= minTotal.Value);
@@ -110,7 +122,7 @@ namespace CMSECommerce.Controllers
                 if (minDate.HasValue) filteredOrders = filteredOrders.Where(o => o.DateTime.Date >= minDate.Value.Date);
                 if (maxDate.HasValue) filteredOrders = filteredOrders.Where(o => o.DateTime.Date <= maxDate.Value.Date);
 
-                //5. Store UI State for the Filter Form
+                //5. Store UI State
                 ViewData["CurrentOrderId"] = orderId;
                 ViewData["CurrentStatus"] = status;
                 ViewData["CurrentMinTotal"] = minTotal?.ToString();
@@ -122,7 +134,7 @@ namespace CMSECommerce.Controllers
                 var totalCount = await filteredOrders.CountAsync();
                 var pagedItems = await filteredOrders
                     .OrderByDescending(o => o.DateTime)
-                    .Skip((pageNumber -1) * pageSize)
+                    .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
 
@@ -133,7 +145,7 @@ namespace CMSECommerce.Controllers
             catch (DbUpdateException)
             {
                 TempData["Error"] = "A database error occurred. Your history might be temporarily unavailable.";
-                return View(new PagedList<Order>(new List<Order>(),0, page ??1,10));
+                return View(new PagedList<Order>(new List<Order>(), 0, page ?? 1, 10));
             }
             catch (Exception)
             {
@@ -142,7 +154,6 @@ namespace CMSECommerce.Controllers
             }
         }
 
-      
 
         [HttpPost]
         [ValidateAntiForgeryToken]
