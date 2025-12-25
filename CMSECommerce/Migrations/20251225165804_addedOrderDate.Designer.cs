@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMSECommerce.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20251222194848_AddProfessionAndServicesToProfile")]
-    partial class AddProfessionAndServicesToProfile
+    [Migration("20251225165804_addedOrderDate")]
+    partial class addedOrderDate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -138,17 +138,23 @@ namespace CMSECommerce.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("DateTime")
-                        .HasColumnType("datetime2");
-
                     b.Property<decimal>("GrandTotal")
                         .HasColumnType("decimal(8, 2)");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("OrderDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("Shipped")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ShippedDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(max)");
@@ -169,6 +175,12 @@ namespace CMSECommerce.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CancellationReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CancelledByRole")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Customer")
                         .HasColumnType("nvarchar(max)");
 
@@ -178,7 +190,13 @@ namespace CMSECommerce.Migrations
                     b.Property<string>("Image")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsProcessed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsReturned")
                         .HasColumnType("bit");
 
                     b.Property<int>("OrderId")
@@ -198,6 +216,12 @@ namespace CMSECommerce.Migrations
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReturnDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReturnReason")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

@@ -19,7 +19,7 @@ else
         <strong>User:</strong> @Model.Order.UserName
     </div>
     <div class="mb-3">
-        <strong>Date:</strong> @Model.Order.DateTime
+        <strong>Date:</strong> @Model.Order.OrderDate.Value.ToString("MMMM dd, yyyy h:mm tt")
     </div>
     <div class="mb-3">
         <strong>Total:</strong> @Model.Order.GrandTotal.ToString("C2")

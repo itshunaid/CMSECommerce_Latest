@@ -119,8 +119,8 @@ namespace CMSECommerce.Controllers
                 if (minTotal.HasValue) filteredOrders = filteredOrders.Where(o => o.GrandTotal >= minTotal.Value);
                 if (maxTotal.HasValue) filteredOrders = filteredOrders.Where(o => o.GrandTotal <= maxTotal.Value);
 
-                if (minDate.HasValue) filteredOrders = filteredOrders.Where(o => o.DateTime.Date >= minDate.Value.Date);
-                if (maxDate.HasValue) filteredOrders = filteredOrders.Where(o => o.DateTime.Date <= maxDate.Value.Date);
+                if (minDate.HasValue) filteredOrders = filteredOrders.Where(o => o.OrderDate.Value.Date >= minDate.Value.Date);
+                if (maxDate.HasValue) filteredOrders = filteredOrders.Where(o => o.OrderDate.Value.Date <= maxDate.Value.Date);
 
                 //5. Store UI State
                 ViewData["CurrentOrderId"] = orderId;
@@ -133,7 +133,7 @@ namespace CMSECommerce.Controllers
                 //6. Pagination & Execution
                 var totalCount = await filteredOrders.CountAsync();
                 var pagedItems = await filteredOrders
-                    .OrderByDescending(o => o.DateTime)
+                    .OrderByDescending(o => o.OrderDate)
                     .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
@@ -172,7 +172,7 @@ namespace CMSECommerce.Controllers
             }
 
             // --- 24 Hour Logic ---
-            var timeElapsed = DateTime.Now - order.DateTime;
+            var timeElapsed = DateTime.Now - order.OrderDate.Value;
             if (timeElapsed.TotalHours > 24)
             {
                 TempData["Error"] = "Orders can only be cancelled within 24 hours of placement.";
@@ -207,6 +207,7 @@ namespace CMSECommerce.Controllers
             return RedirectToAction("MyOrders");
         }
 
+     
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -280,7 +281,7 @@ namespace CMSECommerce.Controllers
                     UserName = fullName,
                     PhoneNumber = user.PhoneNumber ?? "No Phone Provided",
                     GrandTotal = cart.Sum(x => x.Price * x.Quantity),
-                    DateTime = DateTime.Now,
+                    OrderDate = DateTime.Now,
                     Shipped = false // Default status
                 };
 

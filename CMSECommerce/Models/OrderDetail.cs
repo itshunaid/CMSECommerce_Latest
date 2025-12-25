@@ -23,6 +23,10 @@ namespace CMSECommerce.Models
         public string? CancellationReason { get; set; }
         public string? CancelledByRole { get; set; } // Admin, Seller, or User
 
+        public bool IsReturned { get; set; }        // Set to true when user clicks 'Return'
+        public string ReturnReason { get; set; }     // Captured from the modal
+        public DateTime? ReturnDate { get; set; }
+
         public virtual Order Order { get; set; }
     }
 }

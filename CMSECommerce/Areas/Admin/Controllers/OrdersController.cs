@@ -73,17 +73,17 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 // Filter by Date Range
                 if (minDate.HasValue)
                 {
-                    orders = orders.Where(o => o.DateTime.Date >= minDate.Value.Date);
+                    orders = orders.Where(o => o.OrderDate.Value.Date >= minDate.Value.Date);
                 }
                 if (maxDate.HasValue)
                 {
-                    orders = orders.Where(o => o.DateTime.Date <= maxDate.Value.Date);
+                    orders = orders.Where(o => o.OrderDate.Value.Date <= maxDate.Value.Date);
                 }
 
                 // 4. Execute Query and Apply Pagination
                 count = await orders.CountAsync();
                 items = await orders
-                    .OrderByDescending(o => o.DateTime) // Always sort for consistent pagination
+                    .OrderByDescending(o => o.OrderDate) // Always sort for consistent pagination
                     .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
@@ -165,6 +165,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
             try
             {
+                // 1. Fetch the order
                 order = await _context.Orders.FirstOrDefaultAsync(x => x.Id == id);
 
                 if (order == null)
@@ -173,17 +174,31 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     return RedirectToAction("Index");
                 }
 
+                // 2. Update the main Order record properties
                 order.Shipped = shipped;
+                if(shipped)
+                {
+                    order.IsCancelled = false;
+                }
+                order.ShippedDate = shipped ? DateTime.Now : null;
+               
 
-                // This performs the update directly on the database with a single command 
-                // (less memory usage than loading all details)
-                var rowsAffected = await _context.OrderDetails
+                // 3. Update all associated OrderDetails in one efficient command
+                // If 'shipped' is true, we mark items as Processed AND reset Return flags.
+                // If 'shipped' is false, we mark items as NOT Processed.
+                await _context.OrderDetails
                     .Where(od => od.OrderId == id)
-                    .ExecuteUpdateAsync(
-                        setters => setters.SetProperty(od => od.IsProcessed, shipped)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(od => od.IsProcessed, shipped)
+                        // If setting to shipped, clear Return status to ensure data consistency
+                        .SetProperty(od => od.IsReturned, od => shipped ? false : od.IsReturned)
+                        .SetProperty(od => od.IsCancelled, od => shipped ? false : od.IsCancelled)
+                        // Also clear ReturnDate/Reason if shipping fresh
+                        .SetProperty(od => od.ReturnDate, od => shipped ? null : od.ReturnDate)
+                        .SetProperty(od => od.ReturnReason, od => shipped ? null : od.ReturnReason)
                     );
 
-                // Update the main Order record
+                // 4. Save the main Order changes (Status and ShippedDate)
                 _context.Update(order);
                 await _context.SaveChangesAsync();
 
@@ -191,14 +206,10 @@ namespace CMSECommerce.Areas.Admin.Controllers
             }
             catch (DbUpdateException dbEx)
             {
-                // Log database errors
-                // _logger.LogError(dbEx, "Database error updating shipment status for Order ID: {OrderId}", id);
                 TempData["Error"] = "A database error occurred while saving the shipment status. Please try again.";
             }
             catch (Exception ex)
             {
-                // Log general exceptions
-                // _logger.LogError(ex, "Unexpected error updating shipment status for Order ID: {OrderId}", id);
                 TempData["Error"] = "An unexpected error occurred during the status update.";
             }
 

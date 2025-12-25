@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.Blazor;
 using System.Security.Claims;
 
 namespace CMSECommerce.Controllers
@@ -356,7 +357,7 @@ namespace CMSECommerce.Controllers
             if (detail == null) return NotFound();
 
             // 1. Time Validation (24-hour rule)
-            var timeLimit = detail.Order.DateTime.AddHours(24);
+            var timeLimit = detail.Order.OrderDate.Value.AddHours(24);
             if (DateTime.Now > timeLimit)
             {
                 TempData["Error"] = "Cancellation period (24 hours) has expired.";
@@ -405,6 +406,50 @@ namespace CMSECommerce.Controllers
             return RedirectToAction("orderdetails", new { id = detail.OrderId });
         }
 
+        
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReturnItem(int orderDetailId, int orderId, string reason)
+        {
+            // 1. Fetch both the specific item and the parent order
+            var detail = await _context.OrderDetails.FindAsync(orderDetailId);
+            var order = await _context.Orders.FindAsync(orderId);
+            
+
+            if (detail == null || order == null)
+            {
+                TempData["Error"] = "Order information not found.";
+                return RedirectToAction("MyOrders");
+            }
+
+            // 2. Update OrderDetail fields based on your View's logic
+            // We mark it as Returned so the View shows the "Return Pending" badge
+            detail.IsReturned = true;
+            detail.ReturnReason = reason;
+            detail.ReturnDate = DateTime.Now;
+
+            // Optional: Also mark as cancelled if your logic requires it for stock/accounting
+            detail.IsCancelled = false;
+            detail.CancellationReason = "Returned: " + reason;
+            detail.IsProcessed = false;
+
+            // 3. Update the Parent Order status
+            // Setting Shipped to false moves it back to "Preparing for Shipment/Pending" status in your UI
+            order.Shipped = false;
+            order.IsCancelled = false;
+            order.ShippedDate = null; // Clear the shipped date since it's no longer considered "Completed"
+
+           
+
+            // 4. Save both changes in a single transaction
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Return request submitted. Your order status has been updated to Pending.";
+
+            return RedirectToAction("OrderDetails", new { id = orderId });
+        }
+
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelOrder(int orderId, string reason)
@@ -424,7 +469,7 @@ namespace CMSECommerce.Controllers
             }
 
             // 1. Time Validation (24-hour rule)
-            var timeLimit = order.DateTime.AddHours(24);
+            var timeLimit = order.OrderDate.Value.AddHours(24);
             if (DateTime.Now > timeLimit)
             {
                 TempData["Error"] = "Cancellation period (24 hours) has expired.";
@@ -462,7 +507,7 @@ namespace CMSECommerce.Controllers
                 TempData["Error"] = "An error occurred while trying to cancel the order.";
             }
 
-            return RedirectToAction("MyOrders");
+            return RedirectToAction("MyOrders","Orders");
         }
 
         [HttpPost]
@@ -493,7 +538,7 @@ namespace CMSECommerce.Controllers
             {
                 // 3. Re-activate the Main Order
                 order.IsCancelled = false;
-                order.DateTime = DateTime.Now; // Optional: Reset date to move it to the top of the list
+                order.OrderDate = DateTime.Now; // Optional: Reset date to move it to the top of the list
 
                 // 4. Re-activate every item under the order
                 foreach (var item in order.OrderDetails)
@@ -524,7 +569,8 @@ namespace CMSECommerce.Controllers
         {
             var userId = _userManager.GetUserId(User);
 
-            // Fetch the old order including items
+            // 1. Fetch only necessary data. 
+            // We use Include to get details, but we won't modify the originals if creating a new order.
             var oldOrder = await _context.Orders
                 .Include(o => o.OrderDetails)
                 .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
@@ -540,48 +586,63 @@ namespace CMSECommerce.Controllers
                 if (oldOrder.IsCancelled)
                 {
                     // CASE 1: RE-ACTIVATE EXISTING ORDER
+                    // Efficiently update the existing record
                     oldOrder.IsCancelled = false;
-                    oldOrder.DateTime = DateTime.Now; // Move to top of list
+                    oldOrder.OrderDate = DateTime.Now;
                     oldOrder.Shipped = false;
+                    oldOrder.ShippedDate = null; // Reset shipping date
 
                     foreach (var item in oldOrder.OrderDetails)
                     {
                         item.IsCancelled = false;
-                        item.IsProcessed = false; // Send back to seller's queue
+                        item.IsProcessed = false;
+                        item.IsReturned = false; // Reset return status if any
                     }
+
                     _context.Update(oldOrder);
                     TempData["Success"] = $"Order #{orderId} has been successfully re-activated!";
                 }
                 else
                 {
-                    // CASE 2: CREATE NEW DUPLICATE ORDER (For Shipped/Pending)
+                    // CASE 2: CREATE NEW DUPLICATE ORDER
+                    // We project the old details into NEW objects to avoid EF tracking conflicts
+                    var newOrderDetails = oldOrder.OrderDetails.Select(item => new OrderDetail
+                    {
+                        ProductId = item.ProductId,
+                        ProductName = item.ProductName,
+                        Quantity = item.Quantity,
+                        Price = item.Price,
+                        Image = item.Image,
+                        ProductOwner = item.ProductOwner,
+                        IsProcessed = false, // Fresh order starts as unprocessed
+                        IsCancelled = false,
+                        IsReturned = false
+                    }).ToList();
+
                     var newOrder = new Order
                     {
                         UserId = userId,
                         UserName = oldOrder.UserName,
-                        DateTime = DateTime.Now,
+                        OrderDate = DateTime.Now,
                         GrandTotal = oldOrder.GrandTotal,
                         Shipped = false,
                         IsCancelled = false,
-                        OrderDetails = oldOrder.OrderDetails.Select(d => new OrderDetail
-                        {
-                            ProductId = d.ProductId,
-                            Quantity = d.Quantity,
-                            Price = d.Price, // Use historical price or look up current price here
-                            IsProcessed = false,
-                            IsCancelled = false
-                        }).ToList()
+                        OrderDetails = newOrderDetails
                     };
 
                     _context.Orders.Add(newOrder);
+                    // SaveChangesAsync is called once here to persist the new order and its details
                     await _context.SaveChangesAsync();
-                    TempData["Success"] = $"New order #{newOrder.Id} has been placed based on your previous purchase.";
+
+                    TempData["Success"] = $"New order #{newOrder.Id} has been placed!";
                 }
 
+                // Final save for the "Re-activate" case or any trailing changes
                 await _context.SaveChangesAsync();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // Log ex if a logger is available
                 TempData["Error"] = "An error occurred while trying to process the re-order.";
             }
 

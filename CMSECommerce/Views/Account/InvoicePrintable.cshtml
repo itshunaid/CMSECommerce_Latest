@@ -28,7 +28,7 @@
 <body>
  <div class="invoice-wrapper">
  <h3>Final Details for Order #@Model.Order.Id</h3>
- <p class="x-small">Order Placed: @Model.Order.DateTime.ToString("MMMM dd, yyyy")</p>
+ <p class="x-small">Order Placed: @Model.Order.OrderDate.Value.ToString("MMMM dd, yyyy")</p>
  <hr />
  <div class="row">
  <div class="col-6">

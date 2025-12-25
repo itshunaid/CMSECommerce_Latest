@@ -13,7 +13,9 @@ namespace CMSECommerce.Models
         [Column(TypeName = "decimal(8, 2)")]
         public decimal GrandTotal { get; set; }
 
-        public DateTime DateTime { get; set; } = DateTime.Now;
+        public DateTime? OrderDate { get; set; } = DateTime.Now;
+
+        public DateTime? ShippedDate { get; set; }
         // --- NEW PROPERTY ---
         public bool IsCancelled { get; set; } = false;
         public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();

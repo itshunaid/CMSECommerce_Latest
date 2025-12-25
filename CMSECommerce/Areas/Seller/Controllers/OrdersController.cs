@@ -70,6 +70,51 @@ namespace CMSECommerce.Areas.Seller.Controllers
             }
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelOrderDetail(int detailId, string reason)
+        {
+            // 1. Fetch the specific item and its parent Order
+            var detail = await _context.OrderDetails
+                .Include(od => od.Order)
+                .FirstOrDefaultAsync(od => od.Id == detailId);
+
+            if (detail == null)
+            {
+                TempData["Error"] = "Order item not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // 2. Update the item status
+            detail.IsCancelled = true;
+            detail.CancellationReason = reason;
+            detail.CancelledByRole = "Seller"; // Identifies the seller as the initiator
+
+            // 3. Logic Check: If ALL items in this order are now cancelled, 
+            // mark the main Order header as cancelled too.
+            var parentOrder = detail.Order;
+            var allItems = await _context.OrderDetails
+                .Where(od => od.OrderId == parentOrder.Id)
+                .ToListAsync();
+
+            if (allItems.All(od => od.IsCancelled))
+            {
+                parentOrder.IsCancelled = true;
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"Item '{detail.ProductName}' has been cancelled.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "An error occurred while cancelling the item.";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
 
         public async Task<IActionResult> Cancelled(string searchString, string searchField)
         {
@@ -135,6 +180,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 var orderDetails = await query
                     .OrderBy(d => d.OrderId)
                     .ToListAsync();
+                
 
                 return View("Index", orderDetails);
             }
@@ -171,6 +217,10 @@ namespace CMSECommerce.Areas.Seller.Controllers
             try
             {
                 detail.IsProcessed = setTo;
+                if(setTo)
+                {
+                    detail.IsReturned = false;
+                }
                 await _context.SaveChangesAsync();
 
                 TempData["Success"] = $"Item '{detail.ProductName}' (Order #{detail.OrderId}) status updated to: {(setTo ? "Processed" : "Pending")}.";

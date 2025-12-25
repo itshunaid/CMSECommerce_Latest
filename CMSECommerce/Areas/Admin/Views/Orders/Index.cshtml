@@ -219,7 +219,7 @@
 
                 <div class="order-header d-flex justify-content-between align-items-center">
                     <div class="fw-bold">
-                        ORDER PLACED: <span style="font-weight:normal;">@item.DateTime.ToString("MMMM dd, yyyy")</span>
+                        ORDER PLACED: <span style="font-weight:normal;">@item.OrderDate.Value.ToString("MMMM dd, yyyy")</span>
                     </div>
                     <div class="text-end">
                         <span class="small text-muted me-2">ORDER #</span> <span style="color: @amazonDarkBlue; font-weight: bold;">@item.Id</span>

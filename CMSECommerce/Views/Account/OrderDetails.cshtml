@@ -10,9 +10,13 @@
     bool isOrderShipped = Model.Order.Shipped;
     bool isOrderCancelled = Model.Order.IsCancelled;
 
-    // --- 24-HOUR LOGIC ---
-    // Calculates if the order was placed within the last 24 hours
-    bool isWithin24Hours = (DateTime.Now - Model.Order.DateTime).TotalHours <= 24;
+    // --- 24-HOUR CANCELLATION LOGIC ---
+    bool isWithin24Hours = (DateTime.Now - Model.Order.OrderDate.Value).TotalHours <= 24;
+
+    // --- 5-DAY RETURN LOGIC ---
+    // Note: Uses ShippedDate if available, otherwise falls back to Order Date
+    DateTime referenceDate = Model.Order.ShippedDate ?? Model.Order.OrderDate.Value;
+    bool isWithinReturnWindow = isOrderShipped && (DateTime.Now - referenceDate).TotalDays <= 5;
 
     var profile = Model.UserProfile;
     var store = Model.UserProfile?.Store;
@@ -26,20 +30,16 @@
                 Order Details <span class="text-amazon-dark">#@Model.Order.Id</span>
             </h1>
 
-            @* --- 1. Cancellation Reason Summary (Appears only if Cancelled) --- *@
-            @if (isOrderCancelled)
+            @* --- 1. Cancellation/Return Summary --- *@
+            @if (isOrderCancelled || Model.OrderDetails.Any(x => x.IsReturned))
             {
-                var mainReason = Model.OrderDetails.FirstOrDefault(x => x.IsCancelled)?.CancellationReason ?? "No reason provided";
-                var cancelledBy = Model.OrderDetails.FirstOrDefault(x => x.IsCancelled)?.CancelledByRole ?? "User";
-
-                <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center mb-4 cancellation-summary-box">
-                    <i class="fas fa-exclamation-triangle fa-2x me-3 text-danger"></i>
+                <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4 cancellation-summary-box">
+                    <i class="fas fa-info-circle fa-2x me-3 text-warning"></i>
                     <div>
-                        <h5 class="alert-heading fw-bold mb-1">Cancellation Summary</h5>
+                        <h5 class="alert-heading fw-bold mb-1">Order Update</h5>
                         <p class="mb-0 small text-dark">
-                            This order was cancelled by the <strong>@cancelledBy</strong>.
-                            <br />
-                            <strong>Reason:</strong> <span class="fst-italic">"@mainReason"</span>
+                            Items in this order have been modified.
+                            <strong>Note:</strong> Returned items are processed as "Pending" until verified.
                         </p>
                     </div>
                 </div>
@@ -55,14 +55,16 @@
                                 <h3 class="h4 fw-bold mb-2 text-danger">
                                     <i class="fas fa-ban me-2"></i>Order Cancelled
                                 </h3>
-                                <p class="text-muted small mb-0">This order is currently inactive. You can re-activate it below.</p>
                             }
                             else if (isOrderShipped)
                             {
                                 <h3 class="h4 fw-bold mb-2 text-success">
                                     <i class="fas fa-check-circle me-2"></i>Shipped / Completed
                                 </h3>
-                                <p class="text-muted small mb-0">This order has been fulfilled and delivered.</p>
+                                @if (isWithinReturnWindow)
+                                {
+                                    <p class="text-muted small mb-0">Eligible for return until <strong>@referenceDate.AddDays(5).ToString("MMMM dd, yyyy")</strong></p>
+                                }
                             }
                             else
                             {
@@ -72,7 +74,6 @@
 
                                 @if (isWithin24Hours)
                                 {
-                                    @* --- Live Countdown UI --- *@
                                     <div id="countdown-wrapper" class="p-2 border rounded bg-white mt-2 shadow-sm timer-box">
                                         <p class="text-muted small mb-1 fw-bold">
                                             <i class="far fa-clock me-1 text-warning"></i> Cancellation window expires in:
@@ -80,22 +81,15 @@
                                         <div id="cancel-timer" class="h5 fw-bold text-danger mb-0">--:--:--</div>
                                     </div>
                                 }
-                                else
-                                {
-                                    <p class="text-danger small mb-0 fw-bold">
-                                        <i class="fas fa-lock me-1"></i> The 24-hour cancellation window has closed.
-                                    </p>
-                                }
                             }
                             <p class="text-muted small mt-2 mb-0">
-                                Placed on: <strong>@Model.Order.DateTime.ToString("MMMM dd, yyyy HH:mm")</strong>
+                                Placed on: <strong>@Model.Order.OrderDate.Value.ToString("MMMM dd, yyyy HH:mm")</strong>
                             </p>
                         </div>
 
                         <div class="col-md-5 text-end">
                             <div class="d-flex flex-column gap-2 align-items-end">
 
-                                @* --- ACTION: RE-ACTIVATE --- *@
                                 @if (isOrderCancelled)
                                 {
                                     <form asp-action="ReActivateOrder" asp-controller="Account" method="post" class="js-loading-form w-100" style="max-width:220px">
@@ -108,7 +102,6 @@
                                     </form>
                                 }
 
-                                @* --- ACTION: CANCEL (Logic: Not Shipped, Not already cancelled, Within 24hrs) --- *@
                                 @if (!isOrderShipped && !isOrderCancelled && isWithin24Hours)
                                 {
                                     <button type="button" id="cancelOrderBtn" class="btn btn-sm btn-outline-danger fw-bold w-100" style="max-width:220px"
@@ -117,10 +110,9 @@
                                     </button>
                                 }
 
-                                @* --- ACTION: RE-ORDER --- *@
                                 @if (isOrderShipped && !isOrderCancelled)
                                 {
-                                    <form asp-action="ReOrder" asp-controller="Orders" method="post" class="js-loading-form w-100" style="max-width:220px">
+                                    <form asp-action="ReOrder" asp-controller="Account" method="post" class="js-loading-form w-100" style="max-width:220px">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="orderId" value="@Model.Order.Id" />
                                         <button type="submit" class="btn btn-sm btn-amazon-checkout-light fw-bold w-100 btn-spinner">
@@ -144,31 +136,46 @@
             <h2 class="h4 fw-bold mb-3 amazon-section-title">Order Items</h2>
             @foreach (var item in Model.OrderDetails)
             {
-                <div class="card mb-3 border amazon-card-item @(item.IsCancelled ? "bg-light cancelled-item-row" : "")">
+                <div class="card mb-3 border amazon-card-item @(item.IsCancelled || item.IsReturned ? "bg-light opacity-75" : "")">
                     <div class="card-body p-3">
                         <div class="row align-items-center">
                             <div class="col-md-2 col-3">
-                                <img src="/media/products/@item.Image" class="img-fluid rounded border product-img-thumb" alt="@item.ProductName" />
+                                <img src="/media/products/@item.Image" class="img-fluid rounded border product-img-thumb @(item.IsReturned ? "grayscale-img" : "")" alt="@item.ProductName" />
                             </div>
                             <div class="col-md-6 col-9">
                                 <a asp-controller="Products" asp-action="Product" asp-route-slug="@item.ProductName"
                                    class="text-amazon-link fw-bold text-decoration-none">@item.ProductName</a>
                                 <p class="small text-muted mb-1">Quantity: @item.Quantity</p>
-                                <div class="bg-light p-1 rounded small border-start border-3 border-warning">
-                                    Sold by: <strong>@(string.IsNullOrEmpty(item.ProductOwner) ? (store?.StoreName ?? "Platform Direct") : item.ProductOwner)</strong>
-                                </div>
-                            </div>
-                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                                @if (item.IsCancelled)
+
+                                @if (item.IsReturned)
                                 {
-                                    <span class="badge bg-danger">Item Cancelled</span>
-                                    <div class="small text-muted mt-1 fst-italic">@item.CancellationReason</div>
+                                    <div class="badge bg-warning text-dark p-2 mt-1">
+                                        <i class="fas fa-undo me-1"></i> Return Pending
+                                    </div>
+                                    <p class="small text-muted mt-1 mb-0 fst-italic">Reason: @item.ReturnReason</p>
                                 }
                                 else
                                 {
-                                    <p class="mb-0 small text-muted">Price: @item.Price.ToString("C", new System.Globalization.CultureInfo("en-IN"))</p>
-                                    <p class="fw-bold price-red fs-5 mb-0">@((item.Price * item.Quantity).ToString("C", new System.Globalization.CultureInfo("en-IN")))</p>
+                                    <div class="bg-light p-1 rounded small border-start border-3 border-warning">
+                                        Sold by: <strong>@(string.IsNullOrEmpty(item.ProductOwner) ? (store?.StoreName ?? "Platform Direct") : item.ProductOwner)</strong>
+                                    </div>
                                 }
+                            </div>
+                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                @if (item.IsCancelled && !item.IsReturned)
+                                {
+                                    <span class="badge bg-danger">Item Cancelled</span>
+                                }
+                                else if (isWithinReturnWindow && !item.IsReturned)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-warning fw-bold mb-2"
+                                            onclick="openReturnItemModal(@item.Id, '@item.ProductName')">
+                                        Return this item
+                                    </button>
+                                }
+
+                                <p class="mb-0 small text-muted">Price: @item.Price.ToString("C", new System.Globalization.CultureInfo("en-IN"))</p>
+                                <p class="fw-bold price-red fs-5 mb-0">@((item.Price * item.Quantity).ToString("C", new System.Globalization.CultureInfo("en-IN")))</p>
                             </div>
                         </div>
                     </div>
@@ -176,7 +183,7 @@
             }
 
             <div class="mt-4">
-                <a asp-action="MyOrders" class="btn btn-outline-secondary btn-sm">
+                <a asp-controller="Orders" asp-action="MyOrders" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-chevron-left me-1"></i> Back to My Orders
                 </a>
             </div>
@@ -213,6 +220,49 @@
     </div>
 </div>
 
+@* --- Return Item Confirmation Modal --- *@
+<div class="modal fade" id="returnItemModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            @* Points to Account/ReturnItem based on your controller method *@
+            <form asp-action="ReturnItem" asp-controller="Account" method="post" onsubmit="showReturnSpinner()">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-undo me-2"></i>Return Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    @* Input names must match controller parameters: orderDetailId, orderId, reason *@
+                    <input type="hidden" name="orderDetailId" id="returnItemDetailId" />
+                    <input type="hidden" name="orderId" value="@Model.Order.Id" />
+                    <p class="mb-3">You are requesting a return for:<br /><strong id="returnItemName"></strong></p>
+
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold text-muted">Why are you returning this?</label>
+                        <select name="reason" class="form-select form-select-sm" required>
+                            <option value="" selected disabled>Select a reason...</option>
+                            <option value="Damaged/Defective">Damaged or defective</option>
+                            <option value="Not satisfied with quality">Not satisfied with quality</option>
+                            <option value="Item not as described">Item not as described</option>
+                            <option value="Ordered wrong item">Ordered wrong item</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mt-3 alert alert-info py-2 small">
+                        <i class="fas fa-info-circle me-1"></i> This order status will change to <strong>Pending</strong> upon submission.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-warning btn-sm px-4 fw-bold" id="confirmReturnBtn">
+                        Confirm Return
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @* --- Cancellation Confirmation Modal --- *@
 <div class="modal fade" id="fullCancelModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -225,7 +275,7 @@
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="orderId" id="cancelOrderId" />
-                    <p class="mb-3">This will cancel <strong>all items</strong> in Order #@Model.Order.Id. This action cannot be undone unless you re-activate the order later.</p>
+                    <p class="mb-3">This will cancel <strong>all items</strong> in Order #@Model.Order.Id.</p>
                     <div class="mb-0">
                         <label class="form-label small fw-bold text-muted">Reason for cancellation</label>
                         <select name="reason" class="form-select form-select-sm" required>
@@ -233,7 +283,6 @@
                             <option value="Ordered by mistake">Ordered by mistake</option>
                             <option value="Found better price elsewhere">Found better price elsewhere</option>
                             <option value="Changed my mind">Changed my mind</option>
-                            <option value="Delivery time is too long">Delivery time is too long</option>
                             <option value="Other">Other</option>
                         </select>
                     </div>
@@ -250,13 +299,11 @@
 </div>
 
 @section Scripts {
-    @* Timer Logic (Client-side) *@
     @if (!isOrderShipped && !isOrderCancelled && isWithin24Hours)
     {
         <script>
             (function () {
-                // Get Order Date from Server Model
-                const orderDateStr = '@Model.Order.DateTime.ToString("yyyy-MM-ddTHH:mm:ss")';
+                const orderDateStr = '@Model.Order.OrderDate.Value.ToString("yyyy-MM-ddTHH:mm:ss")';
                 const orderDate = new Date(orderDateStr);
                 const expiryDate = new Date(orderDate.getTime() + (24 * 60 * 60 * 1000));
 
@@ -268,10 +315,9 @@
                     const now = new Date().getTime();
                     const distance = expiryDate - now;
 
-                    // If time is up
                     if (distance < 0) {
                         timerElement.innerHTML = "EXPIRED";
-                        if(cancelBtn) cancelBtn.remove(); // Remove button immediately
+                        if(cancelBtn) cancelBtn.remove();
                         if(wrapper) {
                             wrapper.classList.replace('bg-white', 'bg-light');
                             wrapper.innerHTML = '<p class="text-danger small mb-0 fw-bold"><i class="fas fa-lock me-1"></i> Cancellation window closed.</p>';
@@ -297,21 +343,33 @@
     }
 
     <script>
-        // Modal Helper
+        // Return Item Modal Helper
+        function openReturnItemModal(id, name) {
+            document.getElementById('returnItemDetailId').value = id;
+            document.getElementById('returnItemName').innerText = name;
+            var myModal = new bootstrap.Modal(document.getElementById('returnItemModal'));
+            myModal.show();
+        }
+
+        function showReturnSpinner() {
+            const btn = document.getElementById('confirmReturnBtn');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+            btn.classList.add('disabled');
+        }
+
+        // Full Order Cancel Modal Helper
         function openFullOrderCancelModal(id) {
             document.getElementById('cancelOrderId').value = id;
             var myModal = new bootstrap.Modal(document.getElementById('fullCancelModal'));
             myModal.show();
         }
 
-        // Modal Button Spinner
         function showFullCancelSpinner() {
             const btn = document.getElementById('confirmCancelBtn');
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
             btn.classList.add('disabled');
         }
 
-        // Action Button Spinners
         document.querySelectorAll('.js-loading-form').forEach(form => {
             form.addEventListener('submit', function () {
                 const btn = this.querySelector('.btn-spinner');
@@ -394,14 +452,10 @@
             background-color: #fdf1f1;
         }
 
-        .cancelled-item-row {
-            opacity: 0.75;
+        .grayscale-img {
+            filter: grayscale(100%);
+            opacity: 0.5;
         }
-
-            .cancelled-item-row .product-img-thumb {
-                filter: grayscale(100%);
-                opacity: 0.5;
-            }
 
         .timer-box {
             border: 1px solid #FFD814 !important;

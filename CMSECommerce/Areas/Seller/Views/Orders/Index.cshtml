@@ -2,7 +2,6 @@
 
 @{
     // Filter out cancelled items so they don't appear in the processing lists
-    // This ensures that Sellers/Admins only see items they actually need to ship.
     var activeItems = Model.Where(d => !d.IsCancelled).ToList();
 
     ViewData["Title"] = ViewBag.IsProcessed ? "Processed Orders" : "New Orders (Unprocessed Items)";
@@ -45,27 +44,16 @@
         </div>
     }
 
-    @* Use activeItems.Any() to handle empty states correctly *@
     @if (!activeItems.Any())
     {
-        @if (!ViewBag.IsProcessed)
-        {
-            <div class="alert alert-success text-center mt-5 border-2" role="alert">
-                <h4 class="alert-heading">All Orders Processed! 🎉</h4>
-                <p class="mb-0">You have no new orders awaiting processing. (Cancelled items are hidden).</p>
-            </div>
-        }
-        else
-        {
-            <div class="alert alert-info text-center mt-5 border-2" role="alert">
-                <h4 class="alert-heading">No Processed Orders Found</h4>
-                <p class="mb-0">You haven't marked any items as processed yet.</p>
-            </div>
-        }
+        <div class="alert @(ViewBag.IsProcessed ? "alert-info" : "alert-success") text-center mt-5 border-2" role="alert">
+            <h4 class="alert-heading">@(ViewBag.IsProcessed ? "No Processed Orders Found" : "All Orders Processed! 🎉")</h4>
+            <p class="mb-0">@(ViewBag.IsProcessed ? "You haven't marked any items as processed yet." : "You have no new orders awaiting processing.")</p>
+        </div>
     }
     else
     {
-        @* Summary Cards: Calculated ONLY from non-cancelled items *@
+        @* Summary Cards *@
         @if (!ViewBag.IsProcessed)
         {
             decimal totalRevenue = activeItems.Sum(d => d.Price * d.Quantity);
@@ -74,7 +62,7 @@
                     <div class="card text-white bg-danger mb-3 shadow-sm border-0">
                         <div class="card-body">
                             <h5 class="card-title opacity-75">Pending Revenue</h5>
-                            <p class="card-text fs-3 fw-bold">@totalRevenue.ToString("C")</p>
+                            <p class="card-text fs-3 fw-bold">@totalRevenue.ToString("C", new System.Globalization.CultureInfo("en-IN"))</p>
                         </div>
                     </div>
                 </div>
@@ -99,12 +87,9 @@
                             <option value="Product" selected="@(currentSearchField == "Product")">Product</option>
                             <option value="Customer" selected="@(currentSearchField == "Customer")">Customer</option>
                             <option value="OrderId" selected="@(currentSearchField == "OrderId")">Order ID</option>
-                            <option value="Subtotal" selected="@(currentSearchField == "Subtotal")">Subtotal</option>
-                            <option value="Price" selected="@(currentSearchField == "Price")">Price</option>
-                            <option value="Qty" selected="@(currentSearchField == "Qty")">Qty</option>
                             <option value="Contact" selected="@(currentSearchField == "Contact")">Contact</option>
                         </select>
-                        <input type="text" name="searchString" class="form-control" placeholder="Search active orders..." value="@currentSearchString" />
+                        <input type="text" name="searchString" class="form-control" placeholder="Search orders..." value="@currentSearchString" />
                         <button class="btn btn-primary px-4" type="submit">
                             <i class="fas fa-search me-1"></i> Search
                         </button>
@@ -127,17 +112,15 @@
                         <th style="width: 15%;">Customer</th>
                         <th style="width: 15%;">Contact</th>
                         <th style="width: 5%;">Qty</th>
-                        <th style="width: 10%;">Price</th>
                         <th style="width: 10%;">Subtotal</th>
                         <th style="width: 10%;">Order ID</th>
                         @if (!ViewBag.IsProcessed)
                         {
-                            <th style="width: 10%;">Action</th>
+                            <th style="width: 20%;" class="text-center">Actions</th>
                         }
                     </tr>
                 </thead>
                 <tbody>
-                    @* Loop through activeItems only *@
                     @foreach (var item in activeItems.OrderBy(d => d.OrderId))
                     {
                         <tr>
@@ -155,8 +138,7 @@
                                 </a>
                             </td>
                             <td class="text-center">@item.Quantity</td>
-                            <td>@item.Price.ToString("C")</td>
-                            <td class="fw-bold text-primary">@((item.Price * item.Quantity).ToString("C"))</td>
+                            <td class="fw-bold text-primary">@((item.Price * item.Quantity).ToString("C", new System.Globalization.CultureInfo("en-IN")))</td>
                             <td>
                                 <a asp-area="" asp-controller="Orders" asp-action="Details" asp-route-id="@item.OrderId" class="btn btn-sm btn-outline-secondary">
                                     #@item.OrderId
@@ -164,16 +146,25 @@
                             </td>
                             @if (!ViewBag.IsProcessed)
                             {
-                                <td>
-                                    <form asp-action="ToggleProcessed" method="post" class="d-inline-block">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="detailId" value="@item.Id" />
-                                        <input type="hidden" name="setTo" value="true" />
-                                        <button type="submit" class="btn btn-success btn-sm fw-bold shadow-sm"
-                                                data-bs-toggle="tooltip" title="Mark as Processed / Shipped">
-                                            <i class="fas fa-check me-1"></i> Process
+                                <td class="text-center">
+                                    <div class="btn-group shadow-sm">
+                                        @* Process Button *@
+                                        <form asp-action="ToggleProcessed" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="detailId" value="@item.Id" />
+                                            <input type="hidden" name="setTo" value="true" />
+                                            <button type="submit" class="btn btn-success btn-sm fw-bold" data-bs-toggle="tooltip" title="Mark as Processed">
+                                                <i class="fas fa-check"></i> Process
+                                            </button>
+                                        </form>
+
+                                        @* Cancel Button (Triggering Modal) *@
+                                        <button type="button" class="btn btn-outline-danger btn-sm fw-bold"
+                                                onclick="openCancelModal(@item.Id, '@item.ProductName', @item.OrderId)"
+                                                data-bs-toggle="tooltip" title="Cancel Item">
+                                            <i class="fas fa-times"></i> Cancel
                                         </button>
-                                    </form>
+                                    </div>
                                 </td>
                             }
                         </tr>
@@ -182,22 +173,51 @@
             </table>
         </div>
 
-        @* View Toggler *@
         <div class="text-center mt-4">
-            @if (!ViewBag.IsProcessed)
-            {
-                <a asp-action="Shipped" class="btn btn-outline-primary shadow-sm">
-                    <i class="fas fa-history me-2"></i> View Processed/Completed Orders
-                </a>
-            }
-            else
-            {
-                <a asp-action="Index" class="btn btn-outline-primary shadow-sm">
-                    <i class="fas fa-inbox me-2"></i> View New Orders Awaiting Processing
-                </a>
-            }
+            <a asp-action="@(ViewBag.IsProcessed ? "Index" : "Shipped")" class="btn btn-outline-primary shadow-sm">
+                <i class="fas @(ViewBag.IsProcessed ? "fa-inbox" : "fa-history") me-2"></i>
+                View @(ViewBag.IsProcessed ? "New" : "Processed") Orders
+            </a>
         </div>
     }
+</div>
+
+@* --- Seller Cancellation Modal --- *@
+<div class="modal fade" id="sellerCancelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="CancelOrderDetail" asp-controller="Orders" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-exclamation-circle me-2"></i>Cancel Item</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="detailId" id="modalDetailId" />
+                    <p class="mb-3">Are you sure you want to cancel <strong id="modalProductName"></strong> from Order <strong id="modalOrderIdDisplay"></strong>?</p>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Cancellation Reason (Visible to Customer)</label>
+                        <select name="reason" class="form-select" required>
+                            <option value="" selected disabled>Select a reason...</option>
+                            <option value="Out of Stock">Out of Stock</option>
+                            <option value="Pricing Error">Pricing Error</option>
+                            <option value="Damaged Item">Damaged Item</option>
+                            <option value="Shipping Restrictions">Shipping Restrictions</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="alert alert-warning py-2 small">
+                        <i class="fas fa-info-circle me-1"></i> This item will be removed from your processing list.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Keep Item</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4 fw-bold shadow-sm">Confirm Cancellation</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -206,6 +226,16 @@
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
+        });
+
+        // Function to populate and open the Seller Cancellation Modal
+        function openCancelModal(detailId, productName, orderId) {
+            document.getElementById('modalDetailId').value = detailId;
+            document.getElementById('modalProductName').innerText = productName;
+            document.getElementById('modalOrderIdDisplay').innerText = "#" + orderId;
+
+            var cancelModal = new bootstrap.Modal(document.getElementById('sellerCancelModal'));
+            cancelModal.show();
+        }
     </script>
 }

@@ -129,7 +129,7 @@
         @foreach (var item in Model)
         {
             // Logic for 24-hour rule
-            bool isWithin24Hours = (DateTime.Now - item.DateTime).TotalHours <= 24;
+            bool isWithin24Hours = (DateTime.Now - item.OrderDate.Value).TotalHours <= 24;
 
             <div class="card order-card shadow-sm @(item.IsCancelled ? "cancelled-card" : "")">
                 @* Card Header *@
@@ -137,7 +137,7 @@
                     <div class="row">
                         <div class="col-6 col-md-2">
                             <span class="label-text">Order Placed</span>
-                            <span class="value-text">@item.DateTime.ToString("MMMM dd, yyyy")</span>
+                            <span class="value-text">@item.OrderDate.Value.ToString("MMMM dd, yyyy")</span>
                         </div>
                         <div class="col-6 col-md-2">
                             <span class="label-text">Total</span>
