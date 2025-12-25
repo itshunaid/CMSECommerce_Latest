@@ -98,7 +98,7 @@
                                 @* --- ACTION: RE-ACTIVATE --- *@
                                 @if (isOrderCancelled)
                                 {
-                                    <form asp-action="ReActivateOrder" asp-controller="Orders" method="post" class="js-loading-form w-100" style="max-width:220px">
+                                    <form asp-action="ReActivateOrder" asp-controller="Account" method="post" class="js-loading-form w-100" style="max-width:220px">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="orderId" value="@Model.Order.Id" />
                                         <button type="submit" class="btn btn-sm btn-amazon-checkout-light fw-bold w-100 btn-spinner">
