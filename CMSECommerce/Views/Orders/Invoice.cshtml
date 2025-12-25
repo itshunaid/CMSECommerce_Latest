@@ -5,13 +5,22 @@
     ViewData["Title"] = "Tax Invoice - #" + Model.Order.Id;
     var indianCulture = new CultureInfo("en-IN");
 
-    var details = Model.OrderDetails as IEnumerable<OrderDetail> ?? new List<OrderDetail>();
-    var sellerProfiles = Model.SellerProfiles as IDictionary<string, UserProfile> ?? new Dictionary<string, UserProfile>();
+    // 1. Get all details and handle nulls
+    var allDetails = Model.OrderDetails as IEnumerable<OrderDetail> ?? new List<OrderDetail>();
 
+    // 2. Separate active items to calculate the correct Invoice Total
+    // Filtered using your IsCancelled property
+    var activeItems = allDetails.Where(od => !od.IsCancelled).ToList();
+
+    // 3. Recalculate Total based on active items only
+    decimal activeGrandTotal = activeItems.Sum(x => x.Price * x.Quantity);
+
+    var sellerProfiles = Model.SellerProfiles as IDictionary<string, UserProfile> ?? new Dictionary<string, UserProfile>();
     var profile = Model.UserProfile;
     var store = Model.UserProfile?.Store;
 
-    var groupedItems = details
+    // 4. Group all items (including cancelled) for the display table
+    var groupedItems = allDetails
         .GroupBy(od => od.ProductOwner ?? "Store")
         .ToDictionary(g => g.Key, g => g.ToList());
 }
@@ -37,7 +46,7 @@
 <div id="invoice-document">
     <div class="container invoice-wrapper bg-white p-5 mb-5">
 
-        @* --- Amazon Header --- *@
+        @* --- Header --- *@
         <div class="row border-bottom pb-3 mb-4">
             <div class="col-6">
                 <h3 class="fw-bold mb-0">Final Details for Order #@Model.Order.Id</h3>
@@ -46,11 +55,11 @@
             <div class="col-6 text-end">
                 <p class="mb-0 small"><strong>Order Placed:</strong> @Model.Order.DateTime.ToString("MMMM dd, yyyy")</p>
                 <p class="mb-0 small"><strong>Weypaari order number:</strong> @Model.Order.Id</p>
-                <p class="mb-0 small"><strong>Order Total: @Model.Order.GrandTotal.ToString("C", indianCulture)</strong></p>
+                <p class="mb-0 small"><strong>Order Total: @activeGrandTotal.ToString("C", indianCulture)</strong></p>
             </div>
         </div>
 
-        @* --- Address Block --- *@
+        @* --- Address & Summary Block --- *@
         <div class="row mb-4">
             <div class="col-4">
                 <h6 class="fw-bold small mb-2">Shipping Address</h6>
@@ -79,7 +88,7 @@
                 <div class="small">
                     <div class="d-flex justify-content-between mb-1">
                         <span>Item(s) Subtotal:</span>
-                        <span>@Model.Order.GrandTotal.ToString("C", indianCulture)</span>
+                        <span>@activeGrandTotal.ToString("C", indianCulture)</span>
                     </div>
                     <div class="d-flex justify-content-between mb-1">
                         <span>Shipping:</span>
@@ -87,13 +96,19 @@
                     </div>
                     <div class="d-flex justify-content-between border-top pt-1 mt-1 fw-bold fs-6">
                         <span>Grand Total:</span>
-                        <span class="text-danger">@Model.Order.GrandTotal.ToString("C", indianCulture)</span>
+                        <span class="text-danger">@activeGrandTotal.ToString("C", indianCulture)</span>
                     </div>
+                    @if (allDetails.Any(x => x.IsCancelled))
+                    {
+                        <div class="x-small text-muted mt-2">
+                            <i class="fas fa-info-circle"></i> * Total excludes cancelled items.
+                        </div>
+                    }
                 </div>
             </div>
         </div>
 
-        @* --- Grouped Items --- *@
+        @* --- Product Items --- *@
         @foreach (var sellerGroup in groupedItems)
         {
             var sellerId = sellerGroup.Key;
@@ -129,14 +144,29 @@
                         <tbody>
                             @foreach (var item in items)
                             {
-                                <tr class="border-bottom">
+                                bool isCancelled = item.IsCancelled;
+                                <tr class="border-bottom @(isCancelled ? "bg-cancelled" : "")">
                                     <td class="ps-3 py-3">
-                                        <div class="text-primary fw-bold">@item.ProductName</div>
+                                        <div class="d-flex align-items-center">
+                                            <div class="fw-bold @(isCancelled ? "text-strike text-muted" : "text-primary")">
+                                                @item.ProductName
+                                            </div>
+                                            @if (isCancelled)
+                                            {
+                                                <span class="badge rounded-pill bg-danger ms-2" style="font-size: 0.65rem;">
+                                                    <i class="fas fa-ban me-1"></i> CANCELLED
+                                                </span>
+                                            }
+                                        </div>
                                         <div class="text-muted x-small">Condition: New</div>
                                     </td>
-                                    <td class="text-center align-middle">@item.Price.ToString("C", indianCulture)</td>
+                                    <td class="text-center align-middle @(isCancelled ? "text-strike text-muted" : "")">
+                                        @item.Price.ToString("C", indianCulture)
+                                    </td>
                                     <td class="text-center align-middle">@item.Quantity</td>
-                                    <td class="text-end pe-3 align-middle fw-bold">@((item.Price * item.Quantity).ToString("C", indianCulture))</td>
+                                    <td class="text-end pe-3 align-middle fw-bold @(isCancelled ? "text-strike text-muted" : "")">
+                                        @((item.Price * item.Quantity).ToString("C", indianCulture))
+                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -145,7 +175,7 @@
             </div>
         }
 
-        @* --- Digital Payment QR Footer (Amazon Style) --- *@
+        @* --- Footer QR & Payment --- *@
         <div class="row mt-5 pt-4 border-top">
             <div class="col-8">
                 <h6 class="fw-bold small">Digital Payment Instructions</h6>
@@ -200,6 +230,20 @@
             background-color: #F8F9FA !important;
         }
 
+        /* Cancellation Styles */
+        .bg-cancelled {
+            background-color: #fafafa !important;
+        }
+
+        .text-strike {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        .italic {
+            font-style: italic;
+        }
+
         @@media print {
             .no-print, header, footer, .navbar {
                 display: none !important;
@@ -220,143 +264,14 @@
                 break-inside: avoid;
             }
         }
-
-        /* Progress overlay */
-        #pdfProgressOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-        }
-
-        #pdfProgressBox {
-            background: white;
-            padding: 20px;
-            border-radius: 6px;
-            width: 320px;
-            text-align: center;
-        }
-
     </style>
 }
 
 @section Scripts {
     <script>
-        // Helper: Convert Blob to Data URL
-        function blobToDataURL(blob) {
-            return new Promise(function (resolve, reject) {
-                var reader = new FileReader();
-                reader.onerror = function (e) { reject(e); };
-                reader.onloadend = function () { resolve(reader.result); };
-                reader.readAsDataURL(blob);
-            });
-        }
-
-        // Wait until all images inside root element are loaded or errored (with timeout)
-        function waitForImages(root, timeoutMs = 8000) {
-            var imgs = Array.from(root.querySelectorAll('img'));
-            var promises = imgs.map(function (img) {
-                return new Promise(function (resolve) {
-                    if (!img.src) return resolve();
-                    if (img.complete) return resolve();
-                    var resolved = false;
-                    var onDone = function () { if (!resolved) { resolved = true; resolve(); } };
-                    img.addEventListener('load', onDone);
-                    img.addEventListener('error', onDone);
-                    // fallback timeout
-                    setTimeout(onDone, timeoutMs);
-                });
-            });
-            return Promise.all(promises);
-        }
-
-        // Inline cross-origin images by fetching them and converting to data URLs.
-        async function inlineImages(rootElement) {
-            var imgs = Array.from(rootElement.querySelectorAll('img'));
-            await Promise.all(imgs.map(async function (img) {
-                try {
-                    if (!img.src) return;
-                    // Already data URL -> leave as-is
-                    if (img.src.startsWith('data:')) return;
-
-                    var imgUrl;
-                    try {
-                        imgUrl = new URL(img.src, window.location.href);
-                    } catch (e) {
-                        // Invalid URL, skip
-                        return;
-                    }
-
-                    // If same-origin, try to fetch with credentials
-                    if (imgUrl.origin === window.location.origin) {
-                        try {
-                            var resp = await fetch(img.src, { credentials: 'same-origin' });
-                            if (resp.ok) {
-                                var blob = await resp.blob();
-                                img.src = await blobToDataURL(blob);
-                                return;
-                            }
-                        } catch (e) {
-                            console.warn('Same-origin fetch failed, will leave image reference:', img.src, e);
-                            // leave original src and hope browser will render it for html2canvas
-                            return;
-                        }
-                    }
-
-                    // Cross-origin: try fetch with CORS
-                    try {
-                        var response = await fetch(img.src, { mode: 'cors', credentials: 'omit' });
-                        if (response.ok) {
-                            var blob = await response.blob();
-                            var dataUrl = await blobToDataURL(blob);
-                            img.src = dataUrl;
-                            return;
-                        }
-                        throw new Error('Network response not ok: ' + response.status);
-                    }
-                    catch (err) {
-                        // If we can't inline, replace the image with a lightweight placeholder to avoid tainting the canvas
-                        console.warn('Could not inline image for PDF generation:', img.src, err);
-                        try {
-                            var placeholder = document.createElement('div');
-                            placeholder.style.width = (img.width ? img.width + 'px' : '70px');
-                            placeholder.style.height = (img.height ? img.height + 'px' : '70px');
-                            placeholder.style.border = '1px solid #ddd';
-                            placeholder.style.display = 'inline-block';
-                            placeholder.style.background = '#f8f8f8';
-                            placeholder.style.verticalAlign = 'middle';
-                            if (img.alt) {
-                                placeholder.innerText = img.alt;
-                            }
-                            img.parentNode.replaceChild(placeholder, img);
-                        } catch (replaceErr) {
-                            console.warn('Failed to replace image:', replaceErr);
-                        }
-                    }
-                } catch (finalErr) {
-                    console.warn('Unexpected error while processing image:', img.src, finalErr);
-                }
-            }));
-        }
-
-        // --------------------------------------------------------------------------------------
-        // Client-side html2pdf download (existing) - exposed on window
-        // --------------------------------------------------------------------------------------
         window.downloadInvoice = async function (evt) {
             try {
                 var element = document.getElementById('invoice-document');
-                if (!element) {
-                    alert('Invoice content not found.');
-                    return;
-                }
-
-                // Give user feedback
                 var originalButton = evt && evt.currentTarget;
                 if (originalButton) {
                     originalButton.disabled = true;
@@ -364,111 +279,25 @@
                     originalButton.innerHTML = 'Preparing PDF...';
                 }
 
-                // Wait for images to load (so we can inline them reliably)
-                await waitForImages(element,8000);
-                // Inline images to avoid tainting the canvas used by html2canvas
-                await inlineImages(element);
-
+                // Configuration for html2pdf
                 var opt = {
-                    margin:0.5,
+                    margin: 0.5,
                     filename: 'Invoice-#@(Model.Order.Id).pdf',
-                    image: { type: 'jpeg', quality:0.98 },
-                    html2canvas: { scale:2, useCORS: true, allowTaint: false, logging: false },
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
                     jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
                 };
 
-                // Use html2pdf library to generate and save PDF
-                // Add small delay to allow DOM updates after inlining
-                setTimeout(function () {
-                    html2pdf().set(opt).from(element).save().then(function () {
-                        console.info('PDF generated');
-                    }).catch(function (err) {
-                        console.error('html2pdf error:', err);
-                        // Automatically fall back to server-side PDF generation by opening the server endpoint in a new tab
-                        try {
-                            console.info('Falling back to server-side PDF generation (opening server endpoint)');
-                            var serverUrl = '@Url.Action("InvoicePdf", "PlaywrightPdf", new { id = Model.Order.Id })';
-                            window.open(serverUrl, '_blank');
-                        } catch (fallbackErr) {
-                            console.error('Fallback failed:', fallbackErr);
-                            if (confirm('Unable to generate PDF in browser. Open printable server page (use Print -> Save as PDF)?')) {
-                                window.open('@Url.Action("Printable", "Orders", new { id = Model.Order.Id })', '_blank');
-                            }
-                        }
-                    }).finally(function () {
-                        if (originalButton) {
-                            originalButton.disabled = false;
-                            originalButton.innerHTML = originalText;
-                        }
-                    });
-                },250);
-            }
-            catch (e) {
-                console.error(e);
-                // Fallback to opening server PDF endpoint
-                try {
-                    var serverUrl = '@Url.Action("InvoicePdf", "PlaywrightPdf", new { id = Model.Order.Id })';
-                    window.open(serverUrl, '_blank');
-                } catch (fallbackErr) {
-                    console.error('Fallback failed:', fallbackErr);
-                    if (confirm('An unexpected error occurred while generating the PDF. Open printable server page as fallback?')) {
-                        window.open('@Url.Action("Printable", "Orders", new { id = Model.Order.Id })', '_blank');
+                html2pdf().set(opt).from(element).save().then(() => {
+                    if (originalButton) {
+                        originalButton.disabled = false;
+                        originalButton.innerHTML = originalText;
                     }
-                }
-                if (evt && evt.currentTarget) {
-                    evt.currentTarget.disabled = false;
-                }
+                });
+            } catch (e) {
+                console.error("PDF generation failed", e);
+                if (originalButton) originalButton.disabled = false;
             }
         };
-
-        // --------------------------------------------------------------------------------------
-        // Server-side PDF download via Playwright endpoint with simplified behavior - exposed on window
-        // --------------------------------------------------------------------------------------
-        window.downloadServerPdf = async function (evt) {
-            if (serverPdfInProgress) {
-                alert('A server PDF generation is already in progress. Please wait.');
-                return;
-            }
-
-            serverPdfInProgress = true;
-            var btn = document.getElementById('btnServerPdf');
-            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Generating...'; }
-            showPdfOverlay();
-            try {
-                var url = '@Url.Action("InvoicePdf", "PlaywrightPdf", new { id = Model.Order.Id })';
-                // Open in new tab to let browser handle download and cookies
-                window.open(url, '_blank');
-                // hide overlay after short delay
-                setTimeout(hidePdfOverlay,3000);
-            } catch (err) {
-                console.error('Server PDF error:', err);
-                alert('Failed to start server PDF generation. Opening printable view as fallback.');
-                window.open('@Url.Action("Printable", "Orders", new { id = Model.Order.Id })', '_blank');
-            } finally {
-                serverPdfInProgress = false;
-                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-server me-2"></i> Download (Server PDF)'; }
-                hidePdfOverlay();
-            }
-        };
-
-        function getFilenameFromResponse(response) {
-            var cd = response.headers.get('content-disposition');
-            if (!cd) return null;
-            var match = cd.match(/filename\*=UTF-8''(.+)|filename="?([^";]+)"?/i);
-            if (match) return decodeURIComponent(match[1] || match[2]);
-            return null;
-        }
-
-        function triggerDownload(blob, filename) {
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url;
-            a.download = filename || 'invoice.pdf';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
-        }
-
     </script>
 }
