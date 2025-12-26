@@ -141,7 +141,7 @@ namespace CMSECommerce.Controllers
             // 2. Fetch Profile and check for Soft Delete
             var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
             if (profile == null) return BadRequest("User profile missing.");
-            if (profile.User.LockoutEnabled) return BadRequest("Cannot approve subscription for a deactivated user.");
+            if (!profile.User.LockoutEnabled) return BadRequest("Cannot approve subscription for a deactivated user.");
 
             // 3. Update Request Status
             request.Status = RequestStatus.Approved;

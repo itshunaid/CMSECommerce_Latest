@@ -4,7 +4,7 @@
     ViewData["Title"] = "My Subscription Status";
     var profile = (CMSECommerce.Models.UserProfile)ViewBag.UserProfile;
 
-    // Logic to determine if we should allow a new request
+    // --- BUSINESS LOGIC ---
     bool hasActiveSub = profile != null && profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate.Value > DateTime.Now;
     bool hasPendingRequest = Model != null && Model.Any(r => r.Status == RequestStatus.Pending);
     bool canRequestNew = !hasActiveSub && !hasPendingRequest;
@@ -77,7 +77,6 @@
                         <span class="badge bg-light text-muted border py-2 px-3">
                             <i class="fas fa-info-circle me-1"></i> Request Limit Reached
                         </span>
-                        <p class="mb-0 xsmall text-muted mt-1" style="font-size: 0.75rem;">Only one active/pending request allowed at a time.</p>
                     </div>
                 }
             </div>
@@ -101,7 +100,7 @@
                                     <th>Duration</th>
                                     <th>Submission Date</th>
                                     <th>Status</th>
-                                    <th>Reject Reason</th> @* --- NEW COLUMN --- *@
+                                    <th>Reject Reason</th>
                                     <th class="text-center pe-4">Actions</th>
                                 </tr>
                             </thead>
@@ -114,9 +113,7 @@
                                             <small class="text-muted">Limit: @request.Tier.ProductLimit items</small>
                                         </td>
                                         <td><code class="text-primary fw-bold">@request.ItsNumber</code></td>
-                                        <td>
-                                            <span class="badge bg-info text-dark">+@request.Tier.DurationMonths Months</span>
-                                        </td>
+                                        <td><span class="badge bg-info text-dark">+@request.Tier.DurationMonths Months</span></td>
                                         <td>@request.CreatedAt.ToString("dd MMM yyyy")</td>
                                         <td>
                                             @if (request.Status == RequestStatus.Pending)
@@ -129,7 +126,7 @@
                                             }
                                             else
                                             {
-                                                <span class="badge rounded-pill bg-danger px-3" title="@request.RejectionReason"><i class="fas fa-times-circle me-1"></i>Rejected</span>
+                                                <span class="badge rounded-pill bg-danger px-3"><i class="fas fa-times-circle me-1"></i>Rejected</span>
                                             }
                                         </td>
                                         <td>
@@ -139,7 +136,7 @@
                                             }
                                             else
                                             {
-                                                <span class="text-muted xsmall">---</span>
+                                                <span class="text-muted small">---</span>
                                             }
                                         </td>
                                         <td class="text-center pe-4">
@@ -148,6 +145,22 @@
                                                 <a asp-action="DownloadReceipt" asp-route-requestId="@request.Id" class="btn btn-sm btn-dark">
                                                     <i class="fas fa-file-download me-1"></i> Receipt
                                                 </a>
+                                            }
+                                            else if (request.Status == RequestStatus.Rejected)
+                                            {
+                                                @if (!hasActiveSub)
+                                                {
+                                                    <a asp-action="Register" asp-route-tierId="@request.TierId" asp-route-retryId="@request.Id" class="btn btn-sm btn-warning shadow-sm">
+                                                        <i class="fas fa-redo me-1"></i> Retry
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    @* Tooltip explains why they can't retry yet *@
+                                                    <button class="btn btn-sm btn-outline-secondary" disabled title="You cannot retry while you have an active subscription.">
+                                                        <i class="fas fa-lock me-1"></i> Locked
+                                                    </button>
+                                                }
                                             }
                                             else
                                             {
@@ -165,7 +178,6 @@
     </div>
 </div>
 
-@* --- NOTIFICATION AUDIO --- *@
 <audio id="notificationSound" preload="auto">
     <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
 </audio>
@@ -201,6 +213,12 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
+            // Initialize tooltips for the "Locked" button
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            })
+
             if ($('.subscription-request[data-status="Pending"]').length > 0) {
                 setInterval(function () {
                     $.getJSON('/Subscription/GetLatestStatuses', function (data) {
@@ -218,9 +236,7 @@
 
                         if (needsUpdate) {
                             $('.subscription-request[data-status="Pending"]').addClass('status-changing');
-                            setTimeout(function() {
-                                location.reload();
-                            }, 2000);
+                            setTimeout(function() { location.reload(); }, 2000);
                         }
                     });
                 }, 10000);
