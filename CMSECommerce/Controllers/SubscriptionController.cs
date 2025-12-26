@@ -100,69 +100,135 @@ namespace CMSECommerce.Controllers
                 .Include(r => r.Tier)
                 .FirstOrDefaultAsync(r => r.Id == requestId);
 
-
-            
             if (request == null) return NotFound();
 
-            request.Status = RequestStatus.Approved;
+            // 2. Fetch the Identity User
             var user = await _userManager.FindByIdAsync(request.UserId);
+            if (user == null) return BadRequest("User not found.");
 
-            // 4. Update Role to Subscriber/Seller
+            // 3. Update Request Status
+            request.Status = RequestStatus.Approved;
+
+            // 4. Update Role to Subscriber
             if (!await _userManager.IsInRoleAsync(user, "Subscriber"))
             {
                 await _userManager.AddToRoleAsync(user, "Subscriber");
             }
 
+            // 5. Fetch and Update UserProfile
             var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
-            
-            // 5. SET SUBSCRIPTION DATES & LIMITS
-            // Subscription starts exactly now (Date of Approval)
-            profile.SubscriptionStartDate = DateTime.Now;
-                        
 
-            await _userManager.AddToRoleAsync(user, "Subscriber");
-            profile.CurrentProductLimit = request.Tier.ProductLimit;
+            if (profile != null)
+            {
+                // Set Subscription Dates
+                profile.SubscriptionStartDate = DateTime.Now;
 
+                // Calculate End Date based on Tier Duration (assuming DurationMonths exists in Tier model)
+                profile.SubscriptionEndDate = DateTime.Now.AddMonths(request.Tier.DurationMonths);
+
+                // Update Product Limit from the Tier
+                profile.CurrentProductLimit = request.Tier.ProductLimit;
+
+                // Ensure the profile is tracked for update
+                _context.UserProfiles.Update(profile);
+            }
+            else
+            {
+                // Fallback: If for some reason a profile doesn't exist, you might want to log this 
+                // or create a basic one to prevent the subscription from being "lost".
+                return BadRequest("User profile missing. Cannot update subscription limits.");
+            }
+
+            // 6. Final Save (Updates Request and Profile in one transaction)
             await _context.SaveChangesAsync();
+
+            TempData["Success"] = $"User {user.UserName} is now a Subscriber. Limit: {request.Tier.ProductLimit} products.";
+
             return RedirectToAction(nameof(AdminDashboard));
         }
-
 
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Revert(int requestId)
         {
+            // 1. Fetch the request
             var request = await _context.SubscriptionRequests.FindAsync(requestId);
             if (request == null) return NotFound();
 
+            // 2. Fetch the User
+            var user = await _userManager.FindByIdAsync(request.UserId);
+            if (user == null) return BadRequest("User associated with this request not found.");
+
+            // 3. Update Request Status back to Pending
             request.Status = RequestStatus.Pending;
 
-            var user = await _userManager.FindByIdAsync(request.UserId);
-            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
-
-            if (user != null) await _userManager.RemoveFromRoleAsync(user, "Subscriber");
-
-            if (profile != null)
+            // 4. Remove Role (Check if they are in the role first to avoid errors)
+            if (await _userManager.IsInRoleAsync(user, "Subscriber"))
             {
-                profile.CurrentProductLimit = 0;
-                profile.SubscriptionStartDate = null; // Clear dates
-                profile.SubscriptionEndDate = null;   // Clear dates
+                var roleResult = await _userManager.RemoveFromRoleAsync(user, "Subscriber");
+                if (!roleResult.Succeeded)
+                {
+                    return BadRequest("Failed to remove Subscriber role.");
+                }
             }
 
+            // 5. Fetch and Reset UserProfile
+            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+            if (profile != null)
+            {
+                profile.CurrentProductLimit = 0; // Reset to default/zero
+                profile.SubscriptionStartDate = null;
+                profile.SubscriptionEndDate = null;
+
+                // Explicitly mark the profile as modified
+                _context.UserProfiles.Update(profile);
+            }
+
+            // 6. Final Save
             await _context.SaveChangesAsync();
+
+            TempData["Warning"] = $"Subscription for {user.UserName} has been reverted to Pending.";
             return RedirectToAction(nameof(AdminDashboard));
         }
-
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Reject(int requestId, string reason)
         {
+            // 1. Fetch the request
             var request = await _context.SubscriptionRequests.FindAsync(requestId);
             if (request == null) return NotFound();
 
+            // 2. Fetch the User
+            var user = await _userManager.FindByIdAsync(request.UserId);
+
+            // 3. Update Request Status and Reason
             request.Status = RequestStatus.Rejected;
             request.RejectionReason = reason;
+
+            if (user != null)
+            {
+                // 4. Strip Subscriber Role (Safety check in case they were previously approved)
+                if (await _userManager.IsInRoleAsync(user, "Subscriber"))
+                {
+                    await _userManager.RemoveFromRoleAsync(user, "Subscriber");
+                }
+
+                // 5. Reset Profile Limits and Dates
+                var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+                if (profile != null)
+                {
+                    profile.CurrentProductLimit = 0;
+                    profile.SubscriptionStartDate = null;
+                    profile.SubscriptionEndDate = null;
+
+                    _context.UserProfiles.Update(profile);
+                }
+            }
+
+            // 6. Final Save
             await _context.SaveChangesAsync();
+
+            TempData["Error"] = $"Request for {user?.UserName ?? "User"} has been Rejected.";
             return RedirectToAction(nameof(AdminDashboard));
         }
 

@@ -79,7 +79,6 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
-        // Apply migrations
         context.Database.Migrate();
 
         // A. Seed Roles
@@ -95,23 +94,29 @@ using (var scope = app.Services.CreateScope())
         // B. Seed Admin User, Store, and Profile
         var adminEmail = "admin@local.local";
         var adminUser = userManager.FindByEmailAsync(adminEmail).GetAwaiter().GetResult();
+
         if (adminUser != null)
         {
-            // Check if profile exists to decide if we skip re-creation
+            // 1. Ensure Role is assigned even if user exists
+            if (!userManager.IsInRoleAsync(adminUser, "Admin").GetAwaiter().GetResult())
+            {
+                userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
+            }
+
+            // 2. Check if profile exists to decide if we need to reset password/seed profile
             var existingProfile = context.UserProfiles.FirstOrDefault(p => p.UserId == adminUser.Id);
             if (existingProfile == null)
             {
-                // User and Profile exist - Ensure password is set correctly even if already created
-                var resetToken = await userManager.GeneratePasswordResetTokenAsync(adminUser);
-                await userManager.ResetPasswordAsync(adminUser, resetToken, "Pass@local110");
+                // Profile missing: Force password reset to the standard seeding password
+                var resetToken = userManager.GeneratePasswordResetTokenAsync(adminUser).GetAwaiter().GetResult();
+                userManager.ResetPasswordAsync(adminUser, resetToken, "Pass@local110").GetAwaiter().GetResult();
 
-                adminUser = null; // Mark as null so the 'if (adminUser == null)' block below is skipped
+                // Allow the logic to fall through or handle profile creation here
             }
         }
-        //IdentityUser adminUser = null;
-
-        if (adminUser == null)
+        else
         {
+            // User does not exist at all: Create new
             adminUser = new IdentityUser
             {
                 UserName = "admin",
@@ -119,14 +124,13 @@ using (var scope = app.Services.CreateScope())
                 EmailConfirmed = true
             };
 
-            // Set Admin Password here
             var result = userManager.CreateAsync(adminUser, "Pass@local110").GetAwaiter().GetResult();
 
             if (result.Succeeded)
             {
                 userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
 
-                // Create the Store (UserProfile depends on this)
+                // Create the Store
                 var adminStore = new Store
                 {
                     UserId = adminUser.Id,
@@ -136,7 +140,7 @@ using (var scope = app.Services.CreateScope())
                     Country = "India"
                 };
                 context.Stores.Add(adminStore);
-                context.SaveChanges(); // Persist to get adminStore.Id
+                context.SaveChanges();
 
                 // Create the UserProfile
                 var adminProfile = new UserProfile
@@ -190,7 +194,6 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// Localization Configuration
 var culture = new CultureInfo("en-IN");
 var localizationOptions = new RequestLocalizationOptions
 {
@@ -208,10 +211,7 @@ app.UseAuthorization();
 app.MapHub<CMSECommerce.Hubs.ChatHub>("/chatHub");
 app.MapRazorPages();
 
-app.MapControllerRoute(
-    name: "areas",
-    pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
-
+app.MapControllerRoute(name: "areas", pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
 app.MapControllerRoute(name: "product", pattern: "products/product/{slug?}", defaults: new { controller = "Products", action = "Product" });
 app.MapControllerRoute(name: "cart", pattern: "cart/{action}/{id?}", defaults: new { controller = "Cart", action = "Index" });
 app.MapControllerRoute(name: "account", pattern: "account/{action}", defaults: new { controller = "Account", action = "Index" });
