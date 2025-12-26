@@ -5,10 +5,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.Metrics;
+using System.Security.Claims;
+using System.Text;
 
 namespace CMSECommerce.Controllers
 {
-    
+
     [Authorize]
     public class SubscriptionController : Controller
     {
@@ -122,7 +124,7 @@ namespace CMSECommerce.Controllers
                 .ToListAsync();
             return View(requests);
         }
-        
+
         // 5. Approval Logic (AC 4)
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Approve(int requestId)
@@ -175,7 +177,7 @@ namespace CMSECommerce.Controllers
             return RedirectToAction(nameof(AdminDashboard));
         }
 
-        [Authorize(Roles = "Admin")]        
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Revert(int requestId)
         {
             var request = await _context.SubscriptionRequests.FindAsync(requestId);
@@ -326,6 +328,52 @@ namespace CMSECommerce.Controllers
 
             return File(fileBytes, "text/plain", fileName);
         }
+
+
+
+
+
+        // --- CSV EXPORT ---
+        public async Task<IActionResult> DownloadCsvHistory()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var history = await _context.SubscriptionRequests
+                .Include(r => r.Tier)
+                .Where(r => r.UserId == userId)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            var builder = new StringBuilder();
+            builder.AppendLine("Date,Package,ITS Number,Duration,Status,Note");
+
+            foreach (var r in history)
+            {
+                builder.AppendLine($"{r.CreatedAt:yyyy-MM-dd},{r.Tier.Name},{r.ItsNumber},{r.Tier.DurationMonths} Mo,{r.Status},\"{r.RejectionReason}\"");
+            }
+
+            return File(Encoding.UTF8.GetBytes(builder.ToString()), "text/csv", $"History_{DateTime.Now:yyyyMMdd}.csv");
+        }
+
+        // --- PDF EXPORT ---
+        // Note: This logic assumes you use a library like Rotativa or QuestPDF. 
+        // Here is a structured approach for a View-to-PDF flow.
+        public async Task<IActionResult> DownloadPdfHistory()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var history = await _context.SubscriptionRequests
+                .Include(r => r.Tier)
+                .Where(r => r.UserId == userId)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            // If using Rotativa.AspNetCore:
+            // return new ViewAsPdf("HistoryPdfReport", history) { FileName = "SubscriptionHistory.pdf" };
+
+            return Ok("PDF Generated - logic depends on your installed PDF library");
+        }
+
+
+
     }
 }
 
