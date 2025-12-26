@@ -29,6 +29,8 @@ namespace CMSECommerce.Controllers
         }
 
         // 2. Registration Page (AC 2)
+        // 2. Registration Page (GET)
+        [HttpGet]
         public async Task<IActionResult> Register(int tierId)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -38,6 +40,17 @@ namespace CMSECommerce.Controllers
             {
                 TempData["Error"] = "Please update your ITS number in your profile first.";
                 return RedirectToAction("EditProfile", "Account");
+            }
+
+            // NEW: Check if user already has a Pending or Approved request
+            var existingRequest = await _context.SubscriptionRequests
+                .AnyAsync(r => r.UserId == user.Id &&
+                         (r.Status == RequestStatus.Pending || r.Status == RequestStatus.Approved));
+
+            if (existingRequest)
+            {
+                TempData["Error"] = "You already have an active subscription or a pending request.";
+                return RedirectToAction("Status");
             }
 
             var tier = await _context.SubscriptionTiers.FindAsync(tierId);
@@ -53,10 +66,24 @@ namespace CMSECommerce.Controllers
             return View(model);
         }
 
-        // 3. Form Submission
+        // 3. Form Submission (POST)
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SubmitRequest(SubscriptionRequestViewModel model)
         {
+            var userId = _userManager.GetUserId(User);
+
+            // Final Gatekeeper: Ensure no request was created between the GET and POST
+            var existingRequest = await _context.SubscriptionRequests
+                .AnyAsync(r => r.UserId == userId &&
+                         (r.Status == RequestStatus.Pending || r.Status == RequestStatus.Approved));
+
+            if (existingRequest)
+            {
+                TempData["Error"] = "Submission failed: A request is already in progress for this account.";
+                return RedirectToAction("Status");
+            }
+
             if (!ModelState.IsValid) return View("Register", model);
 
             string fileName = "default.png";
@@ -70,14 +97,18 @@ namespace CMSECommerce.Controllers
 
             var request = new SubscriptionRequest
             {
-                UserId = _userManager.GetUserId(User)!,
+                UserId = userId!,
                 TierId = model.TierId,
                 ItsNumber = model.ITSNumber,
-                ReceiptImagePath = fileName
+                ReceiptImagePath = fileName,
+                CreatedAt = DateTime.UtcNow, // Ensure CreatedAt is set
+                Status = RequestStatus.Pending // Explicitly set starting status
             };
 
             _context.SubscriptionRequests.Add(request);
             await _context.SaveChangesAsync();
+
+            TempData["Success"] = "Your subscription request has been submitted for review.";
             return RedirectToAction("Status");
         }
 
@@ -91,6 +122,7 @@ namespace CMSECommerce.Controllers
                 .ToListAsync();
             return View(requests);
         }
+        
         // 5. Approval Logic (AC 4)
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Approve(int requestId)
@@ -99,85 +131,87 @@ namespace CMSECommerce.Controllers
                 .Include(r => r.Tier)
                 .FirstOrDefaultAsync(r => r.Id == requestId);
 
+            // 1. Basic validation
             if (request == null) return NotFound();
+            if (request.Status == RequestStatus.Approved) return BadRequest("This request is already approved.");
 
             var user = await _userManager.FindByIdAsync(request.UserId);
             if (user == null) return BadRequest("User not found.");
 
+            // 2. Fetch Profile and check for Soft Delete
+            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+            if (profile == null) return BadRequest("User profile missing.");
+            if (profile.User.LockoutEnabled) return BadRequest("Cannot approve subscription for a deactivated user.");
+
+            // 3. Update Request Status
             request.Status = RequestStatus.Approved;
 
+            // 4. Role Management
             if (!await _userManager.IsInRoleAsync(user, "Subscriber"))
             {
                 await _userManager.AddToRoleAsync(user, "Subscriber");
             }
 
-            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+            // 5. Subscription Time Stacking
+            // Determine the baseline (either Now or the future Expiry Date)
+            DateTime baseline = (profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate.Value > DateTime.Now)
+                                ? profile.SubscriptionEndDate.Value
+                                : DateTime.Now;
 
-            if (profile != null)
+            // If it's a brand new sub, set the StartDate to Now
+            if (!profile.SubscriptionStartDate.HasValue || profile.SubscriptionEndDate < DateTime.Now)
             {
-                DateTime currentEnd = (profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate.Value > DateTime.Now)
-                                      ? profile.SubscriptionEndDate.Value
-                                      : DateTime.Now;
-
-                // Set the start of THIS specific period
-                profile.SubscriptionStartDate = currentEnd;
-
-                // Stack the months
-                DateTime newEnd = currentEnd.AddMonths(request.Tier.DurationMonths);
-                profile.SubscriptionEndDate = newEnd;
-
-                profile.CurrentProductLimit = request.Tier.ProductLimit;
-
-                _context.UserProfiles.Update(profile);
-            }
-            else
-            {
-                return BadRequest("User profile missing.");
+                profile.SubscriptionStartDate = DateTime.Now;
             }
 
+            // Add the months from the Tier
+            profile.SubscriptionEndDate = baseline.AddMonths(request.Tier.DurationMonths);
+            profile.CurrentProductLimit = request.Tier.ProductLimit;
+
+            _context.UserProfiles.Update(profile);
             await _context.SaveChangesAsync();
-            TempData["Success"] = $"Approved! New expiry: {profile.SubscriptionEndDate?.ToString("dd MMM yyyy")}";
 
+            TempData["Success"] = $"Approved! New expiry: {profile.SubscriptionEndDate?.ToString("dd MMM yyyy")}";
             return RedirectToAction(nameof(AdminDashboard));
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]        
         public async Task<IActionResult> Revert(int requestId)
         {
-            // 1. Fetch the request
             var request = await _context.SubscriptionRequests.FindAsync(requestId);
             if (request == null) return NotFound();
+            if (request.Status == RequestStatus.Pending) return BadRequest("Request is already in Pending status.");
 
-            // 2. Fetch the User
             var user = await _userManager.FindByIdAsync(request.UserId);
             if (user == null) return BadRequest("User associated with this request not found.");
 
-            // 3. Update Request Status back to Pending
+            // 1. Update Request Status
             request.Status = RequestStatus.Pending;
 
-            // 4. Remove Role (Check if they are in the role first to avoid errors)
+            // 2. Role Management (Remove Subscriber access)
             if (await _userManager.IsInRoleAsync(user, "Subscriber"))
             {
-                var roleResult = await _userManager.RemoveFromRoleAsync(user, "Subscriber");
-                if (!roleResult.Succeeded)
-                {
-                    return BadRequest("Failed to remove Subscriber role.");
-                }
+                await _userManager.RemoveFromRoleAsync(user, "Subscriber");
             }
 
-            // 5. Fetch and Reset UserProfile
+            // Ensure they still have base access (Customer)
+            if (!await _userManager.IsInRoleAsync(user, "Customer"))
+            {
+                await _userManager.AddToRoleAsync(user, "Customer");
+            }
+
+            // 3. Reset UserProfile Access
             var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
             if (profile != null)
             {
-                profile.CurrentProductLimit = 0; // Reset to default/zero
+                // We reset limits and dates because the "Approval" that granted them is being undone
+                profile.CurrentProductLimit = 0;
                 profile.SubscriptionStartDate = null;
                 profile.SubscriptionEndDate = null;
 
-                // Explicitly mark the profile as modified
                 _context.UserProfiles.Update(profile);
             }
 
-            // 6. Final Save
             await _context.SaveChangesAsync();
 
             TempData["Warning"] = $"Subscription for {user.UserName} has been reverted to Pending.";

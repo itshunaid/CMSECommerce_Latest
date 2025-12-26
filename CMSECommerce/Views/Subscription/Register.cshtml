@@ -1,10 +1,11 @@
 ﻿@using CMSECommerce.Models.ViewModels
-
 @model SubscriptionRequestViewModel
 
 @{
     ViewData["Title"] = "Register Subscription";
 }
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
 <div class="container mt-5">
     <div class="row justify-content-center">
@@ -48,4 +49,41 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Read messages from TempData
+            var errorMessage = '@TempData["Error"]';
+            var successMessage = '@TempData["Success"]';
+
+            // 1. If user already has a subscription (Error Pop-up)
+            if (errorMessage) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Request Active',
+                    text: errorMessage,
+                    confirmButtonColor: '#198754',
+                    confirmButtonText: 'Go to Status Page',
+                    allowOutsideClick: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '@Url.Action("Status", "Subscription")';
+                    }
+                });
+            }
+
+            // 2. If the request was successful (Success Pop-up)
+            if (successMessage) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Submitted!',
+                    text: successMessage,
+                    showConfirmButton: true,
+                    confirmButtonColor: '#198754'
+                });
+            }
+        });
+    </script>
 }

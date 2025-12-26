@@ -3,6 +3,11 @@
 @{
     ViewData["Title"] = "My Subscription Status";
     var profile = (CMSECommerce.Models.UserProfile)ViewBag.UserProfile;
+
+    // Logic to determine if we should allow a new request
+    bool hasActiveSub = profile != null && profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate.Value > DateTime.Now;
+    bool hasPendingRequest = Model != null && Model.Any(r => r.Status == RequestStatus.Pending);
+    bool canRequestNew = !hasActiveSub && !hasPendingRequest;
 }
 
 <div class="container py-5">
@@ -13,9 +18,9 @@
             @if (profile != null && profile.SubscriptionEndDate.HasValue)
             {
                 var timeLeft = profile.SubscriptionEndDate.Value - DateTime.Now;
-                var totalDuration = (profile.SubscriptionEndDate.Value - profile.SubscriptionStartDate.Value).TotalSeconds;
+                var totalDuration = (profile.SubscriptionEndDate.Value - (profile.SubscriptionStartDate ?? DateTime.Now)).TotalSeconds;
                 var remainingSecs = Math.Max(0, timeLeft.TotalSeconds);
-                var displayPercent = Math.Max(0, Math.Min(100, (remainingSecs / totalDuration) * 100));
+                var displayPercent = totalDuration > 0 ? Math.Max(0, Math.Min(100, (remainingSecs / totalDuration) * 100)) : 0;
                 var remainingDays = timeLeft.TotalDays;
 
                 <div class="card shadow-sm border-0 mb-5 bg-white border-start border-4 border-primary">
@@ -45,7 +50,7 @@
                         </div>
 
                         <div class="d-flex justify-content-between small fw-bold mt-2">
-                            <span class="text-muted">Global Start: @profile.SubscriptionStartDate.Value.ToString("dd MMM yyyy")</span>
+                            <span class="text-muted">Global Start: @(profile.SubscriptionStartDate?.ToString("dd MMM yyyy") ?? "---")</span>
                             <span class="@(remainingDays <= 5 ? "text-danger" : "text-success")">
                                 <i class="fas fa-clock me-1"></i>
                                 Final Expiry: @profile.SubscriptionEndDate.Value.ToString("dd MMM yyyy")
@@ -56,11 +61,25 @@
                 </div>
             }
 
+            @* --- HEADER AND ACTION BUTTON --- *@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="fw-bold text-dark mb-0">Subscription History</h2>
-                <a asp-action="Index" class="btn btn-outline-primary btn-sm px-3 shadow-sm">
-                    <i class="fas fa-plus me-1"></i> New Request
-                </a>
+
+                @if (canRequestNew)
+                {
+                    <a asp-action="Index" class="btn btn-primary px-4 shadow-sm">
+                        <i class="fas fa-plus me-1"></i> New Request
+                    </a>
+                }
+                else
+                {
+                    <div class="text-end">
+                        <span class="badge bg-light text-muted border py-2 px-3">
+                            <i class="fas fa-info-circle me-1"></i> Request Limit Reached
+                        </span>
+                        <p class="mb-0 xsmall text-muted mt-1" style="font-size: 0.75rem;">Only one active/pending request allowed at a time.</p>
+                    </div>
+                }
             </div>
 
             @if (Model == null || !Model.Any())
@@ -80,9 +99,9 @@
                                     <th class="ps-4">Package</th>
                                     <th>ITS Number</th>
                                     <th>Duration</th>
-                                    <th>Start Date</th>
-                                    <th>End Date</th>
+                                    <th>Submission Date</th>
                                     <th>Status</th>
+                                    <th>Reject Reason</th> @* --- NEW COLUMN --- *@
                                     <th class="text-center pe-4">Actions</th>
                                 </tr>
                             </thead>
@@ -98,27 +117,7 @@
                                         <td>
                                             <span class="badge bg-info text-dark">+@request.Tier.DurationMonths Months</span>
                                         </td>
-                                        @* Check if start/end dates exist in request model; fallback to "---" *@
-                                        <td>
-                                            @if (request.Status == RequestStatus.Approved && profile != null)
-                                            {
-                                                @: @request.CreatedAt.ToString("dd MMM yyyy")
-                                            }
-                                            else
-                                            {
-                                                @: ---
-                                            }
-                                        </td>
-                                        <td>
-                                            @if (request.Status == RequestStatus.Approved && profile != null)
-                                            {
-                                                @: @request.CreatedAt.AddMonths(request.Tier.DurationMonths).ToString("dd MMM yyyy")
-                                            }
-                                            else
-                                            {
-                                                @: ---
-                                            }
-                                        </td>
+                                        <td>@request.CreatedAt.ToString("dd MMM yyyy")</td>
                                         <td>
                                             @if (request.Status == RequestStatus.Pending)
                                             {
@@ -131,6 +130,16 @@
                                             else
                                             {
                                                 <span class="badge rounded-pill bg-danger px-3" title="@request.RejectionReason"><i class="fas fa-times-circle me-1"></i>Rejected</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (request.Status == RequestStatus.Rejected && !string.IsNullOrEmpty(request.RejectionReason))
+                                            {
+                                                <span class="text-danger small fw-bold">@request.RejectionReason</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted xsmall">---</span>
                                             }
                                         </td>
                                         <td class="text-center pe-4">
@@ -192,17 +201,13 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // Only start polling if there is a Pending request visible
             if ($('.subscription-request[data-status="Pending"]').length > 0) {
-
-                const pollInterval = setInterval(function () {
+                setInterval(function () {
                     $.getJSON('/Subscription/GetLatestStatuses', function (data) {
                         let needsUpdate = false;
-
                         data.forEach(item => {
                             const row = $(`.subscription-request[data-id="${item.id}"]`);
                             const currentUiStatus = row.attr('data-status');
-
                             if (currentUiStatus && currentUiStatus !== item.status) {
                                 needsUpdate = true;
                                 if(item.status === "Approved") {
@@ -212,15 +217,13 @@
                         });
 
                         if (needsUpdate) {
-                            // Highlight the pending row so the user sees something happened
                             $('.subscription-request[data-status="Pending"]').addClass('status-changing');
-
                             setTimeout(function() {
                                 location.reload();
-                            }, 2000); // 2 second pause for effect
+                            }, 2000);
                         }
                     });
-                }, 10000); // 10 second intervals
+                }, 10000);
             }
         });
     </script>
