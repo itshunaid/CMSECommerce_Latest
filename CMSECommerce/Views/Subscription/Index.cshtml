@@ -1,34 +1,191 @@
 ﻿@model IEnumerable<CMSECommerce.Models.SubscriptionTier>
 
 @{
-    ViewData["Title"] = "Select Subscription Plan";
+    ViewData["Title"] = "Plans";
 }
 
-<div class="container py-5">
-    <div class="text-center mb-5">
-        <h2 class="display-4">Choose Your Plan</h2>
-        <p class="lead">Upgrade to a Seller account and start listing your products.</p>
+@section Styles {
+    <style>
+        :root {
+            --primary: #21409a;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+        }
+
+        body {
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        /* Compact Header */
+        .pricing-header {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 1.5rem 0;
+        }
+
+            .pricing-header h1 {
+                font-size: 1.75rem;
+                font-weight: 800;
+                color: var(--text-main);
+            }
+
+            .pricing-header p {
+                font-size: 0.9rem;
+                color: var(--text-muted);
+            }
+
+        /* Minimalist QR */
+        .qr-card {
+            background: #fff;
+            padding: 10px;
+            border-radius: 12px;
+            display: inline-block;
+            border: 1px solid #edf2f7;
+        }
+
+        .qr-text {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        /* Robust Cards */
+        .card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            transition: all 0.2s ease-in-out;
+        }
+
+            .card:hover {
+                border-color: var(--primary);
+                box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            }
+
+        /* Small Text Typography */
+        .tier-name {
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+
+        .price-val {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+            line-height: 1;
+        }
+
+        .price-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .feature-list {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+            .feature-list li {
+                font-size: 0.8rem;
+                color: #4a5568;
+                padding: 6px 0;
+                display: flex;
+                align-items: center;
+            }
+
+            .feature-list i {
+                color: #38a169;
+                width: 20px;
+                font-size: 0.85rem;
+            }
+
+        .btn-select {
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 10px;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+
+        .badge-mini {
+            font-size: 0.65rem;
+            padding: 4px 12px;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 50px;
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+}
+
+<div class="container py-4">
+    <div class="pricing-header text-center mb-4">
+        <h1 class="mb-2">Membership Plans</h1>
+        <p class="mb-3">Select a plan to enable seller features.</p>
+
+        <div class="qr-card shadow-sm">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=https://weypaari.com"
+                 style="width: 80px; height: 80px;" alt="QR">
+            <div class="qr-text"><i class="fas fa-qrcode"></i> Quick Pay</div>
+        </div>
     </div>
 
-    <div class="row row-cols-1 row-cols-md-3 g-4">
-        @foreach (var tier in Model)
+
+
+    <div class="row g-3 justify-content-center">
+        @foreach (var tier in Model.OrderBy(t => t.Price))
         {
-            <div class="col">
-                <div class="card h-100 shadow-sm border-primary">
-                    <div class="card-header py-3 bg-primary text-white text-center">
-                        <h4 class="my-0 fw-normal">@tier.Name</h4>
-                    </div>
-                    <div class="card-body text-center">
-                        <h1 class="card-title pricing-card-title">INR @tier.Price</h1>
-                        <ul class="list-unstyled mt-3 mb-4">
-                            <li><strong>@tier.ProductLimit</strong> Products Limit</li>
-                            <li><strong>@tier.DurationMonths</strong> Months Validity</li>
-                            <li class="text-muted small">Seller Role Assignment upon approval</li>
+            bool isPro = tier.Name.Contains("Premium") || tier.Name.Contains("Pro");
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card h-100 p-3 position-relative">
+                    @if (isPro)
+                    {
+                        <div class="badge-mini">POPULAR</div>
+                    }
+
+                    <div class="card-body d-flex flex-column p-2">
+                        <div class="text-center mb-3">
+                            <span class="tier-name">@tier.Name</span>
+                            <div class="price-val mt-2">
+                                <span class="fs-6 fw-normal">₹</span>@tier.Price
+                            </div>
+                            <span class="price-sub">/@tier.DurationMonths months</span>
+                        </div>
+
+                        <hr class="my-3 opacity-50">
+
+                        <ul class="feature-list mb-4 flex-grow-1">
+                            <li><i class="fas fa-check"></i> <strong>@tier.ProductLimit</strong> Listings</li>
+                            <li><i class="fas fa-check"></i> <strong>@tier.DurationMonths</strong> Months access</li>
+                            <li><i class="fas fa-check"></i> Seller Dashboard</li>
+                            <li><i class="fas fa-check"></i> Email Support</li>
                         </ul>
-                        <a asp-action="Register" asp-route-tierId="@tier.Id" class="w-100 btn btn-lg btn-outline-primary">Select @tier.Name</a>
+
+                        <a asp-action="Register" asp-route-tierId="@tier.Id"
+                           class="btn btn-sm w-100 btn-select @(isPro ? "btn-primary" : "btn-outline-primary")">
+                            Select Plan
+                        </a>
                     </div>
                 </div>
             </div>
         }
+    </div>
+
+    <div class="text-center mt-4">
+        <div class="d-inline-block px-3 py-1 bg-white border rounded-pill shadow-xs">
+            <small class="text-muted" style="font-size: 0.7rem;">
+                <i class="fas fa-lock me-1"></i> Secure 256-bit encrypted payment processing
+            </small>
+        </div>
     </div>
 </div>
