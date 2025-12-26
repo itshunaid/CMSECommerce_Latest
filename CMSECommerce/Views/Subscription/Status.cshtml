@@ -5,7 +5,20 @@
     var profile = (CMSECommerce.Models.UserProfile)ViewBag.UserProfile;
 
     // --- BUSINESS LOGIC ---
+
+    // 1. Check if the user has an active, unexpired subscription
     bool hasActiveSub = profile != null && profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate.Value > DateTime.Now;
+
+    // 2. Extract the specific Request record that was approved for the current active sub
+    var latestActiveRequest = Model?.OrderByDescending(r => r.CreatedAt)
+                                   .FirstOrDefault(r => r.Status == RequestStatus.Approved);
+
+    // 3. Sort the full list for the History Table: Active/Pending on top, then newest to oldest
+    var sortedRequests = Model?.OrderBy(r => r.Status == RequestStatus.Approved ? 0 :
+                                            r.Status == RequestStatus.Pending ? 1 : 2)
+                                .ThenByDescending(r => r.CreatedAt).ToList() ?? new List<CMSECommerce.Models.SubscriptionRequest>();
+
+    // 4. Determine if the user is allowed to create a brand new request
     bool hasPendingRequest = Model != null && Model.Any(r => r.Status == RequestStatus.Pending);
     bool canRequestNew = !hasActiveSub && !hasPendingRequest;
 }
@@ -14,78 +27,99 @@
     <div class="row justify-content-center">
         <div class="col-md-11">
 
-            @* --- CURRENT SUBSCRIPTION STATUS CARD --- *@
-            @if (profile != null && profile.SubscriptionEndDate.HasValue)
+            @* ==========================================
+               SECTION 1: LATEST ACTIVE SUBSCRIPTION BLOCK 
+               ========================================== *@
+            @if (hasActiveSub && latestActiveRequest != null)
             {
                 var timeLeft = profile.SubscriptionEndDate.Value - DateTime.Now;
-                var totalDuration = (profile.SubscriptionEndDate.Value - (profile.SubscriptionStartDate ?? DateTime.Now)).TotalSeconds;
-                var remainingSecs = Math.Max(0, timeLeft.TotalSeconds);
-                var displayPercent = totalDuration > 0 ? Math.Max(0, Math.Min(100, (remainingSecs / totalDuration) * 100)) : 0;
-                var remainingDays = timeLeft.TotalDays;
+                var remainingDays = (int)timeLeft.TotalDays;
 
-                <div class="card shadow-sm border-0 mb-5 bg-white border-start border-4 border-primary">
-                    <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h4 class="fw-bold mb-0 text-dark">Current Subscription Status</h4>
-                            @if (timeLeft.TotalSeconds > 0)
-                            {
-                                <span class="badge bg-success px-3 py-2">ACTIVE PLAN</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-danger px-3 py-2">EXPIRED</span>
-                            }
+                <div class="card shadow-lg border-0 mb-5 overflow-hidden">
+                    <div class="row g-0">
+                        @* Left sidebar with package name *@
+                        <div class="col-md-4 bg-primary d-flex flex-column justify-content-center align-items-center text-white p-4 text-center">
+                            <i class="fas fa-crown fa-4x mb-3 text-warning"></i>
+                            <h5 class="text-uppercase mb-1 opacity-75">Active Package</h5>
+                            <h2 class="fw-bold">@latestActiveRequest.Tier.Name</h2>
+                            <div class="badge bg-white text-primary mt-2 px-3">@latestActiveRequest.Tier.DurationMonths Months Plan</div>
                         </div>
 
-                        <div class="progress mb-2" style="height: 18px; background-color: #e9ecef;">
-                            @{
-                                string barColor = "bg-success";
-                                if (remainingDays <= 5) { barColor = "bg-danger"; }
-                                else if (remainingDays <= 10) { barColor = "bg-warning"; }
-                            }
-                            <div class="progress-bar progress-bar-striped progress-bar-animated @barColor"
-                                 role="progressbar"
-                                 style="width: @displayPercent.ToString("0")%">
+                        @* Right side with detailed subscription data *@
+                        <div class="col-md-8 bg-white">
+                            <div class="card-body p-4">
+                                <div class="row">
+                                    <div class="col-sm-6 mb-4">
+                                        <label class="text-muted small text-uppercase fw-bold d-block">ITS Number</label>
+                                        <span class="fs-5 fw-bold text-dark"><i class="fas fa-fingerprint me-2 text-primary"></i>@latestActiveRequest.ItsNumber</span>
+                                    </div>
+                                    <div class="col-sm-6 mb-4 text-sm-end">
+                                        <label class="text-muted small text-uppercase fw-bold d-block">Valid Until</label>
+                                        <span class="fs-5 fw-bold @(remainingDays <= 5 ? "text-danger" : "text-dark")">
+                                            <i class="fas fa-calendar-alt me-2 text-primary"></i>@profile.SubscriptionEndDate.Value.ToString("dd MMM yyyy")
+                                        </span>
+                                    </div>
+                                    <hr class="mt-0" />
+                                    <div class="col-sm-6">
+                                        <label class="text-muted small text-uppercase fw-bold d-block">Store Capacity</label>
+                                        <span class="fw-bold">@latestActiveRequest.Tier.ProductLimit Product Listings</span>
+                                    </div>
+                                    <div class="col-sm-6 text-sm-end">
+                                        <label class="text-muted small text-uppercase fw-bold d-block">Status</label>
+                                        <span class="badge @(remainingDays <= 5 ? "bg-warning text-dark" : "bg-success") px-3 py-2">
+                                            <i class="fas fa-check-circle me-1"></i> @remainingDays Days Remaining
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 pt-3 border-top">
+                                    <a asp-action="DownloadReceipt" asp-route-requestId="@latestActiveRequest.Id" class="btn btn-dark shadow-sm">
+                                        <i class="fas fa-file-invoice-dollar me-2"></i>Download Receipt
+                                    </a>
+                                </div>
                             </div>
-                        </div>
-
-                        <div class="d-flex justify-content-between small fw-bold mt-2">
-                            <span class="text-muted">Global Start: @(profile.SubscriptionStartDate?.ToString("dd MMM yyyy") ?? "---")</span>
-                            <span class="@(remainingDays <= 5 ? "text-danger" : "text-success")">
-                                <i class="fas fa-clock me-1"></i>
-                                Final Expiry: @profile.SubscriptionEndDate.Value.ToString("dd MMM yyyy")
-                                (@(remainingDays > 0 ? $"{(int)remainingDays} days remaining" : "Access Ended"))
-                            </span>
                         </div>
                     </div>
                 </div>
             }
+            else if (!hasActiveSub && profile?.SubscriptionEndDate.HasValue == true)
+            {
+                @* EXPIRED WARNING BLOCK *@
+                <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center p-4 mb-5">
+                    <div class="bg-danger text-white rounded-circle p-3 me-3">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1 fw-bold">Your subscription has expired</h5>
+                        <p class="mb-0">Access to premium features has been suspended. Renew now to resume your business.</p>
+                    </div>
+                    <a asp-action="Index" class="btn btn-danger ms-auto fw-bold px-4">Renew Subscription</a>
+                </div>
+            }
 
-            @* --- HEADER AND ACTION BUTTON --- *@
+            @* ==========================================
+               SECTION 2: SUBSCRIPTION HISTORY TABLE
+               ========================================== *@
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="fw-bold text-dark mb-0">Subscription History</h2>
+                <h3 class="fw-bold text-dark mb-0">
+                    <i class="fas fa-history me-2 text-muted"></i>Subscription History
+                </h3>
 
                 @if (canRequestNew)
                 {
-                    <a asp-action="Index" class="btn btn-primary px-4 shadow-sm">
-                        <i class="fas fa-plus me-1"></i> New Request
+                    <a asp-action="Index" class="btn btn-primary px-4 shadow-sm fw-bold">
+                        <i class="fas fa-plus-circle me-1"></i> New Request
                     </a>
-                }
-                else
-                {
-                    <div class="text-end">
-                        <span class="badge bg-light text-muted border py-2 px-3">
-                            <i class="fas fa-info-circle me-1"></i> Request Limit Reached
-                        </span>
-                    </div>
                 }
             </div>
 
-            @if (Model == null || !Model.Any())
+            @if (!sortedRequests.Any())
             {
-                <div class="alert alert-info text-center shadow-sm py-5">
-                    <i class="fas fa-history fa-3x mb-3 text-secondary"></i>
-                    <p class="fs-5">You haven't submitted any subscription requests yet.</p>
+                <div class="card border-0 shadow-sm py-5 text-center">
+                    <div class="card-body">
+                        <i class="fas fa-folder-open fa-4x mb-3 text-light"></i>
+                        <p class="text-muted fs-5">No subscription records found in your account.</p>
+                        <a asp-action="Index" class="btn btn-outline-primary mt-2">Submit Your First Request</a>
+                    </div>
                 </div>
             }
             else
@@ -97,23 +131,21 @@
                                 <tr>
                                     <th class="ps-4">Package</th>
                                     <th>ITS Number</th>
-                                    <th>Duration</th>
                                     <th>Submission Date</th>
                                     <th>Status</th>
-                                    <th>Reject Reason</th>
+                                    <th>Rejection Reason</th>
                                     <th class="text-center pe-4">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var request in Model.OrderByDescending(r => r.CreatedAt))
+                                @foreach (var request in sortedRequests)
                                 {
                                     <tr class="subscription-request" data-id="@request.Id" data-status="@request.Status">
                                         <td class="ps-4">
                                             <div class="fw-bold text-dark">@request.Tier.Name</div>
-                                            <small class="text-muted">Limit: @request.Tier.ProductLimit items</small>
+                                            <small class="text-muted">@request.Tier.DurationMonths Months Plan</small>
                                         </td>
                                         <td><code class="text-primary fw-bold">@request.ItsNumber</code></td>
-                                        <td><span class="badge bg-info text-dark">+@request.Tier.DurationMonths Months</span></td>
                                         <td>@request.CreatedAt.ToString("dd MMM yyyy")</td>
                                         <td>
                                             @if (request.Status == RequestStatus.Pending)
@@ -130,9 +162,9 @@
                                             }
                                         </td>
                                         <td>
-                                            @if (request.Status == RequestStatus.Rejected && !string.IsNullOrEmpty(request.RejectionReason))
+                                            @if (request.Status == RequestStatus.Rejected)
                                             {
-                                                <span class="text-danger small fw-bold">@request.RejectionReason</span>
+                                                <span class="text-danger small fw-bold">@(string.IsNullOrEmpty(request.RejectionReason) ? "No reason provided" : request.RejectionReason)</span>
                                             }
                                             else
                                             {
@@ -142,12 +174,11 @@
                                         <td class="text-center pe-4">
                                             @if (request.Status == RequestStatus.Approved)
                                             {
-                                                <a asp-action="DownloadReceipt" asp-route-requestId="@request.Id" class="btn btn-sm btn-dark">
-                                                    <i class="fas fa-file-download me-1"></i> Receipt
-                                                </a>
+                                                <span class="text-success small fw-bold"><i class="fas fa-check me-1"></i>Current / Active</span>
                                             }
                                             else if (request.Status == RequestStatus.Rejected)
                                             {
+                                                @* RETRY BUTTON LOGIC: Only show if no current active sub *@
                                                 @if (!hasActiveSub)
                                                 {
                                                     <a asp-action="Register" asp-route-tierId="@request.TierId" asp-route-retryId="@request.Id" class="btn btn-sm btn-warning shadow-sm">
@@ -156,8 +187,7 @@
                                                 }
                                                 else
                                                 {
-                                                    @* Tooltip explains why they can't retry yet *@
-                                                    <button class="btn btn-sm btn-outline-secondary" disabled title="You cannot retry while you have an active subscription.">
+                                                    <button class="btn btn-sm btn-outline-secondary" disabled title="You already have an active subscription.">
                                                         <i class="fas fa-lock me-1"></i> Locked
                                                     </button>
                                                 }
@@ -178,6 +208,7 @@
     </div>
 </div>
 
+@* Hidden notification sound for real-time status updates *@
 <audio id="notificationSound" preload="auto">
     <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
 </audio>
@@ -189,23 +220,34 @@
             background-color: #f8f9fa;
         }
 
-        .progress {
+        .card {
             border-radius: 12px;
         }
 
+        .bg-primary {
+            background: linear-gradient(135deg, #0d6efd 0%, #0046af 100%) !important;
+        }
+
         .table thead th {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             color: #6c757d;
             border-bottom: none;
+            letter-spacing: 0.5px;
         }
 
         .subscription-request {
-            transition: background-color 0.4s ease;
+            transition: all 0.3s ease;
         }
 
         .status-changing {
             background-color: #d1e7dd !important;
+        }
+
+        code {
+            background-color: #f1f5ff;
+            padding: 2px 6px;
+            border-radius: 4px;
         }
     </style>
 }
@@ -213,12 +255,13 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // Initialize tooltips for the "Locked" button
+            // Bootstrap Tooltip Initialization
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl)
-            })
+            });
 
+            // Status Polling: Checks for updates every 10 seconds if a Pending request exists
             if ($('.subscription-request[data-status="Pending"]').length > 0) {
                 setInterval(function () {
                     $.getJSON('/Subscription/GetLatestStatuses', function (data) {
@@ -236,7 +279,9 @@
 
                         if (needsUpdate) {
                             $('.subscription-request[data-status="Pending"]').addClass('status-changing');
-                            setTimeout(function() { location.reload(); }, 2000);
+                            setTimeout(function() {
+                                location.reload();
+                            }, 2000);
                         }
                     });
                 }, 10000);
