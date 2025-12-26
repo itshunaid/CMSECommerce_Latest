@@ -247,8 +247,11 @@ namespace CMSECommerce.Areas.Seller.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Product product)
         {
+            // Retrieve user information early
             var userId = _userManager.GetUserId(User);
-            var userName= _userManager.GetUserName(User);
+            var userName = _userManager.GetUserName(User);
+
+            // Check if the seller has a valid profile
             var profile = await _context.UserProfiles
                 .FirstOrDefaultAsync(p => p.UserId == userId);
 
@@ -256,10 +259,12 @@ namespace CMSECommerce.Areas.Seller.Controllers
             {
                 return RedirectToAction("Status", "Subscription");
             }
+
             // 1. Check if Subscription has expired
             if (!profile.SubscriptionEndDate.HasValue || profile.SubscriptionEndDate.Value < DateTime.Now)
             {
                 ModelState.AddModelError("", "Your subscription has expired. Please renew to continue adding products.");
+                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
                 return View(product);
             }
 
@@ -269,68 +274,77 @@ namespace CMSECommerce.Areas.Seller.Controllers
             if (currentProductCount >= profile.CurrentProductLimit)
             {
                 ModelState.AddModelError("", $"You have reached your limit of {profile.CurrentProductLimit} products. Upgrade your plan to add more.");
+                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
                 return View(product);
             }
-
-            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
 
             if (ModelState.IsValid)
             {
                 try
                 {
+                    // Generate Slug
                     product.Slug = product.Name.ToLower().Replace(" ", "-");
 
                     // Check for slug duplication
-                    var slug = await _context.Products.FirstOrDefaultAsync(x => x.Slug == product.Slug);
-                    if (slug != null)
+                    var slugExists = await _context.Products.AnyAsync(x => x.Slug == product.Slug);
+                    if (slugExists)
                     {
-                        ModelState.AddModelError("", "That product name already exists (slug conflict)!");
+                        ModelState.AddModelError("Name", "That product name already exists!");
+                        ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
                         return View(product);
                     }
 
-                    string imageName = "noimage.png"; // Default image
+                    // Handle Image Upload
+                    string imageName = "noimage.png";
 
                     if (product.ImageUpload != null)
                     {
                         string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/products");
+                        // Ensure directory exists
+                        if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
+
                         imageName = Guid.NewGuid().ToString() + "_" + product.ImageUpload.FileName;
                         string filePath = Path.Combine(uploadsDir, imageName);
 
-                        // File operation: Saving the uploaded image
                         await using (FileStream fs = new FileStream(filePath, FileMode.Create))
                         {
                             await product.ImageUpload.CopyToAsync(fs);
                         }
                     }
 
+                    // Assign System-set properties
                     product.Image = imageName;
-                    product.Status = ProductStatus.Pending;
-                    product.OwnerName = _userManager.GetUserName(User);
+                    product.Status = ProductStatus.Pending; // Products require admin approval
                     product.UserId = userId;
+                    product.OwnerName = userName;
+
+                    // Note: StockQuantity is automatically bound from the form via Model Binding
 
                     _context.Add(product);
-                    await _context.SaveChangesAsync(); // Database operation
+                    await _context.SaveChangesAsync();
 
                     TempData["Success"] = "The product has been added and is pending admin approval!";
                     return RedirectToAction("Index");
                 }
                 catch (DbUpdateException dbEx)
                 {
-                    _logger.LogError(dbEx, "Database error during product creation by seller {User}.", _userManager.GetUserName(User));
+                    _logger.LogError(dbEx, "Database error during product creation by seller {User}.", userName);
                     ModelState.AddModelError("", "A database error occurred while saving the product.");
                 }
                 catch (IOException ioEx)
                 {
-                    _logger.LogError(ioEx, "File system error during image upload for product creation by seller {User}.", _userManager.GetUserName(User));
+                    _logger.LogError(ioEx, "File system error during image upload for product creation by seller {User}.", userName);
                     ModelState.AddModelError("", "An error occurred while saving the product image.");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Unexpected error during product creation by seller {User}.", _userManager.GetUserName(User));
+                    _logger.LogError(ex, "Unexpected error during product creation by seller {User}.", userName);
                     ModelState.AddModelError("", "An unexpected error occurred.");
                 }
             }
 
+            // If we got this far, something failed, redisplay form
+            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
             return View(product);
         }
 
