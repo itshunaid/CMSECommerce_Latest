@@ -4,80 +4,62 @@
     ViewData["Title"] = "My Subscription Status";
     var profile = (CMSECommerce.Models.UserProfile)ViewBag.UserProfile;
 
-    // --- BUSINESS LOGIC ---
-
-    // 1. Check if the user has an active, unexpired subscription
     bool hasActiveSub = profile != null && profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate.Value > DateTime.Now;
 
-    // 2. Extract the specific Request record that was approved for the current active sub
     var latestActiveRequest = Model?.OrderByDescending(r => r.CreatedAt)
                                    .FirstOrDefault(r => r.Status == RequestStatus.Approved);
 
-    // 3. Process the full list: Priority sorting (Approved > Pending > Rejected) then by Date
     var fullSortedList = Model?.OrderBy(r => r.Status == RequestStatus.Approved ? 0 :
                                              r.Status == RequestStatus.Pending ? 1 : 2)
                                 .ThenByDescending(r => r.CreatedAt).ToList() ?? new List<CMSECommerce.Models.SubscriptionRequest>();
 
-    // 4. UI Display Limit: Show only the latest 5 records in the table
     var displayRequests = fullSortedList.Take(5).ToList();
 
-    // 5. Button Logic
     bool hasPendingRequest = Model != null && Model.Any(r => r.Status == RequestStatus.Pending);
     bool canRequestNew = !hasActiveSub && !hasPendingRequest;
 }
 
-<div class="container py-5">
+<div class="container py-4 small-text-ui">
     <div class="row justify-content-center">
         <div class="col-md-11">
 
-            @* ==========================================
-               SECTION 1: LATEST ACTIVE SUBSCRIPTION BLOCK 
-               ========================================== *@
+            @* --- SECTION 1: ACTIVE SUBSCRIPTION COMPACT CARD --- *@
             @if (hasActiveSub && latestActiveRequest != null)
             {
                 var timeLeft = profile.SubscriptionEndDate.Value - DateTime.Now;
                 var remainingDays = (int)timeLeft.TotalDays;
 
-                <div class="card shadow-lg border-0 mb-5 overflow-hidden animate-fade-in">
+                <div class="card shadow-sm border-0 mb-4 overflow-hidden animate-fade-in status-banner">
                     <div class="row g-0">
-                        <div class="col-md-4 bg-primary d-flex flex-column justify-content-center align-items-center text-white p-4 text-center">
-                            <i class="fas fa-crown fa-4x mb-3 text-warning"></i>
-                            <h5 class="text-uppercase mb-1 opacity-75 small fw-bold">Active Package</h5>
-                            <h2 class="fw-bold">@latestActiveRequest.Tier.Name</h2>
-                            <div class="badge bg-white text-primary mt-2 px-3">@latestActiveRequest.Tier.DurationMonths Months Plan</div>
+                        <div class="col-md-3 bg-navy d-flex flex-column justify-content-center align-items-center text-white p-3 text-center">
+                            <i class="fas fa-crown mb-2 text-warning" style="font-size: 1.5rem;"></i>
+                            <h6 class="text-uppercase mb-0 opacity-75 fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Active Plan</h6>
+                            <h4 class="fw-bold mb-0">@latestActiveRequest.Tier.Name</h4>
                         </div>
 
-                        <div class="col-md-8 bg-white">
-                            <div class="card-body p-4">
-                                <div class="row">
-                                    <div class="col-sm-6 mb-4">
-                                        <label class="text-muted small text-uppercase fw-bold d-block mb-1">ITS Number</label>
-                                        <span class="fs-5 fw-bold text-dark">
-                                            <i class="fas fa-fingerprint me-2 text-primary"></i>@latestActiveRequest.ItsNumber
-                                        </span>
+                        <div class="col-md-9 bg-white">
+                            <div class="card-body py-3 px-4">
+                                <div class="row align-items-center">
+                                    <div class="col-sm-4 border-end">
+                                        <label class="label-muted">ITS Number</label>
+                                        <div class="fw-bold text-dark"><i class="fas fa-fingerprint me-2 text-primary-light"></i>@latestActiveRequest.ItsNumber</div>
                                     </div>
-                                    <div class="col-sm-6 mb-4 text-sm-end">
-                                        <label class="text-muted small text-uppercase fw-bold d-block mb-1">Valid Until</label>
-                                        <span class="fs-5 fw-bold @(remainingDays <= 5 ? "text-danger" : "text-dark")">
-                                            <i class="fas fa-calendar-alt me-2 text-primary"></i>@profile.SubscriptionEndDate.Value.ToString("dd MMM yyyy")
-                                        </span>
+                                    <div class="col-sm-4 border-end">
+                                        <label class="label-muted">Expiration Date</label>
+                                        <div class="fw-bold @(remainingDays <= 5 ? "text-danger" : "text-dark")">
+                                            <i class="fas fa-calendar-alt me-2 text-primary-light"></i>@profile.SubscriptionEndDate.Value.ToString("dd MMM yyyy")
+                                        </div>
                                     </div>
-                                    <hr class="mt-0 opacity-10" />
-                                    <div class="col-sm-6">
-                                        <label class="text-muted small text-uppercase fw-bold d-block mb-1">Store Capacity</label>
-                                        <span class="fw-bold text-secondary">@latestActiveRequest.Tier.ProductLimit Product Listings</span>
+                                    <div class="col-sm-4 text-center">
+                                        <div class="badge-status @(remainingDays <= 5 ? "bg-warn-subtle" : "bg-success-subtle")">
+                                            @remainingDays Days Remaining
+                                        </div>
+                                        <div class="mt-2">
+                                            <a asp-action="DownloadReceipt" asp-route-requestId="@latestActiveRequest.Id" class="text-primary text-decoration-none fw-bold" style="font-size: 0.7rem;">
+                                                <i class="fas fa-file-invoice-dollar me-1"></i> Download Receipt
+                                            </a>
+                                        </div>
                                     </div>
-                                    <div class="col-sm-6 text-sm-end">
-                                        <label class="text-muted small text-uppercase fw-bold d-block mb-1">Status</label>
-                                        <span class="badge @(remainingDays <= 5 ? "bg-warning text-dark" : "bg-success") px-3 py-2">
-                                            <i class="fas fa-hourglass-half me-1"></i> @remainingDays Days Remaining
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="mt-4 pt-3 border-top">
-                                    <a asp-action="DownloadReceipt" asp-route-requestId="@latestActiveRequest.Id" class="btn btn-dark btn-sm px-4">
-                                        <i class="fas fa-file-invoice-dollar me-2"></i>View Latest Receipt
-                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -86,189 +68,236 @@
             }
             else if (!hasActiveSub && profile?.SubscriptionEndDate.HasValue == true)
             {
-                <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center p-4 mb-5">
-                    <div class="bg-danger text-white rounded-circle p-3 me-3">
-                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                <div class="alert alert-danger-custom d-flex align-items-center p-3 mb-4 shadow-sm">
+                    <i class="fas fa-exclamation-circle me-3 fs-5"></i>
+                    <div class="flex-grow-1">
+                        <span class="fw-bold d-block" style="font-size: 0.85rem;">Subscription Expired</span>
+                        <span style="font-size: 0.75rem;">Access ended on @profile.SubscriptionEndDate.Value.ToString("dd MMM yyyy").</span>
                     </div>
-                    <div>
-                        <h5 class="mb-1 fw-bold">Subscription Expired</h5>
-                        <p class="mb-0 small">Your access ended on @profile.SubscriptionEndDate.Value.ToString("dd MMM yyyy").</p>
-                    </div>
-                    <a asp-action="Index" class="btn btn-danger ms-auto fw-bold px-4 shadow-sm">Renew Now</a>
+                    <a asp-action="Index" class="btn btn-danger btn-xs-custom px-3">Renew Now</a>
                 </div>
             }
 
-            @* ==========================================
-               SECTION 2: SUBSCRIPTION HISTORY TABLE
-               ========================================== *@
-            <div class="d-flex justify-content-between align-items-end mb-4">
+            @* --- SECTION 2: HISTORY TABLE --- *@
+            <div class="d-flex justify-content-between align-items-center mb-3 px-1">
                 <div>
-                    <h4 class="fw-bold text-dark mb-0">Subscription History</h4>
-                    <p class="text-muted small mb-0">Showing latest @displayRequests.Count records</p>
+                    <h6 class="fw-bold text-dark mb-0">Subscription History</h6>
+                    <p class="text-muted mb-0" style="font-size: 0.7rem;">Recent account activity and logs</p>
                 </div>
 
                 <div class="d-flex gap-2">
-                    @* SINGLE CSV DOWNLOAD BUTTON *@
                     @if (fullSortedList.Any())
                     {
-                        <a asp-action="DownloadCsvHistory" class="btn btn-outline-success btn-sm fw-bold px-3 shadow-sm">
-                            <i class="fas fa-file-csv me-1"></i> Download History
+                        <a asp-action="DownloadCsvHistory" class="btn btn-outline-secondary btn-xs-custom">
+                            <i class="fas fa-download me-1"></i> Export CSV
                         </a>
                     }
-
                     @if (canRequestNew)
                     {
-                        <a asp-action="Index" class="btn btn-primary btn-sm px-4 shadow-sm fw-bold">
+                        <a asp-action="Index" class="btn btn-primary btn-xs-custom px-3">
                             <i class="fas fa-plus me-1"></i> New Request
                         </a>
                     }
                 </div>
             </div>
 
-            @if (!displayRequests.Any())
-            {
-                <div class="card border-0 shadow-sm py-5 text-center">
-                    <div class="card-body">
-                        <i class="fas fa-history fa-3x mb-3 text-light"></i>
-                        <p class="text-muted fs-5">No requests found.</p>
-                        <a asp-action="Index" class="btn btn-primary mt-2">Create Request</a>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div class="card shadow-sm border-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="bg-faded">
+                            <tr>
+                                <th class="ps-3 py-2">Package Name</th>
+                                <th>ITS ID</th>
+                                <th>Submission Date</th>
+                                <th>Current Status</th>
+                                <th>Remarks</th>
+                                <th class="text-center pe-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!displayRequests.Any())
+                            {
                                 <tr>
-                                    <th class="ps-4 py-3">Package</th>
-                                    <th>ITS Number</th>
-                                    <th>Submitted</th>
-                                    <th>Status</th>
-                                    <th>Admin Note</th>
-                                    <th class="text-center pe-4">Actions</th>
+                                    <td colspan="6" class="text-center py-4 text-muted" style="font-size: 0.8rem;">No history found.</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var request in displayRequests)
-                                {
-                                    <tr class="subscription-request" data-id="@request.Id" data-status="@request.Status">
-                                        <td class="ps-4">
-                                            <div class="fw-bold text-dark">@request.Tier.Name</div>
-                                            <div class="text-muted x-small">@request.Tier.DurationMonths Months</div>
-                                        </td>
-                                        <td><code class="text-primary fw-bold">@request.ItsNumber</code></td>
-                                        <td class="small">@request.CreatedAt.ToString("dd MMM yyyy")</td>
-                                        <td>
-                                            @if (request.Status == RequestStatus.Pending)
-                                            {
-                                                <span class="badge rounded-pill bg-warning text-dark px-3 fw-normal">
-                                                    <i class="fas fa-spinner fa-spin me-1"></i>Pending
-                                                </span>
-                                            }
-                                            else if (request.Status == RequestStatus.Approved)
-                                            {
-                                                <span class="badge rounded-pill bg-success-light text-success px-3 fw-normal border border-success">
-                                                    <i class="fas fa-check me-1"></i>Approved
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge rounded-pill bg-danger-light text-danger px-3 fw-normal border border-danger">
-                                                    <i class="fas fa-times me-1"></i>Rejected
-                                                </span>
-                                            }
-                                        </td>
-                                        <td class="small text-muted">
-                                            <div style="max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="@request.RejectionReason">
-                                                @(request.Status == RequestStatus.Rejected ? (request.RejectionReason ?? "Denied") : "---")
-                                            </div>
-                                        </td>
-                                        <td class="text-center pe-4">
-                                            @if (request.Status == RequestStatus.Rejected && !hasActiveSub)
-                                            {
-                                                <a asp-action="Register" asp-route-tierId="@request.TierId" asp-route-retryId="@request.Id" class="btn btn-xs btn-warning px-3 shadow-sm">
-                                                    Retry
-                                                </a>
-                                            }
-                                            else if (request.Status == RequestStatus.Approved)
-                                            {
-                                                <i class="fas fa-check-double text-success" title="Current Active"></i>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted small">---</span>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
+                            }
+                            @foreach (var request in displayRequests)
+                            {
+                                <tr class="subscription-request" data-id="@request.Id" data-status="@request.Status">
+                                    <td class="ps-3">
+                                        <div class="fw-bold text-dark" style="font-size: 0.8rem;">@request.Tier.Name</div>
+                                        <div class="text-muted" style="font-size: 0.65rem;">@request.Tier.DurationMonths Months</div>
+                                    </td>
+                                    <td><span class="its-badge">@request.ItsNumber</span></td>
+                                    <td style="font-size: 0.75rem;">@request.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        @if (request.Status == RequestStatus.Pending)
+                                        {
+                                            <span class="dot-status bg-warning"></span>
+                                    
+                                            <span class="text-pending ms-1">Pending Review</span>
+                                        }
+                                        else if (request.Status == RequestStatus.Approved)
+                                        {
+                                            <span class="dot-status bg-success"></span>
+                                    
+                                            <span class="text-success ms-1">Approved</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="dot-status bg-danger"></span>
+                                    
+                                            <span class="text-danger ms-1">Rejected</span>
+                                        }
+                                    </td>
+                                    <td class="text-muted" style="font-size: 0.7rem; max-width: 180px;">
+                                        <div class="text-truncate" title="@request.RejectionReason">
+                                            @(request.Status == RequestStatus.Rejected ? (request.RejectionReason ?? "Evidence invalid") : "---")
+                                        </div>
+                                    </td>
+                                    <td class="text-center pe-3">
+                                        @if (request.Status == RequestStatus.Rejected && !hasActiveSub)
+                                        {
+                                            <a asp-action="Register" asp-route-tierId="@request.TierId" asp-route-retryId="@request.Id" class="btn btn-outline-warning btn-xs-custom py-0">Retry</a>
+                                        }
+                                        else if (request.Status == RequestStatus.Approved)
+                                        {
+                                            <i class="fas fa-check-circle text-success" style="font-size: 0.8rem;"></i>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted" style="font-size: 0.8rem;">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
-                <div class="text-center mt-3">
-                    <p class="text-muted x-small italic">Note: Only the most recent 5 records are shown. Use the download button above for full history.</p>
-                </div>
-            }
+            </div>
+            <div class="text-end px-2">
+                <span class="text-muted italic" style="font-size: 0.65rem;">* Auto-refreshing pending requests every 10 seconds.</span>
+            </div>
         </div>
     </div>
 </div>
 
 @section Styles {
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <style>
+        :root {
+            --navy-blue: #1e293b;
+            --primary-blue: #2563eb;
+            --bg-faded: #f8fafc;
+        }
+
         body {
-            background-color: #f9fbfd;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f1f5f9;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
-        .bg-primary {
-            background: linear-gradient(135deg, #21409a 0%, #1a3175 100%) !important;
-        }
-
-        .table thead th {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05rem;
-            color: #8898aa;
-            border-top: none;
-        }
-
-        .x-small {
-            font-size: 0.75rem;
-        }
-
-        .btn-xs {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-            border-radius: 4px;
-        }
-
-        .bg-success-light {
-            background-color: #e6fffa;
-        }
-
-        .bg-danger-light {
-            background-color: #fff5f5;
-        }
-
-        code {
-            background-color: #edf2f7;
-            color: #2d3748;
-            padding: 0.2rem 0.4rem;
-            border-radius: 4px;
+        .small-text-ui {
             font-size: 0.85rem;
         }
 
+        /* Banner Styles */
+        .bg-navy {
+            background-color: var(--navy-blue);
+        }
+
+        .status-banner {
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-blue) !important;
+        }
+
+        /* Labels & Badges */
+        .label-muted {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #94a3b8;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .badge-status {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .bg-success-subtle {
+            background-color: #dcfce7;
+            color: #15803d;
+        }
+
+        .bg-warn-subtle {
+            background-color: #fef9c3;
+            color: #854d0e;
+        }
+
+        /* Table Styling */
+        .bg-faded {
+            background-color: var(--bg-faded);
+        }
+
+        .table thead th {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .its-badge {
+            background: #f1f5f9;
+            color: #334155;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 0.75rem;
+        }
+
+        /* Buttons */
+        .btn-xs-custom {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            text-transform: uppercase;
+            border-radius: 4px;
+        }
+
+        .alert-danger-custom {
+            background-color: #fff1f2;
+            border: 1px solid #fecdd3;
+            color: #be123c;
+            border-radius: 8px;
+        }
+
+        /* Status Dots */
+        .dot-status {
+            height: 8px;
+            width: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .text-pending {
+            color: #d97706;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
         .animate-fade-in {
-            animation: fadeIn 0.4s ease-in;
+            animation: fadeIn 0.3s ease-out;
         }
 
         @@keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateY(5px);
             }
 
             to {
@@ -282,7 +311,6 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // Auto-refresh logic for Pending requests
             if ($('.subscription-request[data-status="Pending"]').length > 0) {
                 setInterval(function () {
                     $.getJSON('/Subscription/GetLatestStatuses', function (data) {

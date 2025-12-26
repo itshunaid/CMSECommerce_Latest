@@ -10,21 +10,21 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <style>
         body {
-            font-family: 'Segoe UI', sans-serif;
-            padding: 40px;
-            color: #333;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            padding: 30px;
+            color: #2d3748;
+            font-size: 13px; /* Reduced base font size */
         }
 
         /* --- PRINT BUTTON STYLING --- */
         .print-controls {
-            margin-bottom: 30px;
-            padding: 15px;
+            margin-bottom: 25px;
+            padding: 12px;
             background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
         }
 
-        /* Hides the button and background when printing to paper/PDF */
         @@media print {
             .print-controls {
                 display: none !important;
@@ -32,127 +32,147 @@
 
             body {
                 padding: 0;
+                margin: 0;
             }
         }
 
         .receipt-header {
-            border-bottom: 2px solid #21409a;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            border-bottom: 1.5px solid #21409a;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
         }
 
         .logo {
             color: #21409a;
-            font-weight: bold;
-            font-size: 28px;
-            letter-spacing: 1px;
+            font-weight: 800;
+            font-size: 22px; /* Slightly smaller logo */
+            letter-spacing: 0.5px;
         }
 
         .info-label {
-            color: #8898aa;
-            font-size: 11px;
+            color: #718096;
+            font-size: 10px; /* Small label text */
             text-transform: uppercase;
-            font-weight: bold;
-            margin-bottom: 2px;
+            font-weight: 700;
+            margin-bottom: 1px;
         }
 
         .info-value {
-            font-size: 15px;
-            font-weight: bold;
+            font-size: 13px; /* Smaller values */
+            font-weight: 600;
         }
 
         .table-receipt {
-            margin-top: 40px;
-            border-radius: 8px;
-            overflow: hidden;
+            margin-top: 30px;
+            border: 1px solid #edf2f7;
         }
 
             .table-receipt thead {
-                background-color: #f8f9fe;
+                background-color: #f7fafc;
             }
 
+                .table-receipt thead th {
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    color: #4a5568;
+                    border-bottom: 1px solid #edf2f7;
+                }
+
         .footer-note {
-            margin-top: 100px;
-            font-size: 11px;
-            color: #999;
+            margin-top: 80px;
+            font-size: 10px; /* Smallest footer text */
+            color: #a0aec0;
             text-align: center;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 12px;
         }
 
         .txn-id {
-            font-family: monospace;
-            background: #f4f6f9;
-            padding: 2px 6px;
-            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            background: #f1f5f9;
+            padding: 1px 5px;
+            border-radius: 3px;
+            color: #4a5568;
+        }
+
+        .status-pill {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 50px;
+            background: #e6fffa;
+            color: #234e52;
+            border: 1px solid #b2f5ea;
         }
     </style>
 </head>
 <body>
 
-    @* --- PRINT ACTION BUTTON --- *@
     <div class="print-controls text-center">
-        <button onclick="window.print()" class="btn btn-primary px-5 fw-bold shadow-sm">
-            <i class="fas fa-print me-2"></i> Print or Save as PDF
+        <button onclick="window.print()" class="btn btn-primary btn-sm px-4 fw-bold shadow-sm">
+            <i class="fas fa-print me-2"></i> Print Receipt
         </button>
-        <p class="text-muted small mt-2 mb-0">Tip: Select "Save as PDF" in the printer destination to keep a digital copy.</p>
+        <p class="text-muted mt-2 mb-0" style="font-size: 11px;">Select "Save as PDF" to download a copy.</p>
     </div>
 
-    <div class="receipt-header d-flex justify-content-between align-items-center">
+    <div class="receipt-header d-flex justify-content-between align-items-end">
         <div class="logo">WEYPAARI</div>
         <div class="text-end">
-            <h4 class="fw-bold mb-0">PAYMENT RECEIPT</h4>
-            <small class="text-muted">
-                TXN: <span class="txn-id">@Model.Id-@Guid.NewGuid().ToString().ToUpper()</span>
-            </small>
+            <h6 class="fw-bold mb-1" style="letter-spacing: 1px;">PAYMENT RECEIPT</h6>
+            <div class="text-muted" style="font-size: 11px;">
+                TXN: <span class="txn-id">@Model.Id-@Guid.NewGuid().ToString().Substring(0, 8).ToUpper()</span>
+            </div>
         </div>
     </div>
 
-    <div class="row">
+    <div class="row g-0">
         <div class="col-6">
-            <div class="info-label">ITS Number</div>
+            <div class="info-label">Customer ITS</div>
             <div class="info-value">@Model.ItsNumber</div>
         </div>
         <div class="col-6 text-end">
-            <div class="info-label">Date Issued</div>
+            <div class="info-label">Issued On</div>
             <div class="info-value">@DateTime.Now.ToString("dd MMM yyyy, hh:mm tt")</div>
         </div>
     </div>
 
-    <table class="table table-receipt mt-5">
+    <table class="table table-receipt mt-4">
         <thead>
             <tr>
-                <th class="py-3">Description</th>
-                <th class="text-center py-3">Duration</th>
-                <th class="text-end py-3">Status</th>
+                <th class="py-2 ps-3">Item Description</th>
+                <th class="text-center py-2">Validity</th>
+                <th class="text-end py-2 pe-3">Payment Status</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td class="py-3">
-                    <div class="fw-bold">@Model.Tier.Name Subscription Plan</div>
-                    <div class="text-muted small">Access to @Model.Tier.ProductLimit product listings</div>
+                <td class="py-3 ps-3">
+                    <div class="fw-bold">@Model.Tier.Name Plan</div>
+                    <div class="text-muted" style="font-size: 11px;">Listing limit: @Model.Tier.ProductLimit items</div>
                 </td>
-                <td class="text-center py-3 align-middle">@Model.Tier.DurationMonths Months</td>
-                <td class="text-end py-3 align-middle">
-                    <span class="text-success fw-bold">● PAID</span>
+                <td class="text-center py-3 align-middle fw-600">@Model.Tier.DurationMonths Months</td>
+                <td class="text-end py-3 align-middle pe-3">
+                    <span class="status-pill fw-bold">PAID</span>
                 </td>
             </tr>
         </tbody>
     </table>
 
-    <div class="row mt-5">
+    <div class="row mt-4">
         <div class="col-12 text-end">
-            <div class="info-label">Payment Method</div>
-            <div class="info-value text-dark">Processed via Admin Portal</div>
-            <div class="info-label mt-3">Total Amount</div>
-            <div class="fs-3 fw-bold text-primary">SUCCESSFUL</div>
+            <div class="info-label">Mode of Payment</div>
+            <div class="info-value" style="font-size: 12px;">Admin Portal Processing</div>
+
+            <div class="mt-3 py-2 px-3 d-inline-block bg-light rounded border">
+                <div class="info-label text-primary">Transaction Status</div>
+                <div class="fs-5 fw-bold text-dark">SUCCESSFUL</div>
+            </div>
         </div>
     </div>
 
     <div class="footer-note">
-        <p class="mb-1">This is an electronically generated document. No physical signature is required.</p>
-        <p class="mb-0">Weypaari Marketplace &copy; @DateTime.Now.Year</p>
+        <p class="mb-1">This is a system-generated document and requires no physical signature.</p>
+        <p class="mb-0 fw-bold">Weypaari Marketplace &copy; @DateTime.Now.Year</p>
     </div>
 </body>
 </html>

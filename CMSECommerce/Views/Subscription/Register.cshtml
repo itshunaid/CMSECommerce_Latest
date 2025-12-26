@@ -2,45 +2,90 @@
 @model SubscriptionRequestViewModel
 
 @{
-    ViewData["Title"] = "Register Subscription";
+    ViewData["Title"] = "Register Plan";
 }
+
+<style>
+    /* Small Text UI refinements */
+    .reg-container {
+        font-size: 0.85rem;
+    }
+
+    .card-header h5 {
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .form-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #4a5568;
+    }
+
+    .form-control-sm-custom {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+    }
+
+    .btn-action {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        border-radius: 6px;
+    }
+
+    .helper-text {
+        font-size: 0.7rem;
+        color: #718096;
+    }
+</style>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
-<div class="container mt-5">
+<div class="container reg-container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-dark text-white text-center">
-                    <h4>Registration for @Model.TierName</h4>
+        <div class="col-md-5">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white text-center py-3">
+                    <h5 class="mb-0">Registration: @Model.TierName</h5>
                 </div>
                 <div class="card-body p-4">
                     <form asp-action="SubmitRequest" method="post" enctype="multipart/form-data">
-                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                        <div asp-validation-summary="ModelOnly" class="text-danger text-xs mb-3"></div>
                         <input type="hidden" asp-for="TierId" />
 
                         <div class="mb-3">
                             <label asp-for="ITSNumber" class="form-label fw-bold"></label>
-                            <input asp-for="ITSNumber" class="form-control bg-light" readonly />
-                            <span asp-validation-for="ITSNumber" class="text-danger"></span>
+                            <input asp-for="ITSNumber" class="form-control form-control-sm-custom bg-light" readonly />
+                            <span asp-validation-for="ITSNumber" class="text-danger text-xs"></span>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Upload Payment Receipt (Image)</label>
-                            <input type="file" asp-for="Receipt" class="form-control" accept="image/*" required />
-                            <small class="text-muted">Max size: 2MB (JPG, PNG)</small>
-                            <span asp-validation-for="Receipt" class="text-danger"></span>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Payment Receipt</label>
+                            <input type="file" asp-for="Receipt" class="form-control form-control-sm-custom" accept="image/*" required />
+                            <div class="helper-text mt-1"><i class="fas fa-info-circle me-1"></i>Max size: 2MB (JPG or PNG)</div>
+                            <span asp-validation-for="Receipt" class="text-danger text-xs"></span>
                         </div>
 
-                        <hr />
+                        <hr class="opacity-10 mb-4" />
 
-                        <div class="d-flex justify-content-between">
-                            <a asp-action="Index" class="btn btn-secondary">Back to Plans</a>
-                            <button type="submit" class="btn btn-success px-4">Submit Request</button>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a asp-action="Index" class="text-decoration-none text-muted fw-bold" style="font-size: 0.75rem;">
+                                <i class="fas fa-arrow-left me-1"></i> Change Plan
+                            </a>
+                            <button type="submit" class="btn btn-success btn-action px-4 py-2 shadow-sm">
+                                Submit Request
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
+            <p class="text-center text-muted mt-3 helper-text">
+                All requests are typically reviewed within 24 hours.
+            </p>
         </div>
     </div>
 </div>
@@ -49,23 +94,20 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            // Read messages from TempData
             var errorMessage = '@TempData["Error"]';
             var successMessage = '@TempData["Success"]';
 
-            // 1. If user already has a subscription (Error Pop-up)
             if (errorMessage) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Request Active',
-                    text: errorMessage,
+                    title: '<span style="font-size: 1.1rem">Request Active</span>',
+                    html: '<span style="font-size: 0.85rem">' + errorMessage + '</span>',
                     confirmButtonColor: '#198754',
-                    confirmButtonText: 'Go to Status Page',
+                    confirmButtonText: 'View Status',
                     allowOutsideClick: false
                 }).then((result) => {
                     if (result.isConfirmed) {
@@ -74,13 +116,11 @@
                 });
             }
 
-            // 2. If the request was successful (Success Pop-up)
             if (successMessage) {
                 Swal.fire({
                     icon: 'success',
-                    title: 'Submitted!',
-                    text: successMessage,
-                    showConfirmButton: true,
+                    title: '<span style="font-size: 1.1rem">Submitted!</span>',
+                    html: '<span style="font-size: 0.85rem">' + successMessage + '</span>',
                     confirmButtonColor: '#198754'
                 });
             }

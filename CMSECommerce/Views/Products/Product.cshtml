@@ -21,20 +21,12 @@
         }
     }
 
-    var defaultImagePath = "/media/default-product.png";
     if (!allImages.Any())
-        allImages.Add(defaultImagePath);
+        allImages.Add("/media/default-product.png");
 
     // --- Logic Variables ---
     bool isInStock = Model.StockQuantity > 0;
-    double averageRating = Model.AverageRating;
-    int ratingCount = Model.RatingCount;
-    bool userIsAuthenticated = User.Identity.IsAuthenticated;
-
-    // Fix: Ensure reviews are handled as a List to avoid iteration errors
-    var reviewsToDisplay = Model.Reviews?
-        .OrderByDescending(r => r.DateCreated)
-        .ToList() ?? new List<Review>();
+    var reviewsToDisplay = Model.Reviews?.OrderByDescending(r => r.DateCreated).ToList() ?? new List<Review>();
 
     // Helper function to render star icons
     Func<double, IHtmlContent> RenderStars = (rating) =>
@@ -42,128 +34,90 @@
         var content = new HtmlContentBuilder();
         for (int i = 1; i <= 5; i++)
         {
-            if (rating >= i)
-            {
-                content.AppendHtml("<i class='fas fa-star'></i>");
-            }
-            else if (rating > i - 1 && rating < i)
-            {
-                content.AppendHtml("<i class='fas fa-star-half-alt'></i>");
-            }
-            else
-            {
-                content.AppendHtml("<i class='far fa-star'></i>");
-            }
+            if (rating >= i) content.AppendHtml("<i class='fas fa-star'></i>");
+            else if (rating > i - 1 && rating < i) content.AppendHtml("<i class='fas fa-star-half-alt'></i>");
+            else content.AppendHtml("<i class='far fa-star'></i>");
         }
         return content;
     };
 }
 
-<div class="container py-4">
+<div class="container py-3">
 
-    @* --- Breadcrumbs --- *@
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item small">
-                <a asp-controller="Products" asp-action="Index" class="text-amazon-link text-decoration-none">All Products</a>
-            </li>
+    @* --- Breadcrumbs (Smaller Text) --- *@
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb" style="font-size: 0.75rem;">
+            <li class="breadcrumb-item"><a asp-controller="Products" asp-action="Index" class="text-amazon-link text-decoration-none">All Products</a></li>
             @if (Model.Category != null)
             {
-                <li class="breadcrumb-item small">
-                    <a asp-controller="Products" asp-action="Index" asp-route-slug="@Model.Category.Slug" class="text-amazon-link text-decoration-none">@Model.Category.Name</a>
-                </li>
+                <li class="breadcrumb-item"><a asp-controller="Products" asp-action="Index" asp-route-slug="@Model.Category.Slug" class="text-amazon-link text-decoration-none">@Model.Category.Name</a></li>
             }
-            <li class="breadcrumb-item active small text-muted" aria-current="page">@Model.Name</li>
+            <li class="breadcrumb-item active text-muted" aria-current="page">@Model.Name</li>
         </ol>
     </nav>
 
-    <div class="row">
+    <div class="row g-4">
         @* --- Left: Image Gallery --- *@
-        <div class="col-lg-5 mb-4 product-image-section">
-            <div class="main-image-container border rounded p-3 shadow-sm bg-white text-center">
-                <img id="mainImage"
-                     src="@allImages.First()"
-                     class="img-fluid product-main-img"
-                     alt="@Model.Name" />
+        <div class="col-lg-5 col-md-6">
+            <div class="main-image-container border rounded p-3 bg-white text-center shadow-sm">
+                <img id="mainImage" src="@allImages.First()" class="img-fluid product-main-img" alt="@Model.Name" />
             </div>
 
             @if (allImages.Count > 1)
             {
-                <div class="row g-2 mt-3 thumbnail-gallery">
+                <div class="d-flex flex-wrap gap-2 mt-2 justify-content-center">
                     @foreach (var img in allImages)
                     {
-                        <div class="col-3 col-sm-2 col-md-3 col-lg-2">
-                            <img src="@img"
-                                 class="img-fluid rounded border thumb-img"
-                                 data-img="@img"
-                                 alt="Product thumbnail" />
-                        </div>
+                        <img src="@img" class="thumb-img rounded border" data-img="@img" alt="thumbnail" />
                     }
                 </div>
             }
         </div>
 
-        @* --- Center: Product Details --- *@
-        <div class="col-lg-4 mb-4 product-details-section">
-            <h1 class="h3 fw-bold mb-1 product-title">@Model.Name</h1>
+        @* --- Center: Product Info --- *@
+        <div class="col-lg-4 col-md-6">
+            <h1 class="h4 fw-bold mb-1">@Model.Name</h1>
 
-            @if (Model.Category != null)
-            {
-                <div class="mb-2 small">
-                    Category: <a asp-controller="Products" asp-action="Index" asp-route-slug="@Model.Category.Slug" class="text-amazon-link text-decoration-none">@Model.Category.Name</a>
-                </div>
-            }
-
-            <hr class="my-2" />
-
-            <div class="star-rating mb-2">
-                @RenderStars(averageRating)
-                <a href="#reviews-section" class="text-amazon-link small ms-2 review-link">(@ratingCount ratings)</a>
+            <div class="d-flex align-items-center mb-2" style="font-size: 0.8rem;">
+                <span class="star-rating me-2">@RenderStars(Model.AverageRating)</span>
+                <a href="#reviews-section" class="text-amazon-link text-decoration-none">(@Model.RatingCount ratings)</a>
             </div>
 
-            <div class="price-box my-3 p-3 rounded bg-light-amazon">
-                <span class="price-label text-danger fw-bold me-2">Price:</span>
-                <span class="price-value fw-bolder">@Model.Price.ToString("C", new CultureInfo("en-IN"))</span>
+            <hr class="my-2 opacity-50" />
+
+            <div class="price-display mb-3">
+                <span class="text-danger h3 fw-bold mb-0">@Model.Price.ToString("C", new CultureInfo("en-IN"))</span>
+                <div class="text-muted" style="font-size: 0.75rem;">Inclusive of all taxes</div>
             </div>
 
-            <hr class="my-3" />
-
-            @* --- Vendor Details (FIXED: Null-Safe and Professional) --- *@
+            @* Vendor Card (Clean Dashboard Style) *@
             @if (ViewBag.UserProfile != null)
             {
-                <div class="vendor-card mb-4 p-3 border rounded shadow-sm bg-white">
-                    <h4 class="h6 fw-bold text-dark mb-2"><i class="fas fa-store-alt me-2"></i>Sold by:</h4>
-                    <div class="small">
-                        <p class="mb-1 fw-bold text-amazon-teal">@ViewBag.UserProfile.FirstName @ViewBag.UserProfile.LastName</p>
+                <div class="vendor-box p-2 border rounded bg-light mb-3" style="font-size: 0.8rem;">
+                    <div class="text-muted fw-bold mb-1" style="font-size: 0.7rem; text-transform: uppercase;">Sold By</div>
+                    <div class="fw-bold text-amazon-link">@ViewBag.UserProfile.FirstName @ViewBag.UserProfile.LastName</div>
 
-                        @* Safely check the User navigation property for Address/Phone *@
-                        @if (ViewBag.UserProfile.User != null)
+                    @if (ViewBag.UserProfile.User != null)
+                    {
+                        <div class="text-muted mt-1"><i class="fas fa-map-marker-alt me-1"></i> @ViewBag.UserProfile.User.HomeAddress</div>
+                    }
+
+                    <div class="d-flex gap-3 mt-2 pt-2 border-top">
+                        @if (!string.IsNullOrEmpty(ViewBag.UserProfile.WhatsAppNumber))
                         {
-                            <p class="mb-1 text-muted"><i class="fas fa-map-marker-alt me-2"></i>@ViewBag.UserProfile.User.HomeAddress</p>
-                            <p class="mb-1 text-muted"><i class="fas fa-phone-alt me-2"></i>@ViewBag.UserProfile.User.HomePhoneNumber</p>
+                            <a href="https://wa.me/@ViewBag.UserProfile.WhatsAppNumber" target="_blank" class="text-success text-decoration-none"><i class="fab fa-whatsapp"></i> Chat</a>
                         }
-
-                        <div class="vendor-socials mt-2 pt-2 border-top d-flex gap-3">
-                            @if (!string.IsNullOrEmpty(ViewBag.UserProfile.WhatsAppNumber))
-                            {
-                                <a href="https://wa.me/@ViewBag.UserProfile.WhatsAppNumber" target="_blank" class="text-success" title="Contact on WhatsApp"><i class="fab fa-whatsapp fa-lg"></i></a>
-                            }
-                            @if (!string.IsNullOrEmpty(ViewBag.UserProfile.FacebookUrl))
-                            {
-                                <a href="@ViewBag.UserProfile.FacebookUrl" target="_blank" class="text-primary" title="Facebook Profile"><i class="fab fa-facebook fa-lg"></i></a>
-                            }
-                            @if (!string.IsNullOrEmpty(ViewBag.UserProfile.InstagramUrl))
-                            {
-                                <a href="@ViewBag.UserProfile.InstagramUrl" target="_blank" style="color: #E4405F;" title="Instagram Profile"><i class="fab fa-instagram fa-lg"></i></a>
-                            }
-                        </div>
+                        @if (!string.IsNullOrEmpty(ViewBag.UserProfile.FacebookUrl))
+                        {
+                            <a href="@ViewBag.UserProfile.FacebookUrl" target="_blank" class="text-primary text-decoration-none"><i class="fab fa-facebook"></i> Profile</a>
+                        }
                     </div>
                 </div>
             }
 
-            <div class="description-highlights">
-                <h4 class="h6 fw-bold text-dark">About this item:</h4>
-                <div class="small text-muted">
+            <div class="about-item">
+                <h6 class="fw-bold mb-1" style="font-size: 0.85rem;">About this item</h6>
+                <div class="text-muted" style="font-size: 0.8rem; line-height: 1.5;">
                     @Html.Raw(Model.Description.Length > 300 ? Model.Description.Substring(0, 300) + "..." : Model.Description)
                 </div>
             </div>
@@ -171,28 +125,27 @@
 
         @* --- Right: Buy Box --- *@
         <div class="col-lg-3">
-            <div class="buy-box border rounded p-3 bg-white shadow-sm @(isInStock ? "in-stock-box" : "out-of-stock-box")">
+            <div class="buy-box border rounded p-3 bg-white shadow-sm sticky-top" style="top: 1rem;">
+                <div class="h4 fw-bold text-danger mb-3">@Model.Price.ToString("C", new CultureInfo("en-IN"))</div>
 
-                <h4 class="price-value-box fw-bolder mb-3">@Model.Price.ToString("C", new CultureInfo("en-IN"))</h4>
-
-                <p class="stock-info fw-bold mb-3">
+                <div class="mb-3">
                     @if (isInStock)
                     {
-                        <span class="text-success">In Stock.</span>
-                        <span class="text-muted small d-block">Ships from Weypaari.</span>
+                        <span class="text-success fw-bold d-block">In Stock</span>
+                        <span class="text-muted" style="font-size: 0.75rem;">Ships from our local warehouse</span>
                     }
                     else
                     {
-                        <span class="text-danger">Temporarily out of stock.</span>
+                        <span class="text-danger fw-bold">Out of Stock</span>
                     }
-                </p>
+                </div>
 
                 <form asp-controller="Cart" asp-action="Add" method="post">
                     <input type="hidden" name="id" value="@Model.Id" />
 
                     <div class="d-flex align-items-center mb-3">
-                        <label class="fw-bold me-3 small text-muted">Qty:</label>
-                        <select name="quantity" class="form-select form-select-sm w-auto" style="min-width: 80px;" @(isInStock ? "" : "disabled")>
+                        <label class="me-2 text-muted fw-bold" style="font-size: 0.75rem;">Quantity:</label>
+                        <select name="quantity" class="form-select form-select-sm w-auto" @(isInStock ? "" : "disabled")>
                             @for (int i = 1; i <= Math.Min(10, Model.StockQuantity); i++)
                             {
                                 <option value="@i">@i</option>
@@ -200,106 +153,84 @@
                         </select>
                     </div>
 
-                    @if (isInStock)
-                    {
-                        <button type="submit" class="btn btn-amazon-yellow btn-lg w-100 mb-2">
-                            <i class="fas fa-cart-plus me-1"></i> Add to Cart
-                        </button>
-                    }
-                    else
-                    {
-                        <button class="btn btn-danger btn-lg w-100" disabled>Out of Stock</button>
-                    }
+                    <button type="submit" class="btn btn-amazon-yellow w-100 mb-2 py-2" @(isInStock ? "" : "disabled")>
+                        <i class="fas fa-cart-plus me-1"></i> Add to Cart
+                    </button>
                 </form>
 
-                <ul class="list-unstyled small text-muted mt-3 pt-3 border-top">
-                    <li><i class="fas fa-truck me-2 text-muted"></i> Eligible for Free Shipping</li>
-                    <li><i class="fas fa-lock me-2 text-muted"></i> Secure transaction</li>
-                    <li><i class="fas fa-box-open me-2 text-muted"></i> 7-Day Return Policy</li>
-                </ul>
+                <div class="border-top mt-3 pt-3" style="font-size: 0.75rem;">
+                    <div class="d-flex align-items-center mb-2 text-muted">
+                        <i class="fas fa-lock me-2"></i> Secure transaction
+                    </div>
+                    <div class="d-flex align-items-center text-muted">
+                        <i class="fas fa-truck me-2"></i> Eligible for FREE Shipping
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <hr class="my-5" />
-
-    <div class="row">
+    @* --- Full Description --- *@
+    <div class="row mt-5">
         <div class="col-lg-9">
-            <h3 class="fw-bold mb-3">Product Description</h3>
-            <div class="text-dark product-full-description">
+            <h5 class="fw-bold border-bottom pb-2">Product Description</h5>
+            <div class="text-dark py-2" style="font-size: 0.9rem;">
                 @Html.Raw(Model.Description)
             </div>
         </div>
     </div>
 
-    <hr class="my-5" id="reviews-section" />
-
-    @* --- Reviews Section --- *@
-    <div class="row">
+    @* --- Reviews --- *@
+    <div class="row mt-5" id="reviews-section">
         <div class="col-lg-9">
-            <h3 class="fw-bold mb-4">Customer Reviews</h3>
+            <h5 class="fw-bold mb-4">Customer Reviews</h5>
 
-            @if (userIsAuthenticated)
+            @if (User.Identity.IsAuthenticated)
             {
-                <div class="add-review-section mb-5 p-4 border rounded bg-light-amazon">
-                    <h4 class="h5 fw-bold mb-3">Write a Customer Review</h4>
+                <div class="p-3 border rounded bg-light mb-4 shadow-sm">
+                    <h6 class="fw-bold mb-3" style="font-size: 0.85rem;">Rate this product</h6>
                     <form asp-controller="Reviews" asp-action="AddReview" method="post">
                         <input type="hidden" name="ProductId" value="@Model.Id" />
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold small">Overall Rating:</label>
-                            <div id="rating-stars" class="rating-input d-flex">
+                            <div class="rating-input d-flex">
                                 @for (int i = 5; i >= 1; i--)
                                 {
                                     <input type="radio" id="star@(i)" name="Rating" value="@i" required />
-                                    <label for="star@(i)" title="@(i) stars" class="fas fa-star"></label>
+                                    <label for="star@(i)" class="fas fa-star"></label>
                                 }
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="title" class="form-label fw-bold small">Review Headline:</label>
-                            <input type="text" class="form-control" id="title" name="Title" maxlength="100" placeholder="Summarize your experience" required />
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm" name="Title" placeholder="Headline" required />
                         </div>
-
                         <div class="mb-3">
-                            <label for="comment" class="form-label fw-bold small">Detailed Review:</label>
-                            <textarea class="form-control" id="comment" name="Comment" rows="3" maxlength="1000" placeholder="What did you like or dislike?" required></textarea>
+                            <textarea class="form-control form-control-sm" name="Comment" rows="2" placeholder="Write your feedback..." required></textarea>
                         </div>
-
-                        <button type="submit" class="btn btn-amazon-yellow mt-2">Submit Review</button>
+                        <button type="submit" class="btn btn-dark btn-sm px-4">Post</button>
                     </form>
                 </div>
             }
-            else
-            {
-                <div class="alert alert-info py-2" role="alert">
-                    Please <a asp-controller="Account" asp-action="Login" asp-route-ReturnUrl="@Context.Request.Path" class="alert-link">log in</a> to write a review.
-                </div>
-            }
-
-            <h4 class="h5 fw-bold mb-3">All Reviews (@reviewsToDisplay.Count)</h4>
 
             <div class="review-list">
                 @if (reviewsToDisplay.Any())
                 {
                     @foreach (var review in reviewsToDisplay)
                     {
-                        <div class="review-item border-bottom py-3 mb-2">
+                        <div class="border-bottom py-3">
                             <div class="d-flex align-items-center mb-1">
-                                <div class="star-rating me-2 small">
-                                    @RenderStars((double)review.Rating)
-                                </div>
-                                <span class="fw-bold">@review.Title</span>
+                                <span class="star-rating text-xs me-2" style="font-size: 0.7rem;">@RenderStars((double)review.Rating)</span>
+                                <span class="fw-bold text-sm" style="font-size: 0.85rem;">@review.Title</span>
                             </div>
-                            <p class="small text-muted mb-2">By <strong>@review.UserName</strong> on @review.DateCreated.ToString("d MMMM yyyy")</p>
-                            <p class="mb-0">@review.Comment</p>
+                            <div class="text-muted mb-2" style="font-size: 0.75rem;">By @review.UserName &bull; @review.DateCreated.ToString("MMM dd, yyyy")</div>
+                            <p class="mb-0 text-sm" style="font-size: 0.85rem;">@review.Comment</p>
                         </div>
                     }
                 }
                 else
                 {
-                    <p class="text-muted">No reviews yet. Be the first to rate this product!</p>
+                    <p class="text-muted italic small">No reviews yet.</p>
                 }
             </div>
         </div>
@@ -319,14 +250,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             const firstThumb = document.querySelector('.thumb-img');
             if(firstThumb) firstThumb.classList.add('active-thumb');
-
-            const reviewLink = document.querySelector('.review-link');
-            if (reviewLink) {
-                reviewLink.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    document.getElementById('reviews-section').scrollIntoView({ behavior: 'smooth' });
-                });
-            }
         });
     </script>
 }
@@ -334,65 +257,55 @@
 @section Styles {
     <style>
         :root {
-            --amazon-price-red: #B12704;
-            --amazon-yellow-action: #FFD814;
-            --amazon-yellow-action-hover: #F7CA00;
-            --amazon-link-teal: #007185;
-            --amazon-star-gold: #ffa41c;
-            --amazon-background-light: #f7f7ff;
+            --amazon-yellow: #FFD814;
+            --amazon-yellow-hover: #F7CA00;
+            --amazon-teal: #007185;
+            --amazon-red: #B12704;
+            --star-gold: #ffa41c;
         }
 
-        .text-amazon-link, .text-amazon-teal {
-            color: var(--amazon-link-teal) !important;
-        }
-
-        .bg-light-amazon {
-            background-color: var(--amazon-background-light) !important;
+        .text-amazon-link {
+            color: var(--amazon-teal) !important;
         }
 
         .product-main-img {
-            max-height: 480px;
+            max-height: 400px;
             object-fit: contain;
             width: 100%;
         }
 
         .thumb-img {
-            height: 60px;
+            width: 50px;
+            height: 50px;
             object-fit: contain;
             cursor: pointer;
-            border: 1px solid #ddd !important;
             padding: 2px;
+            transition: all 0.2s;
         }
 
         .active-thumb {
-            border: 2px solid var(--amazon-link-teal) !important;
-            box-shadow: 0 0 0 2px #fff;
+            border: 2px solid var(--amazon-teal) !important;
         }
 
         .star-rating i {
-            color: var(--amazon-star-gold);
+            color: var(--star-gold);
         }
 
-        .price-value-box {
-            color: var(--amazon-price-red) !important;
-            font-size: 1.7rem !important;
-        }
-
-        /* Amazon Buttons */
         .btn-amazon-yellow {
-            background-color: var(--amazon-yellow-action) !important;
+            background-color: var(--amazon-yellow) !important;
             border-color: #FCD200 !important;
             font-weight: 700;
             color: #111;
+            font-size: 0.85rem;
         }
 
             .btn-amazon-yellow:hover {
-                background-color: var(--amazon-yellow-action-hover) !important;
+                background-color: var(--amazon-yellow-hover) !important;
             }
 
-        /* Rating Stars Input */
         .rating-input {
             direction: rtl;
+            gap: 4px;
         }
 
             .rating-input > input {
@@ -401,21 +314,19 @@
 
             .rating-input > label {
                 color: #ddd;
-                font-size: 1.5rem;
+                font-size: 1.2rem;
                 cursor: pointer;
-                transition: color 0.1s;
             }
 
                 .rating-input > input:checked ~ label,
                 .rating-input > label:hover,
                 .rating-input > label:hover ~ label {
-                    color: var(--amazon-star-gold);
+                    color: var(--star-gold);
                 }
 
         @@media (min-width: 992px) {
-            .buy-box {
-                position: sticky;
-                top: 20px;
+            .sticky-top {
+                z-index: 10;
             }
         }
     </style>
