@@ -91,59 +91,52 @@ namespace CMSECommerce.Controllers
                 .ToListAsync();
             return View(requests);
         }
-
         // 5. Approval Logic (AC 4)
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Approve(int requestId)
         {
-            // 1. Fetch the request with Tier details
             var request = await _context.SubscriptionRequests
                 .Include(r => r.Tier)
                 .FirstOrDefaultAsync(r => r.Id == requestId);
 
             if (request == null) return NotFound();
 
-            // 2. Fetch the Identity User
             var user = await _userManager.FindByIdAsync(request.UserId);
             if (user == null) return BadRequest("User not found.");
 
-            // 3. Update Request Status
             request.Status = RequestStatus.Approved;
 
-            // 4. Update Role to Subscriber
             if (!await _userManager.IsInRoleAsync(user, "Subscriber"))
             {
                 await _userManager.AddToRoleAsync(user, "Subscriber");
             }
 
-            // 5. Fetch and Update UserProfile
             var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
 
             if (profile != null)
             {
-                // Set Subscription Dates
-                profile.SubscriptionStartDate = DateTime.Now;
+                DateTime currentEnd = (profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate.Value > DateTime.Now)
+                                      ? profile.SubscriptionEndDate.Value
+                                      : DateTime.Now;
 
-                // Calculate End Date based on Tier Duration (assuming DurationMonths exists in Tier model)
-                profile.SubscriptionEndDate = DateTime.Now.AddMonths(request.Tier.DurationMonths);
+                // Set the start of THIS specific period
+                profile.SubscriptionStartDate = currentEnd;
 
-                // Update Product Limit from the Tier
+                // Stack the months
+                DateTime newEnd = currentEnd.AddMonths(request.Tier.DurationMonths);
+                profile.SubscriptionEndDate = newEnd;
+
                 profile.CurrentProductLimit = request.Tier.ProductLimit;
 
-                // Ensure the profile is tracked for update
                 _context.UserProfiles.Update(profile);
             }
             else
             {
-                // Fallback: If for some reason a profile doesn't exist, you might want to log this 
-                // or create a basic one to prevent the subscription from being "lost".
-                return BadRequest("User profile missing. Cannot update subscription limits.");
+                return BadRequest("User profile missing.");
             }
 
-            // 6. Final Save (Updates Request and Profile in one transaction)
             await _context.SaveChangesAsync();
-
-            TempData["Success"] = $"User {user.UserName} is now a Subscriber. Limit: {request.Tier.ProductLimit} products.";
+            TempData["Success"] = $"Approved! New expiry: {profile.SubscriptionEndDate?.ToString("dd MMM yyyy")}";
 
             return RedirectToAction(nameof(AdminDashboard));
         }
@@ -260,6 +253,44 @@ namespace CMSECommerce.Controllers
                 .ToListAsync();
 
             return Json(statuses);
+        }
+
+        [Authorize]
+        public async Task<IActionResult> DownloadReceipt(int requestId)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            // Ensure the request belongs to the user and is actually approved
+            var request = await _context.SubscriptionRequests
+                .Include(r => r.Tier)
+                .FirstOrDefaultAsync(r => r.Id == requestId && r.UserId == userId && r.Status == RequestStatus.Approved);
+
+            if (request == null)
+            {
+                return NotFound("Receipt not found or request not yet approved.");
+            }
+
+            // Create the receipt content
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("============================================");
+            sb.AppendLine("           SUBSCRIPTION RECEIPT             ");
+            sb.AppendLine("============================================");
+            sb.AppendLine($"Receipt ID:    {request.Id}");
+            sb.AppendLine($"Date Issued:   {DateTime.Now:dd MMM yyyy}");
+            sb.AppendLine("--------------------------------------------");
+            sb.AppendLine($"User ITS:      {request.ItsNumber}");
+            sb.AppendLine($"Plan Name:     {request.Tier.Name}");
+            sb.AppendLine($"Duration:      {request.Tier.DurationMonths} Month(s)");
+            sb.AppendLine($"Product Limit: {request.Tier.ProductLimit}");
+            sb.AppendLine("--------------------------------------------");
+            sb.AppendLine("Status:        PAID & APPROVED");
+            sb.AppendLine("============================================");
+            sb.AppendLine("Thank you for your business!");
+
+            var fileName = $"Receipt_{request.ItsNumber}_{request.Id}.txt";
+            var fileBytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+
+            return File(fileBytes, "text/plain", fileName);
         }
     }
 }
