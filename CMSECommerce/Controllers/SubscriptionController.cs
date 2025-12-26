@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.Metrics;
 
 namespace CMSECommerce.Controllers
 {
@@ -246,6 +247,19 @@ namespace CMSECommerce.Controllers
                 .ToListAsync();
 
             return View(requests);
+        }
+
+        // Add this to your SubscriptionController.cs
+        [HttpGet]
+        public async Task<IActionResult> GetLatestStatuses()
+        {
+            var userId = _userManager.GetUserId(User);
+            var statuses = await _context.SubscriptionRequests
+                .Where(r => r.UserId == userId)
+                .Select(r => new { id = r.Id, status = r.Status.ToString() })
+                .ToListAsync();
+
+            return Json(statuses);
         }
     }
 }
