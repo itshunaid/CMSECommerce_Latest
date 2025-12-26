@@ -289,7 +289,7 @@ namespace CMSECommerce.Controllers
             }
             
             
-            var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.User.UserName.ToLower() == product.OwnerId.ToLower());
+            var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.User.UserName.ToLower() == product.OwnerName.ToLower());
             ViewBag.UserProfile = userProfile;
             // Return the view with the product data
             return View(product);

@@ -234,7 +234,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 // 3. Optimize Product Updates: Use Bulk Update logic
                 // We query for both UserName and Id once to handle legacy data consistency
                 var productsToUpdate = await _context.Products
-                    .Where(p => p.OwnerId == user.Id || p.OwnerId == user.UserName)
+                    .Where(p => p.OwnerName == user.Id || p.OwnerName == user.UserName)
                     .ToListAsync();
 
                 if (productsToUpdate.Any())
@@ -763,8 +763,8 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 // d. Delete Product records (Assuming products have an OwnerId/UserId field)
                 // Depending on your model, you might need to handle product files/gallery too.
                 // Assuming Product.OwnerId is the UserId (string)
-                var userProductsByUserName = await _context.Products.Where(p => p.OwnerId == user.UserName).ToListAsync();
-                var userProductsByOwerId = await _context.Products.Where(p => p.OwnerId == user.Id).ToListAsync();
+                var userProductsByUserName = await _context.Products.Where(p => p.OwnerName == user.UserName).ToListAsync();
+                var userProductsByOwerId = await _context.Products.Where(p => p.OwnerName == user.Id).ToListAsync();
                 // **WARNING:** Deleting products may require file system cleanup of images/gallery. 
                 // This is a complex dependency that should be handled explicitly.
                 _context.Products.RemoveRange(userProductsByUserName);

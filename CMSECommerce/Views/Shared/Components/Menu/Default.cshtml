@@ -56,7 +56,7 @@
 @if (User.Identity?.IsAuthenticated == true)
 {
     @* CUSTOMER LINKS (Requesting an upgrade) *@
-    if (User.IsInRole("Customer") && !User.IsInRole("Subscriber"))
+   @*  if (User.IsInRole("Customer") && !User.IsInRole("Subscriber"))
     {
         <li class="nav-item ms-lg-2">
             <a class="nav-link amazon-sub-nav__link amazon-sub-nav__link--request"
@@ -72,5 +72,5 @@
                 Status
             </a>
         </li>
-    }
+    } *@
 }

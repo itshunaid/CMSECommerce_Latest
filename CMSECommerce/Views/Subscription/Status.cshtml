@@ -1,0 +1,168 @@
+﻿@model IEnumerable<CMSECommerce.Models.SubscriptionRequest>
+
+@{
+    ViewData["Title"] = "My Subscription Status";
+    var profile = (CMSECommerce.Models.UserProfile)ViewBag.UserProfile;
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <h2 class="mb-4 text-center">Your Subscription History</h2>
+
+            @if (!Model.Any())
+            {
+                <div class="alert alert-info text-center shadow-sm">
+                    <p class="mb-3">You haven't submitted any subscription requests yet.</p>
+                    <a asp-action="Index" class="btn btn-primary px-4">View Plans</a>
+                </div>
+            }
+            else
+            {
+                <div class="list-group">
+                    @foreach (var request in Model.OrderByDescending(r => r.CreatedAt))
+                    {
+                        <div class="list-group-item list-group-item-action p-4 mb-4 shadow-sm border rounded">
+                            <div class="d-flex w-100 justify-content-between align-items-center mb-3">
+                                <h5 class="mb-1 fw-bold">
+                                    <i class="fas fa-box-open me-2 text-primary"></i>@request.Tier.Name Package
+                                </h5>
+                                <small class="text-muted">
+                                    <i class="far fa-calendar-alt me-1"></i>Submitted: @request.CreatedAt.ToString("dd MMM yyyy")
+                                </small>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="p-3 bg-light rounded h-100">
+                                        <p class="mb-2"><strong>ITS:</strong> @request.ItsNumber</p>
+                                        <p class="mb-0">
+                                            <strong>Status:</strong>
+                                            @if (request.Status == RequestStatus.Pending)
+                                            {
+                                                <span class="badge bg-warning text-dark"><i class="fas fa-spinner fa-spin me-1"></i>Pending Review</span>
+                                            }
+                                            else if (request.Status == RequestStatus.Approved)
+                                            {
+                                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Approved</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Rejected</span>
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-8 border-start">
+                                    @if (request.Status == RequestStatus.Pending)
+                                    {
+                                        <div class="alert alert-light border h-100 mb-0">
+                                            <i class="fas fa-info-circle text-info me-2"></i>
+                                            Your request is currently being reviewed. You will be upgraded to <strong>Subscriber/Seller</strong> once the admin verifies your payment.
+                                        </div>
+                                    }
+                                    else if (request.Status == RequestStatus.Approved)
+                                    {
+                                        <div class="alert alert-success h-100 mb-0">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <span><i class="fas fa-shield-alt me-2"></i><strong>Active Subscription</strong></span>
+
+                                                @if (profile != null && profile.SubscriptionEndDate.HasValue)
+                                                {
+                                                    TimeSpan timeLeft = profile.SubscriptionEndDate.Value - DateTime.Now;
+
+                                                    @if (timeLeft.TotalSeconds > 0)
+                                                    {
+                                                        <span class="badge bg-dark">
+                                                            @if (timeLeft.TotalDays >= 1)
+                                                            {
+                                                                <text>@((int)timeLeft.TotalDays)d @timeLeft.Hours h Left</text>
+                                                            }
+                                                            else
+                                                            {
+                                                                <text>@timeLeft.Hours h @timeLeft.Minutes m Left</text>
+                                                            }
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-danger">Expired</span>
+                                                    }
+                                                }
+                                            </div>
+
+                                            @if (profile != null && profile.SubscriptionStartDate.HasValue && profile.SubscriptionEndDate.HasValue)
+                                            {
+                                                var totalDuration = (profile.SubscriptionEndDate.Value - profile.SubscriptionStartDate.Value).TotalSeconds;
+                                                var elapsed = (DateTime.Now - profile.SubscriptionStartDate.Value).TotalSeconds;
+                                                var remainingSecs = (profile.SubscriptionEndDate.Value - DateTime.Now).TotalSeconds;
+                                                var remainingDays = (profile.SubscriptionEndDate.Value - DateTime.Now).TotalDays;
+
+                                                var displayPercent = Math.Max(0, Math.Min(100, (remainingSecs / totalDuration) * 100));
+
+                                                string barColor = "bg-success";
+                                                if (remainingDays <= 5) { barColor = "bg-danger"; }
+                                                else if (remainingDays <= 10) { barColor = "bg-warning text-dark"; }
+
+                                                <div class="small text-muted mb-1 d-flex justify-content-between">
+                                                    <span>Start: @profile.SubscriptionStartDate.Value.ToString("dd MMM yyyy")</span>
+                                                    <span class="@(remainingDays <= 5 ? "text-danger fw-bold" : "")">
+                                                        Ends: @profile.SubscriptionEndDate.Value.ToString("dd MMM yyyy")
+                                                    </span>
+                                                </div>
+
+                                                <div class="progress mb-3" style="height: 12px;">
+                                                    <div class="progress-bar progress-bar-striped progress-bar-animated @barColor"
+                                                         role="progressbar"
+                                                         style="width: @displayPercent.ToString("0")%">
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex gap-2">
+                                                    <a href="/Seller/Dashboard" class="btn btn-sm btn-success px-3">Dashboard</a>
+                                                    @if (remainingDays <= 7 && remainingDays > 0)
+                                                    {
+                                                        <a asp-action="Index" class="btn btn-sm btn-outline-danger px-3 shadow-sm">
+                                                            <i class="fas fa-sync-alt me-1"></i>Renew Now
+                                                        </a>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else if (request.Status == RequestStatus.Rejected)
+                                    {
+                                        <div class="alert alert-danger h-100 mb-0">
+                                            <h6 class="alert-heading fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>Request Rejected</h6>
+                                            <p class="small mb-2">@request.RejectionReason</p>
+                                            <a asp-action="Index" class="btn btn-sm btn-outline-danger">Resubmit Payment Proof</a>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <style>
+        .list-group-item {
+            transition: transform 0.2s;
+        }
+
+            .list-group-item:hover {
+                transform: scale(1.005);
+            }
+
+        .progress {
+            border-radius: 10px;
+            background-color: #eee;
+        }
+    </style>
+}

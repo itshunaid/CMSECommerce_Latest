@@ -20,7 +20,7 @@ var connectionString = builder.Configuration.GetConnectionString("DbConnection")
     ?? throw new InvalidOperationException("Connection string 'DbConnection' not found.");
 
 Console.WriteLine($"--> Current Environment: {builder.Environment.EnvironmentName}");
-Console.WriteLine($"--> Using Connection String: {connectionString?.Split(';')[0]}..."); // Log only the server part for security
+Console.WriteLine($"--> Using Connection String: {connectionString?.Split(';')[0]}...");
 
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlServer(connectionString)
@@ -81,8 +81,6 @@ if (app.Environment.IsDevelopment())
     var config = (IConfigurationRoot)app.Configuration;
     Console.WriteLine("=========================================");
     Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");
-
-    // This shows which 'provider' the connection string is coming from
     var provider = config.GetSection("ConnectionStrings:DbConnection");
     foreach (var source in config.Providers.Reverse())
     {
@@ -96,40 +94,42 @@ if (app.Environment.IsDevelopment())
 }
 
 // --- 2. SEEDING LOGIC (ENVIRONMENT SENSITIVE) ---
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<DataContext>();
+
     try
     {
-        // In Development: Run Migrations AND Seed Admin/Roles/Stores
-        DbSeeder.SeedData(app.Services);
-    }
-    catch (Exception ex)
-    {
-        var logger = app.Services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred during DEVELOPMENT seeding.");
-    }
-}
-else
-{
-    try
-    {
-        // In Production: ONLY Run Migrations (No dummy data seeding)
-        using (var scope = app.Services.CreateScope())
+        // Apply migrations for both Dev and Prod
+        context.Database.Migrate();
+
+        // --- NEW: SUBSCRIPTION TIER SEEDING (AC 1) ---
+        if (!context.SubscriptionTiers.Any())
         {
-            var context = scope.ServiceProvider.GetRequiredService<DataContext>();
-            context.Database.Migrate();
+            context.SubscriptionTiers.AddRange(
+                new SubscriptionTier { Name = "Basic", Price = 500, DurationMonths = 6, ProductLimit = 25 },
+                new SubscriptionTier { Name = "Intermediate", Price = 900, DurationMonths = 12, ProductLimit = 50 },
+                new SubscriptionTier { Name = "Premium", Price = 1500, DurationMonths = 12, ProductLimit = 120 }
+            );
+            context.SaveChanges();
+            Console.WriteLine("--> Subscription Tiers Seeded Successfully.");
+        }
+
+        // Environment-specific seeding
+        if (app.Environment.IsDevelopment())
+        {
+            DbSeeder.SeedData(app.Services);
         }
     }
     catch (Exception ex)
     {
-        var logger = app.Services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred applying migrations in PRODUCTION.");
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred during database seeding/migration.");
     }
 }
 
 // --- 3. MIDDLEWARE PIPELINE ---
-
-
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -138,7 +138,6 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
 
 // Localization

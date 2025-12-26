@@ -1,4 +1,5 @@
 ﻿using CMSECommerce.Infrastructure.Validation;
+using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -43,7 +44,7 @@ namespace CMSECommerce.Models
         public IEnumerable<string> GalleryImages { get; set; }
 
         // Owner (subscriber) who created the product
-        public string OwnerId { get; set; }
+        public string OwnerName { get; set; }
 
         // Product workflow status
         public ProductStatus Status { get; set; } = ProductStatus.Approved;
@@ -67,6 +68,13 @@ namespace CMSECommerce.Models
 
         [NotMapped]
         public int RatingCount => Reviews?.Count ?? 0;
+
+        // Foreign Key for the User
+        public string UserId { get; set; }
+
+        // Navigation property
+        [ForeignKey("UserId")]
+        public virtual IdentityUser User { get; set; }
     }
 
     public class Review

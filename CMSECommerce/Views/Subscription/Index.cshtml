@@ -1,0 +1,34 @@
+﻿@model IEnumerable<CMSECommerce.Models.SubscriptionTier>
+
+@{
+    ViewData["Title"] = "Select Subscription Plan";
+}
+
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h2 class="display-4">Choose Your Plan</h2>
+        <p class="lead">Upgrade to a Seller account and start listing your products.</p>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        @foreach (var tier in Model)
+        {
+            <div class="col">
+                <div class="card h-100 shadow-sm border-primary">
+                    <div class="card-header py-3 bg-primary text-white text-center">
+                        <h4 class="my-0 fw-normal">@tier.Name</h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <h1 class="card-title pricing-card-title">INR @tier.Price</h1>
+                        <ul class="list-unstyled mt-3 mb-4">
+                            <li><strong>@tier.ProductLimit</strong> Products Limit</li>
+                            <li><strong>@tier.DurationMonths</strong> Months Validity</li>
+                            <li class="text-muted small">Seller Role Assignment upon approval</li>
+                        </ul>
+                        <a asp-action="Register" asp-route-tierId="@tier.Id" class="w-100 btn btn-lg btn-outline-primary">Select @tier.Name</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

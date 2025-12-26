@@ -1,0 +1,51 @@
+﻿@using CMSECommerce.Models.ViewModels
+
+@model SubscriptionRequestViewModel
+
+@{
+    ViewData["Title"] = "Register Subscription";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white text-center">
+                    <h4>Registration for @Model.TierName</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="SubmitRequest" method="post" enctype="multipart/form-data">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                        <input type="hidden" asp-for="TierId" />
+
+                        <div class="mb-3">
+                            <label asp-for="ITSNumber" class="form-label fw-bold"></label>
+                            <input asp-for="ITSNumber" class="form-control bg-light" readonly />
+                            <span asp-validation-for="ITSNumber" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Upload Payment Receipt (Image)</label>
+                            <input type="file" asp-for="Receipt" class="form-control" accept="image/*" required />
+                            <small class="text-muted">Max size: 2MB (JPG, PNG)</small>
+                            <span asp-validation-for="Receipt" class="text-danger"></span>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" class="btn btn-secondary">Back to Plans</a>
+                            <button type="submit" class="btn btn-success px-4">Submit Request</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

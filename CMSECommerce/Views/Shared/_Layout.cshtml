@@ -71,7 +71,7 @@
             .sub-nav-bar .nav-link {
                 color: #ffffff !important;
                 font-size: 0.85rem;
-                border: 1px solid transparent; /* Prevents layout jump on hover */
+                border: 1px solid transparent;
                 transition: all 0.1s;
             }
 
@@ -101,6 +101,14 @@
                 color: var(--amazon-orange) !important;
                 text-decoration: none;
             }
+
+        /* Admin Specific Highlight */
+        .nav-admin-link {
+            border: 1px solid var(--amazon-orange) !important;
+            color: var(--amazon-orange) !important;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -140,17 +148,44 @@
         <nav class="navbar navbar-expand-lg navbar-dark sub-nav-bar mb-4">
             <div class="container-fluid">
                 <div class="collapse navbar-collapse" id="subNavBarContent">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 w-100 align-items-center">
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Products" asp-action="Index">Home</a>
+                            <a class="nav-link" asp-area="" asp-controller="Products" asp-action="Index">Home</a>
                         </li>
+
                         <vc:menu />
-                        @if (User.IsInRole("Admin") || User.IsInRole("Subscriber"))
+
+                       
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Subscription" asp-action="Index">
+                                    <i class="fas fa-store-alt me-1 text-warning"></i> Subscriptions
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Subscription" asp-action="Status">
+                                    <i class="fas fa-history me-1"></i> Subscription Status
+                                </a>
+                            </li>
+                       
+                       
+
+                        @if (User.IsInRole("Admin") || User.IsInRole("Subscriber") || User.IsInRole("Seller"))
                         {
                             <li class="nav-item">
                                 <a class="nav-link fw-bold" style="color: var(--amazon-orange) !important;"
-                                   asp-controller="Account" asp-action="UserList">
+                                   asp-area="" asp-controller="Account" asp-action="UserList">
                                     <i class="fas fa-users me-1"></i> Business Directory
+                                </a>
+                            </li>
+                        }
+
+                        @* ADMIN ONLY SECTION *@
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item ms-auto">
+                                <a class="nav-link nav-admin-link" asp-controller="Subscription" asp-action="AdminDashboard">
+                                    <i class="fas fa-user-shield me-1"></i> Manage Requests
                                 </a>
                             </li>
                         }
@@ -199,7 +234,7 @@
     <footer class="amazon-footer mt-5 py-4">
         <div class="container text-center">
             <p class="mb-1">&copy; 2025 - Weypaari CMSEcommerce</p>
-            <a asp-controller="Home" asp-action="Index">Privacy Policy</a>
+            <a asp-area="" asp-controller="Home" asp-action="Index">Privacy Policy</a>
         </div>
     </footer>
 
@@ -210,13 +245,14 @@
 
     <script>
         $(function () {
-            // High-fidelity active link highlighting
+            // Highlight active link based on current URL
             const currentPath = window.location.pathname;
             $(".sub-nav-bar .nav-link").each(function() {
                 const linkPath = $(this).attr("href");
-                if (linkPath === currentPath) {
+                if (linkPath && currentPath.includes(linkPath) && linkPath !== "/") {
                     $(this).css({
                         "border": "1px solid white",
+                        "border-radius": "2px",
                         "font-weight": "bold"
                     });
                 }

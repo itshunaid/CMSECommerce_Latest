@@ -45,6 +45,11 @@ namespace CMSECommerce.Models
         public virtual IdentityUser User { get; set; }
         [ForeignKey("StoreId")]
         public virtual Store Store { get; set; }
+
+        public DateTime? SubscriptionStartDate { get; set; }
+        public DateTime? SubscriptionEndDate { get; set; }
+
+        public int CurrentProductLimit { get; set; }
     }
 
     public class Store

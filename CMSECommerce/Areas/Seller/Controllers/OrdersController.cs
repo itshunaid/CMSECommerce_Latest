@@ -257,7 +257,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
 
             try
             {
-                var product = await _context.Products.Where(p => p.OwnerId == userId).FirstOrDefaultAsync();
+                var product = await _context.Products.Where(p => p.OwnerName == userId).FirstOrDefaultAsync();
 
                 if (product == null)
                 {

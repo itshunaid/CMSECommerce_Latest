@@ -163,7 +163,7 @@ namespace CMSECommerce.Areas.Admin.Services
 
                 // 3. Bulk Update Products 
                 var products = await _context.Products
-                    .Where(p => p.OwnerId == user.Id || p.OwnerId == user.UserName)
+                    .Where(p => p.OwnerName == user.Id || p.OwnerName == user.UserName)
                     .ToListAsync();
 
                 if (products.Any())

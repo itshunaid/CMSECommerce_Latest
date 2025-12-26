@@ -247,7 +247,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     }
 
                     product.Image = imageName;
-                    product.OwnerId = _userManager.GetUserName(User); // Assuming OwnerId should be UserName for Admin products
+                    product.OwnerName = _userManager.GetUserName(User); // Assuming OwnerId should be UserName for Admin products
                     product.Status = ProductStatus.Approved; // Admin created products are approved immediately
 
                     _context.Add(product);
@@ -385,7 +385,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     }
 
                     // Preserve original data not in the form
-                    product.OwnerId = dbProduct.OwnerId;
+                    product.OwnerName = dbProduct.OwnerName;
                     product.RejectionReason = dbProduct.RejectionReason;
 
                     // Set status to Pending upon any edit by Admin
@@ -579,9 +579,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 await _context.SaveChangesAsync();
 
                 // Notification (Email exceptions are caught internally in the utility)
-                if (!string.IsNullOrEmpty(product.OwnerId))
+                if (!string.IsNullOrEmpty(product.OwnerName))
                 {
-                    var owner = await _userManager.FindByIdAsync(product.OwnerId);
+                    var owner = await _userManager.FindByIdAsync(product.OwnerName);
                     if (owner != null && !string.IsNullOrEmpty(owner.Email))
                     {
                         await _emailSender.SendEmailAsync(owner.Email, "Your product has been approved", $"Your product '{product.Name}' has been approved by admin.");
@@ -654,9 +654,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 await _context.SaveChangesAsync();
 
                 // Notification (Email exceptions are caught internally in the utility)
-                if (!string.IsNullOrEmpty(product.OwnerId))
+                if (!string.IsNullOrEmpty(product.OwnerName))
                 {
-                    var owner = await _userManager.FindByIdAsync(product.OwnerId);
+                    var owner = await _userManager.FindByIdAsync(product.OwnerName);
                     if (owner != null && !string.IsNullOrEmpty(owner.Email))
                     {
                         try

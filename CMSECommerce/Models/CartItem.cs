@@ -28,7 +28,7 @@
             Price = product.Price;
             Quantity = 1;
             Image = product.Image;
-            ProductOwner = product.OwnerId;            
+            ProductOwner = product.OwnerName;            
         }
     }
 

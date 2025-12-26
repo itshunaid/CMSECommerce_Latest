@@ -145,7 +145,7 @@ namespace CMSECommerce.Hubs
  var contacts = new List<dynamic>();
 
  // Check if user is a seller (has products)
- var userProducts = await _context.Products.Where(p => p.OwnerId == userId).Select(p => p.Id).ToListAsync();
+ var userProducts = await _context.Products.Where(p => p.OwnerName == userId).Select(p => p.Id).ToListAsync();
  if (userProducts.Any())
  {
  // User is a seller: get buyers who ordered their products

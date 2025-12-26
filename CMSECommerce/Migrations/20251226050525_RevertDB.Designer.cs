@@ -4,6 +4,7 @@ using CMSECommerce.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMSECommerce.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20251226050525_RevertDB")]
+    partial class RevertDB
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -310,7 +313,7 @@ namespace CMSECommerce.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("OwnerName")
+                    b.Property<string>("OwnerId")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Price")
@@ -328,14 +331,9 @@ namespace CMSECommerce.Migrations
                     b.Property<int>("StockQuantity")
                         .HasColumnType("int");
 
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("Products");
 
@@ -347,7 +345,7 @@ namespace CMSECommerce.Migrations
                             Description = "Juicy apples",
                             Image = "apple1.jpg",
                             Name = "Apples",
-                            OwnerName = "admin",
+                            OwnerId = "admin",
                             Price = 1.50m,
                             Slug = "apples",
                             Status = 1,
@@ -360,7 +358,7 @@ namespace CMSECommerce.Migrations
                             Description = "Juicy grapefruit",
                             Image = "grapefruit1.jpg",
                             Name = "Grapefruit",
-                            OwnerName = "admin",
+                            OwnerId = "admin",
                             Price = 2m,
                             Slug = "grapefruit",
                             Status = 1,
@@ -373,7 +371,7 @@ namespace CMSECommerce.Migrations
                             Description = "Fresh grapes",
                             Image = "grapes1.jpg",
                             Name = "Grapes",
-                            OwnerName = "admin",
+                            OwnerId = "admin",
                             Price = 1.80m,
                             Slug = "grapes",
                             Status = 1,
@@ -386,7 +384,7 @@ namespace CMSECommerce.Migrations
                             Description = "Fresh oranges",
                             Image = "orange1.jpg",
                             Name = "Oranges",
-                            OwnerName = "admin",
+                            OwnerId = "admin",
                             Price = 1.50m,
                             Slug = "oranges",
                             Status = 1,
@@ -399,7 +397,7 @@ namespace CMSECommerce.Migrations
                             Description = "Nice blue t-shirt",
                             Image = "blue1.jpg",
                             Name = "Blue shirt",
-                            OwnerName = "admin",
+                            OwnerId = "admin",
                             Price = 7.99m,
                             Slug = "blue-shirt",
                             Status = 1,
@@ -412,7 +410,7 @@ namespace CMSECommerce.Migrations
                             Description = "Nice red t-shirt",
                             Image = "red1.jpg",
                             Name = "Red shirt",
-                            OwnerName = "admin",
+                            OwnerId = "admin",
                             Price = 8.99m,
                             Slug = "red-shirt",
                             Status = 1,
@@ -425,7 +423,7 @@ namespace CMSECommerce.Migrations
                             Description = "Nice green t-shirt",
                             Image = "green1.png",
                             Name = "Green shirt",
-                            OwnerName = "admin",
+                            OwnerId = "admin",
                             Price = 9.99m,
                             Slug = "green-shirt",
                             Status = 1,
@@ -438,7 +436,7 @@ namespace CMSECommerce.Migrations
                             Description = "Nice pink t-shirt",
                             Image = "pink1.png",
                             Name = "Pink shirt",
-                            OwnerName = "admin",
+                            OwnerId = "admin",
                             Price = 10.99m,
                             Slug = "pink-shirt",
                             Status = 1,
@@ -573,67 +571,6 @@ namespace CMSECommerce.Migrations
                     b.ToTable("SubscriberRequests");
                 });
 
-            modelBuilder.Entity("CMSECommerce.Models.SubscriptionRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ItsNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ReceiptImagePath")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RejectionReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TierId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TierId");
-
-                    b.ToTable("SubscriptionRequests");
-                });
-
-            modelBuilder.Entity("CMSECommerce.Models.SubscriptionTier", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DurationMonths")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ProductLimit")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SubscriptionTiers");
-                });
-
             modelBuilder.Entity("CMSECommerce.Models.UnlockRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -683,9 +620,6 @@ namespace CMSECommerce.Migrations
 
                     b.Property<string>("BusinessPhoneNumber")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("CurrentProductLimit")
-                        .HasColumnType("int");
 
                     b.Property<string>("FacebookUrl")
                         .HasColumnType("nvarchar(max)");
@@ -740,12 +674,6 @@ namespace CMSECommerce.Migrations
 
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
-
-                    b.Property<DateTime?>("SubscriptionEndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("SubscriptionStartDate")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(450)");
@@ -1029,13 +957,7 @@ namespace CMSECommerce.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId");
-
                     b.Navigation("Category");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.Review", b =>
@@ -1057,17 +979,6 @@ namespace CMSECommerce.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("CMSECommerce.Models.SubscriptionRequest", b =>
-                {
-                    b.HasOne("CMSECommerce.Models.SubscriptionTier", "Tier")
-                        .WithMany()
-                        .HasForeignKey("TierId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Tier");
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.UserProfile", b =>

@@ -42,7 +42,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 // Filter products by OwnerId (the current logged-in seller)
                 var currentUserId = _userManager.GetUserName(User);
                 var productsQuery = _context.Products
-    .Where(x => x.OwnerId == currentUserId && x.StockQuantity > 0)
+    .Where(x => x.OwnerName == currentUserId && x.StockQuantity > 0)
     .AsQueryable();
 
                 // 1. Apply category filter
@@ -109,7 +109,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 // Filter products by OwnerId (the current logged-in seller)
                 var currentUserId = _userManager.GetUserName(User);
                 var productsQuery = _context.Products
-    .Where(x => x.OwnerId == currentUserId && x.StockQuantity == 0)
+    .Where(x => x.OwnerName == currentUserId && x.StockQuantity == 0)
     .AsQueryable();
 
                 // 1. Apply category filter
@@ -176,7 +176,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
 
                 // Filter products by OwnerId and StockQuantity == 0
                 var currentUserId = _userManager.GetUserName(User);
-                var productsQuery = _context.Products.Where(x => x.OwnerId == currentUserId && x.StockQuantity == 0).AsQueryable();
+                var productsQuery = _context.Products.Where(x => x.OwnerName == currentUserId && x.StockQuantity == 0).AsQueryable();
 
                 // 1. Apply category filter
                 if (categoryId != 0)
@@ -247,6 +247,31 @@ namespace CMSECommerce.Areas.Seller.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Product product)
         {
+            var userId = _userManager.GetUserId(User);
+            var userName= _userManager.GetUserName(User);
+            var profile = await _context.UserProfiles
+                .FirstOrDefaultAsync(p => p.UserId == userId);
+
+            if (profile == null)
+            {
+                return RedirectToAction("Status", "Subscription");
+            }
+            // 1. Check if Subscription has expired
+            if (!profile.SubscriptionEndDate.HasValue || profile.SubscriptionEndDate.Value < DateTime.Now)
+            {
+                ModelState.AddModelError("", "Your subscription has expired. Please renew to continue adding products.");
+                return View(product);
+            }
+
+            // 2. Check Product Limit
+            var currentProductCount = await _context.Products.CountAsync(p => p.UserId == userId);
+
+            if (currentProductCount >= profile.CurrentProductLimit)
+            {
+                ModelState.AddModelError("", $"You have reached your limit of {profile.CurrentProductLimit} products. Upgrade your plan to add more.");
+                return View(product);
+            }
+
             ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
 
             if (ModelState.IsValid)
@@ -280,7 +305,8 @@ namespace CMSECommerce.Areas.Seller.Controllers
 
                     product.Image = imageName;
                     product.Status = ProductStatus.Pending;
-                    product.OwnerId = _userManager.GetUserName(User);
+                    product.OwnerName = _userManager.GetUserName(User);
+                    product.UserId = userId;
 
                     _context.Add(product);
                     await _context.SaveChangesAsync(); // Database operation
@@ -319,7 +345,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 if (product == null) { return NotFound(); }
 
                 // Authorization check
-                if (product.OwnerId != _userManager.GetUserName(User))
+                if (product.OwnerName != _userManager.GetUserName(User))
                 {
                     TempData["Error"] = "You are not authorized to edit this product.";
                     return RedirectToAction("Index");
@@ -368,7 +394,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
 
 
             // Authorization check
-            if (dbProduct.OwnerId != _userManager.GetUserName(User))
+            if (dbProduct.OwnerName != _userManager.GetUserName(User))
             {
                 TempData["Error"] = "You are not authorized to modify this product.";
                 return RedirectToAction("Index");
@@ -376,7 +402,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
 
             // Preserve workflow properties and force to pending status
             product.Status = ProductStatus.Pending;
-            product.OwnerId = dbProduct.OwnerId;
+            product.OwnerName = dbProduct.OwnerName;
             product.RejectionReason = dbProduct.RejectionReason;
 
 
@@ -483,7 +509,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
             }
 
             // Authorization check
-            if (product.OwnerId != _userManager.GetUserName(User))
+            if (product.OwnerName != _userManager.GetUserName(User))
             {
                 TempData["Error"] = "You are not authorized to delete this product.";
                 return RedirectToAction("Index");
@@ -618,7 +644,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 if (product == null) return NotFound();
 
                 // Authorization check (Should be Admin role, but since the controller is only 'Subscriber' we skip that check)
-                if (product.OwnerId != _userManager.GetUserName(User))
+                if (product.OwnerName != _userManager.GetUserName(User))
                 {
                     TempData["Error"] = "You are not authorized to approve this product.";
                     return RedirectToAction("Index");
@@ -646,11 +672,11 @@ namespace CMSECommerce.Areas.Seller.Controllers
             }
 
             // Isolate Email sender logic to prevent it from blocking the DB operation save
-            if (product != null && !string.IsNullOrEmpty(product.OwnerId))
+            if (product != null && !string.IsNullOrEmpty(product.OwnerName))
             {
                 try
                 {
-                    var owner = await _userManager.FindByIdAsync(product.OwnerId);
+                    var owner = await _userManager.FindByIdAsync(product.OwnerName);
                     if (owner != null && !string.IsNullOrEmpty(owner.Email))
                     {
                         await _emailSender.SendEmailAsync(owner.Email, "Your product has been approved", $"Your product '{product.Name}' has been approved by admin.");
@@ -676,7 +702,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 if (product == null) return NotFound();
 
                 // Authorization check
-                if (product.OwnerId != _userManager.GetUserName(User))
+                if (product.OwnerName != _userManager.GetUserName(User))
                 {
                     TempData["Error"] = "You are not authorized to change the status of this product.";
                     return RedirectToAction("Index");
@@ -715,7 +741,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 if (product == null) return NotFound();
 
                 // Authorization check
-                if (product.OwnerId != _userManager.GetUserName(User))
+                if (product.OwnerName != _userManager.GetUserName(User))
                 {
                     TempData["Error"] = "You are not authorized to reject this product.";
                     return RedirectToAction("Index");
@@ -740,11 +766,11 @@ namespace CMSECommerce.Areas.Seller.Controllers
             }
 
             // Isolate Email sender logic
-            if (product != null && !string.IsNullOrEmpty(product.OwnerId))
+            if (product != null && !string.IsNullOrEmpty(product.OwnerName))
             {
                 try
                 {
-                    var owner = await _userManager.FindByIdAsync(product.OwnerId);
+                    var owner = await _userManager.FindByIdAsync(product.OwnerName);
                     if (owner != null && !string.IsNullOrEmpty(owner.Email))
                     {
                         await _emailSender.SendEmailAsync(owner.Email, "Your product was rejected", $"Your product '{product.Name}' was rejected by admin. Reason: {reason}");
