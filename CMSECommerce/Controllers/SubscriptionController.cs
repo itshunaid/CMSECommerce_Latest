@@ -291,45 +291,64 @@ namespace CMSECommerce.Controllers
             return Json(statuses);
         }
 
-        [Authorize]
+        //[Authorize]
+        //public async Task<IActionResult> DownloadReceipt(int requestId)
+        //{
+        //    var userId = _userManager.GetUserId(User);
+
+        //    // Ensure the request belongs to the user and is actually approved
+        //    var request = await _context.SubscriptionRequests
+        //        .Include(r => r.Tier)
+        //        .FirstOrDefaultAsync(r => r.Id == requestId && r.UserId == userId && r.Status == RequestStatus.Approved);
+
+        //    if (request == null)
+        //    {
+        //        return NotFound("Receipt not found or request not yet approved.");
+        //    }
+
+        //    // Create the receipt content
+        //    var sb = new System.Text.StringBuilder();
+        //    sb.AppendLine("============================================");
+        //    sb.AppendLine("           SUBSCRIPTION RECEIPT             ");
+        //    sb.AppendLine("============================================");
+        //    sb.AppendLine($"Receipt ID:    {request.Id}");
+        //    sb.AppendLine($"Date Issued:   {DateTime.Now:dd MMM yyyy}");
+        //    sb.AppendLine("--------------------------------------------");
+        //    sb.AppendLine($"User ITS:      {request.ItsNumber}");
+        //    sb.AppendLine($"Plan Name:     {request.Tier.Name}");
+        //    sb.AppendLine($"Duration:      {request.Tier.DurationMonths} Month(s)");
+        //    sb.AppendLine($"Product Limit: {request.Tier.ProductLimit}");
+        //    sb.AppendLine("--------------------------------------------");
+        //    sb.AppendLine("Status:        PAID & APPROVED");
+        //    sb.AppendLine("============================================");
+        //    sb.AppendLine("Thank you for your business!");
+
+        //    var fileName = $"Receipt_{request.ItsNumber}_{request.Id}.txt";
+        //    var fileBytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+
+        //    return File(fileBytes, "text/plain", fileName);
+        //}
+
+        [HttpGet]
         public async Task<IActionResult> DownloadReceipt(int requestId)
         {
-            var userId = _userManager.GetUserId(User);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // Ensure the request belongs to the user and is actually approved
+            // Fetch the specific request and ensure it belongs to the logged-in user
             var request = await _context.SubscriptionRequests
                 .Include(r => r.Tier)
-                .FirstOrDefaultAsync(r => r.Id == requestId && r.UserId == userId && r.Status == RequestStatus.Approved);
+                .FirstOrDefaultAsync(r => r.Id == requestId && r.UserId == userId);
 
-            if (request == null)
+            if (request == null || request.Status != RequestStatus.Approved)
             {
-                return NotFound("Receipt not found or request not yet approved.");
+                TempData["Error"] = "Receipt not found or request not approved.";
+                return RedirectToAction(nameof(Status));
             }
 
-            // Create the receipt content
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine("============================================");
-            sb.AppendLine("           SUBSCRIPTION RECEIPT             ");
-            sb.AppendLine("============================================");
-            sb.AppendLine($"Receipt ID:    {request.Id}");
-            sb.AppendLine($"Date Issued:   {DateTime.Now:dd MMM yyyy}");
-            sb.AppendLine("--------------------------------------------");
-            sb.AppendLine($"User ITS:      {request.ItsNumber}");
-            sb.AppendLine($"Plan Name:     {request.Tier.Name}");
-            sb.AppendLine($"Duration:      {request.Tier.DurationMonths} Month(s)");
-            sb.AppendLine($"Product Limit: {request.Tier.ProductLimit}");
-            sb.AppendLine("--------------------------------------------");
-            sb.AppendLine("Status:        PAID & APPROVED");
-            sb.AppendLine("============================================");
-            sb.AppendLine("Thank you for your business!");
-
-            var fileName = $"Receipt_{request.ItsNumber}_{request.Id}.txt";
-            var fileBytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
-
-            return File(fileBytes, "text/plain", fileName);
+            // Using Rotativa to return the view as a PDF
+            return View("ReceiptPdf", request);
+           
         }
-
-
 
 
 
