@@ -15,12 +15,9 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
 
-// Database Configuration
+// Database Configuration (SQL Server)
 var connectionString = builder.Configuration.GetConnectionString("DbConnection")
     ?? throw new InvalidOperationException("Connection string 'DbConnection' not found.");
-
-Console.WriteLine($"--> Current Environment: {builder.Environment.EnvironmentName}");
-Console.WriteLine($"--> Using Connection String: {connectionString?.Split(';')[0]}...");
 
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlServer(connectionString)
@@ -68,43 +65,97 @@ builder.Services.Configure<CMSECommerce.Services.UserStatusOptions>(builder.Conf
 builder.Services.AddScoped<CMSECommerce.Services.IUserStatusService, CMSECommerce.Services.UserStatusService>();
 builder.Services.AddHostedService<CMSECommerce.Services.UserStatusCleanupService>();
 
-builder.Services.Configure<RouteOptions>(options =>
-{
-    options.LowercaseUrls = true;
-});
+builder.Services.Configure<RouteOptions>(options => { options.LowercaseUrls = true; });
 
 var app = builder.Build();
-
-// --- DEBUG: Configuration Verification ---
-if (app.Environment.IsDevelopment())
-{
-    var config = (IConfigurationRoot)app.Configuration;
-    Console.WriteLine("=========================================");
-    Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");
-    var provider = config.GetSection("ConnectionStrings:DbConnection");
-    foreach (var source in config.Providers.Reverse())
-    {
-        if (source.TryGet("ConnectionStrings:DbConnection", out _))
-        {
-            Console.WriteLine($"--> Connection String Source: {source}");
-            break;
-        }
-    }
-    Console.WriteLine("=========================================");
-}
 
 // --- 2. SEEDING LOGIC (ENVIRONMENT SENSITIVE) ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<DataContext>();
+    var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
     try
     {
-        // Apply migrations for both Dev and Prod
+        // Apply migrations
         context.Database.Migrate();
 
-        // --- NEW: SUBSCRIPTION TIER SEEDING (AC 1) ---
+        // A. Seed Roles
+        var roles = new[] { "Admin", "Customer", "Subscriber" };
+        foreach (var role in roles)
+        {
+            if (!roleManager.RoleExistsAsync(role).GetAwaiter().GetResult())
+            {
+                roleManager.CreateAsync(new IdentityRole(role)).GetAwaiter().GetResult();
+            }
+        }
+
+        // B. Seed Admin User, Store, and Profile
+        var adminEmail = "admin@local.local";
+        var adminUser = userManager.FindByEmailAsync(adminEmail).GetAwaiter().GetResult();
+        if (adminUser != null)
+        {
+            // Check if profile exists to decide if we skip re-creation
+            var existingProfile = context.UserProfiles.FirstOrDefault(p => p.UserId == adminUser.Id);
+            if (existingProfile == null)
+            {
+                // User and Profile exist - Ensure password is set correctly even if already created
+                var resetToken = await userManager.GeneratePasswordResetTokenAsync(adminUser);
+                await userManager.ResetPasswordAsync(adminUser, resetToken, "Pass@local110");
+
+                adminUser = null; // Mark as null so the 'if (adminUser == null)' block below is skipped
+            }
+        }
+        //IdentityUser adminUser = null;
+
+        if (adminUser == null)
+        {
+            adminUser = new IdentityUser
+            {
+                UserName = "admin",
+                Email = adminEmail,
+                EmailConfirmed = true
+            };
+
+            // Set Admin Password here
+            var result = userManager.CreateAsync(adminUser, "Pass@local110").GetAwaiter().GetResult();
+
+            if (result.Succeeded)
+            {
+                userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
+
+                // Create the Store (UserProfile depends on this)
+                var adminStore = new Store
+                {
+                    UserId = adminUser.Id,
+                    StoreName = "Admin Central Store",
+                    Email = adminEmail,
+                    City = "Mumbai",
+                    Country = "India"
+                };
+                context.Stores.Add(adminStore);
+                context.SaveChanges(); // Persist to get adminStore.Id
+
+                // Create the UserProfile
+                var adminProfile = new UserProfile
+                {
+                    UserId = adminUser.Id,
+                    StoreId = adminStore.Id,
+                    FirstName = "System",
+                    LastName = "Admin",
+                    ITSNumber = "000000",
+                    IsProfileVisible = true,
+                    CurrentProductLimit = 1000,
+                    SubscriptionStartDate = DateTime.Now
+                };
+                context.UserProfiles.Add(adminProfile);
+                context.SaveChanges();
+            }
+        }
+
+        // C. Seed Subscription Tiers
         if (!context.SubscriptionTiers.Any())
         {
             context.SubscriptionTiers.AddRange(
@@ -113,10 +164,9 @@ using (var scope = app.Services.CreateScope())
                 new SubscriptionTier { Name = "Premium", Price = 1500, DurationMonths = 12, ProductLimit = 120 }
             );
             context.SaveChanges();
-            Console.WriteLine("--> Subscription Tiers Seeded Successfully.");
         }
 
-        // Environment-specific seeding
+        // D. Developer Seeder
         if (app.Environment.IsDevelopment())
         {
             DbSeeder.SeedData(app.Services);
@@ -125,7 +175,7 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred during database seeding/migration.");
+        logger.LogError(ex, "An error occurred during database seeding.");
     }
 }
 
@@ -140,7 +190,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// Localization
+// Localization Configuration
 var culture = new CultureInfo("en-IN");
 var localizationOptions = new RequestLocalizationOptions
 {
@@ -167,7 +217,6 @@ app.MapControllerRoute(name: "cart", pattern: "cart/{action}/{id?}", defaults: n
 app.MapControllerRoute(name: "account", pattern: "account/{action}", defaults: new { controller = "Account", action = "Index" });
 app.MapControllerRoute(name: "orders", pattern: "orders/{action}", defaults: new { controller = "Orders", action = "Index" });
 app.MapControllerRoute(name: "products", pattern: "products/{slug?}", defaults: new { controller = "Products", action = "Index" });
-
 app.MapControllerRoute(name: "default", pattern: "{controller=Products}/{action=Index}/{id?}");
 app.MapControllerRoute(name: "pages", pattern: "{slug?}", defaults: new { controller = "Pages", action = "Index" });
 

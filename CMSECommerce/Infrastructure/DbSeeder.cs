@@ -44,10 +44,20 @@ namespace CMSECommerce.Infrastructure
                     userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
                 }
             }
+            else
+            {
+                // ✅ ENSURE EXISTING ADMIN IS IN ROLE
+                var isInRole = userManager.IsInRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
+                if (!isInRole)
+                {
+                    userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
+                }
+            }
 
             // 4. Seed Admin Store and Profile
             if (adminUser != null)
             {
+                // Refresh adminUser check after possible creation/role update
                 var adminProfile = context.UserProfiles.FirstOrDefault(p => p.UserId == adminUser.Id);
 
                 if (adminProfile == null)
