@@ -1,6 +1,6 @@
-﻿using CMSECommerce.Areas.Admin.Services;
+﻿using CMSECommerce;
+using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
-using CMSECommerce.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Localization;
@@ -8,6 +8,10 @@ using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSignalR();
+
+
 
 // --- 1. SERVICES CONFIGURATION ---
 builder.Services.AddControllersWithViews();
@@ -206,6 +210,7 @@ app.UseRequestLocalization(localizationOptions);
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapHub<ChatHub>("/chatHub");
 
 // --- 4. ROUTE MAPPING ---
 
@@ -219,5 +224,7 @@ app.MapControllerRoute(name: "orders", pattern: "orders/{action}", defaults: new
 app.MapControllerRoute(name: "products", pattern: "products/{slug?}", defaults: new { controller = "Products", action = "Index" });
 app.MapControllerRoute(name: "default", pattern: "{controller=Products}/{action=Index}/{id?}");
 app.MapControllerRoute(name: "pages", pattern: "{slug?}", defaults: new { controller = "Pages", action = "Index" });
-
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 app.Run();

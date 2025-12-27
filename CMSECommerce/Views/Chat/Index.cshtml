@@ -1,0 +1,213 @@
+﻿@model IEnumerable<dynamic>
+<div class="container mt-4">
+    <div class="row shadow-sm" style="height: 75vh; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #ddd;">
+
+        <div class="col-md-4 border-end p-0 d-flex flex-column">
+            <div class="p-3 border-bottom bg-light">
+                <h5 class="mb-2">Chats</h5>
+                <input type="text" id="contactSearch" class="form-control form-control-sm" placeholder="Search..." onkeyup="filterContacts()">
+            </div>
+            <div class="list-group list-group-flush overflow-auto flex-grow-1" id="contactList">
+                @foreach (var contact in Model)
+                {
+                    <button class="list-group-item list-group-item-action contact-item py-3" id="contact-@contact.UserId" onclick="selectContact('@contact.UserId', '@contact.FullName')">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <strong class="contact-name">@contact.FullName</strong>
+                            <span id="badge-@contact.UserId" class="badge bg-danger rounded-pill @(contact.UnreadCount == 0 ? "d-none" : "")">@contact.UnreadCount</span>
+                        </div>
+
+                        <div class="d-flex align-items-center mt-1">
+                            <span id="status-@contact.UserId" class="status-dot @(contact.IsOnline ? "online" : "offline") me-2"></span>
+                            <small id="last-msg-@contact.UserId" class="text-muted text-truncate d-block" style="max-width: 150px;">@contact.LastMessage</small>
+                        </div>
+
+                        <div id="typing-@contact.UserId" class="d-none mt-1">
+                            <div class="typing-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <span class="typing-text">typing...</span>
+                        </div>
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="col-md-8 d-flex flex-column p-0">
+            <div class="p-3 border-bottom bg-light d-flex align-items-center justify-content-between">
+                <h6 id="chatWithTitle" class="mb-0">Select a chat</h6>
+                <div id="activeUserStatus" class="small text-muted d-none">
+                    <span class="status-dot online me-1"></span> Active Now
+                </div>
+            </div>
+
+            <div id="messagesList" class="flex-grow-1 p-3 overflow-auto d-flex flex-column" style="background: #f7f9fb;">
+                <div class="text-center my-auto text-muted">
+                    <i class="bi bi-chat-dots fs-1 d-block mb-2"></i>
+                    <p>Open a conversation to start messaging</p>
+                </div>
+            </div>
+
+            <div class="p-3 border-top bg-white">
+                <div class="input-group">
+                    <input type="file" id="fileInput" class="d-none" onchange="uploadAndSendFile()">
+                    <button class="btn btn-outline-secondary" type="button" id="attachButton" onclick="document.getElementById('fileInput').click()" disabled>
+                        <span id="uploadSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <i id="attachIcon" class="bi bi-paperclip"></i>
+                    </button>
+
+                    <input type="text" id="messageInput" class="form-control" placeholder="Type a message..." disabled onkeyup="handleKeyUp(event)">
+                    <button class="btn btn-primary px-4" id="sendButton" onclick="sendMessage()" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="activeUserId" value="" />
+
+@section Styles {
+    <style>
+        /* Typing Indicator Animation */
+        .typing-dots {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 4px 8px;
+            background: #f1f0f0;
+            border-radius: 12px;
+            width: fit-content;
+        }
+
+            .typing-dots span {
+                width: 5px;
+                height: 5px;
+                background-color: #007bff;
+                border-radius: 50%;
+                display: inline-block;
+                animation: bounce 1.3s infinite ease-in-out;
+            }
+
+                .typing-dots span:nth-child(2) {
+                    animation-delay: 0.15s;
+                }
+
+                .typing-dots span:nth-child(3) {
+                    animation-delay: 0.3s;
+                }
+
+        @@keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+
+            40% {
+                transform: scale(1.0);
+            }
+        }
+
+        .typing-text {
+            font-size: 0.7rem;
+            color: #007bff;
+            margin-left: 5px;
+            font-weight: 500;
+        }
+
+        /* Chat Bubbles */
+        .msg-bubble {
+            max-width: 70%;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .msg-sent {
+            align-self: flex-end;
+            background: #007bff;
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .msg-received {
+            align-self: flex-start;
+            background: #e9ecef;
+            color: #333;
+            border-bottom-left-radius: 2px;
+        }
+
+        /* Sidebar & Status */
+        .contact-item.active {
+            background: #f0f7ff !important;
+            border-left: 4px solid #007bff;
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .online {
+            background-color: #28a745;
+            box-shadow: 0 0 4px #28a745;
+        }
+
+        .offline {
+            background-color: #adb5bd;
+        }
+
+        /* NEW: File & Image Styles */
+        .chat-image {
+            max-width: 100%;
+            max-height: 250px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: block;
+        }
+
+        .file-attachment {
+            display: flex;
+            align-items: center;
+            background: rgba(0,0,0,0.05);
+            padding: 8px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .msg-sent .file-attachment {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .msg-bubble .bi-trash3 {
+            opacity: 0;
+            transition: opacity 0.2s;
+            cursor: pointer;
+        }
+
+        .msg-bubble:hover .bi-trash3 {
+            opacity: 1;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.js"></script>
+    <script src="~/js/chat.js"></script>
+    <script>
+        function filterContacts() {
+            let filter = document.getElementById('contactSearch').value.toLowerCase();
+            let contacts = document.querySelectorAll('.contact-item');
+            contacts.forEach(c => {
+                let name = c.querySelector('.contact-name').innerText.toLowerCase();
+                c.style.display = name.includes(filter) ? "" : "none";
+            });
+        }
+    </script>
+}

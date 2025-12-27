@@ -19,5 +19,7 @@ namespace CMSECommerce.Models
         // --- NEW PROPERTY ---
         public bool IsCancelled { get; set; } = false;
         public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
+        
+       
     }
 }

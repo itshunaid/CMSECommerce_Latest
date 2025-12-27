@@ -42,3 +42,31 @@ img#imgpreview {
 .activeul li.active a {
     color: white !important;
 }
+
+#messagesList {
+    display: flex;
+    flex-direction: column;
+}
+
+.msg-bubble {
+    max-width: 75%;
+    margin-bottom: 12px;
+    padding: 10px 15px;
+    border-radius: 18px;
+    position: relative;
+    font-size: 0.95rem;
+}
+
+.msg-sent {
+    align-self: flex-end;
+    background-color: #007bff;
+    color: white;
+    border-bottom-right-radius: 2px;
+}
+
+.msg-received {
+    align-self: flex-start;
+    background-color: #f1f0f0;
+    color: #333;
+    border-bottom-left-radius: 2px;
+}

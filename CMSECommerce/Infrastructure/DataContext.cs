@@ -7,6 +7,8 @@ namespace CMSECommerce.Infrastructure
 {
     public class DataContext(DbContextOptions<DataContext> options) : IdentityDbContext<IdentityUser>(options)
     {
+        
+        public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<Page> Pages { get; set; }
         public DbSet<Store> Stores { get; set; }
         public DbSet<Category> Categories { get; set; }
@@ -30,8 +32,8 @@ namespace CMSECommerce.Infrastructure
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-           
 
+         
 
 
             modelBuilder.Entity<Category>().HasData(
