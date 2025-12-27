@@ -208,7 +208,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // --- 4. ROUTE MAPPING ---
-app.MapHub<CMSECommerce.Hubs.ChatHub>("/chatHub");
+
 app.MapRazorPages();
 
 app.MapControllerRoute(name: "areas", pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");

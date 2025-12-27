@@ -19,8 +19,7 @@ namespace CMSECommerce.Infrastructure
         public DbSet<Address> Addresses { get; set; }
         public DbSet<SubscriberRequest> SubscriberRequests { get; set; }
         public DbSet<UserStatusTracker> UserStatuses { get; set; }
-        public DbSet<UserStatusSetting> UserStatusSettings { get; set; }
-        public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<UserStatusSetting> UserStatusSettings { get; set; }       
 
         public DbSet<SubscriptionRequest> SubscriptionRequests { get; set; }
         public DbSet<SubscriptionTier> SubscriptionTiers { get; set; }
@@ -33,15 +32,7 @@ namespace CMSECommerce.Infrastructure
             base.OnModelCreating(modelBuilder);
            
 
-            modelBuilder.Entity<CMSECommerce.Models.ChatMessage>(b =>
-            {
-                b.ToTable("ChatMessages");
-                b.HasKey(x => x.Id);
-                b.Property(x => x.MessageContent).IsRequired();
-                b.Property(x => x.Timestamp).HasDefaultValueSql("CURRENT_TIMESTAMP");
-                b.Property(x => x.IsRead).HasDefaultValue(false);
-                b.HasIndex(x => new { x.RecipientId, x.IsRead });
-            });
+
 
             modelBuilder.Entity<Category>().HasData(
                 new Category { Id = 1, Name = "Shirts", Slug = "shirts" },
