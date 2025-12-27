@@ -38,7 +38,7 @@ else
             @foreach (var d in Model.OrderDetails)
             {
                 <tr>
-                    <td>@d.ProductName</td>
+                    <td>@d.Product.Name</td>
                     <td>@d.Quantity</td>
                     <td>@d.Price.ToString("C2")</td>
                     <td>@(d.Price* d.Quantity).ToString("C2")</td>

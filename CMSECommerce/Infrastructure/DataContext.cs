@@ -13,7 +13,7 @@ namespace CMSECommerce.Infrastructure
         public DbSet<Store> Stores { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Product> Products { get; set; }
-        public DbSet<Review> Reviews { get; set; }
+        public DbSet<ProductReview> ProductReviews { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderDetail> OrderDetails { get; set; }
         public DbSet<UserProfile> UserProfiles { get; set; }
@@ -21,7 +21,7 @@ namespace CMSECommerce.Infrastructure
         public DbSet<Address> Addresses { get; set; }
         public DbSet<SubscriberRequest> SubscriberRequests { get; set; }
         public DbSet<UserStatusTracker> UserStatuses { get; set; }
-        public DbSet<UserStatusSetting> UserStatusSettings { get; set; }       
+        public DbSet<UserStatusSetting> UserStatusSettings { get; set; }
 
         public DbSet<SubscriptionRequest> SubscriptionRequests { get; set; }
         public DbSet<SubscriptionTier> SubscriptionTiers { get; set; }

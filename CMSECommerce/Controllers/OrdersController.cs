@@ -297,10 +297,8 @@ namespace CMSECommerce.Controllers
                     {
                         OrderId = order.Id,
                         ProductId = item.ProductId,
-                        ProductName = item.ProductName,
                         Quantity = item.Quantity,
                         Price = item.Price,
-                        Image = item.Image,
                         ProductOwner = item.ProductOwner ?? "Store",
                         Customer = user.UserName,
                         CustomerNumber = user.PhoneNumber ?? "N/A",

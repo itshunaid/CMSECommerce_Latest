@@ -1,4 +1,4 @@
-﻿@model OrderDetailsViewModel
+@model OrderDetailsViewModel
 @using System.Globalization
 @{
     Layout = "_Layout";
@@ -25,23 +25,14 @@
         .ToDictionary(g => g.Key, g => g.ToList());
 }
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-<div class="container my-4 no-print">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <a asp-action="MyOrders" class="btn btn-sm btn-outline-secondary shadow-sm">
-            <i class="fas fa-arrow-left me-1"></i> Back to Orders
-        </a>
-        <div class="btn-group">
-            <button onclick="downloadInvoice(event)" class="btn btn-warning fw-bold px-4 shadow-sm" style="background-color: #FFD814; border-color: #FCD200; color: #0F1111;">
-                <i class="fas fa-file-pdf me-2"></i> Download PDF
-            </button>
-            <button onclick="window.print()" class="btn btn-light fw-bold border shadow-sm px-4">
-                <i class="fas fa-print me-2"></i> Print Invoice
-            </button>
-        </div>
-    </div>
-</div>
+@if (ViewData["AutoPrint"] != null && (bool)ViewData["AutoPrint"])
+{
+    <script>
+        window.onload = function() {
+            window.print();
+        };
+    </script>
+}
 
 <div id="invoice-document">
     <div class="container invoice-wrapper bg-white p-5 mb-5">
@@ -265,39 +256,4 @@
             }
         }
     </style>
-}
-
-@section Scripts {
-    <script>
-        window.downloadInvoice = async function (evt) {
-            try {
-                var element = document.getElementById('invoice-document');
-                var originalButton = evt && evt.currentTarget;
-                if (originalButton) {
-                    originalButton.disabled = true;
-                    var originalText = originalButton.innerHTML;
-                    originalButton.innerHTML = 'Preparing PDF...';
-                }
-
-                // Configuration for html2pdf
-                var opt = {
-                    margin: 0.5,
-                    filename: 'Invoice-#@(Model.Order.Id).pdf',
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true },
-                    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-                };
-
-                html2pdf().set(opt).from(element).save().then(() => {
-                    if (originalButton) {
-                        originalButton.disabled = false;
-                        originalButton.innerHTML = originalText;
-                    }
-                });
-            } catch (e) {
-                console.error("PDF generation failed", e);
-                if (originalButton) originalButton.disabled = false;
-            }
-        };
-    </script>
 }

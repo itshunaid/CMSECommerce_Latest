@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Identity;
 
 namespace CMSECommerce.Models
 {
@@ -27,6 +29,11 @@ namespace CMSECommerce.Models
         public string ReturnReason { get; set; }     // Captured from the modal
         public DateTime? ReturnDate { get; set; }
 
+        // Navigation properties
+        [ForeignKey("ProductId")]
+        public virtual Product Product { get; set; }
+
+        [ForeignKey("OrderId")]
         public virtual Order Order { get; set; }
     }
 }

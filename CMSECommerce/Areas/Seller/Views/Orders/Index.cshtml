@@ -125,10 +125,10 @@
                     {
                         <tr>
                             <td>
-                                <img src="/media/products/@item.Image" class="img-thumbnail rounded-3" alt="@item.ProductName" style="width: 50px; height: 50px; object-fit: cover;">
+                                <img src="/media/products/@item.Product.Image" class="img-thumbnail rounded-3" alt="@item.Product.Name" style="width: 50px; height: 50px; object-fit: cover;">
                             </td>
                             <td>
-                                <div class="fw-bold text-dark">@item.ProductName</div>
+                                <div class="fw-bold text-dark">@item.Product.Name</div>
                                 <span class="text-muted small">ID: @item.ProductId</span>
                             </td>
                             <td>@item.Customer</td>
@@ -160,7 +160,7 @@
 
                                         @* Cancel Button (Triggering Modal) *@
                                         <button type="button" class="btn btn-outline-danger btn-sm fw-bold"
-                                                onclick="openCancelModal(@item.Id, '@item.ProductName', @item.OrderId)"
+                                                onclick="openCancelModal(@item.Id, '@item.Product.Name', @item.OrderId)"
                                                 data-bs-toggle="tooltip" title="Cancel Item">
                                             <i class="fas fa-times"></i> Cancel
                                         </button>

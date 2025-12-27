@@ -15,7 +15,7 @@ namespace CMSECommerce.Controllers
         // This action handles the POST request from the review form on the Product page
         [HttpPost]
         [Authorize] // Ensure only logged-in users can submit a review
-        public async Task<IActionResult> AddReview(Review review)
+        public async Task<IActionResult> AddReview(ProductReview review)
         {
             // 1. Get current logged-in user details (assuming ASP.NET Core Identity)
             string userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -31,8 +31,7 @@ namespace CMSECommerce.Controllers
 
             // Populate required Review properties
             review.UserId = userId;
-            review.UserName = userName;
-            review.DateCreated = DateTime.Now;
+            review.ReviewDate = DateTime.Now;
 
             // Initialize product variable for use in both try/catch and redirect logic
             Product product = null;
@@ -59,7 +58,7 @@ namespace CMSECommerce.Controllers
                     }
 
                     // 3. Save the new review
-                    _context.Reviews.Add(review);
+                    _context.ProductReviews.Add(review);
                     await _context.SaveChangesAsync();
 
                     TempData["Success"] = "Your review was submitted successfully and is awaiting approval.";

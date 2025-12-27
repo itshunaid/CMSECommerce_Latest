@@ -63,7 +63,7 @@
  @foreach(var item in Model.OrderDetails)
  {
  <tr>
- <td>@item.ProductName</td>
+ <td>@item.Product.Name</td>
  <td class="text-center">@item.Price.ToString("C", indianCulture)</td>
  <td class="text-center">@item.Quantity</td>
  <td class="text-end">@((item.Price * item.Quantity).ToString("C", indianCulture))</td>

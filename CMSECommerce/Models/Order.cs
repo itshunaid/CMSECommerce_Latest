@@ -1,4 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 
 namespace CMSECommerce.Models
 {
@@ -18,8 +20,11 @@ namespace CMSECommerce.Models
         public DateTime? ShippedDate { get; set; }
         // --- NEW PROPERTY ---
         public bool IsCancelled { get; set; } = false;
+
+        // Navigation property
+        [ForeignKey("UserId")]
+        public virtual IdentityUser? User { get; set; }
+
         public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
-        
-       
     }
 }

@@ -23,7 +23,7 @@
         allImages.Add("/media/default-product.png");
 
     bool isInStock = Model.StockQuantity > 0;
-    var reviewsToDisplay = Model.Reviews?.OrderByDescending(r => r.DateCreated).ToList() ?? new List<Review>();
+    var reviewsToDisplay = Model.ProductReviews?.OrderByDescending(r => r.ReviewDate).ToList() ?? new List<ProductReview>();
 
     Func<double, IHtmlContent> RenderStars = (rating) =>
     {
@@ -219,9 +219,7 @@
                                             }
                                         </div>
                                     </div>
-                                    <div class="mb-2">
-                                        <input type="text" class="form-control form-control-sm" name="Title" placeholder="Add a headline" required />
-                                    </div>
+
                                     <div class="mb-3">
                                         <textarea class="form-control form-control-sm" name="Comment" rows="3" placeholder="What did you like or dislike?" required></textarea>
                                     </div>
@@ -241,13 +239,13 @@
                                         <div class="avatar me-2 rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width:28px; height:28px; font-size: 0.7rem;">
                                             <i class="fas fa-user"></i>
                                         </div>
-                                        <span class="fw-bold" style="font-size: 0.8rem;">@review.UserName</span>
+                                        <span class="fw-bold" style="font-size: 0.8rem;">@review.User.UserName</span>
                                     </div>
                                     <div class="d-flex align-items-center mb-2">
                                         <span class="star-rating me-2" style="font-size: 0.7rem;">@RenderStars((double)review.Rating)</span>
-                                        <span class="fw-bold" style="font-size: 0.8rem;">@review.Title</span>
+                                        <span class="fw-bold" style="font-size: 0.8rem;">@review.Product.Name</span>
                                     </div>
-                                    <div class="text-muted mb-2" style="font-size: 0.7rem;">Reviewed on @review.DateCreated.ToString("MMM dd, yyyy")</div>
+                                    <div class="text-muted mb-2" style="font-size: 0.7rem;">Reviewed on @review.ReviewDate.ToString("MMM dd, yyyy")</div>
                                     <p class="mb-0 text-dark" style="font-size: 0.85rem; line-height: 1.5;">@review.Comment</p>
                                 </div>
                             }

@@ -239,7 +239,7 @@ namespace CMSECommerce.Controllers
                 product = await _context.Products
                     .Where(x => x.Slug == slug)
                     .Include(x => x.Category)
-                    .Include(x => x.Reviews)
+                    .Include(x => x.ProductReviews)
                     .AsNoTracking()
                     .FirstOrDefaultAsync();
 

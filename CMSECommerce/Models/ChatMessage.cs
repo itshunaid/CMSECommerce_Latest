@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CMSECommerce.Models
 {
@@ -23,5 +24,9 @@ namespace CMSECommerce.Models
         public int? OrderId { get; set; }
         public bool IsFile { get;  set; }
         public string FileName { get;  set; }
+
+        // Navigation property
+        [ForeignKey("OrderId")]
+        public virtual Order? Order { get; set; }
     }
 }
