@@ -18,8 +18,7 @@
 
     var currentUserId = Model.CurrentUser?.Id;
 
-    // REMOVE: .Where(dto => dto.User.Id != currentUserId) filter from here, as it's redundant/unnecessary.
-    var onlineUsers = Model.AllUsers
+    var onlineUsers = Model.AllUsers
     .Where(dto => dto.IsOnline)
     .OrderBy(dto => dto.User.UserName)
     .ToList();
@@ -32,38 +31,87 @@
 
 <div class="container py-4">
 
-    <div class="row mb-3">
-        <div class="col-12">
-            <h1 class="h3 fw-bold text-dark mb-1 amazon-heading">
-                @if (!string.IsNullOrEmpty(categoryName))
-                {
-                    <span class="text-amazon-teal">Results in </span>
-                    @categoryName
-                }
-                else
-                {
-                    <span class="text-amazon-teal">Featured </span>
-                }
-            </h1>
+    @if (Model.Products != null && Model.Products.Any())
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-end mb-3">
+                    <div>
+                        <h2 class="h4 fw-bold text-dark mb-1 amazon-heading">
+                            @if (!string.IsNullOrEmpty(categoryName))
+                            {
+                                <span class="text-amazon-teal">Top Picks in </span> @categoryName
+                            }
+                            else
+                            {
+                                <span class="text-amazon-teal">Recommended </span> <span>For You</span>
+                            }
+                        </h2>
+                        <p class="text-muted small mb-0 amazon-text">
+                            @if (!string.IsNullOrEmpty(currentSearchTerm))
+                            {
+                                <span>Discover more items related to <strong class="text-dark">"@currentSearchTerm"</strong></span>
+                            }
+                            else
+                            {
+                                <span>Explore our latest collection below.</span>
+                            }
+                        </p>
+                    </div>
+                    <div class="slider-controls pb-1">
+                        <button class="btn btn-sm btn-outline-secondary rounded-circle shadow-sm me-1" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary rounded-circle shadow-sm" type="button" data-bs-target="#productCarousel" data-bs-slide="next">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
 
-            <p class="text-muted small mb-0 amazon-text">
-                @if (!string.IsNullOrEmpty(currentSearchTerm))
-                {
-                    <span>Showing results for: <strong class="text-dark">"@currentSearchTerm"</strong></span>
-                }
-                else
-                {
-                    <span>Browse our complete collection.</span>
-                }
-            </p>
+                <div id="productCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
+                    <div class="carousel-inner">
+                        @{
+                            // Taking top 12 products for the slider, 4 per slide
+                            var sliderItems = Model.Products.Take(12).Select((v, i) => new { v, i })
+                                              .GroupBy(x => x.i / 4)
+                                              .ToList();
+                        }
+
+                        @for (int i = 0; i < sliderItems.Count; i++)
+                        {
+                            <div class="carousel-item @(i == 0 ? "active" : "")">
+                                <div class="row g-2">
+                                    @foreach (var item in sliderItems[i])
+                                    {
+                                        <div class="col-6 col-md-3">
+                                            <div class="card border-0 shadow-sm h-100 slider-mini-card">
+                                                <a asp-action="Product" asp-route-slug="@item.v.Slug" class="text-decoration-none">
+                                                    <div class="slider-img-wrap rounded bg-light d-flex align-items-center justify-content-center p-2">
+                                                        <img src="/media/products/@item.v.Image" 
+                                                             class="img-fluid" 
+                                                             alt="@item.v.Name"
+                                                             onerror="this.src='/media/products/noimage.png';">
+                                                    </div>
+                                                    <div class="p-2 text-center">
+                                                        <p class="small text-dark fw-bold mb-0 text-truncate">@item.v.Name</p>
+                                                        <span class="text-amazon-teal small fw-bolder">@item.v.Price.ToString("C2")</span>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-
+    }
     <hr class="mb-4" />
 
     <div class="row g-4">
-
-        <div class="col-lg-9">
+        <div class="col-lg-12">
 
             <div class="row mb-4 align-items-end p-3 rounded shadow-sm bg-light border amazon-filter-bar">
                 <div class="col-md-7">
@@ -101,7 +149,6 @@
             </div>
 
             <div class="row g-3 product-card-grid">
-
                 @if (!Model.Products.Any())
                 {
                     <div class="col-12">
@@ -114,10 +161,10 @@
                     </div>
                 }
 
-
                 @foreach (var item in Model.Products)
                 {
-                    <div class="col-xxl-4 col-xl-4 col-lg-6 col-md-6 col-sm-6 d-flex align-items-stretch">
+                    @* Main Grid: col-lg-3 and col-xl-3 ensures 4 items per row *@
+                    <div class="col-xxl-3 col-xl-3 col-lg-3 col-md-4 col-sm-6 d-flex align-items-stretch">
                         <div class="card product-card w-100 rounded-3 shadow-sm">
                             <a asp-action="Product" asp-route-slug="@item.Slug" class="d-block product-image-wrapper">
                                 <img src="/media/products/@item.Image" class="card-img-top product-img" alt="@item.Name" loading="lazy" onerror="this.onerror=null;this.src='/media/products/noimage.png';" />
@@ -182,832 +229,73 @@
             }
         </div>
 
-        <div class="col-lg-3 d-none d-lg-block">
-            <div class="user-list-sidebar">
-                <div class="p-3 border rounded-3 shadow-sm bg-white sticky-top amazon-sidebar-card" style="top: 20px;">
-                    <h5 class="fw-bold text-dark mb-3 amazon-sidebar-title">
-                        <i class="fas fa-comments me-2 text-amazon-teal"></i> Chat Hub
-                    </h5>
-
-                    <div id="chat-window-container" class="border rounded p-2 mb-3 bg-light" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 id="chat-target-name" class="fw-bold text-dark mb-0 small text-truncate"></h6>
-                            <button id="close-chat-btn" class="btn btn-sm btn-outline-danger py-0 px-1 ms-2" title="Close Chat">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-
-                        <div id="chat-messages" class="chat-messages mb-2 border rounded p-2 bg-white" style="height: 150px; overflow-y: auto;">
-                        </div>
-
-                        <div class="input-group input-group-sm">
-                            <input type="text" id="chat-input" class="form-control" placeholder="Type a message..." />
-                            <button id="send-btn" class="btn btn-amazon-search" type="button">Send</button>
-                        </div>
-
-                        <!-- Group management controls (dynamic) -->
-                        <div id="group-controls" class="mt-2" style="display: none;">
-                            <!-- Content populated by JS based on chat state -->
-                        </div>
-                    </div>
-
-                    <div id="user-list-view">
-                        @* Show current logged-in user separately if present *@
-                        @if (Model.CurrentUser != null)
-                        {
-                        <div class="mb-3 p-2 border rounded bg-white">
-                            <h6 class="fw-semibold text-dark mb-1 small">You</h6>
-                            <div class="small">
-                                <strong>@Model.CurrentUser.UserName</strong>
-                            </div>
-                        </div>
-                        }
-
-                        <div class="mb-3">
-                            <h6 class="fw-semibold text-primary mb-2 amazon-status-header">
-                                <i class="fas fa-bullhorn text-primary me-1"></i> Broadcast
-                            </h6>
-                            <p>
-                                <a href="javascript:void(0);" id="group-chat-link" role="button" tabindex="0" class="text-decoration-none text-dark fw-bold amazon-sidebar-link">
-                                    <i class="fas fa-users me-1"></i> Join Global Chat
-                                </a>
-                            </p>
-                        </div>
-                        <hr class="mb-3" />
-
-
-                        <div class="mb-4">
-                            <h6 class="fw-semibold text-success mb-2 amazon-status-header">
-                                <i class="fas fa-circle text-success me-1" style="font-size: 0.6rem;"></i> Online Users (@onlineUsers.Count)
-                            </h6>
-                            <ul class="list-unstyled small ps-3 border-start border-3 border-success amazon-list">
-                                @foreach (var userDto in onlineUsers)
-                                {
-                                    @* Use data attributes for user ID and name to simplify JS interaction *@
-                                    <li class="mb-1">
-                                        <a href="javascript:void(0);" role="button" tabindex="0" class="text-decoration-none text-dark fw-medium amazon-sidebar-link start-chat-btn"
-                                           data-user-id="@userDto.User.Id" data-user-name="@userDto.User.UserName">
-                                            @userDto.User.UserName
-                                        </a>
-                                    </li>
-                                }
-                                @if (!onlineUsers.Any())
-                                {
-                                    <li class="text-muted fst-italic amazon-text">No users currently online.</li>
-                                }
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h6 class="fw-semibold text-muted mb-2 amazon-status-header">
-                                <i class="fas fa-circle text-secondary me-1" style="font-size:0.6rem;"></i> Offline Users (@offlineUsers.Count)
-                            </h6>
-                            <ul class="list-unstyled small ps-3 border-start border-3 border-secondary amazon-list">
-                                @foreach (var userDto in offlineUsers.Take(10))
-                                {
-                                    <li class="mb-1">
-                                        <a href="javascript:void(0);" role="button" tabindex="0" class="text-muted text-decoration-none amazon-sidebar-link start-chat-btn"
-                                           data-user-id="@userDto.User.Id" data-user-name="@userDto.User.UserName" title="Start chat (user offline)">
-                                            @userDto.User.UserName <small class="text-secondary ms-1">(offline)</small>
-                                        </a>
-                                    </li>
-                                }
-                                @if (offlineUsers.Count >10)
-                                {
-                                    <li class="text-muted mt-2 amazon-text">... and @(offlineUsers.Count -10) more.</li>
-                                }
-                                @if (!offlineUsers.Any() && !onlineUsers.Any())
-                                {
-                                    <li class="text-muted fst-italic amazon-text">No users found.</li>
-                                }
-                            </ul>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
+        @* Hidden Chat Sidebar Hub *@
+        <div class="col-lg-3 d-none">
+            <div id="chat-window-container"></div>
+            <div id="chat-messages"></div>
+            <input type="text" id="chat-input" />
+            <button id="send-btn"></button>
+            <button id="close-chat-btn"></button>
+            <div id="user-list-view"></div>
+            <a id="group-chat-link"></a>
         </div>
-
     </div>
 </div>
 
-<!-- Floating Chat Toggle (always visible) -->
-<button id="open-chat-toggle" title="Open Chat" class="btn btn-amazon-teal floating-chat-btn">
- <i class="fas fa-comments"></i>
-</button>
-
-<!-- Floating Chat Modal (hidden by default) -->
-<div id="floating-chat-modal" style="display:none; position:fixed; right:20px; bottom:80px; width:320px; max-width:90%; z-index:1100;">
- <div class="card shadow-lg">
- <div class="card-header d-flex justify-content-between align-items-center py-2 px-3">
- <h6 id="floating-chat-title" class="mb-0 small fw-bold">Chat</h6>
- <div>
- <button id="floating-chat-users-toggle" class="btn btn-sm btn-outline-primary me-1" title="Show Users" aria-pressed="false"><i class="fas fa-users"></i></button>
- <button id="floating-chat-minimize" class="btn btn-sm btn-outline-secondary me-1" title="Minimize"><i class="fas fa-minus"></i></button>
- <button id="floating-chat-close" class="btn btn-sm btn-outline-danger" title="Close"><i class="fas fa-times"></i></button>
- </div>
- </div>
- <div class="card-body p-2">
- <div id="floating-user-list" class="mb-2 border rounded p-2 bg-white" style="display:none; max-height:220px; overflow-y:auto;"></div>
- <div id="floating-chat-messages" class="chat-messages mb-2 border rounded p-2 bg-white" style="height:220px; overflow-y:auto;"></div>
- <div class="input-group">
- <input type="text" id="floating-chat-input" class="form-control form-control-sm" placeholder="Type a message..." />
- <button id="floating-chat-send" class="btn btn-amazon-search btn-sm" type="button">Send</button>
- </div>
- </div>
- </div>
+<div class="d-none">
+    <button id="open-chat-toggle"></button>
+    <div id="floating-chat-modal">
+        <h6 id="floating-chat-title"></h6>
+        <button id="floating-chat-users-toggle"></button>
+        <button id="floating-chat-minimize"></button>
+        <button id="floating-chat-close"></button>
+        <div id="floating-user-list"></div>
+        <div id="floating-chat-messages"></div>
+        <input type="text" id="floating-chat-input" />
+        <button id="floating-chat-send"></button>
+    </div>
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/amazon-style.css" asp-append-version="true" />
+    <style>
+        /* Slider Styling */
+        .slider-mini-card { transition: transform 0.2s ease; border-radius: 8px; overflow: hidden; }
+        .slider-mini-card:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.1) !important; }
+        .slider-img-wrap { height: 120px; overflow: hidden; }
+        .slider-img-wrap img { max-height: 100%; object-fit: contain; }
+        .slider-controls .btn { width: 32px; height: 32px; padding: 0; line-height: 30px; border-color: #ddd; background: #fff; }
+        .slider-controls .btn:hover { background: #f0f2f2; border-color: #adb1b8; color: #111; }
+        .text-amazon-teal { color: #007185 !important; }
+
+        /* Main Grid Image Normalization (Ensures 4 items per row look clean) */
+        .product-img {
+            height: 180px; 
+            object-fit: contain; 
+            padding: 10px;
+        }
+        .product-name {
+            font-size: 0.95rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 2.8rem;
+        }
+    </style>
+}
 
 @section Scripts {
     <script src="~/lib/microsoft-signalr/signalr.js"></script>
-
+    <script src="~/js/chat-products.js" asp-append-version="true"></script>
     <script>
-        (function () {
-            // Safely pass server-side vars to JS
-            const currentCategorySlug = @Html.Raw(Json.Serialize(currentCategorySlug ?? ""));
-            const currentSearchTerm = @Html.Raw(Json.Serialize(currentSearchTerm ?? ""));
-            const currentSortOrder = @Html.Raw(Json.Serialize(sortOrder ?? "default"));
-            const productsIndexUrl = @Html.Raw(Json.Serialize(Url.Action("Index", "Products")));
-
-            // Build URL helper (keeps clean slug path if provided)
-            function buildUrl(basePath, slug, searchTerm, sortOrder, page) {
-                let url = basePath;
-                let queryParts = [];
-
-                if (slug && slug.length > 0) {
-                    url = url.replace(/\/$/, '') + "/" + encodeURIComponent(slug);
-                }
-
-                if (searchTerm && searchTerm.length > 0) {
-                    queryParts.push("searchTerm=" + encodeURIComponent(searchTerm));
-                }
-
-                if (sortOrder && sortOrder !== "default") {
-                    queryParts.push("sortOrder=" + encodeURIComponent(sortOrder));
-                }
-
-                if (page && page > 1) {
-                    queryParts.push("p=" + page);
-                }
-
-                if (queryParts.length > 0) {
-                    const separator = url.includes('?') ? '&' : '?';
-                    url += separator + queryParts.join("&");
-                }
-
-                return url;
-            }
-
-            document.addEventListener("DOMContentLoaded", function () {
-                var sortDropdown = document.getElementById("sortDropdown");
-
-                // Handle Sorting Logic
-                if (sortDropdown && currentSortOrder) {
-                    sortDropdown.value = currentSortOrder;
-                }
-
-                if (sortDropdown) {
-                    sortDropdown.addEventListener("change", function () {
-                        var selected = sortDropdown.value;
-                        var newUrl = buildUrl(
-                            productsIndexUrl,
-                            currentCategorySlug,
-                            currentSearchTerm,
-                            selected,
-                            1
-                        );
-                        window.location.href = newUrl;
-                    });
-                }
-
-                // ===============================================
-                // =========== CHAT CLIENT LOGIC START ===========
-                // ===============================================
-
-                // Prefer floating modal if available, fall back to sidebar container
-                const chatWindowContainer = document.getElementById('floating-chat-modal') || document.getElementById('chat-window-container');
-                const chatMessages = document.getElementById('floating-chat-messages') || document.getElementById('chat-messages');
-                const chatInput = document.getElementById('floating-chat-input') || document.getElementById('chat-input');
-                const sendBtn = document.getElementById('floating-chat-send') || document.getElementById('send-btn');
-                const closeChatBtn = document.getElementById('floating-chat-close') || document.getElementById('close-chat-btn');
-                const groupChatLink = document.getElementById('group-chat-link');
-                const chatTargetName = document.getElementById('floating-chat-title') || document.getElementById('chat-target-name');
-                const userListView = document.getElementById('user-list-view');
-
-                // Group UI area (create if needed inside the modal)
-                let groupControls = document.getElementById('group-controls');
-                if (!groupControls && chatWindowContainer) {
-                    groupControls = document.createElement('div');
-                    groupControls.id = 'group-controls';
-                    groupControls.className = 'mt-2';
-                    if (chatMessages && chatWindowContainer.contains(chatMessages)) {
-                        chatWindowContainer.insertBefore(groupControls, chatMessages);
-                    }
-                }
-
-                // State variables for chat routing
-                let currentChatTargetId = null;
-                let isGroupChat = false;
-                let currentGroupName = null;
-
-                //1. SIGNALR CONNECTION
-                const connection = new signalR.HubConnectionBuilder()
-                    .withUrl("/chatHub")
-                    .withAutomaticReconnect()
-                    .build();
-
-                connection.start().catch(err => console.error("SignalR Connection Error: " + err.toString()));
-
-                //2. RECEIVE MESSAGE HANDLER
-                connection.on("ReceiveMessage", function (senderName, message) {
-                    const encodedMsg = `
-                        <div class="chat-message-item mb-1 small">
-                             <span class="fw-bold">${senderName}:</span> ${message}
-                        </div>`;
-
-                    if (chatMessages) {
-                        chatMessages.insertAdjacentHTML('beforeend', encodedMsg);
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                    }
-                });
-
-                connection.on("LoadHistory", function (messages) {
-                    // messages: [{ SenderName, MessageContent, Timestamp }, ...] or camelCase
-                    if (!chatMessages) return;
-                    chatMessages.innerHTML = '';
-                    messages.forEach(m => {
-                        const sender = m.SenderName || m.senderName || m.sender || 'Unknown';
-                        const content = m.MessageContent || m.messageContent || m.message || '';
-                        const rawTime = m.Timestamp || m.timestamp || m.Time || m.time || null;
-                        let timeText = '';
-                        if (rawTime) {
-                            const dt = new Date(rawTime);
-                            if (!isNaN(dt.getTime())) {
-                                timeText = dt.toLocaleString();
-                            }
-                        }
-
-                        const timeHtml = timeText ? `<div class="small text-muted">${timeText}</div>` : '';
-                        const msgHtml = `\n <div class="chat-message-item mb-1 small">\n <div><span class="fw-bold">${sender}:</span> ${content}</div>\n ${timeHtml}\n </div>`;
-
-                        chatMessages.insertAdjacentHTML('beforeend', msgHtml);
-                    });
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                });
-
-                // Receive private message that triggers opening the chat window for recipient
-                connection.on("ReceivePrivateMessage", function (senderId, senderName, message) {
-                try {
-                    // If this client is the sender, we don't want to duplicate the self-message.
-                    const currentUser = '@User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value';
-                    if (currentUser && currentUser === senderId) {
-                        // This is our own message echoed by the server; ignore since sender already added locally
-                        return;
-                    }
-
-                    // Show unread badge on sender in user list
-                    const userEls = document.querySelectorAll('[data-user-id="' + senderId + '"]');
-                    userEls.forEach(el => {
-                        const li = el.closest('li');
-                        if (!li) return;
-                        if (!li.querySelector('.unread-badge')) {
-                            const badge = document.createElement('span');
-                            badge.className = 'badge bg-danger ms-2 unread-badge';
-                            badge.textContent = '1';
-                            li.querySelector('a').appendChild(badge);
-                        } else {
-                            // increment count
-                            const badge = li.querySelector('.unread-badge');
-                            badge.textContent = (parseInt(badge.textContent || '0') + 1).toString();
-                        }
-                    });
-
-                    // If chat is already open with this sender, append message and mark read
-                    if (currentChatTargetId === senderId && !isGroupChat) {
-                        const incoming = `\n <div class="chat-message-item mb-1 small">\n <span class="fw-bold">${senderName}:</span> ${message}\n </div>`;
-                        const targetMessages = document.getElementById('floating-chat-messages') || chatMessages;
-                        if (targetMessages) {
-                            targetMessages.insertAdjacentHTML('beforeend', incoming);
-                            targetMessages.scrollTop = targetMessages.scrollHeight;
-                        }
-                        // mark messages read server-side
-                        try { connection.invoke('MarkMessagesRead', senderId); } catch(e) { console.error(e); }
-                    } else {
-                        // Auto-open the chat window for the recipient
-                        openChatWindow(senderId, senderName, false);
-                        // insert message in opened window
-                        const incoming = `\n <div class="chat-message-item mb-1 small">\n <span class="fw-bold">${senderName}:</span> ${message}\n </div>`;
-                        const targetMessages = document.getElementById('floating-chat-messages') || chatMessages;
-                        if (targetMessages) {
-                            targetMessages.insertAdjacentHTML('beforeend', incoming);
-                            targetMessages.scrollTop = targetMessages.scrollHeight;
-                        }
-                    }
-                } catch (err) {
-                    console.error('Error handling ReceivePrivateMessage', err);
-                }
-                });
-
-                //3. UI MANAGEMENT FUNCTIONS
-                function openChatWindow(targetId, targetName, isGroup) {
-                    currentChatTargetId = targetId;
-                    isGroupChat = isGroup;
-                    // FIX 1: Set currentGroupName for group chats
-                    currentGroupName = isGroup ? targetId : null; 
-
-                    if (chatTargetName) chatTargetName.textContent = isGroup ? `Group: ${targetName}` : `Chatting with: ${targetName}`;
-
-                    if (chatMessages) chatMessages.innerHTML = ''; // Clear previous messages
-                    
-                    // FIX 2: Ensure correct display state for mobile modal messages/user list
-                    const floatingModal = document.getElementById('floating-chat-modal');
-                    const floatingUserList = document.getElementById('floating-user-list');
-                    const usersToggle = document.getElementById('floating-chat-users-toggle');
-                    
-                    // Force messages to show and user list to hide (default view when chat opens)
-                    if (floatingUserList) floatingUserList.style.display = 'none';
-                    if (chatMessages) chatMessages.style.display = 'block'; // Make sure messages are visible
-                    if (usersToggle) usersToggle.setAttribute('aria-pressed', 'false'); // Set toggle state
-
-                    // show floating modal if present, otherwise show sidebar container
-                    if (floatingModal) {
-                        floatingModal.style.display = 'block'; // Ensure it overrides hidden CSS
-                    } else if (chatWindowContainer) {
-                        chatWindowContainer.style.display = 'block';
-                        if (userListView) userListView.style.display = 'none';
-                    }
-
-                    if (chatInput) chatInput.focus();
-
-                    // Request recent history from server
-                    try {
-                        connection.invoke('GetRecentMessages', isGroup ? targetId : targetId, isGroup).catch(e => console.error('GetRecentMessages error', e));
-                    } catch (e) {
-                        console.error(e);
-                    }
-
-                    // clear unread badge on UI and mark read server-side for private chats
-                    if (!isGroup) {
-                        const els = document.querySelectorAll('[data-user-id="' + targetId + '"]');
-                        els.forEach(el=>{
-                            const badge = el.querySelector('.unread-badge');
-                            if (badge) badge.remove();
-                        });
-                        try { connection.invoke('MarkMessagesRead', targetId); } catch(e) { console.error(e); }
-                    }
-                }
-
-                function closeChatWindow() {
-                    currentChatTargetId = null;
-                    isGroupChat = false;
-                    currentGroupName = null; // Reset group name on close
-                    if (document.getElementById('floating-chat-modal')) {
-                        document.getElementById('floating-chat-modal').style.display = 'none';
-                    } else if (chatWindowContainer) {
-                        chatWindowContainer.style.display = 'none';
-                        if (userListView) userListView.style.display = 'block';
-                    }
-                    if (chatInput) chatInput.value = '';
-                    if (groupControls) groupControls.innerHTML = '';
-                }
-
-                //4. EVENT LISTENERS
-
-                // One-to-One Chat Listener (using delegation)
-                document.addEventListener('click', function (e) {
-                    const btn = e.target.closest && e.target.closest('.start-chat-btn');
-                    if (!btn) return;
-                    e.preventDefault();
-                    const userId = btn.getAttribute('data-user-id');
-                    const userName = btn.getAttribute('data-user-name');
-                    openChatWindow(userId, userName, false);
-                });
-
-                // Keyboard accessibility for start-chat-btn and group link (Enter/Space)
-                document.addEventListener('keydown', function (e) {
-                    if (!e.key) return;
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        const active = document.activeElement;
-                        if (!active) return;
-                        if (active.classList && active.classList.contains('start-chat-btn')) {
-                            e.preventDefault();
-                            const userId = active.getAttribute('data-user-id');
-                            const userName = active.getAttribute('data-user-name');
-                            openChatWindow(userId, userName, false);
-                        }
-                        if (active.id === 'group-chat-link') {
-                            e.preventDefault();
-                            connection.invoke('JoinGroup', 'Global').catch(err => console.error(err));
-                            openChatWindow('Global', 'Global', true);
-                        }
-                    }
-                });
-
-                // One-to-Many Chat Listener (Global)
-                if (groupChatLink) {
-                    groupChatLink.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        // join a default global group called 'Global'
-                        connection.invoke('JoinGroup', 'Global').catch(err => console.error(err));
-                        openChatWindow('Global', 'Global', true);
-                    });
-                }
-
-                // Floating chat toggle (mobile) - wire into same logic so sidebar visibility doesn't matter
-                var openChatBtn = document.getElementById('open-chat-toggle');
-                if (openChatBtn) {
-                    openChatBtn.setAttribute('role', 'button');
-                    openChatBtn.setAttribute('aria-label', 'Open Chat');
-                    openChatBtn.setAttribute('tabindex', '0');
-                    openChatBtn.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        // If group link exists, use it; otherwise directly join and open global
-                        if (groupChatLink) {
-                            try {
-                                groupChatLink.click();
-                                return;
-                            } catch (err) { /* fallthrough */}
-                        }
-                        connection.invoke('JoinGroup', 'Global').catch(err => console.error(err));
-                        openChatWindow('Global', 'Global', true);
-                    });
-                    openChatBtn.addEventListener('keydown', function (e) {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        openChatBtn.click();
-                            }
-                        });
-                }
-
-                // Floating modal controls
-                const floatingClose = document.getElementById('floating-chat-close');
-                const floatingMinimize = document.getElementById('floating-chat-minimize');
-                if (floatingClose) floatingClose.addEventListener('click', closeChatWindow);
-                if (floatingMinimize) floatingMinimize.addEventListener('click', function () {
-                        const modal = document.getElementById('floating-chat-modal');
-                    if (modal) modal.style.display = 'none';
-                        });
-
-                // Close Button Listener (sidebar fallback)
-                if (closeChatBtn && !document.getElementById('floating-chat-modal')) closeChatBtn.addEventListener('click', closeChatWindow);
-
-                // Send Button / Enter Key Listener
-                const actualSendBtn = document.getElementById('floating-chat-send') || sendBtn;
-                const actualChatInput = document.getElementById('floating-chat-input') || chatInput;
-                if (actualSendBtn) actualSendBtn.addEventListener('click', sendMessage);
-                if (actualChatInput) actualChatInput.addEventListener('keypress', function (e) {
-                        if (e.key === 'Enter') {
-                        sendMessage();
-                        }
-                    });
-
-                //5. SEND MESSAGE FUNCTION
-                function sendMessage() {
-                    const currentInput = document.getElementById('floating-chat-input') || chatInput;
-                    const message = currentInput.value.trim();
-                    if (message.length === 0 || connection.state !== signalR.HubConnectionState.Connected) {
-                        return;
-                    }
-
-                    if (isGroupChat && currentGroupName) {
-                        // One-to-Group
-                        connection.invoke("SendMessageToGroup", currentGroupName, message).catch(err => console.error(err.toString()));
-
-                    } else if (currentChatTargetId) { 
-                        // FIX 3: Simplified logic, if not group chat, send private message if target ID exists
-                        // One-to-One (send to user by id)
-                        connection.invoke("SendPrivateMessage", currentChatTargetId, message).catch(err => console.error(err.toString()));
-                        // Add local self message once
-                        const selfMessage = `\n <div class="chat-message-item self-message mb-1 small text-end">\n <span class="fw-bold text-amazon-teal">You:</span> ${message}\n </div>`;
-                        const targetMessages = document.getElementById('floating-chat-messages') || chatMessages;
-                        if (targetMessages) {
-                            targetMessages.insertAdjacentHTML('beforeend', selfMessage);
-                            targetMessages.scrollTop = targetMessages.scrollHeight;
-                        }
-                    }
-                    
-                    // Clear the input field after sending
-                    currentInput.value = '';
-                }
-
-                // ===============================================
-                // =========== CHAT CLIENT LOGIC END =============
-                // ===============================================
-
-                // Floating user list toggle inside modal
-                const usersToggle = document.getElementById('floating-chat-users-toggle');
-                const floatingUserList = document.getElementById('floating-user-list');
-                if (usersToggle && floatingUserList) {
-                    usersToggle.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        const pressed = usersToggle.getAttribute('aria-pressed') === 'true';
-                        if (pressed) {
-                            // hide user list, show messages
-                            floatingUserList.style.display = 'none';
-                            if (document.getElementById('floating-chat-messages')) document.getElementById('floating-chat-messages').style.display = 'block';
-                            usersToggle.setAttribute('aria-pressed', 'false');
-                        } else {
-                            // populate user list from sidebar view
-                            const sidebarView = document.getElementById('user-list-view');
-                            if (sidebarView) {
-                                // clone the inner HTML so event delegation still works
-                                floatingUserList.innerHTML = sidebarView.innerHTML;
-                            } else {
-                                floatingUserList.innerHTML = '<div class="small text-muted">No users available.</div>';
-                            }
-                            floatingUserList.style.display = 'block';
-                            if (document.getElementById('floating-chat-messages')) document.getElementById('floating-chat-messages').style.display = 'none';
-                            usersToggle.setAttribute('aria-pressed', 'true');
-                        }
-                    });
-                }
-
-            });
-        })();
+        ChatProductsModule.init({
+            cS: @Html.Raw(Json.Serialize(currentCategorySlug ?? "")),
+            cST: @Html.Raw(Json.Serialize(currentSearchTerm ?? "")),
+            cSO: @Html.Raw(Json.Serialize(sortOrder ?? "default")),
+            pIU: @Html.Raw(Json.Serialize(Url.Action("Index", "Products"))),
+            currentUserId: '@User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value',
+            chatEnabled: false 
+        });
     </script>
-}
-
-@section Styles {
-    <style>
-        /* Floating chat button */
-        .floating-chat-btn {
-            position: fixed;
-            right: 20px;
-            bottom: 20px;
-            z-index: 1050;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 04px12px rgba(0,0,0,.15);
-            color: #fff;
-            background: linear-gradient(180deg,#007185,#005a5f);
-            border: none;
-        }
-
-            .floating-chat-btn .fas {
-                font-size: 1.1rem;
-            }
-        /* Floating modal overrides */
-        #floating-chat-modal .card {
-            width: 100%;
-        }
-        /* Define Amazon-like Colors */
-        :root {
-            --amazon-black: #0F1111;
-            --amazon-gray-text: #565959;
-            --amazon-price-red: #B12704;
-            --amazon-yellow-button: #FFD814;
-            --amazon-yellow-button-hover: #F7CA00;
-            --amazon-link-teal: #007185;
-            --amazon-link-teal-hover: #C7511F;
-            --amazon-search-yellow: #FEBD69;
-            --amazon-border-gray: #D5D9D9;
-        }
-        /* ------------------------------------------------ */
-        /* --- GLOBAL AMAZON FONT AND BASE TEXT STYLES ---- */
-        /* ------------------------------------------------ */
-        .amazon-text, .amazon-heading, .amazon-sidebar-title, .amazon-sidebar-link, .amazon-status-header {
-            font-family: Arial, sans-serif !important;
-            color: var(--amazon-black);
-        }
-
-        .text-amazon-teal {
-            color: var(--amazon-link-teal) !important;
-        }
-        /* General Links: Amazon often uses teal/blue for internal links */
-        a {
-            color: var(--amazon-link-teal);
-        }
-
-        .amazon-sidebar-link:hover {
-            color: var(--amazon-link-teal-hover) !important;
-            text-decoration: underline !important;
-        }
-        /* --- PRODUCT CARD STYLES --- */
-        .product-card {
-            border: 1px solid var(--amazon-border-gray) !important;
-            border-radius: 8px;
-            background: #fff;
-            transition: box-shadow .18s ease, border-color .18s ease;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-            .product-card:hover {
-                box-shadow: 0 4px 12px rgba(0,0,0,.1);
-                border-color: #FAFAFA !important;
-            }
-        /* ================================================= */
-        /* === STANDARD PRODUCT IMAGE SIZE IMPLEMENTATION === */
-        /* ================================================= */
-
-        .product-image-wrapper {
-            background: #fff;
-            padding: 18px;
-            position: relative;
-            width: 100%;
-            /* 4:3 Aspect Ratio (3 / 4 * 100% = 75%). Ensures uniform height. */
-            padding-top: 75%;
-            border-bottom: 1px solid #eee;
-            overflow: hidden;
-        }
-
-        .product-img {
-            object-fit: contain;
-            /* Position the image absolutely to fit the aspect ratio container */
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            padding: 18px; /* Apply padding here instead of wrapper */
-            transition: transform .25s ease;
-        }
-
-        .product-card:hover .product-img {
-            transform: scale(1.06);
-        }
-        /* ================================================= */
-        /* ================================================= */
-
-        .product-category-link {
-            color: var(--amazon-link-teal) !important;
-            font-size: 0.75rem;
-            font-weight: 500;
-            text-transform: none;
-            letter-spacing: normal;
-        }
-
-        .product-name a {
-            font-size: 1rem;
-            color: var(--amazon-black) !important;
-            line-height: 1.25;
-            text-decoration: none;
-            font-weight: 400;
-        }
-
-            .product-name a:hover {
-                color: var(--amazon-link-teal) !important;
-            }
-
-        .star-rating i {
-            color: #ffa41c;
-        }
-
-        .price-text {
-            color: var(--amazon-price-red) !important;
-            font-size: 1.4rem !important;
-            font-weight: 700 !important;
-        }
-        /* --- BUTTONS --- */
-        .btn-amazon-yellow {
-            background-color: var(--amazon-yellow-button) !important;
-            border: 1px solid #FCD200 !important;
-            color: #0F1111 !important;
-            font-weight: 400;
-            box-shadow: 0 1px 0 rgba(255,255,255,.6) inset;
-            border-radius: 8px;
-        }
-
-            .btn-amazon-yellow:hover {
-                background-color: var(--amazon-yellow-button-hover) !important;
-            }
-
-        .btn-amazon-outline {
-            border: 1px solid var(--amazon-border-gray) !important;
-            color: var(--amazon-black) !important;
-            background: #F7F7F7;
-            font-weight: 400;
-            border-radius: 8px;
-        }
-
-            .btn-amazon-outline:hover {
-                background-color: #EAEAEA !important;
-                border-color: #ADADAD !important;
-            }
-        /* Search Input and Button Styling */
-        .amazon-search-group {
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 1px 2px rgba(15,17,17,.15);
-        }
-
-        .amazon-search-input.form-control {
-            border: 1px solid var(--amazon-border-gray);
-            border-right: none;
-            padding: 0.375rem 0.75rem;
-            height: 38px;
-            box-shadow: none !important;
-        }
-
-        .btn-amazon-search {
-            background-color: var(--amazon-search-yellow) !important;
-            border: none;
-            color: #111;
-            padding: 0.375rem 0.75rem;
-            width: 40px;
-            border-top-left-radius: 0;
-            border-bottom-left-radius: 0;
-            height: 38px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-            .btn-amazon-search:hover {
-                background-color: #F3A847 !important;
-            }
-        /* --- SIDEBAR STYLES --- */
-        .amazon-sidebar-card {
-            border-radius: 8px !important;
-            border: 1px solid #e7e7e7 !important;
-        }
-
-        .amazon-sidebar-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 8px;
-        }
-
-        .amazon-status-header {
-            font-size: 0.95rem;
-            margin-top: 10px;
-        }
-
-        .amazon-list li {
-            padding-left: 0.5rem;
-        }
-
-        .amazon-list a.amazon-sidebar-link {
-            font-size: 0.85rem;
-            color: var(--amazon-link-teal);
-            font-weight: 400;
-        }
-        /* Chat Specific Styles */
-        .chat-messages {
-            border: 1px solid #ccc;
-            padding: 8px;
-            background-color: #f9f9f9;
-            font-size: 0.85rem;
-            line-height: 1.3;
-            max-height: 300px;
-        }
-
-        .chat-message-item {
-            word-wrap: break-word;
-            color: var(--amazon-gray-text);
-        }
-
-        .self-message {
-            color: var(--amazon-black);
-        }
-
-            .self-message .fw-bold {
-                color: var(--amazon-link-teal) !important;
-            }
-        /* Responsive Adjustments */
-        @@media (max-width: 576px) {
-            .product-image-wrapper {
-                padding-top: 100%; /* Switch to 1:1 on mobile */
-            }
-
-            .product-img {
-                padding: 12px;
-            }
-        }
-        /* Mobile friendly chat modal and floating button */
-        @@media (max-width:767.98px) {
-            .floating-chat-btn {
-                width: 60px !important;
-                height: 60px !important;
-                right: 16px !important;
-                bottom: 16px !important;
-                z-index: 3000 !important;
-            }
-
-            #floating-chat-modal {
-                right: 0 !important;
-                left: 0 !important;
-                bottom: 0 !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                border-radius: 0 !important;
-                margin: 0 !important;
-            }
-
-                #floating-chat-modal .card-body {
-                    padding: 0.5rem !important;
-                }
-
-            #floating-chat-messages {
-                height: 50vh !important;
-            }
-        }
-
-    </style>
 }

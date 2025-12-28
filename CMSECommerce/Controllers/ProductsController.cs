@@ -35,7 +35,7 @@ namespace CMSECommerce.Controllers
             string sortOrder = "")
         {
             // --- Paging Configuration ---
-            const int pageSize = 12;
+            const int pageSize = 20;
             int pageNumber = p;
 
             // --- State Variables Initialization (for full method scope) ---
