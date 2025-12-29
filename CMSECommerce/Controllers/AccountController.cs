@@ -652,43 +652,55 @@ namespace CMSECommerce.Controllers
                     .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);
 
-                // Map Identity data to the ViewModel
-                var viewModel = new ProfileUpdateViewModel
+                if(userProfile == null || User.IsInRole("Customer"))
                 {
-                    // CORE IDENTITY (Always exists)
-                    UserId = identityUser.Id,
-                    UserName = identityUser.UserName,
-                    Email = identityUser.Email,
-                    PhoneNumber = identityUser.PhoneNumber,
+                    // Log info: New user without profile
+                    _logger.LogInformation("No UserProfile found for user {UserId}. Initializing new profile view.", identityUser.Id);
 
-                    // PROFILE FIELDS (May be null for new Amazon-style users)
-                    FirstName = userProfile?.FirstName ?? "",
-                    LastName = userProfile?.LastName ?? "",
-                    ITSNumber = userProfile?.ITSNumber ?? "",
-                    About = userProfile?.About,
-                    Profession = userProfile?.Profession,
-                    ServicesProvided = userProfile?.ServicesProvided,
-                    //CurrentRole = userProfile?.CurrentRole,
-                    WhatsappNumber = userProfile?.WhatsAppNumber ?? identityUser.PhoneNumber, // Default to Mobile
-                    IsProfileVisible = userProfile?.IsProfileVisible ?? true,
+                    ViewBag.ProfileStatus = false;
+                }
+                else
+                {
+                    ViewBag.ProfileStatus = true;
+                }
 
-                    // IMAGE STATUS
-                    IsImageApproved = userProfile?.IsImageApproved ?? false,
-                    IsImagePending = userProfile?.IsImagePending ?? false,
-                    ExistingProfileImagePath = userProfile?.ProfileImagePath,
+                    // Map Identity data to the ViewModel
+                    var viewModel = new ProfileUpdateViewModel
+                    {
+                        // CORE IDENTITY (Always exists)
+                        UserId = identityUser.Id,
+                        UserName = identityUser.UserName,
+                        Email = identityUser.Email,
+                        PhoneNumber = identityUser.PhoneNumber,
 
-                    // STORE FIELDS (May be null)
-                    StoreId = userProfile?.StoreId,
-                    StoreName = userProfile?.Store?.StoreName ?? "",
-                    StoreStreetAddress = userProfile?.Store?.StreetAddress ?? "",
-                    StoreCity = userProfile?.Store?.City ?? "",
-                    StorePostCode = userProfile?.Store?.PostCode ?? "",
-                    StoreCountry = userProfile?.Store?.Country ?? "",
-                    StoreEmail = userProfile?.Store?.Email ?? identityUser.Email, // Default to User Email
-                    StoreContact = userProfile?.Store?.Contact ?? identityUser.PhoneNumber, // Default to User Phone
-                    GSTIN = userProfile?.Store?.GSTIN
+                        // PROFILE FIELDS (May be null for new Amazon-style users)
+                        FirstName = userProfile?.FirstName ?? "",
+                        LastName = userProfile?.LastName ?? "",
+                        ITSNumber = userProfile?.ITSNumber ?? "",
+                        About = userProfile?.About,
+                        Profession = userProfile?.Profession,
+                        ServicesProvided = userProfile?.ServicesProvided,
+                        //CurrentRole = userProfile?.CurrentRole,
+                        WhatsappNumber = userProfile?.WhatsAppNumber ?? identityUser.PhoneNumber, // Default to Mobile
+                        IsProfileVisible = userProfile?.IsProfileVisible ?? true,
 
-                };
+                        // IMAGE STATUS
+                        IsImageApproved = userProfile?.IsImageApproved ?? false,
+                        IsImagePending = userProfile?.IsImagePending ?? false,
+                        ExistingProfileImagePath = userProfile?.ProfileImagePath,
+
+                        // STORE FIELDS (May be null)
+                        StoreId = userProfile?.StoreId,
+                        StoreName = userProfile?.Store?.StoreName ?? "",
+                        StoreStreetAddress = userProfile?.Store?.StreetAddress ?? "",
+                        StoreCity = userProfile?.Store?.City ?? "",
+                        StorePostCode = userProfile?.Store?.PostCode ?? "",
+                        StoreCountry = userProfile?.Store?.Country ?? "",
+                        StoreEmail = userProfile?.Store?.Email ?? identityUser.Email, // Default to User Email
+                        StoreContact = userProfile?.Store?.Contact ?? identityUser.PhoneNumber, // Default to User Phone
+                        GSTIN = userProfile?.Store?.GSTIN
+
+                    };
 
                 if (userProfile != null)
                 {
@@ -860,6 +872,17 @@ namespace CMSECommerce.Controllers
                     .Include(p => p.Store)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.UserId == id);
+                if (userProfile == null || User.IsInRole("Customer"))
+                {
+                    // Log info: New user without profile
+                    _logger.LogInformation("No UserProfile found for user {UserId}. Initializing new profile view.", id);
+
+                    ViewBag.ProfileStatus = false;
+                }
+                else
+                {
+                    ViewBag.ProfileStatus = true;
+                }
 
                 var roles = await _userManager.GetRolesAsync(user);
 
@@ -943,6 +966,18 @@ namespace CMSECommerce.Controllers
                     .Include(p => p.Store)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.UserId == userId);
+
+                if (userProfile == null || User.IsInRole("Customer"))
+                {
+                    // Log info: New user without profile
+                    _logger.LogInformation("No UserProfile found for user {UserId}. Initializing new profile view.", userId);
+
+                    ViewBag.ProfileStatus = false;
+                }
+                else
+                {
+                    ViewBag.ProfileStatus = true;
+                }
 
                 var roles = await _userManager.GetRolesAsync(user);
 
@@ -1035,9 +1070,21 @@ namespace CMSECommerce.Controllers
                     .Include(p => p.Store)
                     .FirstOrDefaultAsync(p => p.UserId == model.Id);
 
+                if (userProfile == null || User.IsInRole("Customer"))
+                {
+                    // Log info: New user without profile
+                    _logger.LogInformation("No UserProfile found for user {UserId}. Initializing new profile view.", user.Id);
+
+                    ViewBag.ProfileStatus = false;
+                }
+                else
+                {
+                    ViewBag.ProfileStatus = true;
+                }
+
                 if (userProfile == null)
                 {
-                    userProfile = new UserProfile { UserId = model.Id };
+                    userProfile = new UserProfile { UserId = user.Id };
                     _context.UserProfiles.Add(userProfile);
                 }
 
@@ -1354,6 +1401,17 @@ namespace CMSECommerce.Controllers
                 var userProfile = await _context.UserProfiles
                     .Include(p => p.Store)
                     .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);
+                if (userProfile == null || User.IsInRole("Customer"))
+                {
+                    // Log info: New user without profile
+                    _logger.LogInformation("No UserProfile found for user {UserId}. Initializing new profile view.", identityUser.Id);
+
+                    ViewBag.ProfileStatus = false;
+                }
+                else
+                {
+                    ViewBag.ProfileStatus = true;
+                }
 
                 bool isNewProfile = userProfile == null;
                 if (isNewProfile) userProfile = new UserProfile { UserId = identityUser.Id };
