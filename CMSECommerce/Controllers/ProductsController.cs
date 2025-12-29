@@ -294,5 +294,18 @@ namespace CMSECommerce.Controllers
             // Return the view with the product data
             return View(product);
         }
+
+
+        [Route("policies")]
+        public IActionResult Policies()
+        {
+            return View();
+        }
+
+        [Route("privacy-policy")]
+        public IActionResult Privacy()
+        {
+            return View();
+        }
     }
 }

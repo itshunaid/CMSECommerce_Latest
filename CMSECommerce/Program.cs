@@ -210,7 +210,13 @@ app.UseAuthorization();
 // --- 4. ROUTE MAPPING ---
 app.MapHub<CMSECommerce.Hubs.ChatHub>("/chatHub");
 app.MapRazorPages();
+app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapControllerRoute(name: "areas", pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
 app.MapControllerRoute(name: "product", pattern: "products/product/{slug?}", defaults: new { controller = "Products", action = "Product" });
 app.MapControllerRoute(name: "cart", pattern: "cart/{action}/{id?}", defaults: new { controller = "Cart", action = "Index" });

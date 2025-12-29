@@ -25,7 +25,7 @@
             overflow-x: hidden;
         }
 
-        /* --- SLIDING BRAND HEADING (Adjusted Speed) --- */
+        /* --- SLIDING BRAND HEADING --- */
         .brand-top-header {
             background: #000;
             padding: 10px 0;
@@ -44,7 +44,6 @@
         .marquee-content {
             display: flex;
             align-items: center;
-            /* SLOWER SPEED: 35s for a smoother, readable glide */
             animation: marquee-infinite 35s linear infinite;
         }
 
@@ -97,7 +96,7 @@
         /* --- Brand Logo & Tagline Styles --- */
         .navbar-brand {
             display: flex;
-            align-items: center; /* Center-aligns logo and tagline vertically */
+            align-items: center;
             gap: 12px;
             font-size: 1.3rem !important;
             color: #fff !important;
@@ -176,11 +175,24 @@
             font-weight: bold;
         }
 
+        /* --- Footer Styles --- */
         footer.amazon-footer {
             background-color: var(--amazon-dark-blue) !important;
             color: white !important;
             font-size: 0.85rem;
+            border-top: 1px solid #3a4553;
         }
+
+        .footer-link {
+            color: #fff !important;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+            .footer-link:hover {
+                text-decoration: underline !important;
+                color: var(--amazon-orange) !important;
+            }
 
         .nav-admin-link {
             border: 1px solid var(--amazon-orange) !important;
@@ -248,12 +260,8 @@
                             <a class="nav-link" asp-controller="Products" asp-action="Index">Home</a>
                         </li>
                         <vc:menu />
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Subscription" asp-action="Index">Subscriptions</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Subscription" asp-action="Status">Status</a>
-                        </li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Subscription" asp-action="Index">Seller Subscriptions</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Subscription" asp-action="Status">Subscription Status</a></li>
 
                         @if (User.IsInRole("Admin") || User.IsInRole("Subscriber") || User.IsInRole("Seller"))
                         {
@@ -279,7 +287,7 @@
         </nav>
     </header>
 
-    <div class="container bg-white py-3 shadow-sm mb-5">
+    <div class="container bg-white py-3 shadow-sm mb-5" style="min-height: 70vh;">
         <main role="main">
             <partial name="_NotificationsPartial" />
             <div class="row g-3">
@@ -298,8 +306,13 @@
 
     <footer class="amazon-footer mt-5 py-4">
         <div class="container text-center">
-            <p class="mb-1">&copy; @DateTime.Now.Year - Weypaari CMSEcommerce</p>
-            <a asp-controller="Home" asp-action="Index">Privacy Policy</a>
+            <div class="mb-3">
+                <a asp-controller="Products" asp-action="Policies" class="footer-link">Policies & Disclaimer</a>
+                <span class="text-muted">|</span>
+                <a asp-controller="Products" asp-action="Privacy" class="footer-link">Privacy Policy</a>
+            </div>
+            <p class="mb-1 text-secondary">&copy; @DateTime.Now.Year - Weypaari CMSEcommerce</p>
+            <p class="small text-muted">A Discovery Platform for Home Businesses.</p>
         </div>
     </footer>
 
