@@ -1317,6 +1317,8 @@ namespace CMSECommerce.Controllers
 
             _logger.LogInformation("Profile update request received. Method: {Method}, Path: {Path}", HttpContext.Request.Method, HttpContext.Request.Path);
 
+            var imageUpload = model.ProfileImageUpload;
+
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
@@ -1349,11 +1351,14 @@ namespace CMSECommerce.Controllers
                 bool isNewProfile = userProfile == null;
                 if (isNewProfile) userProfile = new UserProfile { UserId = identityUser.Id };
 
+              
                 // Handle Image Uploads
                 bool profileImageUpdated = false;
                 if (model.ProfileImageUpload != null)
                 {
-                    userProfile.PendingProfileImagePath = await ProcessFileUpload(model.ProfileImageUpload, "profiles/pending");
+                    // Process file and save the returned path to PendingProfileImagePath
+                    string uploadedPath = await ProcessFileUpload(model.ProfileImageUpload, "profiles/pending");
+                    userProfile.PendingProfileImagePath = uploadedPath;
                     userProfile.IsImageApproved = false;
                     userProfile.IsImagePending = true;
                     profileImageUpdated = true;
@@ -1381,6 +1386,7 @@ namespace CMSECommerce.Controllers
                 userProfile.HomePhoneNumber = model.HomePhoneNumber;
                 userProfile.BusinessAddress = model.BusinessAddress; // Was missing
                 userProfile.BusinessPhoneNumber = model.BusinessPhoneNumber; // Was missing
+                userProfile.ProfileImagePath = model.PendingProfileImagePath;
 
                 // Ensure Store object exists
                 if (userProfile.Store == null)
@@ -1404,9 +1410,20 @@ namespace CMSECommerce.Controllers
                     _context.Entry(userProfile.Store).State = EntityState.Modified;
                 }
 
-                if (isNewProfile) _context.UserProfiles.Add(userProfile);
-                else _context.Entry(userProfile).State = EntityState.Modified;
-
+                // Save Logic
+                if (isNewProfile)
+                {
+                    _context.UserProfiles.Add(userProfile);
+                }
+                else
+                {
+                    _context.UserProfiles.Update(userProfile);
+                    // Ensure the Store is also marked as modified if it exists
+                    if (userProfile.Store != null)
+                    {
+                        _context.Entry(userProfile.Store).State = EntityState.Modified;
+                    }
+                }
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
