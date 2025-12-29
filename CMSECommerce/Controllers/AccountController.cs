@@ -236,78 +236,55 @@ namespace CMSECommerce.Controllers
         {
             if (!ModelState.IsValid) return View(model);
 
-            // Final Server-Side Uniqueness Check for identifiers
-            bool isDuplicate = await _userManager.Users.AnyAsync(u => u.UserName == model.Username || u.Email == model.Email || u.PhoneNumber == model.PhoneNumber) ||
-                               await _context.UserProfiles.AnyAsync(up => up.ITSNumber == model.ITSNumber || up.WhatsAppNumber == model.WhatsAppNumber);
+            // 1. Simplified Uniqueness Check 
+            // We only check UserManager for existing credentials to prevent crashes.
+            bool isDuplicate = await _userManager.Users.AnyAsync(u =>
+                u.UserName == model.Username ||
+                u.Email == model.Email ||
+                u.PhoneNumber == model.PhoneNumber);
 
             if (isDuplicate)
             {
-                ModelState.AddModelError("", "One or more details (Username, Email, Phone, ITS, or GSTIN) are already in use.");
+                ModelState.AddModelError("", "Username, Email, or Phone Number is already in use.");
                 return View(model);
             }
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Create Identity User using the NEW Username field
+                // 2. Create Identity User (Core Identity functionality)
                 var newUser = new IdentityUser
                 {
-                    UserName = model.Username, // Mapping specific Username
+                    UserName = model.Username,
                     Email = model.Email,
                     PhoneNumber = model.PhoneNumber,
-                    EmailConfirmed = true
+                    EmailConfirmed = true // Mimicking Amazon's pre-verified or direct access flow
                 };
 
                 var result = await _userManager.CreateAsync(newUser, model.Password);
 
                 if (result.Succeeded)
                 {
-                    // 2. Create the Store
-                    var newStore = new Store
-                    {
-                        StoreName = model.StoreName,
-                        StreetAddress = model.StreetAddress,
-                        City = model.City,
-                        PostCode = model.PostalCode,
-                        Country = model.Country,
-                        Email = model.Email,
-                        Contact = model.PhoneNumber,
-                        GSTIN = model.GSTIN
-                    };
-
-                    _context.Stores.Add(newStore);
-                    await _context.SaveChangesAsync();
-
-                    // 3. Create UserProfile with 8-digit ITS and WhatsApp
-                    var userProfile = new UserProfile
-                    {
-                        UserId = newUser.Id,
-                        FirstName = model.FirstName,
-                        LastName = model.LastName,
-                        ITSNumber = model.ITSNumber,       // Enforced 8-digit from ViewModel
-                        WhatsAppNumber = model.WhatsAppNumber,
-                        StoreId = newStore.Id,
-                        IsProfileVisible = true
-                    };
-
-                    _context.UserProfiles.Add(userProfile);
-
-                    // 4. Role Assignment
+                    // 3. Role Assignment
+                    // We keep this to ensure your [Authorize(Roles="Customer")] attributes don't break.
                     await _userManager.AddToRoleAsync(newUser, "Customer");
 
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
+                    // 4. Immediate Sign-In (The Amazon Experience)
                     await _sign_in_manager.SignInAsync(newUser, isPersistent: false);
+
+                    _logger.LogInformation("User {Username} registered successfully.", model.Username);
                     return RedirectToAction("Index", "Home");
                 }
 
-                foreach (var error in result.Errors) ModelState.AddModelError("", error.Description);
+                // Add Identity errors (like password complexity issues) to the UI
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError("", error.Description);
+                }
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Transaction failed for user {Username}", model.Username);
+                // Maintain existing error logging for troubleshooting
+                _logger.LogError(ex, "Registration failed for user {Username}", model.Username);
                 ModelState.AddModelError("", "An internal error occurred. Please try again.");
             }
 
@@ -664,15 +641,46 @@ namespace CMSECommerce.Controllers
             {
                 // Attempt to find existing profile data
                 var userProfile = await _context.UserProfiles
+                    .Include(p => p.Store)
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);
 
                 // Map Identity data to the ViewModel
                 var viewModel = new ProfileUpdateViewModel
                 {
+                    // CORE IDENTITY (Always exists)
                     UserId = identityUser.Id,
                     UserName = identityUser.UserName,
                     Email = identityUser.Email,
                     PhoneNumber = identityUser.PhoneNumber,
+
+                    // PROFILE FIELDS (May be null for new Amazon-style users)
+                    FirstName = userProfile?.FirstName ?? "",
+                    LastName = userProfile?.LastName ?? "",
+                    ITSNumber = userProfile?.ITSNumber ?? "",
+                    About = userProfile?.About,
+                    Profession = userProfile?.Profession,
+                    ServicesProvided = userProfile?.ServicesProvided,
+                    //CurrentRole = userProfile?.CurrentRole,
+                    WhatsappNumber = userProfile?.WhatsAppNumber ?? identityUser.PhoneNumber, // Default to Mobile
+                    IsProfileVisible = userProfile?.IsProfileVisible ?? true,
+
+                    // IMAGE STATUS
+                    IsImageApproved = userProfile?.IsImageApproved ?? false,
+                    IsImagePending = userProfile?.IsImagePending ?? false,
+                    ExistingProfileImagePath = userProfile?.ProfileImagePath,
+
+                    // STORE FIELDS (May be null)
+                    StoreId = userProfile?.StoreId,
+                    StoreName = userProfile?.Store?.StoreName ?? "",
+                    StoreStreetAddress = userProfile?.Store?.StreetAddress ?? "",
+                    StoreCity = userProfile?.Store?.City ?? "",
+                    StorePostCode = userProfile?.Store?.PostCode ?? "",
+                    StoreCountry = userProfile?.Store?.Country ?? "",
+                    StoreEmail = userProfile?.Store?.Email ?? identityUser.Email, // Default to User Email
+                    StoreContact = userProfile?.Store?.Contact ?? identityUser.PhoneNumber, // Default to User Phone
+                    GSTIN = userProfile?.Store?.GSTIN
+
                 };
 
                 if (userProfile != null)
@@ -1391,7 +1399,7 @@ namespace CMSECommerce.Controllers
                 userProfile.Store.Country = model.StoreCountry;
 
                 // Update the Store entity state if it's not new
-                if (userProfile.StoreId!=0)
+                if (userProfile.StoreId != 0)
                 {
                     _context.Entry(userProfile.Store).State = EntityState.Modified;
                 }
@@ -1406,7 +1414,7 @@ namespace CMSECommerce.Controllers
                     ? "Changes saved. Profile image is under review."
                     : "Profile updated successfully.";
 
-                return RedirectToAction("ProfileDetails", new { userId = userProfile.UserId });
+                return RedirectToAction("ProfileDetailsView", new { userId = userProfile.UserId });
             }
             catch (Exception ex)
             {
