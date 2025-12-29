@@ -119,14 +119,14 @@
                     <div id="registrationFields">
                         @* Backup Email Field Container *@
                         <div class="form-group mb-3" id="BackupEmailContainer">
-                            <label asp-for="Email" class="form-label fw-bold label-small text-amazon-dark mb-1">Backup Email (Optional)</label>
+                            <label asp-for="Email" class="form-label fw-bold label-small text-amazon-dark mb-1">Email</label>
                             <input asp-for="Email" id="EmailInput" class="form-control amazon-input-field" type="email" autocomplete="off" />
                             <span asp-validation-for="Email" id="EmailError" class="text-danger small mt-1 d-block"></span>
                         </div>
 
                         @* Backup Mobile Field Container *@
                         <div class="form-group mb-3" id="BackupMobileContainer">
-                            <label asp-for="PhoneNumber" class="form-label fw-bold label-small text-amazon-dark mb-1">Backup Mobile number</label>
+                            <label asp-for="PhoneNumber" class="form-label fw-bold label-small text-amazon-dark mb-1">Mobile number</label>
                             <input asp-for="PhoneNumber" id="PhoneInput" class="form-control amazon-input-field" placeholder="10-digit mobile" maxlength="10" inputmode="numeric" autocomplete="off" />
                             <span asp-validation-for="PhoneNumber" id="PhoneError" class="text-danger small mt-1 d-block"></span>
                         </div>
