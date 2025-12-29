@@ -5,9 +5,9 @@ namespace CMSECommerce.Models.ViewModels
     public class RegisterViewModel
     {
         // --- CORE IDENTITY FIELDS (Keep Required for Amazon-style login) ---
-        [Required(ErrorMessage = "Username is required")]
+       
         [StringLength(50, MinimumLength = 3)]
-        [RegularExpression(@"^[a-zA-Z0-9._]+$", ErrorMessage = "Username can only contain letters, numbers, dots, and underscores.")]
+        [Required(ErrorMessage = "Please enter your Email, Mobile, or ITS number")]
         public string Username { get; set; }
 
         [Required(ErrorMessage = "Email is required")]
