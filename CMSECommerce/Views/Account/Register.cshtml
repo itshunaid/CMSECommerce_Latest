@@ -112,27 +112,29 @@
                     @* --- Unified Identifier --- *@
                     <div class="form-group mb-3">
                         <label asp-for="Username" class="form-label fw-bold label-small text-amazon-dark mb-1">Email, Mobile, or ITS Number</label>
-                        <input asp-for="Username" value="" id="UserInput" class="form-control amazon-input-field" placeholder="Email, Mobile, or 8-digit ITS" autocomplete="off" />
+                        <input asp-for="Username" id="UserInput" class="form-control amazon-input-field" placeholder="Email, Mobile, or 8-digit ITS" autocomplete="off" />
                         <span asp-validation-for="Username" id="UserError" class="text-danger small mt-1 d-block"></span>
                     </div>
 
                     <div id="registrationFields">
-                        <div class="form-group mb-3">
+                        @* Wrapped in a div to hide when unified input is Email *@
+                        <div class="form-group mb-3" id="BackupEmailContainer">
                             <label asp-for="Email" class="form-label fw-bold label-small text-amazon-dark mb-1">Backup Email (Optional)</label>
-                            <input asp-for="Email" value="" id="EmailInput" class="form-control amazon-input-field" type="email" autocomplete="off" />
+                            <input asp-for="Email" id="EmailInput" class="form-control amazon-input-field" type="email" autocomplete="off" />
                             <span asp-validation-for="Email" id="EmailError" class="text-danger small mt-1 d-block"></span>
                         </div>
 
-                        <div class="form-group mb-3">
+                        @* Wrapped in a div to hide when unified input is Mobile *@
+                        <div class="form-group mb-3" id="BackupMobileContainer">
                             <label asp-for="PhoneNumber" class="form-label fw-bold label-small text-amazon-dark mb-1">Backup Mobile number</label>
-                            <input asp-for="PhoneNumber" value="" id="PhoneInput" class="form-control amazon-input-field" placeholder="10-digit mobile" maxlength="10" inputmode="numeric" autocomplete="off" />
+                            <input asp-for="PhoneNumber" id="PhoneInput" class="form-control amazon-input-field" placeholder="10-digit mobile" maxlength="10" inputmode="numeric" autocomplete="off" />
                             <span asp-validation-for="PhoneNumber" id="PhoneError" class="text-danger small mt-1 d-block"></span>
                         </div>
                     </div>
 
                     <div class="form-group mb-2">
                         <label asp-for="Password" class="form-label fw-bold label-small text-amazon-dark mb-1">Password</label>
-                        <input asp-for="Password" value="" id="PassInput" type="password" class="form-control amazon-input-field" placeholder="At least 6 characters" autocomplete="new-password" />
+                        <input asp-for="Password" id="PassInput" type="password" class="form-control amazon-input-field" placeholder="At least 6 characters" autocomplete="new-password" />
                         <span asp-validation-for="Password" id="PassError" class="text-danger small mt-1 d-block"></span>
                         <div id="passwordHint" class="info-box mt-1">
                             <i class="fas fa-info text-info me-1"></i> Passwords must be at least 6 characters.
@@ -141,14 +143,12 @@
 
                     <div id="confirmPasswordGroup" class="form-group mb-3">
                         <label asp-for="ConfirmPassword" class="form-label fw-bold label-small text-amazon-dark mb-1">Re-enter password</label>
-                        <input asp-for="ConfirmPassword" value="" id="ConfirmPassInput" type="password" class="form-control amazon-input-field" autocomplete="new-password" />
+                        <input asp-for="ConfirmPassword" id="ConfirmPassInput" type="password" class="form-control amazon-input-field" autocomplete="new-password" />
                         <span asp-validation-for="ConfirmPassword" id="ConfirmPassError" class="text-danger small mt-1 d-block"></span>
                     </div>
 
                     <div class="d-grid mt-3 mb-3">
-                        <button type="submit" id="submitBtn" class="btn btn-amazon-checkout w-100">
-                            Continue
-                        </button>
+                        <button type="submit" id="submitBtn" class="btn btn-amazon-checkout w-100">Continue</button>
                     </div>
 
                     <p id="legalNotice" class="info-box mb-4">
@@ -175,25 +175,28 @@
             const $userInput = $('#UserInput');
             const $userError = $('#UserError');
 
-            /**
-             * VALIDATION LOGIC:
-             * 1. ITS Number: Exactly 8 digits.
-             * 2. Mobile: Indian Std (10 digits, optional +91 or 0 prefix).
-             * 3. Email: Standard RFC email pattern.
-             */
+            const $phoneInput = $('#PhoneInput');
+            const $backupMobileContainer = $('#BackupMobileContainer');
+
+            const $emailInput = $('#EmailInput');
+            const $backupEmailContainer = $('#BackupEmailContainer');
+
+            // Strip server-side regex restrictions
+            if ($userInput.rules) {
+                $userInput.rules("remove", "regex");
+                $userInput.rules("remove", "pattern");
+            }
+
             function validateAndGetType(val) {
-                // ITS: Exactly 8 digits
                 const itsRegex = /^\d{8}$/;
-                // Indian Mobile: Starts with 6-9, total 10 digits (allows +91 or 0 prefix)
                 const indianMobileRegex = /^(?:\+91|0)?[6-9]\d{9}$/;
-                // Standard Email
                 const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
 
                 if (itsRegex.test(val)) return "ITS";
                 if (indianMobileRegex.test(val)) return "Mobile";
                 if (emailRegex.test(val)) return "Email";
 
-                return null; // Invalid
+                return null;
             }
 
             $userInput.on('blur', function () {
@@ -206,12 +209,28 @@
                 const inputType = validateAndGetType(val);
 
                 if (!inputType) {
-                    $userError.text("Please enter a valid Email, 10-digit Indian Mobile Number, or 8-digit ITS number.");
+                    $userError.text("Please enter a valid Email, 10-digit Indian Mobile, or 8-digit ITS.");
                     $(this).addClass("input-error-border");
                     return;
                 }
 
-                // If format is valid, check availability on server
+                // UI MANAGEMENT BASED ON INPUT TYPE
+                if (inputType === "Mobile") {
+                    const cleanPhone = val.replace(/\D/g, '').slice(-10);
+                    $phoneInput.val(cleanPhone);
+                    $backupMobileContainer.hide();
+                    $backupEmailContainer.show(); // Ensure email is shown
+                }
+                else if (inputType === "Email") {
+                    $emailInput.val(val);
+                    $backupEmailContainer.hide();
+                    $backupMobileContainer.show(); // Ensure mobile is shown
+                }
+                else { // ITS Number
+                    $backupEmailContainer.show();
+                    $backupMobileContainer.show();
+                }
+
                 $.ajax({
                     url: '@Url.Action("ValidateIdentifier", "Account")',
                     type: 'GET',
@@ -238,28 +257,21 @@
                 } else {
                     $('#formHeader').text("Create account");
                     $('#registrationFields, #confirmPasswordGroup, #legalNotice, #footerLink, #passwordHint').show();
+
+                    // Re-run visibility check for backup fields based on current input
+                    const currentType = validateAndGetType($userInput.val());
+                    if(currentType === "Mobile") $backupMobileContainer.hide();
+                    if(currentType === "Email") $backupEmailContainer.hide();
+
                     $userError.text("");
                     $submitBtn.text("Continue");
                     $form.attr('action', '@Url.Action("Register", "Account")');
                 }
             }
 
-            // Cleanup and mask helpers
+            // Simple mask for mobile
             $('#PhoneInput').on('input', function () {
                 this.value = this.value.replace(/\D/g, '');
-            });
-
-            $('#ConfirmPassInput, #PassInput').on('blur', function() {
-                if ($form.attr('action').toLowerCase().includes('login')) return;
-                const p1 = $('#PassInput').val();
-                const p2 = $('#ConfirmPassInput').val();
-                if(p2 !== "" && p1 !== p2) {
-                    $('#ConfirmPassError').text("Passwords must match.");
-                    $('#ConfirmPassInput').addClass("input-error-border");
-                } else {
-                    $('#ConfirmPassError').text("");
-                    $('#ConfirmPassInput').removeClass("input-error-border");
-                }
             });
 
             $('.amazon-input-field').on('input', function() {
