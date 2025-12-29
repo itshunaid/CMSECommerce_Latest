@@ -31,7 +31,31 @@ namespace CMSECommerce.Infrastructure
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-           
+
+            // 1. Mark the property as optional (Nullable)
+            modelBuilder.Entity<UserProfile>(entity =>
+            {
+                // 1. Mark the property as optional (Nullable)
+                entity.Property(u => u.StoreId).IsRequired(false);
+
+                // 2. Now the SetNull action will work
+                entity.HasOne(u => u.Store)
+                      .WithMany()
+                      .HasForeignKey(u => u.StoreId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<UserProfile>()
+    .HasOne(u => u.User)
+    .WithOne() // Assuming 1 user has 1 profile
+    .HasForeignKey<UserProfile>(u => u.UserId)
+    .OnDelete(DeleteBehavior.Cascade); // Delete profile if User is deleted
+
+            modelBuilder.Entity<Product>()
+        .HasOne(p => p.User)
+        .WithMany() // or .WithMany(u => u.Products) if you have a collection
+        .HasForeignKey(p => p.UserId)
+        .OnDelete(DeleteBehavior.Cascade); // This automatically deletes products
 
             modelBuilder.Entity<CMSECommerce.Models.ChatMessage>(b =>
             {

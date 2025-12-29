@@ -1,0 +1,173 @@
+﻿@model UserProfile
+
+@{
+    // Updated Title to reflect the requirement
+    ViewData["Title"] = "Account Verification Required - Create Your Profile";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+
+            <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+                <i class="fas fa-exclamation-circle fa-2x me-3 text-warning"></i>
+                <div>
+                    <h6 class="alert-heading fw-bold mb-1">Action Required: Profile Verification</h6>
+                    <p class="mb-0 small">To ensure secure transactions, you must <strong>Create a User Profile</strong> before you can proceed with <strong>Order Placement</strong>.</p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-bottom py-3">
+                    @* Updated Card Heading *@
+                    <h4 class="fw-bold mb-0 text-amazon-teal">Merchant Registration & Profile Setup</h4>
+                    <p class="text-muted small mb-0">Complete the form below to unlock ordering and selling capabilities.</p>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Create" method="post" enctype="multipart/form-data">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <input type="hidden" asp-for="UserId" />
+                        @* StoreId set to 0 to trigger the creation logic in the controller *@
+                        <input type="hidden" asp-for="StoreId" value="0" />
+
+                        <div class="row g-4">
+                            <div class="col-12 border-bottom pb-2">
+                                <h6 class="text-amazon-teal fw-bold"><i class="fas fa-user-check me-2"></i>Primary Contact Details</h6>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="FirstName" class="form-label small fw-bold">First Name</label>
+                                <input asp-for="FirstName" class="form-control" placeholder="Enter first name" required />
+                                <span asp-validation-for="FirstName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="LastName" class="form-label small fw-bold">Last Name</label>
+                                <input asp-for="LastName" class="form-control" placeholder="Enter last name" required />
+                                <span asp-validation-for="LastName" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label asp-for="Profession" class="form-label small fw-bold">Profession</label>
+                                <input asp-for="Profession" class="form-control" placeholder="e.g. Baker, Tailor" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="ITSNumber" class="form-label small fw-bold">ITS Number</label>
+                                <input asp-for="ITSNumber" class="form-control" placeholder="Enter ITS ID" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="WhatsAppNumber" class="form-label small fw-bold">WhatsApp Number</label>
+                                <input asp-for="WhatsAppNumber" class="form-control" placeholder="91XXXXXXXXXX" />
+                            </div>
+
+                            <div class="col-12 border-bottom pb-2 mt-5">
+                                <h6 class="text-amazon-teal fw-bold"><i class="fas fa-id-card me-2"></i>Merchant Identity & Media</h6>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Profile Image</label>
+                                <input type="file" name="profileImg" class="form-control" accept="image/*" />
+                                <div class="form-text small">Your photo will be used for merchant verification.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="ServicesProvided" class="form-label small fw-bold">Services Provided</label>
+                                <input asp-for="ServicesProvided" class="form-control" placeholder="e.g. Home Delivery, Pick-up" />
+                            </div>
+
+                            <div class="col-12">
+                                <label asp-for="About" class="form-label small fw-bold">Business Description</label>
+                                <textarea asp-for="About" class="form-control" rows="3" placeholder="Tell us about what you sell..."></textarea>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="HomeAddress" class="form-label small fw-bold">Home Address</label>
+                                <input asp-for="HomeAddress" class="form-control" required />
+                                <span asp-validation-for="HomeAddress" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="BusinessAddress" class="form-label small fw-bold">Business Address</label>
+                                <input asp-for="BusinessAddress" class="form-control" placeholder="Leave blank if same as home" />
+                            </div>
+
+                            <div class="col-12 border-bottom pb-2 mt-5">
+                                <h6 class="text-amazon-teal fw-bold"><i class="fas fa-wallet me-2"></i>Payment Information (Required for Orders)</h6>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">GPay QR Code</label>
+                                <input type="file" name="gpayQR" class="form-control" accept="image/*" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">PhonePe QR Code</label>
+                                <input type="file" name="phonepeQR" class="form-control" accept="image/*" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label asp-for="FacebookUrl" class="form-label small fw-bold">Facebook URL</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fab fa-facebook text-primary"></i></span>
+                                    <input asp-for="FacebookUrl" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="InstagramUrl" class="form-label small fw-bold">Instagram URL</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fab fa-instagram text-danger"></i></span>
+                                    <input asp-for="InstagramUrl" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check mt-4">
+                                    <input asp-for="IsProfileVisible" class="form-check-input" type="checkbox">
+                                    <label class="form-check-label fw-bold small" asp-for="IsProfileVisible">
+                                        Make Profile Visible to Customers
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a asp-controller="Products" asp-action="Index" class="text-muted text-decoration-none small">Cancel</a>
+                            <button type="submit" class="btn btn-amazon-yellow px-5 py-2 fw-bold rounded-pill shadow-sm">
+                                Save Profile & Enable Ordering
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .text-amazon-teal {
+            color: #007185;
+        }
+
+        .alert-warning {
+            background-color: #FFF8E1;
+            border-left: 5px solid #FFC107;
+            color: #856404;
+        }
+
+        .form-control:focus {
+            border-color: #FFA41C;
+            box-shadow: 0 0 0 0.2rem rgba(255, 164, 28, 0.25);
+        }
+
+        .btn-amazon-yellow {
+            background-color: #FFD814;
+            border: 1px solid #FCD200;
+            color: #0F1111;
+            transition: 0.2s;
+        }
+
+            .btn-amazon-yellow:hover {
+                background-color: #F7CA00;
+                transform: translateY(-1px);
+            }
+    </style>
+}

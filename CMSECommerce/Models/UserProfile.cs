@@ -11,7 +11,7 @@ namespace CMSECommerce.Models
         [Key]
         public int Id { get; set; }
         public string UserId { get; set; }
-        public int StoreId { get; set; }
+       
         public string Profession { get; set; }
         public string ServicesProvided { get; set; }
 
@@ -43,6 +43,8 @@ namespace CMSECommerce.Models
 
         [ForeignKey("UserId")]
         public virtual IdentityUser User { get; set; }
+        public int? StoreId { get; set; } // The '?' is essential
+
         [ForeignKey("StoreId")]
         public virtual Store Store { get; set; }
 
