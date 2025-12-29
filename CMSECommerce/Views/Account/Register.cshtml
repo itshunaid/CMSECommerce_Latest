@@ -109,7 +109,7 @@
                     @Html.AntiForgeryToken()
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger small p-2" role="alert"></div>
 
-                    @* --- Unified Identifier --- *@
+                    @* --- Unified Identifier (ITS, Mobile, or Email) --- *@
                     <div class="form-group mb-3">
                         <label asp-for="Username" class="form-label fw-bold label-small text-amazon-dark mb-1">Email, Mobile, or ITS Number</label>
                         <input asp-for="Username" id="UserInput" class="form-control amazon-input-field" placeholder="Email, Mobile, or 8-digit ITS" autocomplete="off" />
@@ -117,14 +117,14 @@
                     </div>
 
                     <div id="registrationFields">
-                        @* Wrapped in a div to hide when unified input is Email *@
+                        @* Backup Email Field Container *@
                         <div class="form-group mb-3" id="BackupEmailContainer">
                             <label asp-for="Email" class="form-label fw-bold label-small text-amazon-dark mb-1">Backup Email (Optional)</label>
                             <input asp-for="Email" id="EmailInput" class="form-control amazon-input-field" type="email" autocomplete="off" />
                             <span asp-validation-for="Email" id="EmailError" class="text-danger small mt-1 d-block"></span>
                         </div>
 
-                        @* Wrapped in a div to hide when unified input is Mobile *@
+                        @* Backup Mobile Field Container *@
                         <div class="form-group mb-3" id="BackupMobileContainer">
                             <label asp-for="PhoneNumber" class="form-label fw-bold label-small text-amazon-dark mb-1">Backup Mobile number</label>
                             <input asp-for="PhoneNumber" id="PhoneInput" class="form-control amazon-input-field" placeholder="10-digit mobile" maxlength="10" inputmode="numeric" autocomplete="off" />
@@ -176,75 +176,103 @@
             const $userError = $('#UserError');
 
             const $phoneInput = $('#PhoneInput');
+            const $phoneError = $('#PhoneError');
             const $backupMobileContainer = $('#BackupMobileContainer');
 
             const $emailInput = $('#EmailInput');
+            const $emailError = $('#EmailError');
             const $backupEmailContainer = $('#BackupEmailContainer');
 
-            // Strip server-side regex restrictions
+            // Regex Patterns
+            const itsRegex = /^\d{8}$/;
+            const indianMobileRegex = /^(?:\+91|0)?[6-9]\d{9}$/;
+            const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+
+            // Remove server-side Regex restrictions to allow ITS and special patterns
             if ($userInput.rules) {
                 $userInput.rules("remove", "regex");
                 $userInput.rules("remove", "pattern");
             }
 
             function validateAndGetType(val) {
-                const itsRegex = /^\d{8}$/;
-                const indianMobileRegex = /^(?:\+91|0)?[6-9]\d{9}$/;
-                const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
-
                 if (itsRegex.test(val)) return "ITS";
                 if (indianMobileRegex.test(val)) return "Mobile";
                 if (emailRegex.test(val)) return "Email";
-
                 return null;
             }
 
-            $userInput.on('blur', function () {
-                const val = $(this).val().trim();
-                if (val === "") {
-                    toggleLoginMode(false);
-                    return;
-                }
-
-                const inputType = validateAndGetType(val);
-
-                if (!inputType) {
-                    $userError.text("Please enter a valid Email, 10-digit Indian Mobile, or 8-digit ITS.");
-                    $(this).addClass("input-error-border");
-                    return;
-                }
-
-                // UI MANAGEMENT BASED ON INPUT TYPE
-                if (inputType === "Mobile") {
-                    const cleanPhone = val.replace(/\D/g, '').slice(-10);
-                    $phoneInput.val(cleanPhone);
-                    $backupMobileContainer.hide();
-                    $backupEmailContainer.show(); // Ensure email is shown
-                }
-                else if (inputType === "Email") {
-                    $emailInput.val(val);
-                    $backupEmailContainer.hide();
-                    $backupMobileContainer.show(); // Ensure mobile is shown
-                }
-                else { // ITS Number
-                    $backupEmailContainer.show();
-                    $backupMobileContainer.show();
-                }
+            // Centralized AJAX Validation Function
+            function performAjaxValidation(value, fieldType, $errorElement, $inputElement, detectedType = null) {
+                if (!value || value.trim() === "") return;
 
                 $.ajax({
                     url: '@Url.Action("ValidateIdentifier", "Account")',
                     type: 'GET',
-                    data: { value: val, type: 'Username', detectedType: inputType },
+                    data: { value: value, type: fieldType, detectedType: detectedType },
                     success: function (res) {
                         if (!res.isAvailable) {
-                            toggleLoginMode(true, res.message);
+                            if (fieldType === 'Username') {
+                                toggleLoginMode(true, res.message);
+                            } else {
+                                $errorElement.text(res.message);
+                                $inputElement.addClass("input-error-border");
+                            }
                         } else {
-                            toggleLoginMode(false);
-                            $userInput.removeClass("input-error-border");
-                            $userError.text("");
+                            if (fieldType === 'Username') toggleLoginMode(false);
+                            $errorElement.text("");
+                            $inputElement.removeClass("input-error-border");
                         }
                     }
                 });
+            }
+
+            // --- Unified Username Input Blur ---
+            $userInput.on('blur', function () {
+                const val = $(this).val().trim();
+                if (val === "") { toggleLoginMode(false); return; }
+
+                const inputType = validateAndGetType(val);
+
+                if (!inputType) {
+                    $userError.text("Please enter a valid Email, 10-digit Mobile, or 8-digit ITS number.");
+                    $(this).addClass("input-error-border");
+                    return;
+                }
+
+                // UI Management & Sync
+                if (inputType === "Mobile") {
+                    const cleanPhone = val.replace(/\D/g, '').slice(-10);
+                    $phoneInput.val(cleanPhone);
+                    $backupMobileContainer.hide();
+                    $backupEmailContainer.show();
+                    $phoneError.text("");
+                }
+                else if (inputType === "Email") {
+                    $emailInput.val(val);
+                    $backupEmailContainer.hide();
+                    $backupMobileContainer.show();
+                    $emailError.text("");
+                }
+                else { // ITS
+                    $backupEmailContainer.show();
+                    $backupMobileContainer.show();
+                }
+
+                performAjaxValidation(val, 'Username', $userError, $userInput, inputType);
+            });
+
+            // --- Backup Email Blur ---
+            $emailInput.on('blur', function () {
+                const val = $(this).val().trim();
+                if (val === "" || !emailRegex.test(val)) return;
+                performAjaxValidation(val, 'Email', $emailError, $emailInput);
+            });
+
+            // --- Backup Mobile Blur ---
+            $phoneInput.on('blur', function () {
+                const val = $(this).val().trim();
+                if (val.length < 10) return;
+                performAjaxValidation(val, 'PhoneNumber', $phoneError, $phoneInput);
             });
 
             function toggleLoginMode(isLogin, message = "") {
@@ -258,7 +286,7 @@
                     $('#formHeader').text("Create account");
                     $('#registrationFields, #confirmPasswordGroup, #legalNotice, #footerLink, #passwordHint').show();
 
-                    // Re-run visibility check for backup fields based on current input
+                    // Maintain logic-based visibility of backup fields
                     const currentType = validateAndGetType($userInput.val());
                     if(currentType === "Mobile") $backupMobileContainer.hide();
                     if(currentType === "Email") $backupEmailContainer.hide();
@@ -269,14 +297,32 @@
                 }
             }
 
-            // Simple mask for mobile
+            // Input Mask for Phone
             $('#PhoneInput').on('input', function () {
                 this.value = this.value.replace(/\D/g, '');
             });
 
+            // Password matching logic
+            $('#ConfirmPassInput, #PassInput').on('blur', function() {
+                if ($form.attr('action').toLowerCase().includes('login')) return;
+                const p1 = $('#PassInput').val();
+                const p2 = $('#ConfirmPassInput').val();
+                if(p2 !== "" && p1 !== p2) {
+                    $('#ConfirmPassError').text("Passwords must match.");
+                    $('#ConfirmPassInput').addClass("input-error-border");
+                } else {
+                    $('#ConfirmPassError').text("");
+                    $('#ConfirmPassInput').removeClass("input-error-border");
+                }
+            });
+
+            // Clear errors on re-typing
             $('.amazon-input-field').on('input', function() {
                 $(this).removeClass("input-error-border");
-                if($(this).attr('id') === 'UserInput') $userError.text("");
+                const id = $(this).attr('id');
+                if(id === 'UserInput') $userError.text("");
+                if(id === 'EmailInput') $emailError.text("");
+                if(id === 'PhoneInput') $phoneError.text("");
             });
         });
     </script>
