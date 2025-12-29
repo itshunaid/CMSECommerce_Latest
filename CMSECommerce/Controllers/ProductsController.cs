@@ -35,7 +35,7 @@ namespace CMSECommerce.Controllers
             string sortOrder = "")
         {
             // --- Paging Configuration ---
-            const int pageSize = 12;
+            const int pageSize = 20;
             int pageNumber = p;
 
             // --- State Variables Initialization (for full method scope) ---
@@ -293,6 +293,19 @@ namespace CMSECommerce.Controllers
             ViewBag.UserProfile = userProfile;
             // Return the view with the product data
             return View(product);
+        }
+
+
+        [Route("policies")]
+        public IActionResult Policies()
+        {
+            return View();
+        }
+
+        [Route("privacy-policy")]
+        public IActionResult Privacy()
+        {
+            return View();
         }
     }
 }

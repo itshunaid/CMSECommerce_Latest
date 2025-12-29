@@ -12,6 +12,7 @@ namespace CMSECommerce.Controllers
 {
 
     [Authorize]
+    
     public class SubscriptionController : Controller
     {
         private readonly DataContext _context;
@@ -125,7 +126,6 @@ namespace CMSECommerce.Controllers
             return View(requests);
         }
 
-        // 5. Approval Logic (AC 4)
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Approve(int requestId)
         {
@@ -133,90 +133,140 @@ namespace CMSECommerce.Controllers
                 .Include(r => r.Tier)
                 .FirstOrDefaultAsync(r => r.Id == requestId);
 
-            // 1. Basic validation
             if (request == null) return NotFound();
             if (request.Status == RequestStatus.Approved) return BadRequest("This request is already approved.");
 
             var user = await _userManager.FindByIdAsync(request.UserId);
             if (user == null) return BadRequest("User not found.");
 
+            // 1. Fetch current roles of the user being approved
+            var roles = await _userManager.GetRolesAsync(user);
+            bool isUserAdmin = roles.Contains("Admin");
+            bool isAlreadySubscriber = roles.Contains("Subscriber");
+
             // 2. Fetch Profile and check for Soft Delete
             var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
             if (profile == null) return BadRequest("User profile missing.");
+            // Note: Assuming LockoutEnabled is your check for "Active" status
             if (!profile.User.LockoutEnabled) return BadRequest("Cannot approve subscription for a deactivated user.");
 
-            // 3. Update Request Status
-            request.Status = RequestStatus.Approved;
-
-            // 4. Role Management
-            if (!await _userManager.IsInRoleAsync(user, "Subscriber"))
+            // 3. Role Management Logic
+            if (!isAlreadySubscriber)
             {
-                await _userManager.AddToRoleAsync(user, "Subscriber");
+                if (isUserAdmin)
+                {
+                    // If they are Admin, just add Subscriber (Multi-role)
+                    await _userManager.AddToRoleAsync(user, "Subscriber");
+                }
+                else
+                {
+                    // If NOT Admin, overwrite roles: Remove everything, then add Subscriber
+                    await _userManager.RemoveFromRolesAsync(user, roles);
+                    await _userManager.AddToRoleAsync(user, "Subscriber");
+                }
             }
 
+            // 4. Update Request Status
+            request.Status = RequestStatus.Approved;
+
             // 5. Subscription Time Stacking
-            // Determine the baseline (either Now or the future Expiry Date)
             DateTime baseline = (profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate.Value > DateTime.Now)
                                 ? profile.SubscriptionEndDate.Value
                                 : DateTime.Now;
 
-            // If it's a brand new sub, set the StartDate to Now
             if (!profile.SubscriptionStartDate.HasValue || profile.SubscriptionEndDate < DateTime.Now)
             {
                 profile.SubscriptionStartDate = DateTime.Now;
             }
 
-            // Add the months from the Tier
             profile.SubscriptionEndDate = baseline.AddMonths(request.Tier.DurationMonths);
             profile.CurrentProductLimit = request.Tier.ProductLimit;
 
             _context.UserProfiles.Update(profile);
+            _context.SubscriptionRequests.Update(request); // Ensure request status is saved
             await _context.SaveChangesAsync();
+
+            // Force a security stamp update so the user sees the role change immediately
+            await _userManager.UpdateSecurityStampAsync(user);
 
             TempData["Success"] = $"Approved! New expiry: {profile.SubscriptionEndDate?.ToString("dd MMM yyyy")}";
             return RedirectToAction(nameof(AdminDashboard));
         }
-
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Revert(int requestId)
         {
-            var request = await _context.SubscriptionRequests.FindAsync(requestId);
+            // 1. Fetch Request with Tier details
+            var request = await _context.SubscriptionRequests
+                .Include(r => r.Tier)
+                .FirstOrDefaultAsync(r => r.Id == requestId);
+
             if (request == null) return NotFound();
-            if (request.Status == RequestStatus.Pending) return BadRequest("Request is already in Pending status.");
+
+            // Safety: Only revert if it was previously Approved
+            if (request.Status != RequestStatus.Approved)
+                return BadRequest("Only approved requests can be reverted.");
 
             var user = await _userManager.FindByIdAsync(request.UserId);
-            if (user == null) return BadRequest("User associated with this request not found.");
+            if (user == null) return BadRequest("User not found.");
 
-            // 1. Update Request Status
+            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+            if (profile == null) return BadRequest("Profile missing.");
+
+            var roles = await _userManager.GetRolesAsync(user);
+            bool isUserAdmin = roles.Contains("Admin");
+
+            // 2. Roll back the Subscription Dates
+            if (profile.SubscriptionEndDate.HasValue)
+            {
+                // Subtract the months that were added during approval
+                profile.SubscriptionEndDate = profile.SubscriptionEndDate.Value.AddMonths(-request.Tier.DurationMonths);
+
+                // Check if the user has no remaining subscription time
+                if (profile.SubscriptionEndDate <= DateTime.Now)
+                {
+                    // Remove Subscriber role
+                    if (roles.Contains("Subscriber"))
+                    {
+                        await _userManager.RemoveFromRoleAsync(user, "Subscriber");
+                    }
+
+                    // Reset profile fields
+                    profile.CurrentProductLimit = 0;
+                    profile.SubscriptionStartDate = null;
+                    profile.SubscriptionEndDate = null;
+
+                    // 3. Role Restoration Logic (Crucial for the "Overwrite" logic)
+                    // If the user is NOT an admin, and we just removed Subscriber, 
+                    // ensure they are back to being a Customer.
+                    if (!isUserAdmin)
+                    {
+                        if (!roles.Contains("Customer"))
+                        {
+                            await _userManager.AddToRoleAsync(user, "Customer");
+                        }
+                    }
+                }
+                else
+                {
+                    // If they still have time left from a different stacked subscription,
+                    // we keep the Subscriber role but might want to reset the limit 
+                    // to whatever the remaining/previous tier allowed.
+                    profile.CurrentProductLimit = 0;
+                }
+            }
+
+            // 4. Update Request Status back to Pending
             request.Status = RequestStatus.Pending;
 
-            // 2. Role Management (Remove Subscriber access)
-            if (await _userManager.IsInRoleAsync(user, "Subscriber"))
-            {
-                await _userManager.RemoveFromRoleAsync(user, "Subscriber");
-            }
-
-            // Ensure they still have base access (Customer)
-            if (!await _userManager.IsInRoleAsync(user, "Customer"))
-            {
-                await _userManager.AddToRoleAsync(user, "Customer");
-            }
-
-            // 3. Reset UserProfile Access
-            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
-            if (profile != null)
-            {
-                // We reset limits and dates because the "Approval" that granted them is being undone
-                profile.CurrentProductLimit = 0;
-                profile.SubscriptionStartDate = null;
-                profile.SubscriptionEndDate = null;
-
-                _context.UserProfiles.Update(profile);
-            }
-
+            // 5. Final Save and Security Sync
+            _context.UserProfiles.Update(profile);
+            _context.SubscriptionRequests.Update(request);
             await _context.SaveChangesAsync();
 
-            TempData["Warning"] = $"Subscription for {user.UserName} has been reverted to Pending.";
+            // Force refresh of user claims so UI updates immediately
+            await _userManager.UpdateSecurityStampAsync(user);
+
+            TempData["Warning"] = $"Reverted! Subscription reduced by {request.Tier.DurationMonths} months.";
             return RedirectToAction(nameof(AdminDashboard));
         }
 

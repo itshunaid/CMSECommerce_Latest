@@ -98,14 +98,16 @@ namespace CMSECommerce.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("MessageContent")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RecipientId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("SenderId")
                         .HasColumnType("nvarchar(max)");
@@ -114,11 +116,15 @@ namespace CMSECommerce.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.HasKey("Id");
 
-                    b.ToTable("ChatMessages");
+                    b.HasIndex("RecipientId", "IsRead");
+
+                    b.ToTable("ChatMessages", (string)null);
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.Order", b =>
@@ -251,7 +257,7 @@ namespace CMSECommerce.Migrations
                         new
                         {
                             Id = 1,
-                            Body = "Home Content",
+                            Body = "This is the home page",
                             Order = 0,
                             Slug = "home",
                             Title = "Home"
@@ -259,10 +265,26 @@ namespace CMSECommerce.Migrations
                         new
                         {
                             Id = 2,
-                            Body = "About Content",
+                            Body = "This is the about page",
                             Order = 0,
                             Slug = "about",
                             Title = "About"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Body = "This is the services page",
+                            Order = 0,
+                            Slug = "services",
+                            Title = "Services"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Body = "This is the contact page",
+                            Order = 0,
+                            Slug = "contact",
+                            Title = "Contact"
                         });
                 });
 
@@ -325,12 +347,10 @@ namespace CMSECommerce.Migrations
                             Description = "Juicy apples",
                             Image = "apple1.jpg",
                             Name = "Apples",
-                            OwnerName = "Admin",
                             Price = 1.50m,
                             Slug = "apples",
                             Status = 1,
-                            StockQuantity = 100,
-                            UserId = "10cad2a7-b708-4ab3-b0f0-79e8e628f932"
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -339,12 +359,10 @@ namespace CMSECommerce.Migrations
                             Description = "Juicy grapefruit",
                             Image = "grapefruit1.jpg",
                             Name = "Grapefruit",
-                            OwnerName = "Admin",
                             Price = 2m,
                             Slug = "grapefruit",
                             Status = 1,
-                            StockQuantity = 80,
-                            UserId = "10cad2a7-b708-4ab3-b0f0-79e8e628f932"
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -353,12 +371,10 @@ namespace CMSECommerce.Migrations
                             Description = "Fresh grapes",
                             Image = "grapes1.jpg",
                             Name = "Grapes",
-                            OwnerName = "Admin",
                             Price = 1.80m,
                             Slug = "grapes",
                             Status = 1,
-                            StockQuantity = 150,
-                            UserId = "10cad2a7-b708-4ab3-b0f0-79e8e628f932"
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -367,12 +383,10 @@ namespace CMSECommerce.Migrations
                             Description = "Fresh oranges",
                             Image = "orange1.jpg",
                             Name = "Oranges",
-                            OwnerName = "Admin",
                             Price = 1.50m,
                             Slug = "oranges",
                             Status = 1,
-                            StockQuantity = 120,
-                            UserId = "10cad2a7-b708-4ab3-b0f0-79e8e628f932"
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -381,12 +395,10 @@ namespace CMSECommerce.Migrations
                             Description = "Nice blue t-shirt",
                             Image = "blue1.jpg",
                             Name = "Blue shirt",
-                            OwnerName = "Admin",
                             Price = 7.99m,
                             Slug = "blue-shirt",
                             Status = 1,
-                            StockQuantity = 45,
-                            UserId = "10cad2a7-b708-4ab3-b0f0-79e8e628f932"
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -395,12 +407,10 @@ namespace CMSECommerce.Migrations
                             Description = "Nice red t-shirt",
                             Image = "red1.jpg",
                             Name = "Red shirt",
-                            OwnerName = "Admin",
                             Price = 8.99m,
                             Slug = "red-shirt",
                             Status = 1,
-                            StockQuantity = 30,
-                            UserId = "10cad2a7-b708-4ab3-b0f0-79e8e628f932"
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -409,12 +419,10 @@ namespace CMSECommerce.Migrations
                             Description = "Nice green t-shirt",
                             Image = "green1.png",
                             Name = "Green shirt",
-                            OwnerName = "Admin",
                             Price = 9.99m,
                             Slug = "green-shirt",
                             Status = 1,
-                            StockQuantity = 25,
-                            UserId = "10cad2a7-b708-4ab3-b0f0-79e8e628f932"
+                            StockQuantity = 0
                         },
                         new
                         {
@@ -423,12 +431,10 @@ namespace CMSECommerce.Migrations
                             Description = "Nice pink t-shirt",
                             Image = "pink1.png",
                             Name = "Pink shirt",
-                            OwnerName = "Admin",
                             Price = 10.99m,
                             Slug = "pink-shirt",
                             Status = 1,
-                            StockQuantity = 10,
-                            UserId = "10cad2a7-b708-4ab3-b0f0-79e8e628f932"
+                            StockQuantity = 0
                         });
                 });
 
@@ -509,9 +515,7 @@ namespace CMSECommerce.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId")
-                        .IsUnique()
-                        .HasFilter("[UserId] IS NOT NULL");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Stores");
                 });
@@ -712,7 +716,7 @@ namespace CMSECommerce.Migrations
                     b.Property<string>("ServicesProvided")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("StoreId")
+                    b.Property<int?>("StoreId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("SubscriptionEndDate")
@@ -729,8 +733,7 @@ namespace CMSECommerce.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("StoreId")
-                        .IsUnique();
+                    b.HasIndex("StoreId");
 
                     b.HasIndex("UserId")
                         .IsUnique()
@@ -889,24 +892,6 @@ namespace CMSECommerce.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = "10cad2a7-b708-4ab3-b0f0-79e8e628f932",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "1201a6ba-29cf-459e-a095-e27b20a515c0",
-                            Email = "admin@local.local",
-                            EmailConfirmed = true,
-                            LockoutEnabled = false,
-                            NormalizedEmail = "ADMIN@LOCAL.LOCAL",
-                            NormalizedUserName = "ADMIN@LOCAL.LOCAL",
-                            PasswordHash = "AQAAAAIAAYagAAAAEOR9XnMlPK/hyBsmRVnaZE9AW5cYj+PjpK+ZLkRQ6/ytL5mf/s4lOJL3SzrWE5kLLw==",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "d01b2d5c-e2f4-4dc4-90b2-92944cedb369",
-                            TwoFactorEnabled = false,
-                            UserName = "admin@local.local"
-                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -1011,7 +996,8 @@ namespace CMSECommerce.Migrations
 
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
                         .WithMany()
-                        .HasForeignKey("UserId");
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Category");
 
@@ -1032,9 +1018,8 @@ namespace CMSECommerce.Migrations
             modelBuilder.Entity("CMSECommerce.Models.Store", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
-                        .WithOne()
-                        .HasForeignKey("CMSECommerce.Models.Store", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .WithMany()
+                        .HasForeignKey("UserId");
 
                     b.Navigation("User");
                 });
@@ -1053,10 +1038,9 @@ namespace CMSECommerce.Migrations
             modelBuilder.Entity("CMSECommerce.Models.UserProfile", b =>
                 {
                     b.HasOne("CMSECommerce.Models.Store", "Store")
-                        .WithOne()
-                        .HasForeignKey("CMSECommerce.Models.UserProfile", "StoreId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
                         .WithOne()

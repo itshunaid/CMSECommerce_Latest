@@ -228,8 +228,18 @@ namespace CMSECommerce.Controllers
             }
 
             //1. Safely retrieve the UserProfile for display metadata
+            // Attempt to find existing profile data
             var userProfile = await _context.UserProfiles
-                .FirstOrDefaultAsync(x => x.UserId == user.Id);
+                .Include(p => p.Store)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.UserId == user.Id);
+
+            if(userProfile == null)
+            {
+                return RedirectToAction("Create", "UserProfiles",new {isNewProfile=true });
+            }
+
+
 
             string fullName = userProfile != null
                 ? $"{userProfile.FirstName} {userProfile.LastName}"
