@@ -243,10 +243,13 @@ namespace CMSECommerce.Controllers
                 u.Email == model.Email ||
                 u.PhoneNumber == model.PhoneNumber);
 
+
+
             if (isDuplicate)
             {
                 ModelState.AddModelError("", "Username, Email, or Phone Number is already in use.");
-                return View(model);
+                //return View(model);
+                RedirectToAction("Login");
             }
 
             try
@@ -290,30 +293,34 @@ namespace CMSECommerce.Controllers
 
             return View(model);
         }
-
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> ValidateIdentifier(string value, string type)
         {
-            if (string.IsNullOrWhiteSpace(value)) return Json(true);
+            if (string.IsNullOrWhiteSpace(value)) return Json(new { isAvailable = true });
 
-            // 1. Check Identity Tables
+            // 1. Check Identity Tables (Username, Email, Phone)
             bool existsInIdentity = await _userManager.Users.AnyAsync(u =>
                 u.UserName == value || u.Email == value || u.PhoneNumber == value);
 
-            // 2. Check Profile Tables
+            // 2. Check Profile Tables (ITS, WhatsApp)
             bool existsInProfile = await _context.UserProfiles.AnyAsync(up =>
                 up.ITSNumber == value || up.WhatsAppNumber == value);
 
-            // 3. Check Store Tables
+            // 3. Check Store Tables (Store Email, GSTIN, etc)
             bool existsInStore = await _context.Stores.AnyAsync(s =>
                 s.Email == value || s.Contact == value || s.GSTIN == value);
 
             if (existsInIdentity || existsInProfile || existsInStore)
             {
+                // We determine if it's a username match specifically for the frontend redirect
+                bool isUsernameTaken = (type == "Username" && await _userManager.FindByNameAsync(value) != null);
+
                 return Json(new
                 {
                     isAvailable = false,
+                    // We pass a specific flag if it's a username so the JS knows to redirect
+                    isUsernameType = type == "Username",
                     message = $"This {type} is already associated with an account. Please verify your details or sign in."
                 });
             }

@@ -11,34 +11,37 @@
             <div class="amazon-form-box p-4 border rounded shadow-sm bg-white">
                 <h1 class="h3 fw-bold mb-4 text-amazon-dark">Create account</h1>
 
-                <form asp-action="Register" method="post" id="registrationForm" novalidate>
+                <form asp-action="Register" method="post" id="registrationForm" novalidate autocomplete="off">
+                    @Html.AntiForgeryToken()
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger small p-2" role="alert"></div>
 
                     @* --- Username --- *@
                     <div class="form-group mb-3">
                         <label asp-for="Username" class="form-label fw-bold small text-amazon-dark mb-1">User Name</label>
-                        <input asp-for="Username" id="UserInput" class="form-control amazon-input-field" placeholder="Unique username" />
+                        @* Force value to empty and disable autocomplete *@
+                        <input asp-for="Username" value="" id="UserInput" class="form-control amazon-input-field" placeholder="Unique username" autocomplete="off" />
                         <span asp-validation-for="Username" id="UserError" class="text-danger small mt-1 d-block"></span>
                     </div>
 
                     @* --- Email --- *@
                     <div class="form-group mb-3">
                         <label asp-for="Email" class="form-label fw-bold small text-amazon-dark mb-1">Email</label>
-                        <input asp-for="Email" id="EmailInput" class="form-control amazon-input-field" type="email" placeholder="example@domain.com" />
+                        <input asp-for="Email" value="" id="EmailInput" class="form-control amazon-input-field" type="email" placeholder="example@domain.com" autocomplete="off" />
                         <span asp-validation-for="Email" id="EmailError" class="text-danger small mt-1 d-block"></span>
                     </div>
 
                     @* --- Mobile Number --- *@
                     <div class="form-group mb-3">
                         <label asp-for="PhoneNumber" class="form-label fw-bold small text-amazon-dark mb-1">Mobile Number</label>
-                        <input asp-for="PhoneNumber" id="PhoneInput" class="form-control amazon-input-field" placeholder="10-digit mobile" maxlength="10" inputmode="numeric" />
+                        <input asp-for="PhoneNumber" value="" id="PhoneInput" class="form-control amazon-input-field" placeholder="10-digit mobile" maxlength="10" inputmode="numeric" autocomplete="off" />
                         <span asp-validation-for="PhoneNumber" id="PhoneError" class="text-danger small mt-1 d-block"></span>
                     </div>
 
                     @* --- Password --- *@
                     <div class="form-group mb-3">
                         <label asp-for="Password" class="form-label fw-bold small text-amazon-dark mb-1">Password</label>
-                        <input asp-for="Password" id="PassInput" type="password" class="form-control amazon-input-field" placeholder="At least 6 characters" />
+                        @* 'new-password' prevents browsers from auto-filling saved passwords *@
+                        <input asp-for="Password" value="" id="PassInput" type="password" class="form-control amazon-input-field" placeholder="At least 6 characters" autocomplete="new-password" />
                         <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
                         <div class="small text-muted mt-1"><i class="fas fa-info-circle me-1 text-primary"></i> Passwords must be at least 6 characters.</div>
                     </div>
@@ -46,7 +49,7 @@
                     @* --- Confirm Password --- *@
                     <div class="form-group mb-3">
                         <label asp-for="ConfirmPassword" class="form-label fw-bold small text-amazon-dark mb-1">Re-enter password</label>
-                        <input asp-for="ConfirmPassword" id="ConfirmPassInput" type="password" class="form-control amazon-input-field" />
+                        <input asp-for="ConfirmPassword" value="" id="ConfirmPassInput" type="password" class="form-control amazon-input-field" autocomplete="new-password" />
                         <span asp-validation-for="ConfirmPassword" id="ConfirmPassError" class="text-danger small mt-1 d-block"></span>
                     </div>
 
@@ -111,6 +114,7 @@
             border-radius: 3px;
             border: 1px solid #a6a6a6;
             padding: 3px 7px;
+            width: 100%;
         }
 
             .amazon-input-field:focus {
@@ -150,7 +154,7 @@
                 this.value = this.value.replace(/\D/g, '');
             });
 
-            // 2. Field Map for Validation
+            // 2. Mapping fields to validation logic
             const fields = [
                 { id: $('#UserInput'), err: $('#UserError'), type: 'Username' },
                 { id: $('#EmailInput'), err: $('#EmailError'), type: 'Email' },
@@ -160,7 +164,12 @@
 
             function validateField(field) {
                 const val = field.id.val().trim();
-                if (val === "") return;
+
+                // Keep field clean if value is empty
+                if (val === "") {
+                    clearError(field.id, field.err);
+                    return;
+                }
 
                 // Password Matching Logic
                 if (field.type === 'ConfirmPassword') {
@@ -180,14 +189,21 @@
                     return;
                 }
 
-                // AJAX Uniqueness Check for Identity Fields
+                // AJAX Uniqueness Check
                 $.ajax({
                     url: '@Url.Action("ValidateIdentifier", "Account")',
                     type: 'GET',
                     data: { value: val, type: field.type },
                     success: function (res) {
                         if (!res.isAvailable) {
-                            setError(field.id, field.err, res.message);
+                            if (field.type === 'Username') {
+                                setError(field.id, field.err, res.message + " Redirecting to Login...");
+                                setTimeout(function() {
+                                    window.location.href = '@Url.Action("Login", "Account")';
+                                }, 1500);
+                            } else {
+                                setError(field.id, field.err, res.message);
+                            }
                         } else {
                             clearError(field.id, field.err);
                         }
@@ -195,12 +211,11 @@
                 });
             }
 
-            // Bind blur event to all fields in map
+            // Bind events
             fields.forEach(f => {
                 f.id.on('blur', () => validateField(f));
             });
 
-            // Help functions for UI feedback
             function setError(input, span, msg) {
                 span.text(msg);
                 input.addClass("input-error-border");
@@ -210,7 +225,6 @@
             function clearError(input, span) {
                 span.text("");
                 input.removeClass("input-error-border");
-                // Only re-enable if NO other fields have errors
                 $('#submitBtn').prop("disabled", $(".input-error-border").length > 0);
             }
         });
