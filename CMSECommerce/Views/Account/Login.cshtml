@@ -5,37 +5,40 @@
     const string controllerName = "Account";
 }
 
-<div class="amazon-login-wrapper min-vh-100 d-flex align-items-center">
+<div class="amazon-login-wrapper py-5 d-flex align-items-center">
     <div class="container">
         <div class="row g-0 justify-content-center align-items-stretch">
 
             @* --- LEFT PANEL: BRANDING & FEATURES (Visible on Desktop) --- *@
             <div class="col-lg-5 d-none d-lg-flex flex-column justify-content-center p-5 bg-white border-end rounded-start-4 shadow-sm">
                 <div class="brand-logo mb-4">
-                    <h2 class="fw-black text-amazon-dark m-0">CMSECommerce<span class="text-amazon-orange">.</span></h2>
+                    <div class="d-flex align-items-center h2 fw-bold text-amazon-dark m-0">
+                        <i class="fas fa-box text-amazon-orange me-2"></i>
+                        <span style="font-weight: 300;">WE</span><span class="text-amazon-orange">y</span>paari
+                    </div>
                 </div>
-                <h1 class="display-6 fw-bold mb-3 text-amazon-dark">Experience Seamless Shopping.</h1>
+                <h1 class="display-6 fw-bold mb-3 text-amazon-dark">Empowering Women Entrepreneurs.</h1>
                 <p class="text-secondary mb-5">
-                    Access your personalized dashboard, track your business shipments, and manage inventory with industrial-grade security.
+                    Access your personalized dashboard, showcase your home-grown products, and manage your business with industrial-grade security.
                 </p>
 
                 <div class="features-list">
                     <div class="d-flex align-items-center mb-4">
                         <div class="feature-icon-circle me-3">
-                            <i class="bi bi-shield-lock"></i>
+                            <i class="fas fa-shield-alt"></i>
                         </div>
                         <div>
-                            <h6 class="mb-0 fw-bold">Enterprise Security</h6>
+                            <h6 class="mb-0 fw-bold">Secure Marketplace</h6>
                             <p class="small text-muted mb-0">Multi-factor authentication & encrypted sessions.</p>
                         </div>
                     </div>
                     <div class="d-flex align-items-center mb-4">
                         <div class="feature-icon-circle me-3">
-                            <i class="bi bi-lightning-charge"></i>
+                            <i class="fas fa-store"></i>
                         </div>
                         <div>
-                            <h6 class="mb-0 fw-bold">Real-time Analytics</h6>
-                            <p class="small text-muted mb-0">Monitor your store performance instantly.</p>
+                            <h6 class="mb-0 fw-bold">Seller Community</h6>
+                            <p class="small text-muted mb-0">Join a directory of talented home-based businesses.</p>
                         </div>
                     </div>
                 </div>
@@ -46,7 +49,10 @@
 
                 @* Mobile Logo *@
                 <div class="text-center mb-4 d-lg-none">
-                    <h3 class="fw-bold text-amazon-dark">CMSECommerce</h3>
+                    <div class="d-flex align-items-center justify-content-center h3 fw-bold text-amazon-dark">
+                        <i class="fas fa-box text-amazon-orange me-2"></i>
+                        <span style="font-weight: 300;">WE</span><span class="text-amazon-orange">y</span>paari
+                    </div>
                 </div>
 
                 @* --- STATUS ALERTS --- *@
@@ -54,7 +60,7 @@
                 {
                     <div class="alert alert-info border-0 border-start border-4 border-info shadow-sm py-3 mb-4">
                         <div class="d-flex align-items-center">
-                            <i class="bi bi-clock-history fs-4 me-3"></i>
+                            <i class="fas fa-history fs-4 me-3"></i>
                             <div>
                                 <h6 class="fw-bold mb-0">Request Pending</h6>
                                 <small>Review in progress. Check your email soon.</small>
@@ -67,7 +73,7 @@
                     <div class="alert alert-warning border-0 border-start border-4 border-warning shadow-sm py-3 mb-4">
                         <div class="d-flex flex-column">
                             <div class="d-flex align-items-center mb-2">
-                                <i class="bi bi-exclamation-octagon-fill fs-4 me-3 text-warning"></i>
+                                <i class="fas fa-exclamation-triangle fs-4 me-3 text-warning"></i>
                                 <h6 class="fw-bold mb-0">Account Locked</h6>
                             </div>
                             <div class="small mb-3 ps-5">
@@ -96,8 +102,8 @@
                     }
 
                     <div class="form-floating mb-3">
-                        <input asp-for="UserName" class="form-control amazon-modern-input" placeholder="name@example.com" autofocus />
-                        <label asp-for="UserName" class="text-muted small">Username / Email / ITS</label>
+                        <input asp-for="UserName" class="form-control amazon-modern-input" placeholder="Username" autofocus />
+                        <label asp-for="UserName" class="text-muted small">Username / Email</label>
                         <span asp-validation-for="UserName" class="text-danger x-small mt-1 d-block"></span>
                     </div>
 
@@ -112,25 +118,25 @@
                             <input class="form-check-input accent-amazon" type="checkbox" asp-for="RememberMe">
                             <label class="form-check-label small text-muted" asp-for="RememberMe">Remember me</label>
                         </div>
-                        <a asp-action="ForgotPassword" class="small text-amazon-link text-decoration-none fw-bold">Forgot?</a>
+                        <a asp-action="ForgotPassword" class="small text-amazon-link text-decoration-none fw-bold">Forgot Password?</a>
                     </div>
 
                     <input type="hidden" asp-for="ReturnUrl" />
 
                     <div class="d-grid mb-4">
                         <button type="submit" class="btn btn-amazon-primary py-2 fw-bold shadow-sm">
-                            Sign In <i class="bi bi-arrow-right ms-2"></i>
+                            Sign In <i class="fas fa-arrow-right ms-2"></i>
                         </button>
                     </div>
 
                     <div class="text-center">
                         <p class="x-small text-muted mb-4 px-4">
-                            By continuing, you agree to our <a href="#" class="text-amazon-link">Terms</a> and <a href="#" class="text-amazon-link">Privacy Policy</a>.
+                            By continuing, you agree to our <a asp-controller="Products" asp-action="Policies" class="text-amazon-link">Terms</a> and <a asp-controller="Products" asp-action="Privacy" class="text-amazon-link">Privacy Policy</a>.
                         </p>
 
                         <div class="divider position-relative mb-4">
                             <hr />
-                            <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 x-small text-muted text-uppercase fw-bold">New to us?</span>
+                            <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 x-small text-muted text-uppercase fw-bold">New to Weypaari?</span>
                         </div>
 
                         <a asp-action="Register" class="btn btn-amazon-outline w-100 py-2 fw-bold">
@@ -147,16 +153,15 @@
     <style>
         :root {
             --amazon-dark: #131921;
-            --amazon-orange: #FF9900;
-            --amazon-yellow: #FFD814;
-            --amazon-yellow-dark: #F7CA00;
+            --amazon-orange: #ff9900;
+            --amazon-yellow: #febd69; /* Matched to Search Button Color */
+            --amazon-yellow-hover: #f3a847;
             --amazon-link: #007185;
-            --bg-light: #f8f9fa;
         }
 
-        body {
-            background-color: #f0f2f5;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        /* --- Custom UI Overrides --- */
+        .amazon-login-wrapper {
+            background-color: #f7f7f7;
         }
 
         .text-amazon-dark {
@@ -175,73 +180,68 @@
             font-size: 0.75rem;
         }
 
-        /* Modern Floating Input Style */
         .amazon-modern-input {
             border: 1px solid #ced4da;
-            border-radius: 8px;
-            padding: 1rem 0.75rem;
-            transition: all 0.2s;
+            border-radius: 4px; /* Slightly more square like Amazon */
+            font-size: 0.9rem;
         }
 
             .amazon-modern-input:focus {
                 border-color: var(--amazon-orange);
-                box-shadow: 0 0 0 0.25rem rgba(255, 153, 0, 0.15);
+                box-shadow: 0 0 3px 2px rgba(228, 121, 17, .5);
             }
 
-        /* Feature Icons */
         .feature-icon-circle {
-            width: 48px;
-            height: 48px;
-            background: rgba(0, 113, 133, 0.1);
-            color: var(--amazon-link);
-            border-radius: 12px;
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 153, 0, 0.1);
+            color: var(--amazon-orange);
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
+            font-size: 1.1rem;
         }
 
-        /* Action Buttons */
         .btn-amazon-primary {
             background-color: var(--amazon-yellow);
-            border: 1px solid #e2bd00;
-            color: var(--amazon-dark);
-            border-radius: 8px;
+            border: 1px solid #a88734;
+            color: #111;
         }
 
             .btn-amazon-primary:hover {
-                background-color: var(--amazon-yellow-dark);
+                background-color: var(--amazon-yellow-hover);
+                border-color: #846a29;
             }
 
         .btn-amazon-outline {
-            background: white;
-            border: 1px solid #d5d9d9;
-            color: var(--amazon-dark);
-            border-radius: 8px;
+            background: #eff1f3;
+            border: 1px solid #adb5bd;
+            color: #111;
         }
 
             .btn-amazon-outline:hover {
-                background-color: #f7fafa;
-                border-color: #adb5bd;
+                background-color: #e7e9ec;
             }
 
         .accent-amazon:checked {
-            background-color: var(--amazon-link);
-            border-color: var(--amazon-link);
+            background-color: var(--amazon-orange);
+            border-color: var(--amazon-orange);
         }
 
         .rounded-start-4 {
-            border-top-left-radius: 1.5rem !important;
-            border-bottom-left-radius: 1.5rem !important;
+            border-top-left-radius: 8px !important;
+            border-bottom-left-radius: 8px !important;
         }
 
         .rounded-4 {
-            border-radius: 1.5rem !important;
+            border-radius: 8px !important;
         }
 
+        /* Responsive */
         @@media (max-width: 991px) {
-            .rounded-lg-start-0 {
-                border-radius: 1.5rem !important;
+            .amazon-login-wrapper {
+                padding-top: 2rem;
             }
         }
     </style>
