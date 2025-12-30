@@ -1,0 +1,207 @@
+﻿@model CMSECommerce.Models.UserProfile
+
+@{
+    ViewData["Title"] = "Edit Profile";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white py-3">
+                    <h5 class="mb-0"><i class="bi bi-person-gear me-2"></i>Update Your Profile Settings</h5>
+                </div>
+
+                <div class="card-body p-4">
+                    <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4"></div>
+
+                        @* Hidden fields for ID tracking *@
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="UserId" />
+                        <input type="hidden" asp-for="StoreId" />
+
+                        <div class="row g-4">
+                            <div class="col-md-8">
+
+                                <h6 class="text-uppercase text-primary small fw-bold mb-3 border-bottom pb-2">Personal Information</h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="FirstName" class="form-label fw-semibold"></label>
+                                        <input asp-for="FirstName" class="form-control" />
+                                        <span asp-validation-for="FirstName" class="text-danger small"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="LastName" class="form-label fw-semibold"></label>
+                                        <input asp-for="LastName" class="form-control" />
+                                        <span asp-validation-for="LastName" class="text-danger small"></span>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="d-flex justify-content-between">
+                                            <label asp-for="ITSNumber" class="form-label fw-semibold text-muted">ITS Number</label>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle mb-1">
+                                                <i class="bi bi-patch-check-fill me-1"></i>Verified
+                                            </span>
+                                        </div>
+                                        @* Readonly prevents editing but allows the value to be POSTED to the controller *@
+                                        <input asp-for="ITSNumber" class="form-control bg-light" readonly />
+                                        <div class="form-text small text-muted">Locked for security.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="WhatsAppNumber" class="form-label fw-semibold">WhatsApp Number</label>
+                                        <input asp-for="WhatsAppNumber" class="form-control" />
+                                    </div>
+                                </div>
+
+                                <h6 class="text-uppercase text-primary small fw-bold mb-3 mt-4 border-bottom pb-2">Professional Details</h6>
+                                <div class="mb-3">
+                                    <label asp-for="Profession" class="form-label fw-semibold"></label>
+                                    <input asp-for="Profession" class="form-control" placeholder="e.g. Graphic Designer, Consultant" />
+                                </div>
+                                <div class="mb-3">
+                                    <label asp-for="ServicesProvided" class="form-label fw-semibold">Services Provided</label>
+                                    <input asp-for="ServicesProvided" class="form-control" placeholder="Service 1, Service 2..." />
+                                </div>
+                                <div class="mb-3">
+                                    <label asp-for="About" class="form-label fw-semibold"></label>
+                                    <textarea asp-for="About" class="form-control" rows="3"></textarea>
+                                </div>
+
+                                <h6 class="text-uppercase text-primary small fw-bold mb-3 mt-4 border-bottom pb-2">Location & Contact</h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="HomeAddress" class="form-label fw-semibold"></label>
+                                        <textarea asp-for="HomeAddress" class="form-control" rows="2"></textarea>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="BusinessAddress" class="form-label fw-semibold"></label>
+                                        <textarea asp-for="BusinessAddress" class="form-control" rows="2"></textarea>
+                                    </div>
+                                </div>
+
+                                <h6 class="text-uppercase text-primary small fw-bold mb-3 mt-4 border-bottom pb-2">Store Information</h6>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">GSTIN</label>
+                                        <input asp-for="Store.GSTIN" class="form-control" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Store Name</label>
+                                        <input asp-for="Store.StoreName" class="form-control" />
+                                    </div>
+                                </div>
+
+                                <h6 class="text-uppercase text-primary small fw-bold mb-3 mt-4 border-bottom pb-2">Social Presence</h6>
+
+                                <label class="form-label fw-semibold small text-muted">Facebook</label>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text bg-white" style="border-right: none;">
+                                        <i class="bi bi-facebook" style="color: #1877F2;"></i>
+                                    </span>
+                                    <input asp-for="FacebookUrl" class="form-control" placeholder="https://facebook.com/yourprofile" style="border-left: none;" />
+                                </div>
+
+                                <label class="form-label fw-semibold small text-muted">Instagram</label>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text bg-white" style="border-right: none;">
+                                        <i class="bi bi-instagram" style="color: #E4405F;"></i>
+                                    </span>
+                                    <input asp-for="InstagramUrl" class="form-control" placeholder="https://instagram.com/yourusername" style="border-left: none;" />
+                                </div>
+
+                                <label class="form-label fw-semibold small text-muted">LinkedIn</label>
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text bg-white" style="border-right: none;">
+                                        <i class="bi bi-linkedin" style="color: #0A66C2;"></i>
+                                    </span>
+                                    <input asp-for="LinkedInUrl" class="form-control" placeholder="https://linkedin.com/in/yourprofile" style="border-left: none;" />
+                                </div>
+
+                                <div class="form-check form-switch mt-4">
+                                    <input asp-for="IsProfileVisible" class="form-check-input" type="checkbox" role="switch">
+                                    <label class="form-check-label fw-semibold ms-2" asp-for="IsProfileVisible">Show my profile to the public</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <h6 class="text-uppercase text-muted small fw-bold mb-3 border-bottom pb-2">Profile Branding</h6>
+                                <div class="text-center mb-5">
+                                    <label class="form-label d-block fw-semibold text-start">Profile Image</label>
+                                    <div class="position-relative d-inline-block mt-2">
+                                        @if (!string.IsNullOrEmpty(Model.ProfileImagePath))
+                                        {
+                                            <img src="@Model.ProfileImagePath" id="profilePreview" class="rounded-circle border shadow-sm" style="width: 150px; height: 150px; object-fit: cover;" alt="Profile Picture" />
+                                        }
+                                        else
+                                        {
+                                            <div id="profilePreviewPlaceholder" class="rounded-circle bg-light border d-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
+                                                <i class="bi bi-camera text-muted" style="font-size: 2.5rem;"></i>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="mt-3">
+                                        <input type="file" name="profileImg" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'profilePreview')" />
+                                    </div>
+                                </div>
+
+                                <h6 class="text-uppercase text-muted small fw-bold mb-3 border-bottom pb-2">Payment QR Codes</h6>
+                                <div class="mb-4 p-3 border rounded bg-light text-center">
+                                    <label class="form-label fw-bold d-block text-start"><i class="bi bi-google text-primary me-2"></i>Google Pay</label>
+                                    @if (!string.IsNullOrEmpty(Model.GpayQRCodePath))
+                                    {
+                                        <img src="@Model.GpayQRCodePath" class="img-thumbnail mb-2" style="height: 120px;" alt="GPay QR" />
+                                    }
+                                    <input type="file" name="gpayQR" class="form-control form-control-sm" accept="image/*" />
+                                </div>
+
+                                <div class="mb-3 p-3 border rounded bg-light text-center">
+                                    <label class="form-label fw-bold d-block text-start"><i class="bi bi-phone text-purple me-2"></i>PhonePe</label>
+                                    @if (!string.IsNullOrEmpty(Model.PhonePeQRCodePath))
+                                    {
+                                        <img src="@Model.PhonePeQRCodePath" class="img-thumbnail mb-2" style="height: 120px;" alt="PhonePe QR" />
+                                    }
+                                    <input type="file" name="phonepeQR" class="form-control form-control-sm" accept="image/*" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-5 pt-3 border-top">
+                            <a asp-action="Index" asp-controller="Cart" class="btn btn-outline-secondary px-4 rounded-pill">
+                                <i class="bi bi-arrow-left me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success px-5 rounded-pill shadow-sm">
+                                <i class="bi bi-check-circle me-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        function previewImage(input, previewId) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var preview = document.getElementById(previewId);
+                    if(preview) {
+                        preview.src = e.target.result;
+                    } else {
+                        location.reload();
+                    }
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
+}
