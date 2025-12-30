@@ -1,8 +1,11 @@
 ﻿@model CartViewModel
+@using Microsoft.AspNetCore.Http
 
 @{
     ViewData["Title"] = "Shopping Cart";
     var hasOutOfStockItems = Model.CartItems.Any(x => x.IsOutOfStock);
+    // Capture current path for the Login ReturnUrl
+    var currentPath = Context.Request.Path + Context.Request.QueryString;
 }
 
 <div class="container my-4 amazon-cart-page">
@@ -127,12 +130,13 @@
                         </div>
                     </div>
 
+                    @* Login Redirect vs Checkout Logic *@
                     @if (!User.Identity.IsAuthenticated)
                     {
                         <p class="text-center small text-muted mb-2">Sign in to checkout faster</p>
-                        <a asp-area="Identity" asp-page="/Account/Login"
-                           asp-route-ReturnUrl="@Url.Action("Index", "Cart", new { Area = "" })"
-                           class="btn btn-amazon-checkout btn-lg w-100 mb-3">
+                        <a asp-controller="Account" asp-action="Login"
+                           asp-route-ReturnUrl="@currentPath"
+                           class="btn btn-amazon-checkout btn-lg w-100 mb-3 text-center">
                             Proceed to Checkout
                         </a>
                     }
@@ -207,14 +211,9 @@
                 text-decoration: underline !important;
             }
 
-        /* Cart Item Styling */
         .cart-product-img {
             max-height: 180px;
             object-fit: contain;
-        }
-
-        .cart-item-row {
-            transition: background 0.2s;
         }
 
         .item-out-of-stock {
@@ -232,19 +231,12 @@
             color: var(--amazon-price-red);
         }
 
-        /* Controls */
-        .cart-qty-group .input-group-text {
-            font-size: 0.75rem;
-            font-weight: bold;
-        }
-
         .cart-qty-select {
             background-color: #F0F2F2 !important;
             border-color: var(--amazon-border) !important;
             max-width: 80px;
         }
 
-        /* Buy Box */
         .buy-box {
             background-color: white;
             border: 1px solid var(--amazon-border) !important;
@@ -254,7 +246,6 @@
             color: var(--amazon-price-red);
         }
 
-        /* Buttons */
         .btn-amazon-checkout {
             background-color: var(--amazon-yellow) !important;
             border: 1px solid #FCD200 !important;
@@ -262,6 +253,9 @@
             color: #0F1111 !important;
             font-size: 0.95rem;
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
             .btn-amazon-checkout:hover {
@@ -270,13 +264,8 @@
 
             .btn-amazon-checkout:disabled {
                 background-color: #eff1f3 !important;
-                border-color: #d5d9d9 !important;
                 color: #a7abb0 !important;
             }
-
-        .empty-cart-box {
-            background-color: white !important;
-        }
 
         @@media (max-width: 991.98px) {
             .sticky-top {
