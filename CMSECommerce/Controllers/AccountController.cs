@@ -96,13 +96,21 @@ namespace CMSECommerce.Controllers
             }
         }
 
-        public IActionResult Register()
+        // --- 3. REGISTER (GET) ---
+        // Updated to accept the 'username' parameter from the Login redirect
+        [HttpGet]
+        public IActionResult Register(string username = null)
         {
-            // Assuming a ViewModel named 'User' is used for registration.
-            return View();
+            // If the user was redirected from Login, pre-populate the ViewModel
+            var model = new RegisterViewModel
+            {
+                Username = username
+            };
+
+            return View(model);
         }
 
-        
+
         [HttpGet]
         [AllowAnonymous]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

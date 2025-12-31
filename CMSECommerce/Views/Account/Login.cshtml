@@ -10,7 +10,7 @@
         <div class="row g-0 justify-content-center align-items-stretch">
 
             @* --- LEFT PANEL: BRANDING & FEATURES (Visible on Desktop) --- *@
-            <div class="col-lg-5 d-none d-lg-flex flex-column justify-content-center p-5 bg-white border-end rounded-start-4 shadow-sm">
+            <div class="col-lg-5 d-none d-lg-flex flex-column justify-content-center p-5 bg-white border-end rounded-start-2 shadow-sm">
                 <div class="brand-logo mb-4">
                     <div class="d-flex align-items-center h2 fw-bold text-amazon-dark m-0">
                         <i class="fas fa-box text-amazon-orange me-2"></i>
@@ -45,7 +45,7 @@
             </div>
 
             @* --- RIGHT PANEL: FORM --- *@
-            <div class="col-12 col-sm-10 col-md-8 col-lg-4 p-4 p-lg-5 bg-white shadow rounded-4 rounded-lg-start-0">
+            <div class="col-12 col-sm-10 col-md-8 col-lg-4 p-4 p-lg-5 bg-white shadow-sm border rounded-2 rounded-lg-start-0">
 
                 @* Mobile Logo *@
                 <div class="text-center mb-4 d-lg-none">
@@ -91,55 +91,61 @@
                 }
 
                 <div class="signin-header mb-4">
-                    <h2 class="fw-bold text-amazon-dark h3">Sign-In</h2>
+                    <h2 class="fw-normal text-amazon-dark h3">Sign-In</h2>
                     <p class="text-muted small">Enter your credentials to continue.</p>
                 </div>
 
-                <form method="post" asp-controller="@controllerName" asp-action="Login" role="form">
+                <form id="loginForm" method="post" asp-controller="@controllerName" asp-action="Login" role="form">
+                    @Html.AntiForgeryToken()
                     @if (ViewBag.IsLockedOut != true)
                     {
                         <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
                     }
 
-                    <div class="form-floating mb-3">
-                        <input asp-for="UserName" class="form-control amazon-modern-input" placeholder="Username" autofocus />
-                        <label asp-for="UserName" class="text-muted small">Username / Email</label>
-                        <span asp-validation-for="UserName" class="text-danger x-small mt-1 d-block"></span>
+                    <div class="mb-3 position-relative">
+                        <label asp-for="UserName" class="form-label fw-bold mb-1 small">Username / Email / Mobile</label>
+                        <input asp-for="UserName" id="UserNameInput" class="form-control amazon-modern-input" autofocus autocomplete="username" />
+                        <div id="checkLoader" class="spinner-border spinner-border-sm text-amazon-orange position-absolute d-none" style="right: 10px; top: 38px; z-index: 5;"></div>
+                        <span id="UserNameError" class="text-danger x-small mt-1 d-block"></span>
                     </div>
 
-                    <div class="form-floating mb-2">
-                        <input asp-for="Password" type="password" class="form-control amazon-modern-input" placeholder="Password" />
-                        <label asp-for="Password" class="text-muted small">Password</label>
+                    <div class="mb-2 position-relative" id="passwordContainer">
+                        <div class="d-flex justify-content-between">
+                            <label asp-for="Password" class="form-label fw-bold mb-1 small">Password</label>
+                            <a asp-action="ForgotPassword" class="small text-amazon-link text-decoration-none">Forgot Password?</a>
+                        </div>
+                        <div class="position-relative">
+                            <input asp-for="Password" id="PasswordInput" type="password" class="form-control amazon-modern-input" />
+                            <button type="button" id="togglePassword" class="btn position-absolute end-0 top-0 h-100 border-0 bg-transparent text-muted" style="z-index: 5;">
+                                <i class="fas fa-eye" id="eyeIcon"></i>
+                            </button>
+                        </div>
                         <span asp-validation-for="Password" class="text-danger x-small mt-1 d-block"></span>
                     </div>
 
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div class="form-check">
-                            <input class="form-check-input accent-amazon" type="checkbox" asp-for="RememberMe">
-                            <label class="form-check-label small text-muted" asp-for="RememberMe">Remember me</label>
-                        </div>
-                        <a asp-action="ForgotPassword" class="small text-amazon-link text-decoration-none fw-bold">Forgot Password?</a>
+                    <div class="form-check mb-4">
+                        <input class="form-check-input accent-amazon" type="checkbox" asp-for="RememberMe">
+                        <label class="form-check-label small text-muted" asp-for="RememberMe">Remember me</label>
                     </div>
 
                     <input type="hidden" asp-for="ReturnUrl" />
 
                     <div class="d-grid mb-4">
-                        <button type="submit" class="btn btn-amazon-primary py-2 fw-bold shadow-sm">
-                            Sign In <i class="fas fa-arrow-right ms-2"></i>
+                        <button type="submit" id="submitBtn" class="btn btn-amazon-primary py-1 shadow-sm">
+                            <span id="btnText">Sign In</span> <i class="fas fa-arrow-right ms-2" id="btnIcon"></i>
                         </button>
                     </div>
 
                     <div class="text-center">
-                        <p class="x-small text-muted mb-4 px-4">
+                        <p class="x-small text-muted mb-4 px-4 pb-3 border-bottom">
                             By continuing, you agree to our <a asp-controller="Products" asp-action="Policies" class="text-amazon-link">Terms</a> and <a asp-controller="Products" asp-action="Privacy" class="text-amazon-link">Privacy Policy</a>.
                         </p>
 
-                        <div class="divider position-relative mb-4">
-                            <hr />
-                            <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 x-small text-muted text-uppercase fw-bold">New to Weypaari?</span>
+                        <div class="divider-text position-relative mb-4">
+                            <span class="bg-white px-3 x-small text-muted text-uppercase fw-bold">New to Weypaari?</span>
                         </div>
 
-                        <a asp-action="Register" class="btn btn-amazon-outline w-100 py-2 fw-bold">
+                        <a asp-action="Register" class="btn btn-amazon-outline w-100 py-1 shadow-sm">
                             Create your account
                         </a>
                     </div>
@@ -152,16 +158,19 @@
 @section Styles {
     <style>
         :root {
-            --amazon-dark: #131921;
-            --amazon-orange: #ff9900;
-            --amazon-yellow: #febd69; /* Matched to Search Button Color */
+            --amazon-dark: #111111;
+            --amazon-orange: #e47911;
+            --amazon-yellow: #f0c14b;
             --amazon-yellow-hover: #f3a847;
-            --amazon-link: #007185;
+            --amazon-link: #0066c0;
         }
 
-        /* --- Custom UI Overrides --- */
+        body {
+            font-family: "Segoe UI", Tahoma, sans-serif;
+        }
+
         .amazon-login-wrapper {
-            background-color: #f7f7f7;
+            background-color: #fff;
         }
 
         .text-amazon-dark {
@@ -181,14 +190,17 @@
         }
 
         .amazon-modern-input {
-            border: 1px solid #ced4da;
-            border-radius: 4px; /* Slightly more square like Amazon */
-            font-size: 0.9rem;
+            border: 1px solid #a6a6a6;
+            border-radius: 3px;
+            height: 31px;
+            font-size: 13px;
+            padding: 7px 10px;
         }
 
             .amazon-modern-input:focus {
                 border-color: var(--amazon-orange);
                 box-shadow: 0 0 3px 2px rgba(228, 121, 17, .5);
+                outline: 0;
             }
 
         .feature-icon-circle {
@@ -204,24 +216,37 @@
         }
 
         .btn-amazon-primary {
-            background-color: var(--amazon-yellow);
+            background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
             border: 1px solid #a88734;
             color: #111;
+            font-size: 13px;
         }
 
             .btn-amazon-primary:hover {
-                background-color: var(--amazon-yellow-hover);
-                border-color: #846a29;
+                background: linear-gradient(to bottom, #f5d78e, #eeb933);
+                border-color: #a88734;
             }
 
         .btn-amazon-outline {
-            background: #eff1f3;
-            border: 1px solid #adb5bd;
+            background: linear-gradient(to bottom, #f7f8fa, #e7e9ec);
+            border: 1px solid #adb1b8;
             color: #111;
+            font-size: 13px;
         }
 
             .btn-amazon-outline:hover {
-                background-color: #e7e9ec;
+                background: linear-gradient(to bottom, #e7eaf0, #d9dce1);
+                border-color: #a2a6ac;
+            }
+
+        .divider-text {
+            border-top: 1px solid #e7e7e7;
+            text-align: center;
+            line-height: 0.1em;
+        }
+
+            .divider-text span {
+                background: #fff;
             }
 
         .accent-amazon:checked {
@@ -229,20 +254,106 @@
             border-color: var(--amazon-orange);
         }
 
-        .rounded-start-4 {
-            border-top-left-radius: 8px !important;
-            border-bottom-left-radius: 8px !important;
+        .rounded-start-2 {
+            border-top-left-radius: 4px !important;
+            border-bottom-left-radius: 4px !important;
         }
 
-        .rounded-4 {
-            border-radius: 8px !important;
+        .rounded-2 {
+            border-radius: 4px !important;
         }
 
-        /* Responsive */
         @@media (max-width: 991px) {
             .amazon-login-wrapper {
                 padding-top: 2rem;
             }
         }
     </style>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            const $userInput = $('#UserNameInput');
+            const $errorSpan = $('#UserNameError');
+            const $loader = $('#checkLoader');
+            const $btnText = $('#btnText');
+            const $btnIcon = $('#btnIcon');
+            const $passContainer = $('#passwordContainer');
+            let redirectRequested = false;
+
+            const itsRegex = /^\d{8}$/;
+            const indianMobileRegex = /^(?:\+91|0)?[6-9]\d{9}$/;
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+            $('#togglePassword').on('click', function () {
+                const type = $('#PasswordInput').attr('type') === 'password' ? 'text' : 'password';
+                $('#PasswordInput').attr('type', type);
+                $('#eyeIcon').toggleClass('fa-eye fa-eye-slash');
+            });
+
+            $userInput.on('blur', function () {
+                const val = $(this).val().trim();
+                if (val === "") { resetFormState(); return; }
+
+                const isValidFormat = itsRegex.test(val) || indianMobileRegex.test(val) || emailRegex.test(val);
+
+                if (!isValidFormat) {
+                    let msg = "Invalid format. Enter Email, 8-digit ITS, or 10-digit Mobile.";
+                    $errorSpan.text(msg).addClass('text-danger').removeClass('text-warning text-success');
+                    $userInput.css('border-left', '4px solid #ba0000');
+                    return;
+                }
+
+                $loader.removeClass('d-none');
+                $.get('@Url.Action("ValidateIdentifier", "Account")', { value: val, type: 'Username' }, function (res) {
+                    // ONLY checking isAvailable
+                    if (res.isAvailable) {
+                        redirectRequested = true;
+                        $userInput.css('border-left', '4px solid #ff9900');
+                        $errorSpan.text("Account not found. Click to Register.").addClass('text-warning').removeClass('text-danger text-success');
+                        $btnText.text("Continue to Register");
+                        $btnIcon.removeClass('fa-arrow-right').addClass('fa-user-plus');
+                        $passContainer.slideUp();
+                    } else {
+                        redirectRequested = false;
+                        $userInput.css('border-left', '4px solid #28a745');
+                        $errorSpan.text("Recognized account.").addClass('text-success').removeClass('text-danger text-warning');
+                        $btnText.text("Sign In");
+                        $btnIcon.removeClass('fa-user-plus').addClass('fa-arrow-right');
+                        $passContainer.slideDown();
+                    }
+                }).always(() => $loader.addClass('d-none'));
+            });
+
+            $('#loginForm').on('submit', function (e) {
+                const val = $userInput.val().trim();
+                if (val !== "" && !itsRegex.test(val) && !indianMobileRegex.test(val) && !emailRegex.test(val)) {
+                    e.preventDefault();
+                    $userInput.focus();
+                    return false;
+                }
+
+                if (redirectRequested) {
+                    e.preventDefault();
+                    window.location.href = '@Url.Action("Register", "Account")' + '?username=' + encodeURIComponent(val);
+                }
+            });
+
+            function resetFormState() {
+                redirectRequested = false;
+                $userInput.css('border-left', '1px solid #ced4da');
+                $errorSpan.text("").removeClass('text-warning text-success text-danger');
+                $btnText.text("Sign In");
+                $btnIcon.removeClass('fa-user-plus').addClass('fa-arrow-right');
+                $passContainer.slideDown();
+            }
+
+            $userInput.on('input', function() {
+                $(this).css('border-left', '1px solid #ced4da');
+                $errorSpan.text("");
+            });
+        });
+    </script>
 }
