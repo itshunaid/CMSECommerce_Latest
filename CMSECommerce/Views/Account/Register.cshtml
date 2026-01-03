@@ -6,91 +6,21 @@
 }
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/register.css" />
     <style>
-        :root {
-            --amazon-orange: #ff9900;
-            --amazon-yellow: #ffd814;
-            --amazon-yellow-hover: #f7ca00;
-            --amazon-dark: #111111;
-            --amazon-link: #0066c0;
-            --amazon-gray: #565959;
-            --amazon-border: #bbbfbf;
-            --amazon-error: #ba0000;
-            --amazon-focus-shadow: 0 0 3px 2px rgba(228, 121, 17, 0.5);
+        /* Ensures the scroll detection is accurate */
+        #TermsScrollBox {
+            height: 300px;
+            overflow-y: auto;
+            padding-right: 10px;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 4px;
         }
 
-        body {
-            background-color: #fff;
-            font-family: "Amazon Ember", Arial, sans-serif;
-        }
-
-        .amazon-login-page {
-            background-color: #fff;
-            min-height: 100vh;
-        }
-
-        .amazon-form-box {
-            border: 1px solid #ddd !important;
-            border-radius: 8px !important;
-        }
-
-        .text-amazon-dark {
-            color: var(--amazon-dark);
-        }
-
-        .text-amazon-link {
-            color: var(--amazon-link);
-            text-decoration: none;
-        }
-
-            .text-amazon-link:hover {
-                color: #c45500;
-                text-decoration: underline;
-            }
-
-        .amazon-input-field {
-            height: 31px;
-            padding: 3px 7px;
-            line-height: normal;
-            background-color: #fff;
-            border: 1px solid var(--amazon-border);
-            border-radius: 3px;
-            outline: 0;
-            box-shadow: 0 1px 0 rgba(255,255,255,.5), inset 0 1px 0 rgba(0,0,0,.07);
-            font-size: 13px;
-            transition: all 0.1s linear;
-            width: 100%;
-        }
-
-            .amazon-input-field:focus {
-                border-color: #e77600;
-                box-shadow: var(--amazon-focus-shadow);
-            }
-
-        .input-error-border {
-            border-color: var(--amazon-error) !important;
-            box-shadow: 0 0 0 3px rgba(196, 1, 1, 0.5) !important;
-        }
-
-        .btn-amazon-checkout {
-            background: #ffd814;
-            background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
-            border: 1px solid #a88734 !important;
-            border-radius: 8px !important;
-            color: #111 !important;
-            box-shadow: 0 1px 0 rgba(255,255,255,.4) inset;
-            padding: 4px 10px;
-            font-size: 13px;
-        }
-
-        .label-small {
-            font-size: 13px;
-            padding-bottom: 2px;
-        }
-
-        .info-box {
-            font-size: 12px;
-            color: var(--amazon-gray);
+        .terms-accepted {
+            border: 1px solid var(--amazon-orange) !important;
+            background-color: #fffaf3;
         }
     </style>
 }
@@ -111,7 +41,7 @@
                     @Html.AntiForgeryToken()
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger small p-2" role="alert"></div>
 
-                    @* --- Unified Identifier (ITS, Mobile, or Email) --- *@
+                    @* Identifier *@
                     <div class="form-group mb-3">
                         <label asp-for="Username" class="form-label fw-bold label-small text-amazon-dark mb-1">Email, Mobile, or ITS Number</label>
                         <input asp-for="Username" id="UserInput" class="form-control amazon-input-field" placeholder="Email, Mobile, or 8-digit ITS" autocomplete="off" />
@@ -119,14 +49,12 @@
                     </div>
 
                     <div id="registrationFields">
-                        @* Backup Email Field Container *@
                         <div class="form-group mb-3" id="BackupEmailContainer">
                             <label asp-for="Email" class="form-label fw-bold label-small text-amazon-dark mb-1">Email</label>
                             <input asp-for="Email" id="EmailInput" class="form-control amazon-input-field" type="email" autocomplete="off" />
                             <span asp-validation-for="Email" id="EmailError" class="text-danger small mt-1 d-block"></span>
                         </div>
 
-                        @* Backup Mobile Field Container *@
                         <div class="form-group mb-3" id="BackupMobileContainer">
                             <label asp-for="PhoneNumber" class="form-label fw-bold label-small text-amazon-dark mb-1">Mobile number</label>
                             <input asp-for="PhoneNumber" id="PhoneInput" class="form-control amazon-input-field" placeholder="10-digit mobile" maxlength="10" inputmode="numeric" autocomplete="off" />
@@ -149,12 +77,28 @@
                         <span asp-validation-for="ConfirmPassword" id="ConfirmPassError" class="text-danger small mt-1 d-block"></span>
                     </div>
 
+                    @* THE FIX: Updated Terms Agreement Section *@
+                    <div id="TermsSection" class="form-group mb-3 p-2 rounded border border-transparent">
+                        @* Hidden input that maps to the C# Model *@
+                        <input type="hidden" asp-for="HasAcceptedTerms" id="TermsCheckbox" value="false" />
+
+                        <div class="amazon-checkbox-wrapper d-flex align-items-start">
+                            @* Visual only checkbox - not bound to Model *@
+                            <input type="checkbox" id="VisualCheckbox" class="form-check-input me-2" disabled />
+                            <label class="info-box text-amazon-dark small">
+                                I agree to Weypaari's <a href="javascript:void(0)" id="OpenTerms" class="text-amazon-link fw-bold">Conditions of Use</a>.
+                            </label>
+                        </div>
+                        @* Use a standard span for the error to avoid library hijacking *@
+                        <span id="TermsError" class="text-danger small d-block mt-1"></span>
+                    </div>
+
                     <div class="d-grid mt-3 mb-3">
                         <button type="submit" id="submitBtn" class="btn btn-amazon-checkout w-100">Continue</button>
                     </div>
 
                     <p id="legalNotice" class="info-box mb-4">
-                        By creating an account, you agree to Weypaari's <a href="#" class="text-amazon-link">Conditions of Use</a> and <a href="#" class="text-amazon-link">Privacy Notice</a>.
+                        By creating an account, you agree to Weypaari's <a href="javascript:void(0)" id="OpenTermsLegal" class="text-amazon-link">Conditions of Use</a> and <a href="javascript:void(0)" onclick="openPrivacyPopup()" class="text-amazon-link">Privacy Notice</a>.
                     </p>
 
                     <hr />
@@ -167,187 +111,62 @@
     </div>
 </div>
 
+@* Modal HTML *@
+<div class="modal fade" id="termsModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">Weypaari Conditions of Use</h5>
+            </div>
+            <div class="modal-body">
+                <div id="TermsScrollBox">
+                    <p class="small text-muted">Last Updated: January 2026</p>
+
+                    <h6>1. Acceptance of Terms</h6>
+                    <p>By accessing or using the Weypaari platform, you agree to be bound by these Conditions of Use. If you do not agree to these terms, please do not register for an account.</p>
+
+                    <h6>2. Eligibility & Registration</h6>
+                    <p>To use Weypaari, you must provide a valid 8-digit ITS number, Email, or Mobile number. You agree to provide accurate, current, and complete information during the registration process. Weypaari reserves the right to suspend accounts that provide false data.</p>
+
+                    <h6>3. Privacy & Data Security</h6>
+                    <p>Your privacy is important to us. Information provided during registration is used solely for identity verification and platform functionality. We do not sell your personal data to third parties. You are responsible for maintaining the confidentiality of your account password.</p>
+
+                    <h6>4. User Conduct</h6>
+                    <p>Users shall not engage in any activity that interferes with or disrupts Weypaari services. Prohibited actions include, but are not limited to, fraudulent transactions, posting offensive content, or attempting to bypass security protocols.</p>
+
+                    <h6>5. Transactions & Listings</h6>
+                    <p>Weypaari provides a marketplace platform. While we facilitate community commerce, Weypaari is not a party to the actual transactions between buyers and sellers and is not responsible for the quality, safety, or legality of the items advertised.</p>
+
+                    <h6>6. Termination of Use</h6>
+                    <p>We reserve the right to terminate or suspend your access to Weypaari at our sole discretion, without notice, for conduct that we believe violates these Terms or is harmful to other users of the community.</p>
+
+                    <h6>7. Modifications to Service</h6>
+                    <p>Weypaari reserves the right to modify or discontinue, temporarily or permanently, the service with or without notice at any time.</p>
+
+                    <div style="height: 50px;"></div>
+                    <p class="text-center text-muted small"><em>You have reached the end of the document.</em></p>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="ModalAgreeBtn" class="btn btn-amazon-checkout" disabled>I have read and agree</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-
     <script>
-        $(document).ready(function () {
-            const $form = $('#registrationForm');
-            const $submitBtn = $('#submitBtn');
-            const $userInput = $('#UserInput');
-            const $userError = $('#UserError');
+        const validateUrl = '@Url.Action("ValidateIdentifier", "Account")';
+        const loginUrl = '@Url.Action("Login", "Account")';
+        const registerUrl = '@Url.Action("Register", "Account")';
 
-            const $phoneInput = $('#PhoneInput');
-            const $phoneError = $('#PhoneError');
-            const $backupMobileContainer = $('#BackupMobileContainer');
-
-            const $emailInput = $('#EmailInput');
-            const $emailError = $('#EmailError');
-            const $backupEmailContainer = $('#BackupEmailContainer');
-
-            // --- Regex Patterns ---
-            const itsRegex = /^\d{8}$/;
-            const indianMobileRegex = /^(?:\+91|0)?[6-9]\d{9}$/;
-            const emailRegex = /^[a-zA-Z0-9._%+-]+@@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-            // --- 1. HANDLE REDIRECT FROM LOGIN PAGE ---
-            const urlParams = new URLSearchParams(window.location.search);
-            const prefilledUser = urlParams.get('username');
-
-            if (prefilledUser) {
-                const decodedUser = decodeURIComponent(prefilledUser);
-                $userInput.val(decodedUser);
-                // Trigger logic to hide/show backup fields immediately
-                processUserIdentifier(decodedUser);
-            }
-
-            // Centralized Logic for Identifier Type
-            function validateAndGetType(val) {
-                if (itsRegex.test(val)) return "ITS";
-                if (indianMobileRegex.test(val)) return "Mobile";
-                if (emailRegex.test(val)) return "Email";
-                return null;
-            }
-
-            function processUserIdentifier(val) {
-                if (val === "") { toggleLoginMode(false); return; }
-
-                const inputType = validateAndGetType(val);
-                const isDigitOnly = /^\d+$/.test(val);
-
-                if (!inputType) {
-                    let errorMsg = "Please enter a valid Email, 10-digit Mobile, or 8-digit ITS number.";
-                    if (isDigitOnly && val.length === 10 && !indianMobileRegex.test(val)) {
-                        errorMsg = "Invalid Indian mobile. Must start with 6, 7, 8, or 9.";
-                    } else if (val.includes('@@') && !emailRegex.test(val)) {
-                        errorMsg = "Please enter a valid email format.";
-                    }
-                    $userError.text(errorMsg);
-                    $userInput.addClass("input-error-border");
-                    return;
-                }
-
-                // UI Management & Field Sync
-                if (inputType === "Mobile") {
-                    const cleanPhone = val.replace(/\D/g, '').slice(-10);
-                    $phoneInput.val(cleanPhone);
-                    $backupMobileContainer.hide();
-                    $backupEmailContainer.show();
-                }
-                else if (inputType === "Email") {
-                    $emailInput.val(val);
-                    $backupEmailContainer.hide();
-                    $backupMobileContainer.show();
-                }
-                else { // ITS
-                    $backupEmailContainer.show();
-                    $backupMobileContainer.show();
-                }
-
-                performAjaxValidation(val, 'Username', $userError, $userInput, inputType);
-            }
-
-            // Centralized AJAX Validation Function
-            function performAjaxValidation(value, fieldType, $errorElement, $inputElement, detectedType = null) {
-                $.ajax({
-                    url: '@Url.Action("ValidateIdentifier", "Account")',
-                    type: 'GET',
-                    data: { value: value, type: fieldType, detectedType: detectedType },
-                    success: function (res) {
-                        if (!res.isAvailable) {
-                            if (fieldType === 'Username') {
-                                toggleLoginMode(true, res.message);
-                            } else {
-                                $errorElement.text(res.message);
-                                $inputElement.addClass("input-error-border");
-                            }
-                        } else {
-                            if (fieldType === 'Username') toggleLoginMode(false);
-                            $errorElement.text("");
-                            $inputElement.removeClass("input-error-border");
-                        }
-                    }
-                });
-            }
-
-            // --- Event Listeners ---
-
-            $userInput.on('blur', function () {
-                processUserIdentifier($(this).val().trim());
-            });
-
-            $emailInput.on('blur', function () {
-                const val = $(this).val().trim();
-                if (val === "") return;
-                if (!emailRegex.test(val)) {
-                    $emailError.text("Enter a valid email address.");
-                    $(this).addClass("input-error-border");
-                    return;
-                }
-                performAjaxValidation(val, 'Email', $emailError, $emailInput);
-            });
-
-            $phoneInput.on('blur', function () {
-                const val = $(this).val().trim();
-                if (val === "") return;
-                if (!indianMobileRegex.test(val)) {
-                    $phoneError.text("Enter a valid 10-digit Indian mobile number.");
-                    $(this).addClass("input-error-border");
-                    return;
-                }
-                performAjaxValidation(val, 'PhoneNumber', $phoneError, $phoneInput);
-            });
-
-            function toggleLoginMode(isLogin, message = "") {
-                if (isLogin) {
-                    $('#formHeader').text("Sign in");
-                    $('#registrationFields, #confirmPasswordGroup, #legalNotice, #footerLink, #passwordHint').hide();
-                    $userError.html(`<div class="alert alert-warning p-2 small text-dark"><i class="fas fa-exclamation-triangle me-1 text-warning"></i> ${message}<br/>Please sign in below.</div>`);
-                    $submitBtn.text("Sign in");
-                    $form.attr('action', '@Url.Action("Login", "Account")');
-                } else {
-                    $('#formHeader').text("Create account");
-                    $('#registrationFields, #confirmPasswordGroup, #legalNotice, #footerLink, #passwordHint').show();
-
-                    // Re-evaluate backup field visibility
-                    const val = $userInput.val().trim();
-                    const type = validateAndGetType(val);
-                    if(type === "Mobile") $backupMobileContainer.hide();
-                    if(type === "Email") $backupEmailContainer.hide();
-
-                    $userError.text("");
-                    $submitBtn.text("Continue");
-                    $form.attr('action', '@Url.Action("Register", "Account")');
-                }
-            }
-
-            // Input Restrictions
-            $('#PhoneInput').on('input', function () {
-                this.value = this.value.replace(/\D/g, '');
-            });
-
-            // Password matching
-            $('#ConfirmPassInput, #PassInput').on('blur', function() {
-                if ($form.attr('action').toLowerCase().includes('login')) return;
-                const p1 = $('#PassInput').val();
-                const p2 = $('#ConfirmPassInput').val();
-                if(p2 !== "" && p1 !== p2) {
-                    $('#ConfirmPassError').text("Passwords must match.");
-                    $('#ConfirmPassInput').addClass("input-error-border");
-                } else {
-                    $('#ConfirmPassError').text("");
-                    $('#ConfirmPassInput').removeClass("input-error-border");
-                }
-            });
-
-            // Clear errors on input
-            $('.amazon-input-field').on('input', function() {
-                $(this).removeClass("input-error-border");
-                const id = $(this).attr('id');
-                if(id === 'UserInput') $userError.text("");
-                if(id === 'EmailInput') $emailError.text("");
-                if(id === 'PhoneInput') $phoneError.text("");
-            });
-        });
+        function openPrivacyPopup() {
+            const w = 600, h = 700;
+            const left = (screen.width/2)-(w/2), top = (screen.height/2)-(h/2);
+            window.open('@Url.Action("Privacy", "Home")', 'PrivacyNotice', `width=${w},height=${h},top=${top},left=${left},scrollbars=yes`);
+        }
     </script>
+    <script src="~/js/register.js"></script>
 }

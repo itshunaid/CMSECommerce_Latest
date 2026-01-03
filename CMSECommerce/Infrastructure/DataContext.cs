@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using CMSECommerce.Models;
+using CMSECommerce.Models.CMSECommerce.Models.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using CMSECommerce.Models;
 
 namespace CMSECommerce.Infrastructure
 {
@@ -10,7 +11,7 @@ namespace CMSECommerce.Infrastructure
         public DataContext(DbContextOptions<DataContext> options) : base(options)
         {
         }
-
+        public DbSet<UserAgreement> UserAgreements { get; set; }
         public DbSet<Page> Pages { get; set; }
         public DbSet<Store> Stores { get; set; }
         public DbSet<Category> Categories { get; set; }
@@ -31,6 +32,12 @@ namespace CMSECommerce.Infrastructure
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Ensure a user can have multiple agreement records (as versions change over time)
+            modelBuilder.Entity<UserAgreement>()
+                .HasOne(ua => ua.User)
+                .WithMany()
+                .HasForeignKey(ua => ua.UserId);
 
             // 1. UserProfile Configuration
             modelBuilder.Entity<UserProfile>(entity =>

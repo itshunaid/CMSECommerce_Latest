@@ -3,6 +3,7 @@ using CMSECommerce.Areas.Admin.Models;
 using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
+using CMSECommerce.Models.CMSECommerce.Models.Entities;
 using CMSECommerce.Models.ViewModels;
 using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -242,7 +243,22 @@ namespace CMSECommerce.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
+            if (!model.HasAcceptedTerms)
+            {
+                ModelState.AddModelError("HasAcceptedTerms", "You must agree to the terms.");
+            }
+
             if (!ModelState.IsValid) return View(model);
+
+            // Check if user already exists
+            var existingUser = await _userManager.FindByNameAsync(model.Username);
+            if (existingUser != null)
+            {
+                return RedirectToAction("Login", new { username = model.Username });
+            }
+
+
+
 
             // 1. Simplified Uniqueness Check 
             // We only check UserManager for existing credentials to prevent crashes.
@@ -275,6 +291,18 @@ namespace CMSECommerce.Controllers
 
                 if (result.Succeeded)
                 {
+                    var agreement = new UserAgreement
+                    {
+                        UserId = newUser.Id,
+                        AgreementType = "Registration_Terms_Privacy",
+                        Version = "v1.0-2026-01",
+                        AcceptedAt = DateTime.UtcNow,
+                        IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+                    };
+
+                    _context.UserAgreements.Add(agreement);
+                    await _context.SaveChangesAsync();
+
                     // 3. Role Assignment
                     // We keep this to ensure your [Authorize(Roles="Customer")] attributes don't break.
                     await _userManager.AddToRoleAsync(newUser, "Customer");
