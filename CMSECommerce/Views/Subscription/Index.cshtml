@@ -1,192 +1,301 @@
 ﻿@model IEnumerable<CMSECommerce.Models.SubscriptionTier>
 
 @{
-    ViewData["Title"] = "Plans";
+    ViewData["Title"] = "Membership Plans";
     ViewData["HideLayoutSidebar"] = true;
 }
 
 @section Styles {
     <style>
         :root {
-            --primary: #21409a;
-            --text-main: #2d3748;
-            --text-muted: #718096;
+            --primary-gradient: linear-gradient(135deg, #21409a 0%, #152a66 100%);
+            --primary-color: #21409a;
+            --text-dark: #1a202c;
+            --text-light: #718096;
+            --bg-light: #f7fafc;
+            --white: #ffffff;
+            --success: #38a169;
         }
 
         body {
-            background-color: #f8fafc;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-light);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        /* Compact Header */
-        .pricing-header {
-            max-width: 600px;
+        .pricing-container {
+            max-width: 1100px;
             margin: 0 auto;
-            padding: 1.5rem 0;
+        }
+
+        /* Professional Header */
+        .pricing-header {
+            padding: 3rem 0;
+            text-align: center;
         }
 
             .pricing-header h1 {
-                font-size: 1.75rem;
                 font-weight: 800;
-                color: var(--text-main);
+                color: var(--text-dark);
+                font-size: 2.5rem;
+                letter-spacing: -0.025em;
             }
 
             .pricing-header p {
-                font-size: 0.9rem;
-                color: var(--text-muted);
+                color: var(--text-light);
+                font-size: 1.1rem;
+                max-width: 600px;
+                margin: 1rem auto;
             }
 
-        /* Minimalist QR */
-        .qr-card {
-            background: #fff;
-            padding: 10px;
-            border-radius: 12px;
-            display: inline-block;
-            border: 1px solid #edf2f7;
-        }
-
-        .qr-text {
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: var(--primary);
-            text-transform: uppercase;
-            margin-top: 5px;
-        }
-
-        /* Robust Cards */
-        .card {
+        /* Modern QR Badge */
+        .qr-badge {
+            background: var(--white);
+            padding: 1rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            transition: all 0.2s ease-in-out;
+            margin-bottom: 2rem;
         }
 
-            .card:hover {
-                border-color: var(--primary);
-                box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        /* Plan Card Design */
+        .pricing-card {
+            background: var(--white);
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            padding: 2.5rem 2rem;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+        }
+
+            .pricing-card:hover {
+                transform: translateY(-10px);
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                border-color: var(--primary-color);
             }
 
-        /* Small Text Typography */
-        .tier-name {
-            font-size: 0.75rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-        }
-
-        .price-val {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--text-main);
-            line-height: 1;
-        }
-
-        .price-sub {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .feature-list {
-            padding: 0;
-            margin: 0;
-            list-style: none;
-        }
-
-            .feature-list li {
-                font-size: 0.8rem;
-                color: #4a5568;
-                padding: 6px 0;
-                display: flex;
-                align-items: center;
+            /* Highlighted Premium Plan */
+            .pricing-card.premium {
+                background: var(--white);
+                border: 2px solid var(--primary-color);
             }
 
-            .feature-list i {
-                color: #38a169;
-                width: 20px;
-                font-size: 0.85rem;
-            }
-
-        .btn-select {
-            font-size: 0.8rem;
-            font-weight: 700;
-            padding: 10px;
-            border-radius: 8px;
-            text-transform: uppercase;
-        }
-
-        .badge-mini {
-            font-size: 0.65rem;
-            padding: 4px 12px;
-            background: var(--primary);
-            color: #fff;
-            border-radius: 50px;
+        .premium-label {
             position: absolute;
-            top: -10px;
+            top: 0;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translate(-50%, -50%);
+            background: var(--primary-gradient);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
+
+        /* Typography */
+        .plan-name {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .plan-price {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+            .plan-price span {
+                font-size: 1rem;
+                font-weight: 500;
+                color: var(--text-light);
+            }
+
+        /* Features */
+        .feature-list {
+            margin: 2rem 0;
+            padding: 0;
+            list-style: none;
+            flex-grow: 1;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+            color: #4a5568;
+        }
+
+            .feature-item i {
+                color: var(--success);
+                font-size: 1rem;
+            }
+
+            .feature-item.locked {
+                color: #a0aec0;
+            }
+
+                .feature-item.locked i {
+                    color: #cbd5e0;
+                }
+
+        /* Button */
+        .btn-upgrade {
+            background: var(--primary-gradient);
+            color: white;
+            font-weight: 700;
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            text-decoration: none;
+            transition: opacity 0.2s;
+            border: none;
+        }
+
+            .btn-upgrade:hover {
+                opacity: 0.9;
+                color: white;
+            }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #e2e8f0;
+            color: var(--text-dark);
+        }
+
+            .btn-outline:hover {
+                border-color: var(--primary-color);
+                background: #f8f9ff;
+            }
     </style>
 }
 
-<div class="container py-4">
-    <div class="pricing-header text-center mb-4">
-        <h1 class="mb-2">Membership Plans</h1>
-        <p class="mb-3">Select a plan to enable seller features.</p>
+<div class="container pricing-container py-5">
+    <div class="pricing-header">
+        <h1>Elevate Your Business</h1>
+        <p>Choose the right tools to showcase your products and manage your orders with Weypaari’s professional seller ecosystem.</p>
 
-        <div class="qr-card shadow-sm">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=https://weypaari.com"
-                 style="width: 80px; height: 80px;" alt="QR">
-            <div class="qr-text"><i class="fas fa-qrcode"></i> Quick Pay</div>
+        <div class="qr-badge">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://weypaari.com"
+                 style="width: 60px; height: 60px;" alt="QR Code">
+            <div class="text-start">
+                <div class="fw-bold text-dark" style="font-size: 0.85rem;">Instant Activation</div>
+                <div class="text-muted small">Scan to pay & start selling</div>
+            </div>
         </div>
     </div>
 
 
 
-    <div class="row g-3 justify-content-center">
+    <div class="row g-4 justify-content-center">
         @foreach (var tier in Model.OrderBy(t => t.Price))
         {
-            bool isPro = tier.Name.Contains("Premium") || tier.Name.Contains("Pro");
+            bool isPremium = tier.Name.Contains("Premium", StringComparison.OrdinalIgnoreCase);
+            bool isIntermediate = tier.Name.Contains("Intermediate", StringComparison.OrdinalIgnoreCase);
+            bool hasDictionary = isIntermediate || isPremium;
+            bool hasGlobalAlerts = isPremium;
 
-            <div class="col-lg-3 col-md-6">
-                <div class="card h-100 p-3 position-relative">
-                    @if (isPro)
+            <div class="col-lg-4 col-md-6">
+                <div class="pricing-card @(isPremium ? "premium" : "")">
+                    @if (isPremium)
                     {
-                        <div class="badge-mini">POPULAR</div>
+                        <div class="premium-label">Recommended</div>
                     }
 
-                    <div class="card-body d-flex flex-column p-2">
-                        <div class="text-center mb-3">
-                            <span class="tier-name">@tier.Name</span>
-                            <div class="price-val mt-2">
-                                <span class="fs-6 fw-normal">₹</span>@tier.Price
-                            </div>
-                            <span class="price-sub">/@tier.DurationMonths months</span>
-                        </div>
-
-                        <hr class="my-3 opacity-50">
-
-                        <ul class="feature-list mb-4 flex-grow-1">
-                            <li><i class="fas fa-check"></i> <strong>@tier.ProductLimit</strong> Listings</li>
-                            <li><i class="fas fa-check"></i> <strong>@tier.DurationMonths</strong> Months access</li>
-                            <li><i class="fas fa-check"></i> Seller Dashboard</li>
-                            <li><i class="fas fa-check"></i> Email Support</li>
-                        </ul>
-
-                        <a asp-action="Register" asp-route-tierId="@tier.Id"
-                           class="btn btn-sm w-100 btn-select @(isPro ? "btn-primary" : "btn-outline-primary")">
-                            Select Plan
-                        </a>
+                    <span class="plan-name">@tier.Name</span>
+                    <div class="plan-price">
+                        ₹@tier.Price.ToString("N0")<span>/@tier.DurationMonths months</span>
                     </div>
+
+                    <ul class="feature-list">
+                        <li class="feature-item"><i class="fas fa-check-circle"></i> <strong>@tier.ProductLimit Listings</strong></li>
+                        <li class="feature-item"><i class="fas fa-check-circle"></i> Personal Store Page</li>
+                        <li class="feature-item"><i class="fas fa-check-circle"></i> Product & Order Dashboard</li>
+
+                        <li class="feature-item">
+                            <i class="fas fa-bolt"></i>
+                            @if (isPremium)
+                            {
+                                <span>Peak Hours Daily</span>
+                            }
+                            else if (isIntermediate)
+                            {
+
+                                <span>Alternate Days</span>
+                            }
+                            else
+                            {
+
+                                <span>Twice a week</span>
+                            }
+                        </li>
+
+                        <li class="feature-item @(hasDictionary ? "" : "locked")">
+                            <i class="fas @(hasDictionary ? "fa-book" : "fa-lock")"></i>
+                            Business Dictionary
+                        </li>
+
+                        <li class="feature-item @(hasDictionary ? "" : "locked")">
+                            <i class="fas @(hasDictionary ? "fa-images" : "fa-lock")"></i>
+                            Recommended Slider
+                        </li>
+
+                        <li class="feature-item @(hasGlobalAlerts ? "" : "locked")">
+                            <i class="fas @(hasGlobalAlerts ? "fa-bullhorn" : "fa-lock")"></i>
+                            Notify Registered Users
+                        </li>
+                    </ul>
+
+                    <a asp-action="Register" asp-route-tierId="@tier.Id"
+                       class="btn-upgrade @(isPremium ? "" : "btn-outline")">
+                        Get Started Now
+                    </a>
                 </div>
             </div>
         }
     </div>
 
-    <div class="text-center mt-4">
-        <div class="d-inline-block px-3 py-1 bg-white border rounded-pill shadow-xs">
-            <small class="text-muted" style="font-size: 0.7rem;">
-                <i class="fas fa-lock me-1"></i> Secure 256-bit encrypted payment processing
-            </small>
+    <div class="text-center mt-5">
+        <div class="d-inline-flex align-items-center px-4 py-2 border rounded-pill bg-white text-muted small">
+            <i class="fas fa-lock me-2 text-success"></i>
+            Secure payment processing & instant dashboard access upon registration.
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Smooth reveal of cards
+        const observerOptions = { threshold: 0.1 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = "1";
+                    entry.target.style.transform = "translateY(0)";
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.pricing-card').forEach(card => {
+            card.style.opacity = "0";
+            card.style.transform = "translateY(20px)";
+            card.style.transition = "all 0.6s ease-out";
+            observer.observe(card);
+        });
+    </script>
+}

@@ -26,7 +26,7 @@ namespace CMSECommerce.Controllers
         private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly IUserStatusService _userStatusService = userStatusService;
 
-
+        [HttpGet("mystore")]
         public async Task<IActionResult> StoreFront(int? id, int p = 1, string search = "", string category = "", string sort = "")
         {
             //Logic to handle Optional ID
@@ -44,6 +44,7 @@ namespace CMSECommerce.Controllers
                 // Fetch the StoreId belonging to this user
                 // Adjust the query below based on your actual schema (e.g., store.OwnerId or userProfile.StoreId)
                 var userStore = await _context.Stores
+                  
                     .FirstOrDefaultAsync(s => s.UserId == userId); // Or your specific FK column
 
                 if (userStore == null)
