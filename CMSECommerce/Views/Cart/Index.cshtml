@@ -3,6 +3,7 @@
 
 @{
     ViewData["Title"] = "Shopping Cart";
+    ViewData["HideLayoutSidebar"] = true;
     var hasOutOfStockItems = Model.CartItems.Any(x => x.IsOutOfStock);
     // Capture current path for the Login ReturnUrl
     var currentPath = Context.Request.Path + Context.Request.QueryString;

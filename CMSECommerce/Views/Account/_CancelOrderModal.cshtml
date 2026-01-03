@@ -1,3 +1,6 @@
+@{
+    ViewData["HideLayoutSidebar"] = true;
+}
 @if (!Model.Shipped && !Model.Order.IsCancelled && (DateTime.Now - Model.Order.DateTime).TotalHours <= 24)
 {
     <div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">

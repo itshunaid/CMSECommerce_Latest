@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "My Subscription Status";
+    ViewData["HideLayoutSidebar"] = true;
     var profile = (CMSECommerce.Models.UserProfile)ViewBag.UserProfile;
 
     bool hasActiveSub = profile != null && profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate.Value > DateTime.Now;

@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = Model.Store?.StoreName ?? "Merchant Profile";
     Layout = "_Layout"; // Or your public-facing layout
+    ViewData["HideLayoutSidebar"] = true;
 }
 
 <div class="container py-5">

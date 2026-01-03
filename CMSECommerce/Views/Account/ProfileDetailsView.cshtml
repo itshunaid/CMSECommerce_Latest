@@ -1,6 +1,7 @@
 @model CMSECommerce.Areas.Admin.Models.EditUserModel
 
 @{
+    ViewData["HideLayoutSidebar"] = true;
     ViewData["Title"] = "Profile Details";
     var displayName = string.IsNullOrEmpty(Model.FirstName) || string.IsNullOrEmpty(Model.LastName)
         ? Model.UserName

@@ -3,6 +3,7 @@
 
 @{
     ViewData["Title"] = "My Business Profile";
+    ViewData["HideLayoutSidebar"] = true;
 
     // 1. Generate the Public Link for sharing
     var publicUrl = Url.Action("View", "UserProfiles", new { id = Model.Id }, Context.Request.Scheme);

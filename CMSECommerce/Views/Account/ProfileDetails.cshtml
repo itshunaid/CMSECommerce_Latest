@@ -4,6 +4,7 @@
     ViewData["Title"] = "Profile Details";
     // Check if profile status is false (we handle null as true to show everything by default)
     bool isLimitedView = ViewBag.ProfileStatus == false;
+    ViewData["HideLayoutSidebar"] = true;
 }
 
 <div class="container-fluid px-4 py-5" style="background: #EAEDED; min-height: 100vh;">
