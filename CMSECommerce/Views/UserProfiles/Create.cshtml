@@ -1,7 +1,6 @@
 ﻿@model UserProfile
 
 @{
-    // Updated Title to reflect the requirement
     ViewData["Title"] = "Account Verification Required - Create Your Profile";
 }
 
@@ -19,17 +18,19 @@
 
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white border-bottom py-3">
-                    @* Updated Card Heading *@
                     <h4 class="fw-bold mb-0 text-amazon-teal">Merchant Registration & Profile Setup</h4>
                     <p class="text-muted small mb-0">Complete the form below to unlock ordering and selling capabilities.</p>
                 </div>
                 <div class="card-body p-4">
-                    <form asp-action="Create" method="post" enctype="multipart/form-data">
+                    <form id="profileForm" asp-action="Create" method="post" enctype="multipart/form-data">
                         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                         <input type="hidden" asp-for="UserId" />
-                        @* StoreId set to 0 to trigger the creation logic in the controller *@
                         <input type="hidden" asp-for="StoreId" value="0" />
+
+                        @* --- PERSIST VIEWBACK VALUES --- *@
+                        <input type="hidden" name="tierId" value="@ViewBag.TierId" />
+                        <input type="hidden" name="callingFrom" value="@ViewBag.CallingFrom" />
 
                         <div class="row g-4">
                             <div class="col-12 border-bottom pb-2">
@@ -51,13 +52,19 @@
                                 <label asp-for="Profession" class="form-label small fw-bold">Profession</label>
                                 <input asp-for="Profession" class="form-control" placeholder="e.g. Baker, Tailor" />
                             </div>
+
+                            @* Mandatory ITS Number *@
                             <div class="col-md-4">
                                 <label asp-for="ITSNumber" class="form-label small fw-bold">ITS Number</label>
-                                <input asp-for="ITSNumber" class="form-control" placeholder="Enter ITS ID" />
+                                <input asp-for="ITSNumber" class="form-control" placeholder="Enter ITS ID" required />
+                                <span asp-validation-for="ITSNumber" class="text-danger small"></span>
                             </div>
+
+                            @* Mandatory WhatsApp Number *@
                             <div class="col-md-4">
                                 <label asp-for="WhatsAppNumber" class="form-label small fw-bold">WhatsApp Number</label>
-                                <input asp-for="WhatsAppNumber" class="form-control" placeholder="91XXXXXXXXXX" />
+                                <input asp-for="WhatsAppNumber" class="form-control" placeholder="91XXXXXXXXXX" required />
+                                <span asp-validation-for="WhatsAppNumber" class="text-danger small"></span>
                             </div>
 
                             <div class="col-12 border-bottom pb-2 mt-5">
@@ -79,14 +86,18 @@
                                 <textarea asp-for="About" class="form-control" rows="3" placeholder="Tell us about what you sell..."></textarea>
                             </div>
 
+                            @* Mandatory Home Address *@
                             <div class="col-md-6">
                                 <label asp-for="HomeAddress" class="form-label small fw-bold">Home Address</label>
                                 <input asp-for="HomeAddress" class="form-control" required />
                                 <span asp-validation-for="HomeAddress" class="text-danger small"></span>
                             </div>
+
+                            @* Mandatory Business Address *@
                             <div class="col-md-6">
                                 <label asp-for="BusinessAddress" class="form-label small fw-bold">Business Address</label>
-                                <input asp-for="BusinessAddress" class="form-control" placeholder="Leave blank if same as home" />
+                                <input asp-for="BusinessAddress" class="form-control" placeholder="Enter business location" required />
+                                <span asp-validation-for="BusinessAddress" class="text-danger small"></span>
                             </div>
 
                             <div class="col-12 border-bottom pb-2 mt-5">
@@ -130,8 +141,10 @@
 
                         <div class="d-flex justify-content-between align-items-center">
                             <a asp-controller="Products" asp-action="Index" class="text-muted text-decoration-none small">Cancel</a>
-                            <button type="submit" class="btn btn-amazon-yellow px-5 py-2 fw-bold rounded-pill shadow-sm">
-                                Save Profile & Enable Ordering
+
+                            <button type="submit" id="btnSubmit" class="btn btn-amazon-yellow px-5 py-2 fw-bold rounded-pill shadow-sm">
+                                <span id="btnText">Save Profile & Enable Ordering</span>
+                                <span id="btnSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                             </button>
                         </div>
                     </form>
@@ -163,11 +176,46 @@
             border: 1px solid #FCD200;
             color: #0F1111;
             transition: 0.2s;
+            min-width: 250px;
         }
 
             .btn-amazon-yellow:hover {
                 background-color: #F7CA00;
                 transform: translateY(-1px);
             }
+
+            /* Loading State Styling */
+            .btn-amazon-yellow:disabled {
+                background-color: #f7df66 !important;
+                opacity: 0.8;
+                cursor: not-allowed;
+                transform: none !important;
+            }
+
+        #btnSpinner {
+            margin-left: 8px;
+        }
     </style>
+}
+
+@section Scripts {
+    @* Include validation scripts to enable spontaneous validation *@
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(document).ready(function () {
+            $('#profileForm').on('submit', function (e) {
+                // Only trigger loading state if the form passes validation
+                if ($(this).valid()) {
+                    const btn = $('#btnSubmit');
+                    const text = $('#btnText');
+                    const spinner = $('#btnSpinner');
+
+                    btn.prop('disabled', true);
+                    text.text("Processing...");
+                    spinner.removeClass('d-none');
+                }
+            });
+        });
+    </script>
 }

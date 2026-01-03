@@ -17,7 +17,11 @@ namespace CMSECommerce.Models
 
         public string FirstName { get; set; }
         public string LastName { get; set; }
+        [Required(ErrorMessage = "ITS Number is required")]
         public string ITSNumber { get; set; }
+        
+        [Required(ErrorMessage = "WhatsApp Number is required")]
+        [Phone(ErrorMessage = "Invalid Phone Number")]
         public string WhatsAppNumber { get; set; }
 
         // Missing Fields Fix
@@ -36,8 +40,10 @@ namespace CMSECommerce.Models
         public string PhonePeQRCodePath { get; set; }
 
         // Address Fields
+        [Required(ErrorMessage = "Home Address is required")]
         public string HomeAddress { get; set; }
         public string HomePhoneNumber { get; set; }
+        [Required(ErrorMessage = "Business Address is required")]
         public string BusinessAddress { get; set; }
         public string BusinessPhoneNumber { get; set; }
 

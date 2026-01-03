@@ -39,10 +39,15 @@ namespace CMSECommerce.Controllers
             var user = await _userManager.GetUserAsync(User);
             var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(up => up.UserId == user.Id);
 
-            if (userProfile == null || string.IsNullOrEmpty(userProfile.ITSNumber))
+            if (userProfile == null)
             {
                 TempData["Error"] = "Please update your ITS number in your profile first.";
-                return RedirectToAction("EditProfile", "Account");
+                return RedirectToAction("Create", "UserProfiles", new { isNewProfile =true, callingFrom="UserProfiles", tierId=tierId});
+            }
+            if (string.IsNullOrEmpty(userProfile.ITSNumber))
+            {
+                TempData["Error"] = "Please update your ITS number in your profile first.";
+                return RedirectToAction("Edit", "UserProfiles", new {model= userProfile});
             }
 
             // NEW: Check if user already has a Pending or Approved request

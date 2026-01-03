@@ -78,7 +78,7 @@ namespace CMSECommerce.Controllers
         }
 
         // GET: UserProfiles/Create
-        public async Task<IActionResult> Create(bool isNewProfile)
+        public async Task<IActionResult> Create(bool isNewProfile, string callingFrom="", int tierId=0)
         {
             var userId = _userManager.GetUserId(User);
             var profile = await _context.UserProfiles.FirstOrDefaultAsync(p=> p.UserId==userId);
@@ -93,12 +93,17 @@ namespace CMSECommerce.Controllers
                 IsProfileVisible = true,
                 CurrentProductLimit = 0 // Default limit
             };
+            if(callingFrom=="UserProfiles" && tierId>0)
+            {
+                ViewBag.CallingFrom = "UserProfiles";
+                ViewBag.TierId = tierId;
+            }
             return View(model);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(UserProfile profile, IFormFile profileImg, IFormFile gpayQR, IFormFile phonepeQR)
+        public async Task<IActionResult> Create(UserProfile profile, IFormFile profileImg, IFormFile gpayQR, IFormFile phonepeQR, string callingFrom="", int tierId=0)
         {
             // 1. Get the current User Object (needed for Email/Phone)
             var user = await _userManager.GetUserAsync(User);
@@ -182,6 +187,12 @@ namespace CMSECommerce.Controllers
                 await _context.SaveChangesAsync();
 
                 TempData["Success"] = "Your profile and store have been created successfully.";
+                if(callingFrom=="UserProfiles" && tierId>0)
+                {                   
+
+                    return RedirectToAction("Register", "Subscription", new { tierId = tierId });
+                }
+               
                 return RedirectToAction("Index", "Cart");
             }
             catch (IOException)
