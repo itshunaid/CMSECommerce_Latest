@@ -1,80 +1,86 @@
-﻿<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:20,&quot;w&quot;:679,&quot;h&quot;:90,&quot;abs_x&quot;:285,&quot;abs_y&quot;:442}" class="container py-5 text-center">
-    <h1 bis_size="{&quot;x&quot;:20,&quot;y&quot;:20,&quot;w&quot;:679,&quot;h&quot;:31,&quot;abs_x&quot;:285,&quot;abs_y&quot;:442}">Connect With WEypaari</h1>
-
-    <p bis_size="{&quot;x&quot;:20,&quot;y&quot;:68,&quot;w&quot;:679,&quot;h&quot;:41,&quot;abs_x&quot;:285,&quot;abs_y&quot;:490}">Have questions? We&rsquo;re here to help you grow. Reach out through any of our direct channels or join our growing community of women entrepreneurs.</p>
+﻿<div class="container py-5 text-center">
+	<h1>Connect With WEypaari</h1>
+	<p>Have questions? We’re here to help you grow. Reach out through any of our direct channels or join our growing community of women entrepreneurs.</p>
 </div>
 
-<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:123,&quot;w&quot;:679,&quot;h&quot;:376,&quot;abs_x&quot;:285,&quot;abs_y&quot;:545}" class="container mb-5">
-    <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:123,&quot;w&quot;:679,&quot;h&quot;:376,&quot;abs_x&quot;:285,&quot;abs_y&quot;:545}" class="g-4 justify-content-center row">
-        <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:123,&quot;w&quot;:679,&quot;h&quot;:125,&quot;abs_x&quot;:285,&quot;abs_y&quot;:545}" class="col-lg-4 col-md-6">
-            <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:123,&quot;w&quot;:679,&quot;h&quot;:125,&quot;abs_x&quot;:285,&quot;abs_y&quot;:545}" class="border-0 card h-100 p-5 shadow-sm text-center">
-                <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:123,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:545}" class="mb-4">&nbsp;</div>
+<div class="container mb-5">
+	<div class="g-4 justify-content-center row">
+		<div class="col-lg-4 col-md-6">
+			<div class="border-0 card h-100 p-5 shadow-sm text-center">
+				<div class="mb-4">
+					<i class="fab fa-whatsapp fa-4x text-success"></i>
+				</div>
+				<h4>WhatsApp Support</h4>
+				<p>Chat directly with our team for quick help regarding your store or products.</p>
+				<a class="btn btn-success fw-bold px-4" href="https://wa.me/919603302152?text=Hello%20WEypaari,%20I%20need%20assistance%20with%20my%20store." target="_blank">
+					<i class="fab fa-whatsapp me-1"></i> Chat Now
+				</a>
+			</div>
+		</div>
 
-                <h4 bis_size="{&quot;x&quot;:20,&quot;y&quot;:161,&quot;w&quot;:679,&quot;h&quot;:15,&quot;abs_x&quot;:285,&quot;abs_y&quot;:583}">WhatsApp Support</h4>
+		<div class="col-lg-4 col-md-6">
+			<div class="border-0 card h-100 p-5 shadow-sm text-center">
+				<div class="mb-4">
+					<i class="fas fa-envelope-open-text fa-4x text-warning"></i>
+				</div>
+				<h4>Email Inquiries</h4>
+				<p>For detailed business queries or partnership ideas, send us a mail.</p>
+				<a class="btn btn-dark fw-bold px-4" href="mailto:support@weypaari.in">
+					<i class="fas fa-envelope me-1"></i> Send Email
+				</a>
+			</div>
+		</div>
 
-                <p bis_size="{&quot;x&quot;:20,&quot;y&quot;:194,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:616}">Chat directly with our team for quick help regarding your store or products.</p>
-                <a bis_size="{&quot;x&quot;:20,&quot;y&quot;:230,&quot;w&quot;:57,&quot;h&quot;:14,&quot;abs_x&quot;:285,&quot;abs_y&quot;:652}" class="btn btn-success fw-bold px-4" href="https://wa.me/yournumber">Chat Now</a>
-            </div>
-        </div>
-
-        <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:248,&quot;w&quot;:679,&quot;h&quot;:125,&quot;abs_x&quot;:285,&quot;abs_y&quot;:670}" class="col-lg-4 col-md-6">
-            <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:248,&quot;w&quot;:679,&quot;h&quot;:125,&quot;abs_x&quot;:285,&quot;abs_y&quot;:670}" class="border-0 card h-100 p-5 shadow-sm text-center">
-                <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:248,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:670}" class="mb-4">&nbsp;</div>
-
-                <h4 bis_size="{&quot;x&quot;:20,&quot;y&quot;:286,&quot;w&quot;:679,&quot;h&quot;:15,&quot;abs_x&quot;:285,&quot;abs_y&quot;:708}">Email Inquiries</h4>
-
-                <p bis_size="{&quot;x&quot;:20,&quot;y&quot;:319,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:741}">For detailed business queries or partnership ideas, send us a mail.</p>
-                <a bis_size="{&quot;x&quot;:20,&quot;y&quot;:356,&quot;w&quot;:66,&quot;h&quot;:14,&quot;abs_x&quot;:285,&quot;abs_y&quot;:778}" class="btn btn-dark fw-bold px-4" href="mailto:support@weypaari.in">Send Email</a>
-            </div>
-        </div>
-
-        <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:374,&quot;w&quot;:679,&quot;h&quot;:125,&quot;abs_x&quot;:285,&quot;abs_y&quot;:796}" class="col-lg-4 col-md-6">
-            <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:374,&quot;w&quot;:679,&quot;h&quot;:125,&quot;abs_x&quot;:285,&quot;abs_y&quot;:796}" class="border-0 card h-100 p-5 shadow-sm text-center">
-                <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:374,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:796}" class="mb-4">&nbsp;</div>
-
-                <h4 bis_size="{&quot;x&quot;:20,&quot;y&quot;:412,&quot;w&quot;:679,&quot;h&quot;:15,&quot;abs_x&quot;:285,&quot;abs_y&quot;:834}">Help Center</h4>
-
-                <p bis_size="{&quot;x&quot;:20,&quot;y&quot;:445,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:867}">Check our frequently asked questions about selling and listing.</p>
-                <a bis_size="{&quot;x&quot;:20,&quot;y&quot;:481,&quot;w&quot;:79,&quot;h&quot;:14,&quot;abs_x&quot;:285,&quot;abs_y&quot;:903}" class="btn btn-outline-primary fw-bold px-4" href="/Products/Policies">Read Policies</a>
-            </div>
-        </div>
-    </div>
+		<div class="col-lg-4 col-md-6">
+			<div class="border-0 card h-100 p-5 shadow-sm text-center">
+				<div class="mb-4">
+					<i class="fas fa-file-invoice fa-4x text-primary"></i>
+				</div>
+				<h4>Help Center</h4>
+				<p>Check our frequently asked questions about selling and listing.</p>
+				<a class="btn btn-outline-primary fw-bold px-4" href="/Products/Policies">
+					<i class="fas fa-book me-1"></i> Read Policies
+				</a>
+			</div>
+		</div>
+	</div>
 </div>
 
-<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:515,&quot;w&quot;:679,&quot;h&quot;:218,&quot;abs_x&quot;:285,&quot;abs_y&quot;:937}" class="container-fluid py-5" style="background-color:#232f3e; color:white">
-    <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:515,&quot;w&quot;:679,&quot;h&quot;:218,&quot;abs_x&quot;:285,&quot;abs_y&quot;:937}" class="container">
-        <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:515,&quot;w&quot;:679,&quot;h&quot;:218,&quot;abs_x&quot;:285,&quot;abs_y&quot;:937}" class="align-items-center row">
-            <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:515,&quot;w&quot;:679,&quot;h&quot;:114,&quot;abs_x&quot;:285,&quot;abs_y&quot;:937}" class="col-md-6 mb-4 mb-md-0">
-                <h2 bis_size="{&quot;x&quot;:20,&quot;y&quot;:515,&quot;w&quot;:679,&quot;h&quot;:23,&quot;abs_x&quot;:285,&quot;abs_y&quot;:937}">Follow Our Journey</h2>
-
-                <p bis_size="{&quot;x&quot;:20,&quot;y&quot;:555,&quot;w&quot;:679,&quot;h&quot;:41,&quot;abs_x&quot;:285,&quot;abs_y&quot;:977}">Stay updated with new seller arrivals, success stories, and platform updates. We celebrate every milestone of our home-business owners.</p>
-
-                <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:610,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1032}" class="d-flex gap-4 mt-4"><a bis_size="{&quot;x&quot;:20,&quot;y&quot;:612,&quot;w&quot;:68,&quot;h&quot;:14,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1034}" class="text-white text-decoration-none d-flex align-items-center" href="#">@@weypaari </a> <a bis_size="{&quot;x&quot;:88,&quot;y&quot;:612,&quot;w&quot;:65,&quot;h&quot;:14,&quot;abs_x&quot;:353,&quot;abs_y&quot;:1034}" class="text-white text-decoration-none d-flex align-items-center" href="#"> weypaari.in </a></div>
-            </div>
-
-            <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:648,&quot;w&quot;:679,&quot;h&quot;:85,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1070}" class="col-md-6 text-center">
-                <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:648,&quot;w&quot;:679,&quot;h&quot;:85,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1070}" class="border border-secondary p-4 rounded">
-                    <h5 bis_size="{&quot;x&quot;:20,&quot;y&quot;:648,&quot;w&quot;:679,&quot;h&quot;:12,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1070}">Location</h5>
-
-                    <p bis_size="{&quot;x&quot;:20,&quot;y&quot;:679,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1101}">Hyderabad, Telangana, India</p>
-
-                    <p bis_size="{&quot;x&quot;:20,&quot;y&quot;:713,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1135}">Serving Entrepreneurs PAN India</p>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="container-fluid py-5" style="background-color:#232f3e; color:white">
+	<div class="container">
+		<div class="align-items-center row">
+			<div class="col-md-6 mb-4 mb-md-0">
+				<h2>Follow Our Journey</h2>
+				<p>Stay updated with new seller arrivals, success stories, and platform updates. We celebrate every milestone of our home-business owners.</p>
+				<div class="d-flex gap-4 mt-4">
+					<a class="text-white text-decoration-none d-flex align-items-center" href="#">
+						<i class="fab fa-instagram fa-2x me-2"></i> @weypaari
+					</a>
+					<a class="text-white text-decoration-none d-flex align-items-center" href="#">
+						<i class="fab fa-facebook fa-2x me-2"></i> weypaari.in
+					</a>
+				</div>
+			</div>
+			<div class="col-md-6 text-center">
+				<div class="border border-secondary p-4 rounded">
+					<h5>Location</h5>
+					<p>Hyderabad, Telangana, India</p>
+					<p class="text-secondary small">Serving Entrepreneurs PAN India</p>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
 
-<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:747,&quot;w&quot;:679,&quot;h&quot;:1030,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1169}" class="container py-5">
-    <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:747,&quot;w&quot;:679,&quot;h&quot;:1030,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1169}" class="align-items-center row">
-        <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:747,&quot;w&quot;:679,&quot;h&quot;:906,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1169}" class="col-md-4"><img alt="Women Entrepreneurship" bis_size="{&quot;x&quot;:20,&quot;y&quot;:747,&quot;w&quot;:600,&quot;h&quot;:900,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1169}" class="img-fluid rounded shadow" src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=600&amp;q=80" /></div>
-
-        <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1668,&quot;w&quot;:679,&quot;h&quot;:108,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2090}" class="col-md-8 mt-4 mt-md-0 ps-md-5">
-            <h3 bis_size="{&quot;x&quot;:20,&quot;y&quot;:1668,&quot;w&quot;:679,&quot;h&quot;:18,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2090}">Supporting Your Home Business</h3>
-
-            <p bis_size="{&quot;x&quot;:20,&quot;y&quot;:1702,&quot;w&quot;:679,&quot;h&quot;:41,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2124}">WEypaari is more than a website; it is a movement to digitize the amazing work being done in home kitchens, living rooms, and small workshops by women across India.</p>
-
-            <p bis_size="{&quot;x&quot;:20,&quot;y&quot;:1756,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2178}">Need a featured spot on our homepage? Contact our marketing team via email.</p>
-        </div>
-    </div>
+<div class="container py-5">
+	<div class="align-items-center row">
+		<div class="col-md-4">
+			<img alt="Women Entrepreneurship" class="img-fluid rounded shadow" src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=600&amp;q=80" />
+		</div>
+		<div class="col-md-8 mt-4 mt-md-0 ps-md-5">
+			<h3>Supporting Your Home Business</h3>
+			<p>WEypaari is more than a website; it is a movement to digitize the amazing work being done in home kitchens, living rooms, and small workshops by women across India.</p>
+			<p class="fw-bold">Need a featured spot on our homepage? Contact our marketing team via email.</p>
+		</div>
+	</div>
 </div>
