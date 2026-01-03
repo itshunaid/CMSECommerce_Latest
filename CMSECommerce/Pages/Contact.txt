@@ -49,7 +49,7 @@
 
                 <p bis_size="{&quot;x&quot;:20,&quot;y&quot;:555,&quot;w&quot;:679,&quot;h&quot;:41,&quot;abs_x&quot;:285,&quot;abs_y&quot;:977}">Stay updated with new seller arrivals, success stories, and platform updates. We celebrate every milestone of our home-business owners.</p>
 
-                <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:610,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1032}" class="d-flex gap-4 mt-4"><a bis_size="{&quot;x&quot;:20,&quot;y&quot;:612,&quot;w&quot;:68,&quot;h&quot;:14,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1034}" class="text-white text-decoration-none d-flex align-items-center" href="#">@weypaari </a> <a bis_size="{&quot;x&quot;:88,&quot;y&quot;:612,&quot;w&quot;:65,&quot;h&quot;:14,&quot;abs_x&quot;:353,&quot;abs_y&quot;:1034}" class="text-white text-decoration-none d-flex align-items-center" href="#"> weypaari.in </a></div>
+                <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:610,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1032}" class="d-flex gap-4 mt-4"><a bis_size="{&quot;x&quot;:20,&quot;y&quot;:612,&quot;w&quot;:68,&quot;h&quot;:14,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1034}" class="text-white text-decoration-none d-flex align-items-center" href="#">@@weypaari </a> <a bis_size="{&quot;x&quot;:88,&quot;y&quot;:612,&quot;w&quot;:65,&quot;h&quot;:14,&quot;abs_x&quot;:353,&quot;abs_y&quot;:1034}" class="text-white text-decoration-none d-flex align-items-center" href="#"> weypaari.in </a></div>
             </div>
 
             <div bis_size="{&quot;x&quot;:20,&quot;y&quot;:648,&quot;w&quot;:679,&quot;h&quot;:85,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1070}" class="col-md-6 text-center">
