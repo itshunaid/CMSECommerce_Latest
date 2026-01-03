@@ -2,6 +2,7 @@
 using CMSECommerce.Infrastructure;
 using CMSECommerce.Models.ViewModels;
 using CMSECommerce.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,26 @@ namespace CMSECommerce.Controllers
         private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
         private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly IUserStatusService _userStatusService = userStatusService;
+
+
+
+        //[AllowAnonymous]
+        //public async Task<IActionResult> StoreFront(int id)
+        //{
+        //    // 1. If you need the profile with store info
+        //    var userProfile = await _context.UserProfiles
+        //        .Include(p => p.Store)
+        //        .FirstOrDefaultAsync(p => p.Id == id); // Assuming 'id' refers to Profile ID here
+
+        //    // 2. To get the Store and its associated Products
+        //    var store = await _context.Stores
+        //        .Include(s => s.Products) // This works because Store has a collection of Products
+        //        .FirstOrDefaultAsync(s => s.Id == id); // Here 'id' is the Store ID
+
+        //    if (store == null) return NotFound();
+
+        //    return View(store);
+        //}
 
         // The Index action handles category filtering, searching, pagination, and sorting.
         /// <summary>

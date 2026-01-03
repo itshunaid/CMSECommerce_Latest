@@ -57,8 +57,8 @@ namespace CMSECommerce.Controllers
         // GET: UserProfiles/View/5
         // This allows a public link like /UserProfiles/View/123 to be shared with customers
         [AllowAnonymous]
-        public async Task<IActionResult> View(int? id)
-        {
+        public async Task<IActionResult> View(int? id)        
+       {
             if (id == null)
             {
                 return NotFound();
@@ -74,7 +74,7 @@ namespace CMSECommerce.Controllers
                 return NotFound();
             }
 
-            return View("Index", profile);
+            return View(profile);
         }
 
         // GET: UserProfiles/Create
@@ -101,13 +101,62 @@ namespace CMSECommerce.Controllers
             return View(model);
         }
 
+
+        [HttpGet]
+        public async Task<JsonResult> CheckUniqueness(string field, string value, int currentId)
+        {
+            bool isDuplicate = false;
+
+            // Get the UserProfile and StoreId first to avoid repeated lookups
+            var currentProfile = await _context.UserProfiles
+                .Select(p => new { p.Id, p.StoreId, p.UserId })
+                .FirstOrDefaultAsync(p => p.Id == currentId);
+
+            // If currentProfile is null, we treat this as a new user check (id=0)
+            int? currentStoreId = currentProfile?.StoreId;
+            string currentUserId = currentProfile?.UserId;
+
+            switch (field)
+            {
+                case "WhatsAppNumber":
+                    // Duplicate if: Another profile has it OR an Identity User (that isn't this user) has it
+                    isDuplicate = await _context.UserProfiles.AnyAsync(p => p.Id != currentId && p.WhatsAppNumber == value) ||
+                                  await _userManager.Users.AnyAsync(u => u.Id != currentUserId && u.PhoneNumber == value);
+                    break;
+
+                case "StoreName":
+                    // Duplicate if: Another store has the name
+                    isDuplicate = await _context.Stores.AnyAsync(s => s.Id != currentStoreId && s.StoreName == value);
+                    break;
+
+                case "StoreEmail":
+                    // Duplicate if: Another store has it OR an Identity User (not this one) has it
+                    isDuplicate = await _context.Stores.AnyAsync(s => s.Id != currentStoreId && s.Email == value) ||
+                                  await _userManager.Users.AnyAsync(u => u.Id != currentUserId && u.Email == value);
+                    break;
+
+                case "StoreContact":
+                    // Duplicate if: Another store has it
+                    isDuplicate = await _context.Stores.AnyAsync(s => s.Id != currentStoreId && s.Contact == value);
+                    break;
+            }
+
+            return Json(new { isDuplicate });
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(UserProfile profile, IFormFile profileImg, IFormFile gpayQR, IFormFile phonepeQR, string callingFrom="", int tierId=0)
         {
             // 1. Get the current User Object (needed for Email/Phone)
             var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Challenge(); // Ensure user is logged in
+            if (user == null)
+            {
+                return Challenge(); // Ensure user is logged in
+            }
+            // This prevents validation errors if they are null/empty
+            ModelState.Remove("tierId");
+            ModelState.Remove("callingFrom");
 
             if (!ModelState.IsValid)
             {
@@ -300,12 +349,18 @@ namespace CMSECommerce.Controllers
                 existingProfile.LinkedInUrl = model.LinkedInUrl;
                 existingProfile.InstagramUrl = model.InstagramUrl;
                 existingProfile.IsProfileVisible = model.IsProfileVisible;
+                
 
                 // 5. Update Related Store Info (Optional: if you want to sync these)
                 if (existingProfile.Store != null)
                 {
                     existingProfile.Store.GSTIN = model.Store?.GSTIN;
+                    existingProfile.Store.Email = model.Store.Email;
                     existingProfile.Store.StoreName = model.Store?.StoreName ?? $"{model.FirstName}'s Store";
+                    existingProfile.Store.Contact = model.Store.Contact;
+                    existingProfile.Store.City = model.Store.City;
+                    existingProfile.Store.PostCode = model.Store.PostCode;
+                    existingProfile.Store.Country = model.Store.Country;
                     // Sync business address to store if needed
                     existingProfile.Store.StreetAddress = model.BusinessAddress;
                 }
