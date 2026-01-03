@@ -20,7 +20,6 @@
             --amazon-link-hover: #c45500;
         }
 
-        /* --- Global Base Styles --- */
         html, body {
             font-size: 14px;
             background-color: #eaeded;
@@ -77,7 +76,7 @@
             padding: 2px 8px;
             border: 1px solid transparent;
             display: flex;
-            align-items: center; /* Keep everything on one line */
+            align-items: center;
             line-height: 1;
         }
 
@@ -86,7 +85,6 @@
                 border-radius: 2px;
             }
 
-        /* Small Tag Style next to Logo */
         .brand-tag-line {
             font-size: 0.7rem;
             color: #ccc;
@@ -201,6 +199,14 @@
             min-height: 80vh;
         }
 
+        /* --- Sidebar Specifics --- */
+        .category-sidebar-header {
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 10px 0;
+            color: #333;
+        }
+
         /* --- Footer --- */
         .back-to-top {
             background: #37475a;
@@ -302,6 +308,16 @@
                         <li class="nav-item"><a class="nav-link" asp-controller="Subscription" asp-action="Index">Seller Plans</a></li>
                         <li class="nav-item"><a class="nav-link" asp-controller="Subscription" asp-action="Status">My Status</a></li>
 
+                        @* --- ADDED "MY STORE" MENU --- *@
+                        @if (User.Identity.IsAuthenticated && (User.IsInRole("Subscriber") || User.IsInRole("Admin")))
+                        {                            
+                            <li class="nav-item">
+                                <a class="nav-link text-warning fw-bold" asp-controller="Products" asp-action="StoreFront">
+                                    <i class="fas fa-store me-1"></i> My Store
+                                </a>
+                            </li>
+                        }
+
                         @if (User.IsInRole("Admin") || User.IsInRole("Subscriber") || User.IsInRole("Seller"))
                         {
                             <li class="nav-item">
@@ -330,20 +346,32 @@
     <div class="container-fluid main-content-container py-4">
         <main role="main">
             <partial name="_NotificationsPartial" />
-            <div class="row g-4">
-                <div id="categorySidebar" class="col-lg-2 d-none d-lg-block">
-                    <div class="category-sidebar-header">Departments</div>
-                    <div class="category-sidebar-card">
-                        <div class="list-group list-group-flush shadow-sm bg-white rounded p-2">
-                            <vc:categories />
-                        </div>
+
+            @if (ViewData["HideLayoutSidebar"] != null && (bool)ViewData["HideLayoutSidebar"])
+            {
+                <div class="row">
+                    <div class="col-12">
+                        @RenderBody()
                     </div>
                 </div>
+            }
+            else
+            {
+                <div class="row g-4">
+                    <div id="categorySidebar" class="col-lg-2 d-none d-lg-block">
+                        <div class="category-sidebar-header">Departments</div>
+                        <div class="category-sidebar-card">
+                            <div class="list-group list-group-flush shadow-sm bg-white rounded p-2">
+                                <vc:categories />
+                            </div>
+                        </div>
+                    </div>
 
-                <div id="mainContent" class="col-12 col-lg-10">
-                    @RenderBody()
+                    <div id="mainContent" class="col-12 col-lg-10">
+                        @RenderBody()
+                    </div>
                 </div>
-            </div>
+            }
         </main>
     </div>
 

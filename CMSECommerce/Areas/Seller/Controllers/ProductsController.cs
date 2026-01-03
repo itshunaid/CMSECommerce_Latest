@@ -251,13 +251,16 @@ namespace CMSECommerce.Areas.Seller.Controllers
             var userId = _userManager.GetUserId(User);
             var userName = _userManager.GetUserName(User);
 
-            // Check if the seller has a valid profile
+            // Check if the seller has a valid profile AND include the Store relationship
             var profile = await _context.UserProfiles
+                .Include(p => p.Store)
                 .FirstOrDefaultAsync(p => p.UserId == userId);
 
-            if (profile == null)
+            // 0. Ensure profile and store exist
+            if (profile == null || profile.StoreId == 0)
             {
-                return RedirectToAction("Status", "Subscription");
+                TempData["Error"] = "You must complete your profile and create a store before adding products.";
+                return RedirectToAction("Index", "UserProfiles");
             }
 
             // 1. Check if Subscription has expired
@@ -300,7 +303,6 @@ namespace CMSECommerce.Areas.Seller.Controllers
                     if (product.ImageUpload != null)
                     {
                         string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/products");
-                        // Ensure directory exists
                         if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
 
                         imageName = Guid.NewGuid().ToString() + "_" + product.ImageUpload.FileName;
@@ -312,13 +314,19 @@ namespace CMSECommerce.Areas.Seller.Controllers
                         }
                     }
 
-                    // Assign System-set properties
+                    // --- CRITICAL CHANGES FOR STORE ASSOCIATION ---
                     product.Image = imageName;
-                    product.Status = ProductStatus.Pending; // Products require admin approval
+                    product.Status = ProductStatus.Pending;
                     product.UserId = userId;
                     product.OwnerName = userName;
 
-                    // Note: StockQuantity is automatically bound from the form via Model Binding
+                    // Assign the Store ID from the merchant's profile
+                    product.StoreId = profile.StoreId ?? 0;
+                    if (profile == null || profile.StoreId == 0 || profile.StoreId == null)
+                    {
+                        TempData["Error"] = "You must complete your profile and create a store before adding products.";
+                        return RedirectToAction("Index", "UserProfiles");
+                    }
 
                     _context.Add(product);
                     await _context.SaveChangesAsync();
@@ -354,7 +362,6 @@ namespace CMSECommerce.Areas.Seller.Controllers
             try
             {
                 Product product = await _context.Products.FindAsync(id);
-               
 
                 if (product == null) { return NotFound(); }
 
@@ -374,7 +381,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 {
                     product.GalleryImages = Directory.EnumerateFiles(uploadsDir).Select(x => Path.GetFileName(x));
                 }
-               
+
                 return View(product);
             }
             catch (Exception ex)
@@ -396,6 +403,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
             Product dbProduct = null;
             try
             {
+                // We use AsNoTracking because we will update the 'product' object later
                 dbProduct = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == product.Id);
                 if (dbProduct == null) return NotFound();
             }
@@ -406,7 +414,6 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 return RedirectToAction("Index");
             }
 
-
             // Authorization check
             if (dbProduct.OwnerName != _userManager.GetUserName(User))
             {
@@ -414,11 +421,12 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 return RedirectToAction("Index");
             }
 
-            // Preserve workflow properties and force to pending status
-            product.Status = ProductStatus.Pending;
+            // --- PRESERVE EXISTING DATA & WORKFLOW ---
+            product.Status = ProductStatus.Pending; // Force re-approval on edit
             product.OwnerName = dbProduct.OwnerName;
+            product.UserId = dbProduct.UserId;       // Preserve the original owner ID
+            product.StoreId = dbProduct.StoreId;     // Preserve the Store association
             product.RejectionReason = dbProduct.RejectionReason;
-
 
             if (ModelState.IsValid)
             {
@@ -434,14 +442,14 @@ namespace CMSECommerce.Areas.Seller.Controllers
                     if (slug != null)
                     {
                         ModelState.AddModelError("", "That product name already exists (slug conflict)!");
-                        goto ReloadViewOnFail; // Use goto for clean error handling flow
+                        goto ReloadViewOnFail;
                     }
 
                     if (product.ImageUpload != null)
                     {
                         string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/products");
 
-                        // File operation: Delete old image
+                        // Delete old image if it's not the default
                         if (!string.Equals(dbProduct.Image, "noimage.png"))
                         {
                             string oldImagePath = Path.Combine(uploadsDir, dbProduct.Image);
@@ -451,7 +459,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
                             }
                         }
 
-                        // File operation: Save new image
+                        // Save new image
                         string imageName = Guid.NewGuid().ToString() + "_" + product.ImageUpload.FileName;
                         string filePath = Path.Combine(uploadsDir, imageName);
                         await using (FileStream fs = new(filePath, FileMode.Create))
@@ -463,12 +471,12 @@ namespace CMSECommerce.Areas.Seller.Controllers
                     }
                     else
                     {
-                        // No new image uploaded, keep the existing one
+                        // No new image uploaded, keep the existing one from DB
                         product.Image = dbProduct.Image;
                     }
 
                     _context.Update(product);
-                    await _context.SaveChangesAsync(); // Database operation
+                    await _context.SaveChangesAsync();
 
                     TempData["Success"] = "The product has been updated and is pending admin approval!";
                     return RedirectToAction("Edit", new { product.Id });
@@ -500,7 +508,6 @@ namespace CMSECommerce.Areas.Seller.Controllers
 
             return View(product);
         }
-
         // GET /seller/products/delete/5
         public async Task<IActionResult> Delete(int id)
         {

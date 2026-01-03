@@ -69,7 +69,7 @@ builder.Services.Configure<RouteOptions>(options => { options.LowercaseUrls = tr
 
 var app = builder.Build();
 
-// --- 2. DATABASE INITIALIZATION & ADDITIONAL SEEDING ---
+// --- 2. DATABASE INITIALIZATION ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -77,10 +77,7 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
-        // Applies migrations and seeds IdentityUser/Roles/Store defined in DataContext.OnModelCreating
         context.Database.Migrate();
-
-        // Developer Seeder (for complex data not suitable for migrations)
         if (app.Environment.IsDevelopment())
         {
             DbSeeder.SeedData(app.Services);
@@ -133,12 +130,18 @@ app.MapControllerRoute(name: "account", pattern: "account/{action}", defaults: n
 app.MapControllerRoute(name: "orders", pattern: "orders/{action}", defaults: new { controller = "Orders", action = "Index" });
 app.MapControllerRoute(name: "products", pattern: "products/{slug?}", defaults: new { controller = "Products", action = "Index" });
 
+// --- ADDED STORE SPECIFIC ROUTE TO ENSURE OPTIONAL ID WORKS ---
+app.MapControllerRoute(
+    name: "storefront",
+    pattern: "/storefront/{id?}",
+    defaults: new { controller = "Products", action = "StoreFront" });
+
 // Generic Default Route
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Slug-based Page Route (placed last to catch remaining single-segment URLs)
+// Slug-based Page Route
 app.MapControllerRoute(name: "pages", pattern: "{slug?}", defaults: new { controller = "Pages", action = "Index" });
 
 app.Run();
