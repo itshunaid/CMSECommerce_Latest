@@ -75,6 +75,13 @@ namespace CMSECommerce.Models
         // Navigation property
         [ForeignKey("UserId")]
         public virtual IdentityUser User { get; set; }
+
+        // Foreign Key
+        public int StoreId { get; set; }
+
+        // Navigation Property
+        [ForeignKey("StoreId")]
+        public virtual Store Store { get; set; }
     }
 
     public class Review

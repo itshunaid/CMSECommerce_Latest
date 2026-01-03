@@ -69,108 +69,18 @@ builder.Services.Configure<RouteOptions>(options => { options.LowercaseUrls = tr
 
 var app = builder.Build();
 
-// --- 2. SEEDING LOGIC (ENVIRONMENT SENSITIVE) ---
+// --- 2. DATABASE INITIALIZATION & ADDITIONAL SEEDING ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<DataContext>();
-    var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
-    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
     try
     {
+        // Applies migrations and seeds IdentityUser/Roles/Store defined in DataContext.OnModelCreating
         context.Database.Migrate();
 
-        // A. Seed Roles
-        var roles = new[] { "Admin", "Customer", "Subscriber" };
-        foreach (var role in roles)
-        {
-            if (!roleManager.RoleExistsAsync(role).GetAwaiter().GetResult())
-            {
-                roleManager.CreateAsync(new IdentityRole(role)).GetAwaiter().GetResult();
-            }
-        }
-
-        // B. Seed Admin User, Store, and Profile
-        var adminEmail = "admin@local.local";
-        var adminUser = userManager.FindByEmailAsync(adminEmail).GetAwaiter().GetResult();
-
-        if (adminUser != null)
-        {
-            // 1. Ensure Role is assigned even if user exists
-            if (!userManager.IsInRoleAsync(adminUser, "Admin").GetAwaiter().GetResult())
-            {
-                userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
-            }
-
-            // 2. Check if profile exists to decide if we need to reset password/seed profile
-            var existingProfile = context.UserProfiles.FirstOrDefault(p => p.UserId == adminUser.Id);
-            if (existingProfile == null)
-            {
-                // Profile missing: Force password reset to the standard seeding password
-                var resetToken = userManager.GeneratePasswordResetTokenAsync(adminUser).GetAwaiter().GetResult();
-                userManager.ResetPasswordAsync(adminUser, resetToken, "Pass@local110").GetAwaiter().GetResult();
-
-                // Allow the logic to fall through or handle profile creation here
-            }
-        }
-        else
-        {
-            // User does not exist at all: Create new
-            adminUser = new IdentityUser
-            {
-                UserName = "admin",
-                Email = adminEmail,
-                EmailConfirmed = true
-            };
-
-            var result = userManager.CreateAsync(adminUser, "Pass@local110").GetAwaiter().GetResult();
-
-            if (result.Succeeded)
-            {
-                userManager.AddToRoleAsync(adminUser, "Admin").GetAwaiter().GetResult();
-
-                // Create the Store
-                var adminStore = new Store
-                {
-                    UserId = adminUser.Id,
-                    StoreName = "Admin Central Store",
-                    Email = adminEmail,
-                    City = "Mumbai",
-                    Country = "India"
-                };
-                context.Stores.Add(adminStore);
-                context.SaveChanges();
-
-                // Create the UserProfile
-                var adminProfile = new UserProfile
-                {
-                    UserId = adminUser.Id,
-                    StoreId = adminStore.Id,
-                    FirstName = "System",
-                    LastName = "Admin",
-                    ITSNumber = "000000",
-                    IsProfileVisible = true,
-                    CurrentProductLimit = 1000,
-                    SubscriptionStartDate = DateTime.Now
-                };
-                context.UserProfiles.Add(adminProfile);
-                context.SaveChanges();
-            }
-        }
-
-        // C. Seed Subscription Tiers
-        if (!context.SubscriptionTiers.Any())
-        {
-            context.SubscriptionTiers.AddRange(
-                new SubscriptionTier { Name = "Basic", Price = 500, DurationMonths = 6, ProductLimit = 25 },
-                new SubscriptionTier { Name = "Intermediate", Price = 900, DurationMonths = 12, ProductLimit = 50 },
-                new SubscriptionTier { Name = "Premium", Price = 1500, DurationMonths = 12, ProductLimit = 120 }
-            );
-            context.SaveChanges();
-        }
-
-        // D. Developer Seeder
+        // Developer Seeder (for complex data not suitable for migrations)
         if (app.Environment.IsDevelopment())
         {
             DbSeeder.SeedData(app.Services);
@@ -179,7 +89,7 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred during database seeding.");
+        logger.LogError(ex, "An error occurred during database migration or seeding.");
     }
 }
 
@@ -210,20 +120,25 @@ app.UseAuthorization();
 // --- 4. ROUTE MAPPING ---
 app.MapHub<CMSECommerce.Hubs.ChatHub>("/chatHub");
 app.MapRazorPages();
+
+// Specific Area Route
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-app.MapControllerRoute(name: "areas", pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
+// Specialized Routes
 app.MapControllerRoute(name: "product", pattern: "products/product/{slug?}", defaults: new { controller = "Products", action = "Product" });
 app.MapControllerRoute(name: "cart", pattern: "cart/{action}/{id?}", defaults: new { controller = "Cart", action = "Index" });
 app.MapControllerRoute(name: "account", pattern: "account/{action}", defaults: new { controller = "Account", action = "Index" });
 app.MapControllerRoute(name: "orders", pattern: "orders/{action}", defaults: new { controller = "Orders", action = "Index" });
 app.MapControllerRoute(name: "products", pattern: "products/{slug?}", defaults: new { controller = "Products", action = "Index" });
-app.MapControllerRoute(name: "default", pattern: "{controller=Products}/{action=Index}/{id?}");
+
+// Generic Default Route
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// Slug-based Page Route (placed last to catch remaining single-segment URLs)
 app.MapControllerRoute(name: "pages", pattern: "{slug?}", defaults: new { controller = "Pages", action = "Index" });
 
 app.Run();

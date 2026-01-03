@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CMSECommerce.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class InitialSetup : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -92,11 +92,11 @@ namespace CMSECommerce.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     SenderId = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     SenderName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RecipientId = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RecipientId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     GroupName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     MessageContent = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsRead = table.Column<bool>(type: "bit", nullable: false)
+                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    IsRead = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -347,42 +347,7 @@ namespace CMSECommerce.Migrations
                         name: "FK_Stores_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Products",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(8,2)", nullable: false),
-                    CategoryId = table.Column<int>(type: "int", nullable: false),
-                    Image = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    OwnerName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    RejectionReason = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    StockQuantity = table.Column<int>(type: "int", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Products", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Products_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalTable: "AspNetUsers",
                         principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Products_Categories_CategoryId",
-                        column: x => x.CategoryId,
-                        principalTable: "Categories",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -445,19 +410,59 @@ namespace CMSECommerce.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Products",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Slug = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(8,2)", nullable: false),
+                    CategoryId = table.Column<int>(type: "int", nullable: false),
+                    Image = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    OwnerName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    RejectionReason = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    StockQuantity = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    StoreId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Products", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Products_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Products_Categories_CategoryId",
+                        column: x => x.CategoryId,
+                        principalTable: "Categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Products_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "UserProfiles",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    StoreId = table.Column<int>(type: "int", nullable: false),
                     Profession = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ServicesProvided = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     FirstName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     LastName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ITSNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    WhatsAppNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ITSNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    WhatsAppNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     About = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsProfileVisible = table.Column<bool>(type: "bit", nullable: false),
                     IsImageApproved = table.Column<bool>(type: "bit", nullable: false),
@@ -469,10 +474,11 @@ namespace CMSECommerce.Migrations
                     InstagramUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     GpayQRCodePath = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PhonePeQRCodePath = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    HomeAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    HomeAddress = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     HomePhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    BusinessAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    BusinessAddress = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     BusinessPhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    StoreId = table.Column<int>(type: "int", nullable: true),
                     SubscriptionStartDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     SubscriptionEndDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CurrentProductLimit = table.Column<int>(type: "int", nullable: false)
@@ -491,7 +497,7 @@ namespace CMSECommerce.Migrations
                         column: x => x.StoreId,
                         principalTable: "Stores",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -520,9 +526,19 @@ namespace CMSECommerce.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "AspNetRoles",
+                columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
+                values: new object[,]
+                {
+                    { "5f90378b-3001-443b-8736-411a91341c2c", null, "Admin", "ADMIN" },
+                    { "6f90378b-3001-443b-8736-411a91341c2d", null, "Customer", "CUSTOMER" },
+                    { "7f90378b-3001-443b-8736-411a91341c2e", null, "Subscriber", "SUBSCRIBER" }
+                });
+
+            migrationBuilder.InsertData(
                 table: "AspNetUsers",
                 columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "Email", "EmailConfirmed", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "10cad2a7-b708-4ab3-b0f0-79e8e628f932", 0, "1201a6ba-29cf-459e-a095-e27b20a515c0", "admin@local.local", true, false, null, "ADMIN@LOCAL.LOCAL", "ADMIN@LOCAL.LOCAL", "AQAAAAIAAYagAAAAEOR9XnMlPK/hyBsmRVnaZE9AW5cYj+PjpK+ZLkRQ6/ytL5mf/s4lOJL3SzrWE5kLLw==", null, false, "d01b2d5c-e2f4-4dc4-90b2-92944cedb369", false, "admin@local.local" });
+                values: new object[] { "a18265d3-05b8-4766-adcc-ca43d3960199", 0, "7e653a3c-b70c-4c65-9de8-d89e7a34d1a3", "admin@local.local", true, false, null, "ADMIN@LOCAL.LOCAL", "ADMIN", "AQAAAAIAAYagAAAAEC6spMjfdmsZwpiB9aWT2hQUB7FkNa6dsGvQl1l0EJv5fpydqzX4yO9isyvKUa6Vaw==", null, false, "", false, "admin" });
 
             migrationBuilder.InsertData(
                 table: "Categories",
@@ -538,24 +554,51 @@ namespace CMSECommerce.Migrations
                 columns: new[] { "Id", "Body", "Order", "Slug", "Title" },
                 values: new object[,]
                 {
-                    { 1, "Home Content", 0, "home", "Home" },
-                    { 2, "About Content", 0, "about", "About" }
+                    { 1, "This is the home page", 0, "home", "Home" },
+                    { 2, "This is the about page", 0, "about", "About" },
+                    { 3, "This is the services page", 0, "services", "Services" },
+                    { 4, "This is the contact page", 0, "contact", "Contact" }
                 });
 
             migrationBuilder.InsertData(
-                table: "Products",
-                columns: new[] { "Id", "CategoryId", "Description", "Image", "Name", "OwnerName", "Price", "RejectionReason", "Slug", "Status", "StockQuantity", "UserId" },
+                table: "SubscriptionTiers",
+                columns: new[] { "Id", "DurationMonths", "Name", "Price", "ProductLimit" },
                 values: new object[,]
                 {
-                    { 1, 2, "Juicy apples", "apple1.jpg", "Apples", "Admin", 1.50m, null, "apples", 1, 100, "10cad2a7-b708-4ab3-b0f0-79e8e628f932" },
-                    { 2, 2, "Juicy grapefruit", "grapefruit1.jpg", "Grapefruit", "Admin", 2m, null, "grapefruit", 1, 80, "10cad2a7-b708-4ab3-b0f0-79e8e628f932" },
-                    { 3, 2, "Fresh grapes", "grapes1.jpg", "Grapes", "Admin", 1.80m, null, "grapes", 1, 150, "10cad2a7-b708-4ab3-b0f0-79e8e628f932" },
-                    { 4, 2, "Fresh oranges", "orange1.jpg", "Oranges", "Admin", 1.50m, null, "oranges", 1, 120, "10cad2a7-b708-4ab3-b0f0-79e8e628f932" },
-                    { 5, 1, "Nice blue t-shirt", "blue1.jpg", "Blue shirt", "Admin", 7.99m, null, "blue-shirt", 1, 45, "10cad2a7-b708-4ab3-b0f0-79e8e628f932" },
-                    { 6, 1, "Nice red t-shirt", "red1.jpg", "Red shirt", "Admin", 8.99m, null, "red-shirt", 1, 30, "10cad2a7-b708-4ab3-b0f0-79e8e628f932" },
-                    { 7, 1, "Nice green t-shirt", "green1.png", "Green shirt", "Admin", 9.99m, null, "green-shirt", 1, 25, "10cad2a7-b708-4ab3-b0f0-79e8e628f932" },
-                    { 8, 1, "Nice pink t-shirt", "pink1.png", "Pink shirt", "Admin", 10.99m, null, "pink-shirt", 1, 10, "10cad2a7-b708-4ab3-b0f0-79e8e628f932" }
+                    { 1, 6, "Basic", 500m, 25 },
+                    { 2, 12, "Intermediate", 900m, 50 },
+                    { 3, 12, "Premium", 1500m, 120 }
                 });
+
+            migrationBuilder.InsertData(
+                table: "AspNetUserRoles",
+                columns: new[] { "RoleId", "UserId" },
+                values: new object[] { "5f90378b-3001-443b-8736-411a91341c2c", "a18265d3-05b8-4766-adcc-ca43d3960199" });
+
+            migrationBuilder.InsertData(
+                table: "Stores",
+                columns: new[] { "Id", "City", "Contact", "Country", "Email", "GSTIN", "PostCode", "StoreName", "StreetAddress", "UserId" },
+                values: new object[] { 1, "Mumbai", "0000000000", "India", "admin@local.local", null, "400001", "Admin Central Store", null, "a18265d3-05b8-4766-adcc-ca43d3960199" });
+
+            migrationBuilder.InsertData(
+                table: "Products",
+                columns: new[] { "Id", "CategoryId", "Description", "Image", "Name", "OwnerName", "Price", "RejectionReason", "Slug", "Status", "StockQuantity", "StoreId", "UserId" },
+                values: new object[,]
+                {
+                    { 1, 2, "Juicy apples", "apple1.jpg", "Apples", "Admin", 1.50m, null, "apples", 1, 100, 1, "a18265d3-05b8-4766-adcc-ca43d3960199" },
+                    { 2, 2, "Juicy grapefruit", "grapefruit1.jpg", "Grapefruit", "Admin", 2m, null, "grapefruit", 1, 100, 1, "a18265d3-05b8-4766-adcc-ca43d3960199" },
+                    { 3, 2, "Fresh grapes", "grapes1.jpg", "Grapes", "Admin", 1.80m, null, "grapes", 1, 100, 1, "a18265d3-05b8-4766-adcc-ca43d3960199" },
+                    { 4, 2, "Fresh oranges", "orange1.jpg", "Oranges", "Admin", 1.50m, null, "oranges", 1, 100, 1, "a18265d3-05b8-4766-adcc-ca43d3960199" },
+                    { 5, 1, "Nice blue t-shirt", "blue1.jpg", "Blue shirt", "Admin", 7.99m, null, "blue-shirt", 1, 100, 1, "a18265d3-05b8-4766-adcc-ca43d3960199" },
+                    { 6, 1, "Nice red t-shirt", "red1.jpg", "Red shirt", "Admin", 8.99m, null, "red-shirt", 1, 100, 1, "a18265d3-05b8-4766-adcc-ca43d3960199" },
+                    { 7, 1, "Nice green t-shirt", "green1.png", "Green shirt", "Admin", 9.99m, null, "green-shirt", 1, 100, 1, "a18265d3-05b8-4766-adcc-ca43d3960199" },
+                    { 8, 1, "Nice pink t-shirt", "pink1.png", "Pink shirt", "Admin", 10.99m, null, "pink-shirt", 1, 100, 1, "a18265d3-05b8-4766-adcc-ca43d3960199" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "UserProfiles",
+                columns: new[] { "Id", "About", "BusinessAddress", "BusinessPhoneNumber", "CurrentProductLimit", "FacebookUrl", "FirstName", "GpayQRCodePath", "HomeAddress", "HomePhoneNumber", "ITSNumber", "InstagramUrl", "IsImageApproved", "IsImagePending", "IsProfileVisible", "LastName", "LinkedInUrl", "PendingProfileImagePath", "PhonePeQRCodePath", "Profession", "ProfileImagePath", "ServicesProvided", "StoreId", "SubscriptionEndDate", "SubscriptionStartDate", "UserId", "WhatsAppNumber" },
+                values: new object[] { 1, "Default System Administrator", "Main Admin Office, Mumbai", null, 1000, null, "System", null, "Default Admin Home", null, "000000", null, false, false, true, "Admin", null, null, null, "Administrator", null, null, 1, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "a18265d3-05b8-4766-adcc-ca43d3960199", "0000000000" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
@@ -597,6 +640,11 @@ namespace CMSECommerce.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ChatMessages_RecipientId_IsRead",
+                table: "ChatMessages",
+                columns: new[] { "RecipientId", "IsRead" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OrderDetails_OrderId",
                 table: "OrderDetails",
                 column: "OrderId");
@@ -605,6 +653,11 @@ namespace CMSECommerce.Migrations
                 name: "IX_Products_CategoryId",
                 table: "Products",
                 column: "CategoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_StoreId",
+                table: "Products",
+                column: "StoreId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_UserId",
@@ -619,9 +672,7 @@ namespace CMSECommerce.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Stores_UserId",
                 table: "Stores",
-                column: "UserId",
-                unique: true,
-                filter: "[UserId] IS NOT NULL");
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SubscriptionRequests_TierId",
@@ -631,8 +682,7 @@ namespace CMSECommerce.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_UserProfiles_StoreId",
                 table: "UserProfiles",
-                column: "StoreId",
-                unique: true);
+                column: "StoreId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserProfiles_UserId",
@@ -706,10 +756,10 @@ namespace CMSECommerce.Migrations
                 name: "SubscriptionTiers");
 
             migrationBuilder.DropTable(
-                name: "Stores");
+                name: "Categories");
 
             migrationBuilder.DropTable(
-                name: "Categories");
+                name: "Stores");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");

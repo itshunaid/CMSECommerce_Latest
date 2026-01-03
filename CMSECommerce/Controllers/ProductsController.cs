@@ -26,23 +26,21 @@ namespace CMSECommerce.Controllers
 
 
 
-        //[AllowAnonymous]
-        //public async Task<IActionResult> StoreFront(int id)
-        //{
-        //    // 1. If you need the profile with store info
-        //    var userProfile = await _context.UserProfiles
-        //        .Include(p => p.Store)
-        //        .FirstOrDefaultAsync(p => p.Id == id); // Assuming 'id' refers to Profile ID here
+        [AllowAnonymous]
+        public async Task<IActionResult> StoreFront(int id)
+        {
+            // Now '.Products' will be recognized by the compiler
+            var store = await _context.Stores
+                .Include(s => s.Products)
+                .FirstOrDefaultAsync(s => s.Id == id);
 
-        //    // 2. To get the Store and its associated Products
-        //    var store = await _context.Stores
-        //        .Include(s => s.Products) // This works because Store has a collection of Products
-        //        .FirstOrDefaultAsync(s => s.Id == id); // Here 'id' is the Store ID
+            if (store == null)
+            {
+                return NotFound();
+            }
 
-        //    if (store == null) return NotFound();
-
-        //    return View(store);
-        //}
+            return View(store);
+        }
 
         // The Index action handles category filtering, searching, pagination, and sorting.
         /// <summary>

@@ -78,5 +78,7 @@ namespace CMSECommerce.Models
 
         [ForeignKey("UserId")]
         public virtual IdentityUser User { get; set; }
+
+        public virtual ICollection<Product> Products { get; set; } = new List<Product>();
     }
 }
