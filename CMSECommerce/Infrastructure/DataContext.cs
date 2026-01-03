@@ -1,5 +1,4 @@
-﻿using CMSECommerce.Models;
-using CMSECommerce.Models.CMSECommerce.Models.Entities;
+﻿
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
