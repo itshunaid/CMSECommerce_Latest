@@ -316,8 +316,15 @@ namespace CMSECommerce.Controllers
 
             if (request == null) return NotFound();
 
+            // --- SECURITY BLOCK START ---
+            // If the status is already Pending, Rejected, or any other state, block access.
+            // This aligns with the UI change where the Revert button is hidden for non-approved items.
             if (request.Status != RequestStatus.Approved)
-                return BadRequest("Only approved requests can be reverted.");
+            {
+                TempData["Warning"] = "Action Denied: Only Approved requests can be reverted. This record is currently locked.";
+                return RedirectToAction(nameof(AdminDashboard));
+            }
+            // --- SECURITY BLOCK END ---
 
             var user = await _userManager.FindByIdAsync(request.UserId);
             if (user == null) return BadRequest("User not found.");
@@ -371,18 +378,19 @@ namespace CMSECommerce.Controllers
 
             // 4. Reset Request Status back to Pending
             request.Status = RequestStatus.Pending;
-            // We keep IsUpgrade as true if it was an upgrade, so it stays highlighted when pending again
 
             _context.UserProfiles.Update(profile);
             _context.SubscriptionRequests.Update(request);
             await _context.SaveChangesAsync();
+
+            // Invalidate security stamp to force-refresh user's claims/roles in their session
             await _userManager.UpdateSecurityStampAsync(user);
 
             TempData["Warning"] = "Approval Reverted. Limits and Tier have been reset to previous values.";
             return RedirectToAction(nameof(AdminDashboard));
         }
 
-        
+
 
         [HttpPost]
         [Authorize(Roles = "Admin")]

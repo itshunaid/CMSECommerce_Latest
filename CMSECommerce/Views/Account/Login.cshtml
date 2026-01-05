@@ -10,7 +10,7 @@
     <div class="container">
         <div class="row g-0 justify-content-center align-items-stretch">
 
-            @* --- LEFT PANEL: BRANDING & FEATURES (Visible on Desktop) --- *@
+            @* --- LEFT PANEL: BRANDING & FEATURES --- *@
             <div class="col-lg-5 d-none d-lg-flex flex-column justify-content-center p-5 bg-white border-end rounded-start-2 shadow-sm">
                 <div class="brand-logo mb-4">
                     <div class="d-flex align-items-center h2 fw-bold text-amazon-dark m-0">
@@ -20,7 +20,7 @@
                 </div>
                 <h1 class="display-6 fw-bold mb-3 text-amazon-dark">Empowering Women Entrepreneurs.</h1>
                 <p class="text-secondary mb-5">
-                    Access your personalized dashboard, showcase your home-grown products, and manage your business with industrial-grade security.
+                    Access your personalized dashboard, showcase your products, and manage your business with industrial-grade security.
                 </p>
 
                 <div class="features-list">
@@ -57,19 +57,7 @@
                 </div>
 
                 @* --- STATUS ALERTS --- *@
-                @if (ViewBag.RequestSubmitted == true)
-                {
-                    <div class="alert alert-info border-0 border-start border-4 border-info shadow-sm py-3 mb-4">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-history fs-4 me-3"></i>
-                            <div>
-                                <h6 class="fw-bold mb-0">Request Pending</h6>
-                                <small>Review in progress. Check your email soon.</small>
-                            </div>
-                        </div>
-                    </div>
-                }
-                else if (ViewBag.IsLockedOut == true)
+                @if (ViewBag.IsLockedOut == true)
                 {
                     <div class="alert alert-warning border-0 border-start border-4 border-warning shadow-sm py-3 mb-4">
                         <div class="d-flex flex-column">
@@ -80,29 +68,19 @@
                             <div class="small mb-3 ps-5">
                                 @Html.ValidationSummary(true, "", new { @class = "list-unstyled mb-0" })
                             </div>
-                            <form asp-action="RequestAccountUnlock" asp-controller="@controllerName" method="post" class="ps-5">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="userId" value="@ViewBag.UserId" />
-                                <button type="submit" class="btn btn-outline-dark btn-sm rounded-pill px-3">
-                                    Request Unlock
-                                </button>
-                            </form>
                         </div>
                     </div>
                 }
 
                 <div class="signin-header mb-4">
                     <h2 class="fw-normal text-amazon-dark h3">Sign-In</h2>
-                    <p class="text-muted small">Enter your credentials to continue.</p>
+                    <p class="text-muted small">Enter your identifier to begin.</p>
                 </div>
 
                 <form id="loginForm" method="post" asp-controller="@controllerName" asp-action="Login" role="form">
                     @Html.AntiForgeryToken()
-                    @if (ViewBag.IsLockedOut != true)
-                    {
-                        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
-                    }
 
+                    @* USERNAME FIELD (Always Visible) *@
                     <div class="mb-3 position-relative">
                         <label asp-for="UserName" class="form-label fw-bold mb-1 small">Username / Email / Mobile</label>
                         <input asp-for="UserName" id="UserNameInput" class="form-control amazon-modern-input" autofocus autocomplete="username" />
@@ -110,46 +88,38 @@
                         <span id="UserNameError" class="text-danger x-small mt-1 d-block"></span>
                     </div>
 
-                    <div class="mb-2 position-relative" id="passwordContainer">
-                        <div class="d-flex justify-content-between">
-                            <label asp-for="Password" class="form-label fw-bold mb-1 small">Password</label>
-                            <a asp-action="ForgotPassword" class="small text-amazon-link text-decoration-none">Forgot Password?</a>
+                    @* DYNAMIC SECTION: Hidden initially *@
+                    <div id="dynamicAuthSection" style="display: none;">
+
+                        @* Password block (only shown for identified users) *@
+                        <div id="passwordFieldBlock" style="display: none;">
+                            <div class="mb-2 position-relative">
+                                <div class="d-flex justify-content-between">
+                                    <label asp-for="Password" class="form-label fw-bold mb-1 small">Password</label>
+                                    <a asp-action="ForgotPassword" class="small text-amazon-link text-decoration-none">Forgot?</a>
+                                </div>
+                                <div class="position-relative">
+                                    <input asp-for="Password" id="PasswordInput" type="password" class="form-control amazon-modern-input" />
+                                    <button type="button" id="togglePassword" class="btn position-absolute end-0 top-0 h-100 border-0 bg-transparent text-muted" style="z-index: 5;">
+                                        <i class="fas fa-eye" id="eyeIcon"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input accent-amazon" type="checkbox" asp-for="RememberMe">
+                                <label class="form-check-label small text-muted" asp-for="RememberMe">Remember me</label>
+                            </div>
                         </div>
-                        <div class="position-relative">
-                            <input asp-for="Password" id="PasswordInput" type="password" class="form-control amazon-modern-input" />
-                            <button type="button" id="togglePassword" class="btn position-absolute end-0 top-0 h-100 border-0 bg-transparent text-muted" style="z-index: 5;">
-                                <i class="fas fa-eye" id="eyeIcon"></i>
+
+                        @* Submit Button (Text changes dynamically) *@
+                        <div class="d-grid">
+                            <button type="submit" id="submitBtn" class="btn btn-amazon-primary py-1 shadow-sm">
+                                <span id="btnText">Sign In</span> <i class="fas fa-arrow-right ms-2" id="btnIcon"></i>
                             </button>
                         </div>
-                        <span asp-validation-for="Password" class="text-danger x-small mt-1 d-block"></span>
-                    </div>
-
-                    <div class="form-check mb-4">
-                        <input class="form-check-input accent-amazon" type="checkbox" asp-for="RememberMe">
-                        <label class="form-check-label small text-muted" asp-for="RememberMe">Remember me</label>
                     </div>
 
                     <input type="hidden" asp-for="ReturnUrl" />
-
-                    <div class="d-grid mb-4">
-                        <button type="submit" id="submitBtn" class="btn btn-amazon-primary py-1 shadow-sm">
-                            <span id="btnText">Sign In</span> <i class="fas fa-arrow-right ms-2" id="btnIcon"></i>
-                        </button>
-                    </div>
-
-                    <div class="text-center">
-                        <p class="x-small text-muted mb-4 px-4 pb-3 border-bottom">
-                            By continuing, you agree to our <a asp-controller="Products" asp-action="Policies" class="text-amazon-link">Terms</a> and <a asp-controller="Products" asp-action="Privacy" class="text-amazon-link">Privacy Policy</a>.
-                        </p>
-
-                        <div class="divider-text position-relative mb-4">
-                            <span class="bg-white px-3 x-small text-muted text-uppercase fw-bold">New to Weypaari?</span>
-                        </div>
-
-                        <a asp-action="Register" class="btn btn-amazon-outline w-100 py-1 shadow-sm">
-                            Create your account
-                        </a>
-                    </div>
                 </form>
             </div>
         </div>
@@ -162,16 +132,12 @@
             --amazon-dark: #111111;
             --amazon-orange: #e47911;
             --amazon-yellow: #f0c14b;
-            --amazon-yellow-hover: #f3a847;
             --amazon-link: #0066c0;
         }
 
         body {
             font-family: "Segoe UI", Tahoma, sans-serif;
-        }
-
-        .amazon-login-wrapper {
-            background-color: #fff;
+            background-color: #fcfcfc;
         }
 
         .text-amazon-dark {
@@ -196,11 +162,12 @@
             height: 31px;
             font-size: 13px;
             padding: 7px 10px;
+            transition: all 0.2s;
         }
 
             .amazon-modern-input:focus {
                 border-color: var(--amazon-orange);
-                box-shadow: 0 0 3px 2px rgba(228, 121, 17, .5);
+                box-shadow: 0 0 3px 2px rgba(228, 121, 17, .3);
                 outline: 0;
             }
 
@@ -221,33 +188,12 @@
             border: 1px solid #a88734;
             color: #111;
             font-size: 13px;
+            font-weight: 500;
         }
 
             .btn-amazon-primary:hover {
                 background: linear-gradient(to bottom, #f5d78e, #eeb933);
                 border-color: #a88734;
-            }
-
-        .btn-amazon-outline {
-            background: linear-gradient(to bottom, #f7f8fa, #e7e9ec);
-            border: 1px solid #adb1b8;
-            color: #111;
-            font-size: 13px;
-        }
-
-            .btn-amazon-outline:hover {
-                background: linear-gradient(to bottom, #e7eaf0, #d9dce1);
-                border-color: #a2a6ac;
-            }
-
-        .divider-text {
-            border-top: 1px solid #e7e7e7;
-            text-align: center;
-            line-height: 0.1em;
-        }
-
-            .divider-text span {
-                background: #fff;
             }
 
         .accent-amazon:checked {
@@ -263,12 +209,6 @@
         .rounded-2 {
             border-radius: 4px !important;
         }
-
-        @@media (max-width: 991px) {
-            .amazon-login-wrapper {
-                padding-top: 2rem;
-            }
-        }
     </style>
 }
 
@@ -281,80 +221,95 @@
             const $loader = $('#checkLoader');
             const $btnText = $('#btnText');
             const $btnIcon = $('#btnIcon');
-            const $passContainer = $('#passwordContainer');
-            let redirectRequested = false;
+            const $dynamicAuthSection = $('#dynamicAuthSection');
+            const $passwordBlock = $('#passwordFieldBlock');
+
+            let isRegisterMode = false;
+            let currentXHR = null;
 
             const itsRegex = /^\d{8}$/;
             const indianMobileRegex = /^(?:\+91|0)?[6-9]\d{9}$/;
             const emailRegex = /^[a-zA-Z0-9._%+-]+@@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
+            // Toggle Password Visibility
             $('#togglePassword').on('click', function () {
                 const type = $('#PasswordInput').attr('type') === 'password' ? 'text' : 'password';
                 $('#PasswordInput').attr('type', type);
                 $('#eyeIcon').toggleClass('fa-eye fa-eye-slash');
             });
 
+            // Identity Validation on Blur or Input change logic
             $userInput.on('blur', function () {
                 const val = $(this).val().trim();
-                if (val === "") { resetFormState(); return; }
 
-                const isValidFormat = itsRegex.test(val) || indianMobileRegex.test(val) || emailRegex.test(val);
-
-                if (!isValidFormat) {
-                    let msg = "Invalid format. Enter Email, 8-digit ITS, or 10-digit Mobile.";
-                    $errorSpan.text(msg).addClass('text-danger').removeClass('text-warning text-success');
-                    $userInput.css('border-left', '4px solid #ba0000');
+                if (val === "") {
+                    hideDynamicFields();
                     return;
                 }
 
-                $loader.removeClass('d-none');
-                $.get('@Url.Action("ValidateIdentifier", "Account")', { value: val, type: 'Username' }, function (res) {
-                    // ONLY checking isAvailable
-                    if (res.isAvailable) {
-                        redirectRequested = true;
-                        $userInput.css('border-left', '4px solid #ff9900');
-                        $errorSpan.text("Account not found. Click to Register.").addClass('text-warning').removeClass('text-danger text-success');
-                        $btnText.text("Continue to Register");
-                        $btnIcon.removeClass('fa-arrow-right').addClass('fa-user-plus');
-                        $passContainer.slideUp();
-                    } else {
-                        redirectRequested = false;
-                        $userInput.css('border-left', '4px solid #28a745');
-                        $errorSpan.text("Recognized account.").addClass('text-success').removeClass('text-danger text-warning');
-                        $btnText.text("Sign In");
-                        $btnIcon.removeClass('fa-user-plus').addClass('fa-arrow-right');
-                        $passContainer.slideDown();
-                    }
-                }).always(() => $loader.addClass('d-none'));
-            });
-
-            $('#loginForm').on('submit', function (e) {
-                const val = $userInput.val().trim();
-                if (val !== "" && !itsRegex.test(val) && !indianMobileRegex.test(val) && !emailRegex.test(val)) {
-                    e.preventDefault();
-                    $userInput.focus();
-                    return false;
+                // Format validation
+                if (!itsRegex.test(val) && !indianMobileRegex.test(val) && !emailRegex.test(val)) {
+                    $errorSpan.text("Invalid format. Use Email, 8-digit ITS or Mobile.").addClass('text-danger');
+                    hideDynamicFields();
+                    return;
                 }
 
-                if (redirectRequested) {
+                // Abort previous request if still pending
+                if (currentXHR) currentXHR.abort();
+
+                $loader.removeClass('d-none');
+                $errorSpan.text("");
+
+                currentXHR = $.get('@Url.Action("ValidateIdentifier", "Account")', { value: val, type: 'Username' }, function (res) {
+                    $dynamicAuthSection.fadeIn(200);
+
+                    if (res.isAvailable) {
+                        // Account does not exist -> Register Mode
+                        isRegisterMode = true;
+                        $passwordBlock.hide();
+                        $btnText.text("Continue to Register");
+                        $btnIcon.attr('class', 'fas fa-user-plus ms-2');
+                        $errorSpan.text("New identifier detected.").attr('class', 'text-warning x-small mt-1 d-block');
+                        $userInput.css('border-left', '4px solid #ff9900');
+                    } else {
+                        // Account exists -> Login Mode
+                        isRegisterMode = false;
+                        $passwordBlock.show();
+                        $btnText.text("Sign In");
+                        $btnIcon.attr('class', 'fas fa-arrow-right ms-2');
+                        $errorSpan.text("Welcome back!").attr('class', 'text-success x-small mt-1 d-block');
+                        $userInput.css('border-left', '4px solid #28a745');
+                    }
+                }).always(() => {
+                    $loader.addClass('d-none');
+                });
+            });
+
+            // Handle Form Submission
+            $('#loginForm').on('submit', function (e) {
+                const val = $userInput.val().trim();
+
+                if (isRegisterMode) {
                     e.preventDefault();
                     window.location.href = '@Url.Action("Register", "Account")' + '?username=' + encodeURIComponent(val);
                 }
+                // If not register mode, standard form POST to Account/Login occurs
             });
 
-            function resetFormState() {
-                redirectRequested = false;
-                $userInput.css('border-left', '1px solid #ced4da');
-                $errorSpan.text("").removeClass('text-warning text-success text-danger');
-                $btnText.text("Sign In");
-                $btnIcon.removeClass('fa-user-plus').addClass('fa-arrow-right');
-                $passContainer.slideDown();
-            }
-
+            // Reset UI when user starts re-typing
             $userInput.on('input', function() {
-                $(this).css('border-left', '1px solid #ced4da');
-                $errorSpan.text("");
+                $userInput.css('border-left', '1px solid #a6a6a6');
+                if($dynamicAuthSection.is(':visible')) {
+                   hideDynamicFields();
+                }
             });
+
+            function hideDynamicFields() {
+                $dynamicAuthSection.hide();
+                $passwordBlock.hide();
+                $errorSpan.text("");
+                isRegisterMode = false;
+            }
         });
     </script>
 }

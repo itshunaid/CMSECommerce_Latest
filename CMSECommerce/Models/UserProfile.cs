@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -6,6 +7,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CMSECommerce.Models
 {
+    [Index(nameof(ITSNumber), IsUnique = true)]
     public class UserProfile
     {
         [Key]

@@ -12,14 +12,15 @@
                         profile.CurrentTierId.HasValue;
 
     var latestActiveRequest = Model?.OrderByDescending(r => r.CreatedAt)
-                                   .FirstOrDefault(r => r.Status == RequestStatus.Approved &&
-                                                        r.TierId == profile?.CurrentTierId);
+                                    .FirstOrDefault(r => r.Status == RequestStatus.Approved &&
+                                                         r.TierId == profile?.CurrentTierId);
 
     var fullSortedList = Model?.OrderBy(r => r.Status == RequestStatus.Approved ? 0 :
                                              r.Status == RequestStatus.Pending ? 1 : 2)
                                  .ThenByDescending(r => r.CreatedAt).ToList() ?? new List<CMSECommerce.Models.SubscriptionRequest>();
 
-    var displayRequests = fullSortedList.Take(5).ToList();
+    // Take the 1 most recent/relevant request
+    var displayRequests = fullSortedList.Take(1).ToList();
 
     bool hasPendingRequest = Model != null && Model.Any(r => r.Status == RequestStatus.Pending);
     var currentPending = Model?.FirstOrDefault(r => r.Status == RequestStatus.Pending);
@@ -31,7 +32,7 @@
     <div class="row justify-content-center">
         <div class="col-md-11">
 
-            @* --- NEW SECTION: PENDING PROGRESS TRACKER --- *@
+            @* --- SECTION: PENDING PROGRESS TRACKER --- *@
             @if (hasPendingRequest && currentPending != null)
             {
                 <div class="card shadow-sm border-0 mb-4 animate-fade-in" style="border-radius: 15px;">
@@ -124,18 +125,18 @@
                 </div>
             }
 
-            @* --- SECTION 2: HISTORY TABLE --- *@
+            @* --- SECTION 2: CURRENT STATUS TABLE --- *@
             <div class="d-flex justify-content-between align-items-center mb-3 px-1">
                 <div>
-                    <h6 class="fw-bold text-dark mb-0">Subscription History</h6>
-                    <p class="text-muted mb-0" style="font-size: 0.7rem;">Recent account activity and logs</p>
+                    <h6 class="fw-bold text-dark mb-0">Subscription Details</h6>
+                    <p class="text-muted mb-0" style="font-size: 0.7rem;">Your current plan and application status</p>
                 </div>
 
                 <div class="d-flex gap-2">
                     @if (fullSortedList.Any())
                     {
                         <a asp-action="DownloadCsvHistory" class="btn btn-outline-secondary btn-xs-custom">
-                            <i class="fas fa-download me-1"></i> Export CSV
+                            <i class="fas fa-download me-1"></i> Export History
                         </a>
                     }
                     @if (canRequestNew)
@@ -164,7 +165,7 @@
                             @if (!displayRequests.Any())
                             {
                                 <tr>
-                                    <td colspan="6" class="text-center py-4 text-muted" style="font-size: 0.8rem;">No history found.</td>
+                                    <td colspan="6" class="text-center py-4 text-muted" style="font-size: 0.8rem;">No active or recent requests found.</td>
                                 </tr>
                             }
                             @foreach (var request in displayRequests)
@@ -199,11 +200,8 @@
                                         </div>
                                     </td>
                                     <td class="text-center pe-3">
-                                        @if (request.Status == RequestStatus.Rejected && !hasActiveSub)
-                                        {
-                                            <a asp-action="Register" asp-route-tierId="@request.TierId" asp-route-retryId="@request.Id" class="btn btn-outline-warning btn-xs-custom py-0">Retry</a>
-                                        }
-                                        else if (request.Status == RequestStatus.Approved && request.TierId == profile?.CurrentTierId)
+                                        @* RETRY BUTTON REMOVED ENTIRELY *@
+                                        @if (request.Status == RequestStatus.Approved && request.TierId == profile?.CurrentTierId)
                                         {
                                             <span class="badge bg-success" style="font-size: 0.6rem;">CURRENT</span>
                                         }
@@ -219,7 +217,7 @@
                 </div>
             </div>
             <div class="text-end px-2">
-                <span class="text-muted italic" style="font-size: 0.65rem;">* Auto-refreshing pending requests every 10 seconds.</span>
+                <span class="text-muted italic" style="font-size: 0.65rem;">* Auto-refreshing status updates every 10 seconds.</span>
             </div>
         </div>
     </div>
@@ -238,7 +236,6 @@
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
-        /* Progress Tracker Styles */
         .progress-tracker {
             margin: 20px 40px;
         }

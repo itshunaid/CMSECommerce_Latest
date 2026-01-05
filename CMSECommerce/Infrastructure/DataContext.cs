@@ -32,6 +32,10 @@ namespace CMSECommerce.Infrastructure
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<UserProfile>()
+        .HasIndex(u => u.ITSNumber)
+        .IsUnique();
+
             // Ensure a user can have multiple agreement records (as versions change over time)
             modelBuilder.Entity<UserAgreement>()
                 .HasOne(ua => ua.User)
