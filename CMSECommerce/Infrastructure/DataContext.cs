@@ -156,9 +156,10 @@ namespace CMSECommerce.Infrastructure
             );
 
             modelBuilder.Entity<SubscriptionTier>().HasData(
-                new SubscriptionTier { Id = 1, Name = "Basic", Price = 500, DurationMonths = 6, ProductLimit = 25 },
-                new SubscriptionTier { Id = 2, Name = "Intermediate", Price = 900, DurationMonths = 12, ProductLimit = 50 },
-                new SubscriptionTier { Id = 3, Name = "Premium", Price = 1500, DurationMonths = 12, ProductLimit = 120 }
+                new SubscriptionTier { Id = 1, Name = "Trial", Price = 99, DurationMonths = 1, ProductLimit = 5 },
+                new SubscriptionTier { Id = 2, Name = "Basic", Price = 499, DurationMonths = 6, ProductLimit = 25 },
+                new SubscriptionTier { Id = 3, Name = "Intermediate", Price = 899, DurationMonths = 12, ProductLimit = 50 },
+                new SubscriptionTier { Id = 4, Name = "Premium", Price = 1499, DurationMonths = 12, ProductLimit = 120 }
             );
 
             modelBuilder.Entity<Product>().HasData(

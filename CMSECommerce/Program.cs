@@ -1,6 +1,7 @@
 ﻿using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Localization;
@@ -22,6 +23,7 @@ var connectionString = builder.Configuration.GetConnectionString("DbConnection")
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlServer(connectionString)
 );
+builder.Services.AddHostedService<SubscriptionExpiryService>();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

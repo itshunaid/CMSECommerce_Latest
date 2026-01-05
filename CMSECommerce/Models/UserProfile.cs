@@ -58,6 +58,16 @@ namespace CMSECommerce.Models
         public DateTime? SubscriptionEndDate { get; set; }
 
         public int CurrentProductLimit { get; set; }
+
+        /// <summary>
+        /// Stores the ID of the current active subscription tier.
+        /// Used to validate upgrades vs downgrades.
+        /// </summary>
+        public int? CurrentTierId { get; set; }
+
+        // Optional: Navigation property if you want to access Tier details directly from the profile
+        [ForeignKey("CurrentTierId")]
+        public virtual SubscriptionTier? CurrentTier { get; set; }
     }
 
     public class Store

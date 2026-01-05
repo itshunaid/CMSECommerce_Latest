@@ -4,6 +4,7 @@ using CMSECommerce.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMSECommerce.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20260105102344_AddCurrentTierIdToUserProfile")]
+    partial class AddCurrentTierIdToUserProfile
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -604,9 +607,6 @@ namespace CMSECommerce.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsUpgrade")
-                        .HasColumnType("bit");
-
                     b.Property<string>("ItsNumber")
                         .HasColumnType("nvarchar(max)");
 
@@ -1064,13 +1064,13 @@ namespace CMSECommerce.Migrations
                         {
                             Id = "a18265d3-05b8-4766-adcc-ca43d3960199",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "d147a5d1-60b5-4592-b6a0-f72648523fbd",
+                            ConcurrencyStamp = "59b18b8c-5c86-4feb-b5ec-0a3fee8c1703",
                             Email = "admin@local.local",
                             EmailConfirmed = true,
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@LOCAL.LOCAL",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEG6yblYRHZKsdmrxvlg2LomImiBymLL9cr1qqCWTEvZQlS0T2cNsmCP29vYA5H+Xfg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEGjpXhK1YeElmONzBkar6hvCRhqhvJKq9Ka8VbTF027NlYOLqXKbQeCGm2y1xo1CuQ==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "",
                             TwoFactorEnabled = false,

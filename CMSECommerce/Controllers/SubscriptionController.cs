@@ -27,7 +27,31 @@ namespace CMSECommerce.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
-            var tiers = await _context.SubscriptionTiers.ToListAsync();
+            var tiers = await _context.SubscriptionTiers.OrderBy(t => t.Id).ToListAsync();
+
+            // Check if the user is logged in to provide personalized tier selection
+            if (User.Identity.IsAuthenticated)
+            {
+                var userId = _userManager.GetUserId(User);
+                var profile = await _context.UserProfiles
+                    .FirstOrDefaultAsync(p => p.UserId == userId);
+
+                if (profile != null)
+                {
+                    // Pass the current tier ID to the view to handle UI logic
+                    // (e.g., hiding/disabling tiers lower than the current one)
+                    ViewBag.CurrentTierId = profile.CurrentTierId;
+
+                    // Check if there is already a pending request
+                    ViewBag.HasPendingRequest = await _context.SubscriptionRequests
+                        .AnyAsync(r => r.UserId == userId && r.Status == RequestStatus.Pending);
+
+                    // Check if current subscription is still active
+                    ViewBag.IsActiveSubscriber = profile.SubscriptionEndDate.HasValue &&
+                                                profile.SubscriptionEndDate.Value > DateTime.Now;
+                }
+            }
+
             return View(tiers);
         }
 
@@ -37,40 +61,67 @@ namespace CMSECommerce.Controllers
         public async Task<IActionResult> Register(int tierId)
         {
             var user = await _userManager.GetUserAsync(User);
-            var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(up => up.UserId == user.Id);
+            if (user == null) return Challenge();
 
+            var userProfile = await _context.UserProfiles
+                .FirstOrDefaultAsync(up => up.UserId == user.Id);
+
+            // 1. Profile & ITS Validation
             if (userProfile == null)
             {
                 TempData["Error"] = "Please update your ITS number in your profile first.";
-                return RedirectToAction("Create", "UserProfiles", new { isNewProfile =true, callingFrom="UserProfiles", tierId=tierId});
+                return RedirectToAction("Create", "UserProfiles", new { isNewProfile = true, callingFrom = "UserProfiles", tierId = tierId });
             }
+
             if (string.IsNullOrEmpty(userProfile.ITSNumber))
             {
                 TempData["Error"] = "Please update your ITS number in your profile first.";
-                return RedirectToAction("Edit", "UserProfiles", new {model= userProfile});
+                return RedirectToAction("Edit", "UserProfiles", new { id = userProfile.Id }); // Pass Id for route consistency
             }
 
-            // NEW: Check if user already has a Pending or Approved request
-            var existingRequest = await _context.SubscriptionRequests
-                .AnyAsync(r => r.UserId == user.Id &&
-                         (r.Status == RequestStatus.Pending || r.Status == RequestStatus.Approved));
+            // 2. Fetch the Target Tier
+            var targetTier = await _context.SubscriptionTiers.FindAsync(tierId);
+            if (targetTier == null) return NotFound();
 
-            if (existingRequest)
+            // 3. Pending Request Shield
+            var hasPending = await _context.SubscriptionRequests
+                .AnyAsync(r => r.UserId == user.Id && r.Status == RequestStatus.Pending);
+
+            if (hasPending)
             {
-                TempData["Error"] = "You already have an active subscription or a pending request.";
+                TempData["Error"] = "You already have a request pending review. Please wait for Admin approval.";
                 return RedirectToAction("Status");
             }
 
-            var tier = await _context.SubscriptionTiers.FindAsync(tierId);
-            if (tier == null) return NotFound();
+            // 4. Upgrade/Downgrade Logic
+            if (userProfile.CurrentTierId.HasValue)
+            {
+                // If they are selecting their current plan
+                if (userProfile.CurrentTierId == tierId)
+                {
+                    TempData["Info"] = "You are currently on this plan. You can renew once your current term is near expiry.";
+                    return RedirectToAction("Status");
+                }
 
+                // Rule: If the request is to downgrade, reject immediately
+                // (Assumes higher TierId = Higher Level)
+                if (tierId < userProfile.CurrentTierId.Value)
+                {
+                    TempData["Error"] = "Downgrading your plan is not supported through the portal.";
+                    return RedirectToAction("Index");
+                }
+            }
+
+            // 5. Build the ViewModel
             var model = new SubscriptionRequestViewModel
             {
                 TierId = tierId,
-                TierName = tier.Name,
-                Price = tier.Price,
-                ITSNumber = userProfile.ITSNumber
+                TierName = targetTier.Name,
+                Price = targetTier.Price,
+                ITSNumber = userProfile.ITSNumber,
+                IsUpgrade = userProfile.CurrentTierId.HasValue // Useful for the View to show "Upgrade" text
             };
+
             return View(model);
         }
 
@@ -79,55 +130,97 @@ namespace CMSECommerce.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SubmitRequest(SubscriptionRequestViewModel model)
         {
-            var userId = _userManager.GetUserId(User);
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
 
-            // Final Gatekeeper: Ensure no request was created between the GET and POST
-            var existingRequest = await _context.SubscriptionRequests
-                .AnyAsync(r => r.UserId == userId &&
-                         (r.Status == RequestStatus.Pending || r.Status == RequestStatus.Approved));
+            var userId = user.Id;
 
-            if (existingRequest)
+            // 1. Fetch User Profile to check current tier for Upgrade/Downgrade validation
+            var userProfile = await _context.UserProfiles
+                .FirstOrDefaultAsync(up => up.UserId == userId);
+
+            // 2. Final Gatekeeper: Block if a PENDING request already exists
+            var hasPending = await _context.SubscriptionRequests
+                .AnyAsync(r => r.UserId == userId && r.Status == RequestStatus.Pending);
+
+            if (hasPending)
             {
-                TempData["Error"] = "Submission failed: A request is already in progress for this account.";
+                TempData["Error"] = "Submission failed: You already have a request pending review.";
                 return RedirectToAction("Status");
+            }
+
+            // 3. Business Rule: Upgrade vs Downgrade Check
+            if (userProfile?.CurrentTierId != null)
+            {
+                // Prevent Downgrades (New TierId must be > Current TierId)
+                if (model.TierId < userProfile.CurrentTierId.Value)
+                {
+                    TempData["Error"] = "Downgrades are not permitted. Please select a higher-tier plan.";
+                    return RedirectToAction("Index");
+                }
+
+                // Prevent Duplicate Subscriptions for the same plan
+                if (model.TierId == userProfile.CurrentTierId.Value)
+                {
+                    TempData["Info"] = "You are already subscribed to this plan.";
+                    return RedirectToAction("Status");
+                }
             }
 
             if (!ModelState.IsValid) return View("Register", model);
 
+            // 4. Handle Receipt Upload
             string fileName = "default.png";
             if (model.Receipt != null)
             {
+                // Ensure directory exists
+                var uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
+                if (!Directory.Exists(uploadFolder)) Directory.CreateDirectory(uploadFolder);
+
                 fileName = Guid.NewGuid() + Path.GetExtension(model.Receipt.FileName);
-                string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads", fileName);
-                using var stream = new FileStream(path, FileMode.Create);
-                await model.Receipt.CopyToAsync(stream);
+                string path = Path.Combine(uploadFolder, fileName);
+
+                using (var stream = new FileStream(path, FileMode.Create))
+                {
+                    await model.Receipt.CopyToAsync(stream);
+                }
             }
 
+            // 5. Create Subscription Request
             var request = new SubscriptionRequest
             {
                 UserId = userId!,
                 TierId = model.TierId,
                 ItsNumber = model.ITSNumber,
                 ReceiptImagePath = fileName,
-                CreatedAt = DateTime.UtcNow, // Ensure CreatedAt is set
-                Status = RequestStatus.Pending // Explicitly set starting status
+                CreatedAt = DateTime.UtcNow,
+                Status = RequestStatus.Pending,
+                // Optional: You might want to flag this as an upgrade in your DB if you have a column for it
+                IsUpgrade = userProfile?.CurrentTierId != null 
             };
 
             _context.SubscriptionRequests.Add(request);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Your subscription request has been submitted for review.";
+            TempData["Success"] = userProfile?.CurrentTierId != null
+                ? "Your upgrade request has been submitted successfully."
+                : "Your subscription request has been submitted for review.";
+
             return RedirectToAction("Status");
         }
-
-        // 4. Admin Dashboard (AC 3)
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AdminDashboard()
         {
             var requests = await _context.SubscriptionRequests
                 .Include(r => r.Tier)
+                // Join with UserProfile to see what they are currently on vs what they want
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
+
+            // Optional: Calculate stats for the View
+            ViewBag.PendingCount = requests.Count(r => r.Status == RequestStatus.Pending);
+            ViewBag.UpgradeCount = requests.Count(r => r.IsUpgrade && r.Status == RequestStatus.Pending);
+
             return View(requests);
         }
 
@@ -139,75 +232,82 @@ namespace CMSECommerce.Controllers
                 .FirstOrDefaultAsync(r => r.Id == requestId);
 
             if (request == null) return NotFound();
+
+            // 1. Basic Constraint Checks
             if (request.Status == RequestStatus.Approved) return BadRequest("This request is already approved.");
+            if (request.Status == RequestStatus.Rejected) return BadRequest("Cannot approve a rejected request.");
 
             var user = await _userManager.FindByIdAsync(request.UserId);
             if (user == null) return BadRequest("User not found.");
 
-            // 1. Fetch current roles of the user being approved
-            var roles = await _userManager.GetRolesAsync(user);
-            bool isUserAdmin = roles.Contains("Admin");
-            bool isAlreadySubscriber = roles.Contains("Subscriber");
-
-            // 2. Fetch Profile and check for Soft Delete
             var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
             if (profile == null) return BadRequest("User profile missing.");
-            // Note: Assuming LockoutEnabled is your check for "Active" status
-            if (!profile.User.LockoutEnabled) return BadRequest("Cannot approve subscription for a deactivated user.");
 
-            // 3. Role Management Logic
-            if (!isAlreadySubscriber)
+            // Safety check: Ensure profile hasn't been deactivated
+            if (user.LockoutEnabled && await _userManager.IsLockedOutAsync(user))
+                return BadRequest("User is currently deactivated/locked.");
+
+            // 2. Identify Tier context
+            int currentTierId = profile.CurrentTierId ?? 0;
+            int requestedTierId = request.TierId;
+
+            // 3. Downgrade Check
+            if (requestedTierId < currentTierId && currentTierId != 0)
             {
-                if (isUserAdmin)
-                {
-                    // If they are Admin, just add Subscriber (Multi-role)
-                    await _userManager.AddToRoleAsync(user, "Subscriber");
-                }
-                else
-                {
-                    // If NOT Admin, overwrite roles: Remove everything, then add Subscriber
-                    await _userManager.RemoveFromRolesAsync(user, roles);
-                    await _userManager.AddToRoleAsync(user, "Subscriber");
-                }
+                string reason = $"Downgrade not permitted. Active Tier: {currentTierId}, Requested: {requestedTierId}.";
+                // Assuming Reject is a local method or logic to set status to Rejected
+                return await Reject(requestId, reason);
             }
 
-            // 4. Update Request Status
-            request.Status = RequestStatus.Approved;
-
-            // 5. Subscription Time Stacking
+            // 4. Calculate Date Baseline (Stacking Logic)
+            // If current subscription is still active, start the new duration from the end of the old one.
             DateTime baseline = (profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate.Value > DateTime.Now)
                                 ? profile.SubscriptionEndDate.Value
                                 : DateTime.Now;
 
-            if (!profile.SubscriptionStartDate.HasValue || profile.SubscriptionEndDate < DateTime.Now)
+            // 5. Upgrade or Renewal Logic
+            // We update the limit and tier ID regardless if it's an upgrade or same-tier renewal
+            profile.SubscriptionEndDate = baseline.AddMonths(request.Tier.DurationMonths);
+            profile.CurrentProductLimit = request.Tier.ProductLimit;
+            profile.CurrentTierId = requestedTierId;
+
+            // 6. Handle New Subscription Start Date
+            // If they never had a sub or it was expired, set the start date to today
+            if (!profile.SubscriptionStartDate.HasValue || profile.SubscriptionEndDate.Value.AddMonths(-request.Tier.DurationMonths) < DateTime.Now)
             {
                 profile.SubscriptionStartDate = DateTime.Now;
             }
 
-            profile.SubscriptionEndDate = baseline.AddMonths(request.Tier.DurationMonths);
-            profile.CurrentProductLimit = request.Tier.ProductLimit;
+            // 7. Role Management
+            var roles = await _userManager.GetRolesAsync(user);
+            if (!roles.Contains("Subscriber"))
+            {
+                await _userManager.AddToRoleAsync(user, "Subscriber");
+            }
 
+            // Update Request Status and Save
+            request.Status = RequestStatus.Approved;
             _context.UserProfiles.Update(profile);
-            _context.SubscriptionRequests.Update(request); // Ensure request status is saved
+            _context.SubscriptionRequests.Update(request);
+
             await _context.SaveChangesAsync();
 
-            // Force a security stamp update so the user sees the role change immediately
+            // Force user security refresh (re-logs them to update claims/roles)
             await _userManager.UpdateSecurityStampAsync(user);
 
-            TempData["Success"] = $"Approved! New expiry: {profile.SubscriptionEndDate?.ToString("dd MMM yyyy")}";
+            TempData["Success"] = $"Plan '{request.Tier.Name}' Approved! New expiry: {profile.SubscriptionEndDate?.ToString("dd MMM yyyy")}";
             return RedirectToAction(nameof(AdminDashboard));
         }
+
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Revert(int requestId)
         {
-            // 1. Fetch Request with Tier details
             var request = await _context.SubscriptionRequests
                 .Include(r => r.Tier)
                 .FirstOrDefaultAsync(r => r.Id == requestId);
 
             if (request == null) return NotFound();
 
-            // Safety: Only revert if it was previously Approved
             if (request.Status != RequestStatus.Approved)
                 return BadRequest("Only approved requests can be reverted.");
 
@@ -217,61 +317,59 @@ namespace CMSECommerce.Controllers
             var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
             if (profile == null) return BadRequest("Profile missing.");
 
-            var roles = await _userManager.GetRolesAsync(user);
-            bool isUserAdmin = roles.Contains("Admin");
-
-            // 2. Roll back the Subscription Dates
+            // 1. Subtract the specific months added by this request
             if (profile.SubscriptionEndDate.HasValue)
             {
-                // Subtract the months that were added during approval
                 profile.SubscriptionEndDate = profile.SubscriptionEndDate.Value.AddMonths(-request.Tier.DurationMonths);
 
-                // Check if the user has no remaining subscription time
+                // 2. Fetch the MOST RECENT Approved request excluding the one we are reverting
+                var previousApprovedRequest = await _context.SubscriptionRequests
+                    .Include(r => r.Tier)
+                    .Where(r => r.UserId == user.Id &&
+                                r.Status == RequestStatus.Approved &&
+                                r.Id != requestId)
+                    .OrderByDescending(r => r.Id)
+                    .FirstOrDefaultAsync();
+
+                // 3. Check if reverting leads to expiration
                 if (profile.SubscriptionEndDate <= DateTime.Now)
                 {
-                    // Remove Subscriber role
+                    var roles = await _userManager.GetRolesAsync(user);
                     if (roles.Contains("Subscriber"))
                     {
                         await _userManager.RemoveFromRoleAsync(user, "Subscriber");
                     }
 
-                    // Reset profile fields
                     profile.CurrentProductLimit = 0;
                     profile.SubscriptionStartDate = null;
                     profile.SubscriptionEndDate = null;
-
-                    // 3. Role Restoration Logic (Crucial for the "Overwrite" logic)
-                    // If the user is NOT an admin, and we just removed Subscriber, 
-                    // ensure they are back to being a Customer.
-                    if (!isUserAdmin)
-                    {
-                        if (!roles.Contains("Customer"))
-                        {
-                            await _userManager.AddToRoleAsync(user, "Customer");
-                        }
-                    }
+                    profile.CurrentTierId = null;
                 }
                 else
                 {
-                    // If they still have time left from a different stacked subscription,
-                    // we keep the Subscriber role but might want to reset the limit 
-                    // to whatever the remaining/previous tier allowed.
-                    profile.CurrentProductLimit = 0;
+                    // Restore state to the tier they were on before this specific approval
+                    if (previousApprovedRequest != null)
+                    {
+                        profile.CurrentProductLimit = previousApprovedRequest.Tier.ProductLimit;
+                        profile.CurrentTierId = previousApprovedRequest.TierId;
+                    }
+                    else
+                    {
+                        profile.CurrentProductLimit = 0;
+                        profile.CurrentTierId = null;
+                    }
                 }
             }
 
-            // 4. Update Request Status back to Pending
+            // 4. Reset Request Status back to Pending
             request.Status = RequestStatus.Pending;
 
-            // 5. Final Save and Security Sync
             _context.UserProfiles.Update(profile);
             _context.SubscriptionRequests.Update(request);
             await _context.SaveChangesAsync();
-
-            // Force refresh of user claims so UI updates immediately
             await _userManager.UpdateSecurityStampAsync(user);
 
-            TempData["Warning"] = $"Reverted! Subscription reduced by {request.Tier.DurationMonths} months.";
+            TempData["Warning"] = "Approval Reverted. Limits and Tier have been reset to previous values.";
             return RedirectToAction(nameof(AdminDashboard));
         }
 
@@ -279,7 +377,7 @@ namespace CMSECommerce.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Reject(int requestId, string reason)
         {
-            // 1. Fetch the request
+            // 1. Fetch the request including the User reference for better error handling
             var request = await _context.SubscriptionRequests.FindAsync(requestId);
             if (request == null) return NotFound();
 
@@ -292,43 +390,65 @@ namespace CMSECommerce.Controllers
 
             if (user != null)
             {
-                // 4. Strip Subscriber Role (Safety check in case they were previously approved)
+                // 4. Reset Profile State
+                var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+                if (profile != null)
+                {
+                    // Resetting everything to baseline values
+                    profile.CurrentProductLimit = 0;
+                    profile.SubscriptionStartDate = null;
+                    profile.SubscriptionEndDate = null;
+
+                    // NEW: Reset the Tier marker so they can request any tier (including Trial) again
+                    profile.CurrentTierId = null;
+
+                    _context.UserProfiles.Update(profile);
+                }
+
+                // 5. Role Management: Strip Subscriber Role
+                // Rejection implies the user is no longer an active subscriber
                 if (await _userManager.IsInRoleAsync(user, "Subscriber"))
                 {
                     await _userManager.RemoveFromRoleAsync(user, "Subscriber");
                 }
 
-                // 5. Reset Profile Limits and Dates
-                var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
-                if (profile != null)
-                {
-                    profile.CurrentProductLimit = 0;
-                    profile.SubscriptionStartDate = null;
-                    profile.SubscriptionEndDate = null;
-
-                    _context.UserProfiles.Update(profile);
-                }
+                // 6. Security Stamp Update
+                // Critical: This invalidates the user's current session so they immediately 
+                // lose access to "Subscriber" authorized features.
+                await _userManager.UpdateSecurityStampAsync(user);
             }
 
-            // 6. Final Save
+            // 7. Final Persistence
+            _context.SubscriptionRequests.Update(request);
             await _context.SaveChangesAsync();
 
-            TempData["Error"] = $"Request for {user?.UserName ?? "User"} has been Rejected.";
+            TempData["Error"] = $"Request for {user?.UserName ?? "User"} has been Rejected. Reason: {reason}";
             return RedirectToAction(nameof(AdminDashboard));
         }
-
         public async Task<IActionResult> Status()
         {
             var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-            // Pass the profile to ViewBag so the View can access SubscriptionEndDate
-            ViewBag.UserProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+            // 1. Fetch the profile including the CurrentTierId marker
+            var profile = await _context.UserProfiles
+                .Include(p => p.CurrentTier) // Optional: include if you want to show tier name
+                .FirstOrDefaultAsync(p => p.UserId == userId);
 
+            // Pass the profile to ViewBag
+            ViewBag.UserProfile = profile;
+
+            // 2. Fetch all subscription requests for this user
             var requests = await _context.SubscriptionRequests
                 .Include(r => r.Tier)
                 .Where(r => r.UserId == userId)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
+
+            // 3. Optional architectural check: 
+            // If profile.SubscriptionEndDate < DateTime.Now, you might want to 
+            // flag in the UI that the current tier is expired despite what CurrentTierId says.
+            ViewBag.IsExpired = profile?.SubscriptionEndDate < DateTime.Now;
 
             return View(requests);
         }
@@ -446,6 +566,81 @@ namespace CMSECommerce.Controllers
             return Ok("PDF Generated - logic depends on your installed PDF library");
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<IActionResult> ForceExpiryCheck()
+        {
+            // 1. Find users whose subscription has already passed
+            var expiredProfiles = await _context.UserProfiles
+                .Where(p => p.SubscriptionEndDate.HasValue && p.SubscriptionEndDate.Value < DateTime.Now)
+                .ToListAsync();
+
+            int count = 0;
+            foreach (var profile in expiredProfiles)
+            {
+                var user = await _userManager.FindByIdAsync(profile.UserId);
+                if (user != null)
+                {
+                    // Remove Role
+                    if (await _userManager.IsInRoleAsync(user, "Subscriber"))
+                    {
+                        await _userManager.RemoveFromRoleAsync(user, "Subscriber");
+                    }
+
+                    // Reset Profile
+                    profile.CurrentTierId = null;
+                    profile.CurrentProductLimit = 0;
+                    profile.SubscriptionEndDate = null;
+                    profile.SubscriptionStartDate = null;
+
+                    _context.UserProfiles.Update(profile);
+                    count++;
+                }
+            }
+
+            if (count > 0)
+            {
+                await _context.SaveChangesAsync();
+                // Force security update so users lose access immediately
+                foreach (var profile in expiredProfiles)
+                {
+                    var user = await _userManager.FindByIdAsync(profile.UserId);
+                    if (user != null) await _userManager.UpdateSecurityStampAsync(user);
+                }
+            }
+
+            TempData["Success"] = $"Force Check Complete. {count} expired subscriptions were processed.";
+            return RedirectToAction(nameof(AdminDashboard));
+        }
+
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UserDetails(string userId)
+        {
+            if (string.IsNullOrEmpty(userId)) return NotFound();
+
+            // 1. Fetch Profile and User info
+            var profile = await _context.UserProfiles
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.UserId == userId);
+
+            if (profile == null) return NotFound();
+
+            // 2. Fetch all subscription requests (The Timeline)
+            var history = await _context.SubscriptionRequests
+                .Include(r => r.Tier)
+                .Where(r => r.UserId == userId)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            // 3. Calculate Total Spending (Assuming Tier has a Price property)
+            // If you don't have a Price property yet, you can skip this or use a placeholder
+            ViewBag.TotalSpent = history.Where(r => r.Status == RequestStatus.Approved)
+                                        .Sum(r => r.Tier.Price);
+
+            ViewBag.History = history;
+
+            return View(profile);
+        }
 
 
     }

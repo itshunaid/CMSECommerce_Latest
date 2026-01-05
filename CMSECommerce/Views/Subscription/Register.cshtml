@@ -2,7 +2,7 @@
 @model SubscriptionRequestViewModel
 
 @{
-    ViewData["Title"] = "Register Plan";
+    ViewData["Title"] = Model.IsUpgrade ? "Upgrade Plan" : "Register Plan";
     ViewData["HideLayoutSidebar"] = true;
 }
 
@@ -42,6 +42,18 @@
         font-size: 0.7rem;
         color: #718096;
     }
+
+    /* Upgrade specific UI theme */
+    .bg-upgrade {
+        background: linear-gradient(135deg, #21409a 0%, #152a66 100%) !important;
+    }
+
+    .upgrade-alert {
+        background-color: #ebf4ff;
+        border: 1px solid #bee3f8;
+        border-radius: 8px;
+        color: #2c5282;
+    }
 </style>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -50,13 +62,23 @@
     <div class="row justify-content-center">
         <div class="col-md-5">
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-dark text-white text-center py-3">
-                    <h5 class="mb-0">Registration: @Model.TierName</h5>
+                @* Dynamic Header Color based on Upgrade Status *@
+                <div class="card-header @(Model.IsUpgrade ? "bg-upgrade" : "bg-dark") text-white text-center py-3">
+                    <h5 class="mb-0">
+                        <i class="fas @(Model.IsUpgrade ? "fa-arrow-circle-up" : "fa-user-plus") me-2"></i>
+                        @(Model.IsUpgrade ? "Upgrade to" : "Registration:") @Model.TierName
+                    </h5>
                 </div>
+
                 <div class="card-body p-4">
                     <form asp-action="SubmitRequest" method="post" enctype="multipart/form-data">
                         <div asp-validation-summary="ModelOnly" class="text-danger text-xs mb-3"></div>
+
+                        @* Hidden Fields to preserve state during Postback *@
                         <input type="hidden" asp-for="TierId" />
+                        <input type="hidden" asp-for="IsUpgrade" />
+                        <input type="hidden" asp-for="TierName" />
+                        <input type="hidden" asp-for="Price" />
 
                         <div class="mb-3">
                             <label asp-for="ITSNumber" class="form-label fw-bold"></label>
@@ -65,20 +87,41 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label fw-bold">Payment Receipt</label>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold mb-0">Payment Receipt</label>
+                                <span class="badge @(Model.IsUpgrade ? "bg-primary" : "bg-success")" style="font-size: 0.7rem;">
+                                    Amount Payable: ₹@Model.Price.ToString("N0")
+                                </span>
+                            </div>
                             <input type="file" asp-for="Receipt" class="form-control form-control-sm-custom" accept="image/*" required />
-                            <div class="helper-text mt-1"><i class="fas fa-info-circle me-1"></i>Max size: 2MB (JPG or PNG)</div>
+                            <div class="helper-text mt-1">
+                                <i class="fas fa-info-circle me-1"></i>Max size: 2MB (JPG or PNG)
+                            </div>
                             <span asp-validation-for="Receipt" class="text-danger text-xs"></span>
                         </div>
+
+                        @* Special Info Box for Upgraders *@
+                        @if (Model.IsUpgrade)
+                        {
+                            <div class="upgrade-alert p-3 mb-4 d-flex align-items-start gap-2">
+                                <i class="fas fa-info-circle mt-1"></i>
+                                <div>
+                                    <strong class="d-block mb-1" style="font-size: 0.8rem;">Upgrade Information</strong>
+                                    <span class="helper-text" style="color: inherit;">
+                                        By upgrading, your existing subscription validity will be merged with the new plan duration and your product limits will increase immediately upon approval.
+                                    </span>
+                                </div>
+                            </div>
+                        }
 
                         <hr class="opacity-10 mb-4" />
 
                         <div class="d-flex justify-content-between align-items-center">
                             <a asp-action="Index" class="text-decoration-none text-muted fw-bold" style="font-size: 0.75rem;">
-                                <i class="fas fa-arrow-left me-1"></i> Change Plan
+                                <i class="fas fa-arrow-left me-1"></i> Back to Plans
                             </a>
-                            <button type="submit" class="btn btn-success btn-action px-4 py-2 shadow-sm">
-                                Submit Request
+                            <button type="submit" class="btn @(Model.IsUpgrade ? "btn-primary" : "btn-success") btn-action px-4 py-2 shadow-sm">
+                                @(Model.IsUpgrade ? "Confirm Upgrade" : "Submit Request")
                             </button>
                         </div>
                     </form>
@@ -99,28 +142,42 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            // Retrieve messages from Controller
             var errorMessage = '@TempData["Error"]';
             var successMessage = '@TempData["Success"]';
+            var infoMessage = '@TempData["Info"]';
 
+            // Error handling (e.g., Downgrade attempts or session timeout)
             if (errorMessage) {
                 Swal.fire({
-                    icon: 'warning',
-                    title: '<span style="font-size: 1.1rem">Request Active</span>',
+                    icon: 'error',
+                    title: '<span style="font-size: 1.1rem">Action Restricted</span>',
                     html: '<span style="font-size: 0.85rem">' + errorMessage + '</span>',
-                    confirmButtonColor: '#198754',
-                    confirmButtonText: 'View Status',
-                    allowOutsideClick: false
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = '@Url.Action("Status", "Subscription")';
-                    }
+                    confirmButtonColor: '#dc3545',
+                    confirmButtonText: 'Return to Plans'
+                }).then(() => {
+                    window.location.href = '@Url.Action("Index", "Subscription")';
                 });
             }
 
+            // Information handling (e.g., trying to buy the same plan)
+            if (infoMessage) {
+                Swal.fire({
+                    icon: 'info',
+                    title: '<span style="font-size: 1.1rem">Already Subscribed</span>',
+                    html: '<span style="font-size: 0.85rem">' + infoMessage + '</span>',
+                    confirmButtonColor: '#21409a',
+                    confirmButtonText: 'View My Status'
+                }).then(() => {
+                    window.location.href = '@Url.Action("Status", "Subscription")';
+                });
+            }
+
+            // Success confirmation
             if (successMessage) {
                 Swal.fire({
                     icon: 'success',
-                    title: '<span style="font-size: 1.1rem">Submitted!</span>',
+                    title: '<span style="font-size: 1.1rem">Submitted Successfully</span>',
                     html: '<span style="font-size: 0.85rem">' + successMessage + '</span>',
                     confirmButtonColor: '#198754'
                 });

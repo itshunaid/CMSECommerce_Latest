@@ -3,29 +3,44 @@
 @{
     ViewData["Title"] = "My Subscription Status";
     ViewData["HideLayoutSidebar"] = true;
+
+    // Explicitly cast the profile from ViewBag
     var profile = (CMSECommerce.Models.UserProfile)ViewBag.UserProfile;
 
-    bool hasActiveSub = profile != null && profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate.Value > DateTime.Now;
+    // ARCHITECTURAL TRUTH: A subscription is active only if the profile says so
+    // and the date hasn't passed.
+    bool hasActiveSub = profile != null &&
+                        profile.SubscriptionEndDate.HasValue &&
+                        profile.SubscriptionEndDate.Value > DateTime.Now &&
+                        profile.CurrentTierId.HasValue;
 
+    // Find the specific request object that matches the current active tier for receipt/details
     var latestActiveRequest = Model?.OrderByDescending(r => r.CreatedAt)
-                                   .FirstOrDefault(r => r.Status == RequestStatus.Approved);
+                                   .FirstOrDefault(r => r.Status == RequestStatus.Approved &&
+                                                        r.TierId == profile?.CurrentTierId);
 
+    // Sorting logic: Approved first, then Pending, then Rejected/Others
     var fullSortedList = Model?.OrderBy(r => r.Status == RequestStatus.Approved ? 0 :
                                              r.Status == RequestStatus.Pending ? 1 : 2)
                                 .ThenByDescending(r => r.CreatedAt).ToList() ?? new List<CMSECommerce.Models.SubscriptionRequest>();
 
+    // We only show the latest 5 for a clean UI
     var displayRequests = fullSortedList.Take(5).ToList();
 
     bool hasPendingRequest = Model != null && Model.Any(r => r.Status == RequestStatus.Pending);
-    bool canRequestNew = !hasActiveSub && !hasPendingRequest;
+
+    // Logic: Users can request a new tier if they don't have a request currently "In Review"
+    bool canRequestNew = !hasPendingRequest;
 }
+
+
 
 <div class="container py-4 small-text-ui">
     <div class="row justify-content-center">
         <div class="col-md-11">
 
             @* --- SECTION 1: ACTIVE SUBSCRIPTION COMPACT CARD --- *@
-            @if (hasActiveSub && latestActiveRequest != null)
+            @if (hasActiveSub && profile.CurrentTier != null)
             {
                 var timeLeft = profile.SubscriptionEndDate.Value - DateTime.Now;
                 var remainingDays = (int)timeLeft.TotalDays;
@@ -35,15 +50,18 @@
                         <div class="col-md-3 bg-navy d-flex flex-column justify-content-center align-items-center text-white p-3 text-center">
                             <i class="fas fa-crown mb-2 text-warning" style="font-size: 1.5rem;"></i>
                             <h6 class="text-uppercase mb-0 opacity-75 fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Active Plan</h6>
-                            <h4 class="fw-bold mb-0">@latestActiveRequest.Tier.Name</h4>
+                            <h4 class="fw-bold mb-0">@profile.CurrentTier.Name</h4>
                         </div>
 
                         <div class="col-md-9 bg-white">
                             <div class="card-body py-3 px-4">
                                 <div class="row align-items-center">
                                     <div class="col-sm-4 border-end">
-                                        <label class="label-muted">ITS Number</label>
-                                        <div class="fw-bold text-dark"><i class="fas fa-fingerprint me-2 text-primary-light"></i>@latestActiveRequest.ItsNumber</div>
+                                        <label class="label-muted">Product Limit</label>
+                                        <div class="fw-bold text-dark">
+                                            <i class="fas fa-box me-2 text-primary-light"></i>
+                                            @profile.CurrentProductLimit / @profile.CurrentTier.ProductLimit
+                                        </div>
                                     </div>
                                     <div class="col-sm-4 border-end">
                                         <label class="label-muted">Expiration Date</label>
@@ -56,9 +74,12 @@
                                             @remainingDays Days Remaining
                                         </div>
                                         <div class="mt-2">
-                                            <a asp-action="DownloadReceipt" asp-route-requestId="@latestActiveRequest.Id" class="text-primary text-decoration-none fw-bold" style="font-size: 0.7rem;">
-                                                <i class="fas fa-file-invoice-dollar me-1"></i> Download Receipt
-                                            </a>
+                                            @if (latestActiveRequest != null)
+                                            {
+                                                <a asp-action="DownloadReceipt" asp-route-requestId="@latestActiveRequest.Id" class="text-primary text-decoration-none fw-bold" style="font-size: 0.7rem;">
+                                                    <i class="fas fa-file-invoice-dollar me-1"></i> Download Receipt
+                                                </a>
+                                            }
                                         </div>
                                     </div>
                                 </div>
@@ -67,7 +88,7 @@
                     </div>
                 </div>
             }
-            else if (!hasActiveSub && profile?.SubscriptionEndDate.HasValue == true)
+            else if (profile?.SubscriptionEndDate.HasValue == true && profile.SubscriptionEndDate.Value <= DateTime.Now)
             {
                 <div class="alert alert-danger-custom d-flex align-items-center p-3 mb-4 shadow-sm">
                     <i class="fas fa-exclamation-circle me-3 fs-5"></i>
@@ -96,7 +117,7 @@
                     @if (canRequestNew)
                     {
                         <a asp-action="Index" class="btn btn-primary btn-xs-custom px-3">
-                            <i class="fas fa-plus me-1"></i> New Request
+                            <i class="fas fa-plus me-1"></i> @(hasActiveSub ? "Upgrade Plan" : "New Request")
                         </a>
                     }
                 </div>
@@ -135,25 +156,22 @@
                                         @if (request.Status == RequestStatus.Pending)
                                         {
                                             <span class="dot-status bg-warning"></span>
-                                    
                                             <span class="text-pending ms-1">Pending Review</span>
                                         }
                                         else if (request.Status == RequestStatus.Approved)
                                         {
                                             <span class="dot-status bg-success"></span>
-                                    
                                             <span class="text-success ms-1">Approved</span>
                                         }
                                         else
                                         {
                                             <span class="dot-status bg-danger"></span>
-                                    
                                             <span class="text-danger ms-1">Rejected</span>
                                         }
                                     </td>
                                     <td class="text-muted" style="font-size: 0.7rem; max-width: 180px;">
                                         <div class="text-truncate" title="@request.RejectionReason">
-                                            @(request.Status == RequestStatus.Rejected ? (request.RejectionReason ?? "Evidence invalid") : "---")
+                                            @(request.Status == RequestStatus.Rejected ? (request.RejectionReason ?? "Evidence invalid") : (request.Status == RequestStatus.Approved ? "Subscription active" : "Verification in progress"))
                                         </div>
                                     </td>
                                     <td class="text-center pe-3">
@@ -161,9 +179,9 @@
                                         {
                                             <a asp-action="Register" asp-route-tierId="@request.TierId" asp-route-retryId="@request.Id" class="btn btn-outline-warning btn-xs-custom py-0">Retry</a>
                                         }
-                                        else if (request.Status == RequestStatus.Approved)
+                                        else if (request.Status == RequestStatus.Approved && request.TierId == profile?.CurrentTierId)
                                         {
-                                            <i class="fas fa-check-circle text-success" style="font-size: 0.8rem;"></i>
+                                            <span class="badge bg-success" style="font-size: 0.6rem;">CURRENT</span>
                                         }
                                         else
                                         {
@@ -200,7 +218,6 @@
             font-size: 0.85rem;
         }
 
-        /* Banner Styles */
         .bg-navy {
             background-color: var(--navy-blue);
         }
@@ -210,7 +227,6 @@
             border-left: 4px solid var(--primary-blue) !important;
         }
 
-        /* Labels & Badges */
         .label-muted {
             font-size: 0.65rem;
             text-transform: uppercase;
@@ -238,7 +254,6 @@
             color: #854d0e;
         }
 
-        /* Table Styling */
         .bg-faded {
             background-color: var(--bg-faded);
         }
@@ -261,7 +276,6 @@
             font-size: 0.75rem;
         }
 
-        /* Buttons */
         .btn-xs-custom {
             font-size: 0.7rem;
             font-weight: 700;
@@ -277,7 +291,6 @@
             border-radius: 8px;
         }
 
-        /* Status Dots */
         .dot-status {
             height: 8px;
             width: 8px;
@@ -312,6 +325,7 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
+            // Check for pending requests and refresh status automatically
             if ($('.subscription-request[data-status="Pending"]').length > 0) {
                 setInterval(function () {
                     $.getJSON('/Subscription/GetLatestStatuses', function (data) {

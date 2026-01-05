@@ -3,6 +3,11 @@
 @{
     ViewData["Title"] = "Membership Plans";
     ViewData["HideLayoutSidebar"] = true;
+
+    // Retrieve metadata from ViewBag passed by the Controller
+    int? currentTierId = ViewBag.CurrentTierId;
+    bool hasPendingRequest = ViewBag.HasPendingRequest ?? false;
+    bool isActiveSubscriber = ViewBag.IsActiveSubscriber ?? false;
 }
 
 @section Styles {
@@ -15,6 +20,7 @@
             --bg-light: #f7fafc;
             --white: #ffffff;
             --success: #38a169;
+            --warning: #d97706;
         }
 
         body {
@@ -27,7 +33,6 @@
             margin: 0 auto;
         }
 
-        /* Professional Header */
         .pricing-header {
             padding: 3rem 0;
             text-align: center;
@@ -40,14 +45,6 @@
                 letter-spacing: -0.025em;
             }
 
-            .pricing-header p {
-                color: var(--text-light);
-                font-size: 1.1rem;
-                max-width: 600px;
-                margin: 1rem auto;
-            }
-
-        /* Modern QR Badge */
         .qr-badge {
             background: var(--white);
             padding: 1rem;
@@ -60,7 +57,6 @@
             margin-bottom: 2rem;
         }
 
-        /* Plan Card Design */
         .pricing-card {
             background: var(--white);
             border: 1px solid #e2e8f0;
@@ -75,38 +71,45 @@
 
             .pricing-card:hover {
                 transform: translateY(-10px);
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
                 border-color: var(--primary-color);
             }
 
-            /* Highlighted Premium Plan */
             .pricing-card.premium {
-                background: var(--white);
                 border: 2px solid var(--primary-color);
             }
 
-        .premium-label {
+            .pricing-card.current {
+                border: 2px solid var(--success);
+                background-color: #f0fff4;
+            }
+
+        .premium-label, .current-label {
             position: absolute;
             top: 0;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: var(--primary-gradient);
             color: white;
             padding: 0.5rem 1.5rem;
             border-radius: 99px;
             font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
         }
 
-        /* Typography */
+        .premium-label {
+            background: var(--primary-gradient);
+        }
+
+        .current-label {
+            background: var(--success);
+        }
+
         .plan-name {
             font-size: 0.875rem;
             font-weight: 700;
             color: var(--primary-color);
             text-transform: uppercase;
-            letter-spacing: 0.1em;
             margin-bottom: 1rem;
             display: block;
         }
@@ -124,7 +127,6 @@
                 color: var(--text-light);
             }
 
-        /* Features */
         .feature-list {
             margin: 2rem 0;
             padding: 0;
@@ -150,11 +152,6 @@
                 color: #a0aec0;
             }
 
-                .feature-item.locked i {
-                    color: #cbd5e0;
-                }
-
-        /* Button */
         .btn-upgrade {
             background: var(--primary-gradient);
             color: white;
@@ -165,12 +162,9 @@
             text-decoration: none;
             transition: opacity 0.2s;
             border: none;
+            cursor: pointer;
+            width: 100%;
         }
-
-            .btn-upgrade:hover {
-                opacity: 0.9;
-                color: white;
-            }
 
         .btn-outline {
             background: transparent;
@@ -178,9 +172,39 @@
             color: var(--text-dark);
         }
 
-            .btn-outline:hover {
-                border-color: var(--primary-color);
-                background: #f8f9ff;
+        .btn-locked {
+            background: #e2e8f0;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .btn-pending {
+            background: var(--warning);
+            color: white;
+        }
+
+        /* Modal Styling */
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+        }
+
+        .disclaimer-list {
+            padding-left: 0;
+            list-style: none;
+        }
+
+            .disclaimer-list li {
+                margin-bottom: 12px;
+                display: flex;
+                gap: 10px;
+                font-size: 0.9rem;
+                color: #4a5568;
+            }
+
+            .disclaimer-list i {
+                color: var(--primary-color);
+                margin-top: 4px;
             }
     </style>
 }
@@ -200,102 +224,125 @@
         </div>
     </div>
 
-
-
     <div class="row g-4 justify-content-center">
-        @foreach (var tier in Model.OrderBy(t => t.Price))
+        @foreach (var tier in Model.OrderBy(t => t.Id))
         {
             bool isPremium = tier.Name.Contains("Premium", StringComparison.OrdinalIgnoreCase);
             bool isIntermediate = tier.Name.Contains("Intermediate", StringComparison.OrdinalIgnoreCase);
-            bool hasDictionary = isIntermediate || isPremium;
-            bool hasGlobalAlerts = isPremium;
+            bool isCurrentTier = currentTierId == tier.Id;
+            bool isDowngrade = currentTierId != null && tier.Id < currentTierId;
 
             <div class="col-lg-4 col-md-6">
-                <div class="pricing-card @(isPremium ? "premium" : "")">
-                    @if (isPremium)
+                <div class="pricing-card @(isPremium ? "premium" : "") @(isCurrentTier ? "current" : "")">
+
+                    @if (isCurrentTier)
                     {
+                        <div class="current-label"><i class="fas fa-check me-1"></i> Your Plan</div>
+                    }
+                    else if (isPremium)
+                    {
+
                         <div class="premium-label">Recommended</div>
                     }
 
                     <span class="plan-name">@tier.Name</span>
-                    <div class="plan-price">
-                        ₹@tier.Price.ToString("N0")<span>/@tier.DurationMonths months</span>
-                    </div>
+                    <div class="plan-price">₹@tier.Price.ToString("N0")<span>/@tier.DurationMonths months</span></div>
 
                     <ul class="feature-list">
                         <li class="feature-item"><i class="fas fa-check-circle"></i> <strong>@tier.ProductLimit Listings</strong></li>
                         <li class="feature-item"><i class="fas fa-check-circle"></i> Personal Store Page</li>
-                        <li class="feature-item"><i class="fas fa-check-circle"></i> Product & Order Dashboard</li>
-
-                        <li class="feature-item">
-                            <i class="fas fa-bolt"></i>
-                            @if (isPremium)
-                            {
-                                <span>Peak Hours Daily</span>
-                            }
-                            else if (isIntermediate)
-                            {
-
-                                <span>Alternate Days</span>
-                            }
-                            else
-                            {
-
-                                <span>Twice a week</span>
-                            }
-                        </li>
-
-                        <li class="feature-item @(hasDictionary ? "" : "locked")">
-                            <i class="fas @(hasDictionary ? "fa-book" : "fa-lock")"></i>
-                            Business Dictionary
-                        </li>
-
-                        <li class="feature-item @(hasDictionary ? "" : "locked")">
-                            <i class="fas @(hasDictionary ? "fa-images" : "fa-lock")"></i>
-                            Recommended Slider
-                        </li>
-
-                        <li class="feature-item @(hasGlobalAlerts ? "" : "locked")">
-                            <i class="fas @(hasGlobalAlerts ? "fa-bullhorn" : "fa-lock")"></i>
-                            Notify Registered Users
-                        </li>
+                        <li class="feature-item"><i class="fas fa-bolt"></i> <span>@(isPremium ? "Peak Hours Daily" : (isIntermediate ? "Alternate Days" : "Twice a week"))</span></li>
+                        <li class="feature-item @((isIntermediate || isPremium) ? "" : "locked")"><i class="fas @((isIntermediate || isPremium) ? "fa-book" : "fa-lock")"></i> Business Dictionary</li>
                     </ul>
 
-                    <a asp-action="Register" asp-route-tierId="@tier.Id"
-                       class="btn-upgrade @(isPremium ? "" : "btn-outline")">
-                        Get Started Now
-                    </a>
+                    @if (hasPendingRequest)
+                    {
+                        <a asp-action="Status" class="btn-upgrade btn-pending"><i class="fas fa-clock me-2"></i> Request Pending</a>
+                    }
+                    else if (isCurrentTier)
+                    {
+                        <a asp-action="Status" class="btn-upgrade btn-outline">Manage Subscription</a>
+                    }
+                    else if (isDowngrade)
+                    {
+                        <button class="btn-upgrade btn-locked" title="Downgrades are not available"><i class="fas fa-lock me-2"></i> Lower Plan</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn-upgrade @(isPremium ? "" : "btn-outline")"
+                                onclick="openDisclaimer(@tier.Id, '@tier.Name')">
+                            @(currentTierId != null ? "Upgrade Now" : "Get Started Now")
+                        </button>
+                    }
                 </div>
             </div>
         }
     </div>
+</div>
 
-    <div class="text-center mt-5">
-        <div class="d-inline-flex align-items-center px-4 py-2 border rounded-pill bg-white text-muted small">
-            <i class="fas fa-lock me-2 text-success"></i>
-            Secure payment processing & instant dashboard access upon registration.
+<div class="modal fade" id="disclaimerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Plan Confirmation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small">Before applying for the <strong id="modalTierName" class="text-primary"></strong> plan, please acknowledge the following:</p>
+                <ul class="disclaimer-list">
+                    <li><i class="fas fa-id-card"></i> <span><strong>Verification:</strong> Payments are verified manually via ITS ID/Reference. This process takes 24-48 hours.</span></li>
+                    <li><i class="fas fa-arrow-up"></i> <span><strong>Upgrades:</strong> New plans will extend your current expiry date and update limits instantly upon approval.</span></li>
+                    <li><i class="fas fa-exclamation-triangle"></i> <span><strong>No Downgrades:</strong> Once confirmed, you cannot switch to a lower plan until this term expires.</span></li>
+                    <li><i class="fas fa-receipt"></i> <span><strong>Accuracy:</strong> Ensure your payment proof is clear. Incorrect details will result in rejection.</span></li>
+                </ul>
+                <div class="form-check mt-4 p-3 bg-light rounded">
+                    <input class="form-check-input ms-0 me-2" type="checkbox" id="agreeCheckbox">
+                    <label class="form-check-label small fw-bold" for="agreeCheckbox">I agree to the terms and wish to proceed.</label>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="proceedBtn" class="btn btn-primary px-4 disabled" onclick="redirectToRegister()">Proceed</button>
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        // Smooth reveal of cards
-        const observerOptions = { threshold: 0.1 };
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = "1";
-                    entry.target.style.transform = "translateY(0)";
-                }
-            });
-        }, observerOptions);
+        let selectedTierId = null;
+        const modal = new bootstrap.Modal(document.getElementById('disclaimerModal'));
+        const proceedBtn = document.getElementById('proceedBtn');
+        const checkbox = document.getElementById('agreeCheckbox');
 
+        function openDisclaimer(tierId, tierName) {
+            selectedTierId = tierId;
+            document.getElementById('modalTierName').innerText = tierName;
+            checkbox.checked = false;
+            proceedBtn.classList.add('disabled');
+            modal.show();
+        }
+
+        checkbox.addEventListener('change', function() {
+            if (this.checked) proceedBtn.classList.remove('disabled');
+            else proceedBtn.classList.add('disabled');
+        });
+
+        function redirectToRegister() {
+            if (selectedTierId) {
+                window.location.href = `@Url.Action("Register", "Subscription")?tierId=${selectedTierId}`;
+            }
+        }
+
+        // Smooth reveal animation
         document.querySelectorAll('.pricing-card').forEach(card => {
             card.style.opacity = "0";
             card.style.transform = "translateY(20px)";
             card.style.transition = "all 0.6s ease-out";
-            observer.observe(card);
+            setTimeout(() => {
+                card.style.opacity = "1";
+                card.style.transform = "translateY(0)";
+            }, 100);
         });
     </script>
 }

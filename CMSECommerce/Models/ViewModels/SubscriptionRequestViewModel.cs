@@ -26,6 +26,9 @@ namespace CMSECommerce.Models.ViewModels
 
         // Optional: Helpful for displaying existing status if they revisit
         public string? StatusMessage { get; set; }
+
+        // Add this line
+        public bool IsUpgrade { get; set; }
     }
 }
 
