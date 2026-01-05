@@ -4,40 +4,64 @@
     ViewData["Title"] = "My Subscription Status";
     ViewData["HideLayoutSidebar"] = true;
 
-    // Explicitly cast the profile from ViewBag
     var profile = (CMSECommerce.Models.UserProfile)ViewBag.UserProfile;
 
-    // ARCHITECTURAL TRUTH: A subscription is active only if the profile says so
-    // and the date hasn't passed.
     bool hasActiveSub = profile != null &&
                         profile.SubscriptionEndDate.HasValue &&
                         profile.SubscriptionEndDate.Value > DateTime.Now &&
                         profile.CurrentTierId.HasValue;
 
-    // Find the specific request object that matches the current active tier for receipt/details
     var latestActiveRequest = Model?.OrderByDescending(r => r.CreatedAt)
                                    .FirstOrDefault(r => r.Status == RequestStatus.Approved &&
                                                         r.TierId == profile?.CurrentTierId);
 
-    // Sorting logic: Approved first, then Pending, then Rejected/Others
     var fullSortedList = Model?.OrderBy(r => r.Status == RequestStatus.Approved ? 0 :
                                              r.Status == RequestStatus.Pending ? 1 : 2)
-                                .ThenByDescending(r => r.CreatedAt).ToList() ?? new List<CMSECommerce.Models.SubscriptionRequest>();
+                                 .ThenByDescending(r => r.CreatedAt).ToList() ?? new List<CMSECommerce.Models.SubscriptionRequest>();
 
-    // We only show the latest 5 for a clean UI
     var displayRequests = fullSortedList.Take(5).ToList();
 
     bool hasPendingRequest = Model != null && Model.Any(r => r.Status == RequestStatus.Pending);
+    var currentPending = Model?.FirstOrDefault(r => r.Status == RequestStatus.Pending);
 
-    // Logic: Users can request a new tier if they don't have a request currently "In Review"
     bool canRequestNew = !hasPendingRequest;
 }
-
-
 
 <div class="container py-4 small-text-ui">
     <div class="row justify-content-center">
         <div class="col-md-11">
+
+            @* --- NEW SECTION: PENDING PROGRESS TRACKER --- *@
+            @if (hasPendingRequest && currentPending != null)
+            {
+                <div class="card shadow-sm border-0 mb-4 animate-fade-in" style="border-radius: 15px;">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="spinner-grow spinner-grow-sm text-warning me-2" role="status"></div>
+                            <h6 class="fw-bold mb-0">Verification in Progress: @currentPending.Tier.Name</h6>
+                        </div>
+                        <div class="progress-tracker d-flex justify-content-between position-relative">
+                            <div class="step-item completed">
+                                <div class="step-icon"><i class="fas fa-file-upload"></i></div>
+                                <div class="step-label">Submitted</div>
+                            </div>
+                            <div class="step-item active">
+                                <div class="step-icon"><i class="fas fa-search-dollar"></i></div>
+                                <div class="step-label">Reviewing</div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-icon"><i class="fas fa-check-double"></i></div>
+                                <div class="step-label">Activation</div>
+                            </div>
+                            <div class="progress-line"></div>
+                        </div>
+                        <p class="text-muted mt-3 mb-0 text-center" style="font-size: 0.75rem;">
+                            Our team is currently verifying your ITS ID: <strong>@currentPending.ItsNumber</strong>.
+                            Expect activation within 24-48 hours.
+                        </p>
+                    </div>
+                </div>
+            }
 
             @* --- SECTION 1: ACTIVE SUBSCRIPTION COMPACT CARD --- *@
             @if (hasActiveSub && profile.CurrentTier != null)
@@ -214,6 +238,67 @@
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
+        /* Progress Tracker Styles */
+        .progress-tracker {
+            margin: 20px 40px;
+        }
+
+        .step-item {
+            z-index: 2;
+            text-align: center;
+            position: relative;
+        }
+
+        .step-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .step-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+
+        .step-item.completed .step-icon {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .step-item.completed .step-label {
+            color: #15803d;
+        }
+
+        .step-item.active .step-icon {
+            background: var(--primary-blue);
+            color: white;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        }
+
+        .step-item.active .step-label {
+            color: var(--primary-blue);
+        }
+
+        .progress-line {
+            position: absolute;
+            top: 17px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #e2e8f0;
+            z-index: 1;
+        }
+
         .small-text-ui {
             font-size: 0.85rem;
         }
@@ -325,7 +410,6 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // Check for pending requests and refresh status automatically
             if ($('.subscription-request[data-status="Pending"]').length > 0) {
                 setInterval(function () {
                     $.getJSON('/Subscription/GetLatestStatuses', function (data) {

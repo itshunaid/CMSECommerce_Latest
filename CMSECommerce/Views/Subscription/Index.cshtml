@@ -21,6 +21,7 @@
             --white: #ffffff;
             --success: #38a169;
             --warning: #d97706;
+            --info: #3182ce;
         }
 
         body {
@@ -29,7 +30,7 @@
         }
 
         .pricing-container {
-            max-width: 1100px;
+            max-width: 1300px;
             margin: 0 auto;
         }
 
@@ -61,7 +62,7 @@
             background: var(--white);
             border: 1px solid #e2e8f0;
             border-radius: 24px;
-            padding: 2.5rem 2rem;
+            padding: 2rem 1.25rem;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
             flex-direction: column;
@@ -77,6 +78,7 @@
 
             .pricing-card.premium {
                 border: 2px solid var(--primary-color);
+                background: linear-gradient(to bottom, #ffffff, #f0f4ff);
             }
 
             .pricing-card.current {
@@ -95,6 +97,8 @@
             font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
+            white-space: nowrap;
+            z-index: 10;
         }
 
         .premium-label {
@@ -110,25 +114,25 @@
             font-weight: 700;
             color: var(--primary-color);
             text-transform: uppercase;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
             display: block;
         }
 
         .plan-price {
-            font-size: 3rem;
+            font-size: 2.25rem;
             font-weight: 800;
             color: var(--text-dark);
             margin-bottom: 0.5rem;
         }
 
             .plan-price span {
-                font-size: 1rem;
+                font-size: 0.9rem;
                 font-weight: 500;
                 color: var(--text-light);
             }
 
         .feature-list {
-            margin: 2rem 0;
+            margin: 1.5rem 0;
             padding: 0;
             list-style: none;
             flex-grow: 1;
@@ -136,35 +140,47 @@
 
         .feature-item {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 0.75rem;
-            margin-bottom: 1rem;
-            font-size: 0.95rem;
+            margin-bottom: 0.85rem;
+            font-size: 0.88rem;
             color: #4a5568;
+            line-height: 1.4;
         }
 
             .feature-item i {
                 color: var(--success);
                 font-size: 1rem;
+                margin-top: 2px;
+                flex-shrink: 0;
             }
 
             .feature-item.locked {
                 color: #a0aec0;
             }
 
+                .feature-item.locked i {
+                    color: #cbd5e0;
+                }
+
         .btn-upgrade {
             background: var(--primary-gradient);
             color: white;
             font-weight: 700;
-            padding: 1rem;
+            padding: 0.85rem;
             border-radius: 12px;
             text-align: center;
             text-decoration: none;
-            transition: opacity 0.2s;
+            transition: all 0.2s;
             border: none;
             cursor: pointer;
             width: 100%;
         }
+
+            .btn-upgrade:hover {
+                opacity: 0.95;
+                color: white;
+            }
 
         .btn-outline {
             background: transparent;
@@ -183,7 +199,7 @@
             color: white;
         }
 
-        /* Modal Styling */
+        /* Enhanced Modal Styling */
         .modal-content {
             border-radius: 20px;
             border: none;
@@ -198,14 +214,33 @@
                 margin-bottom: 12px;
                 display: flex;
                 gap: 10px;
-                font-size: 0.9rem;
+                font-size: 0.88rem;
                 color: #4a5568;
+                line-height: 1.5;
             }
 
             .disclaimer-list i {
                 color: var(--primary-color);
                 margin-top: 4px;
+                flex-shrink: 0;
             }
+
+        .legal-footer-links {
+            font-size: 0.75rem;
+            color: #718096;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+            .legal-footer-links a {
+                color: var(--primary-color);
+                text-decoration: none;
+                font-weight: 600;
+            }
+
+                .legal-footer-links a:hover {
+                    text-decoration: underline;
+                }
     </style>
 }
 
@@ -227,12 +262,15 @@
     <div class="row g-4 justify-content-center">
         @foreach (var tier in Model.OrderBy(t => t.Id))
         {
+            bool isTrial = tier.Name.Contains("Trial", StringComparison.OrdinalIgnoreCase);
+            bool isBasic = tier.Name.Contains("Basic", StringComparison.OrdinalIgnoreCase);
+            bool isAdvance = tier.Name.Contains("Advance", StringComparison.OrdinalIgnoreCase);
             bool isPremium = tier.Name.Contains("Premium", StringComparison.OrdinalIgnoreCase);
-            bool isIntermediate = tier.Name.Contains("Intermediate", StringComparison.OrdinalIgnoreCase);
+
             bool isCurrentTier = currentTierId == tier.Id;
             bool isDowngrade = currentTierId != null && tier.Id < currentTierId;
 
-            <div class="col-lg-4 col-md-6">
+            <div class="col-xl-3 col-lg-4 col-md-6">
                 <div class="pricing-card @(isPremium ? "premium" : "") @(isCurrentTier ? "current" : "")">
 
                     @if (isCurrentTier)
@@ -241,18 +279,47 @@
                     }
                     else if (isPremium)
                     {
-
-                        <div class="premium-label">Recommended</div>
+                        <div class="premium-label">Best Value</div>
                     }
 
                     <span class="plan-name">@tier.Name</span>
-                    <div class="plan-price">₹@tier.Price.ToString("N0")<span>/@tier.DurationMonths months</span></div>
+                    <div class="plan-price">₹@tier.Price.ToString("N0")<span>/@(tier.DurationMonths == 1 ? "1 month" : tier.DurationMonths + " months")</span></div>
 
                     <ul class="feature-list">
-                        <li class="feature-item"><i class="fas fa-check-circle"></i> <strong>@tier.ProductLimit Listings</strong></li>
+                        <li class="feature-item"><i class="fas fa-check-circle"></i> <strong>@tier.ProductLimit Products</strong></li>
                         <li class="feature-item"><i class="fas fa-check-circle"></i> Personal Store Page</li>
-                        <li class="feature-item"><i class="fas fa-bolt"></i> <span>@(isPremium ? "Peak Hours Daily" : (isIntermediate ? "Alternate Days" : "Twice a week"))</span></li>
-                        <li class="feature-item @((isIntermediate || isPremium) ? "" : "locked")"><i class="fas @((isIntermediate || isPremium) ? "fa-book" : "fa-lock")"></i> Business Dictionary</li>
+                        <li class="feature-item"><i class="fas fa-check-circle"></i> Seller Dashboard</li>
+                        <li class="feature-item">
+                            <i class="fas fa-bolt"></i>
+                            <span>@(isPremium ? "Peak Hours Daily" : "Twice a week") front page display</span>
+                        </li>
+                        <li class="feature-item @(isAdvance || isPremium ? "" : "locked")">
+                            <i class="fas @(isAdvance || isPremium ? "fa-star" : "fa-lock")"></i>
+                            <span>Recommended Slider @(isPremium ? "(Peak Hours Daily)" : isAdvance ? "(Twice a week)" : "")</span>
+                        </li>
+                        <li class="feature-item @(isTrial ? "locked" : "")">
+                            <i class="fas @(isTrial ? "fa-lock" : "fa-book")"></i>
+                            <span>Seller Dictionary (B2B)</span>
+                        </li>
+                        <li class="feature-item @(isAdvance || isPremium ? "" : "locked")">
+                            <i class="fas @(isAdvance || isPremium ? "fa-bell" : "fa-lock")"></i>
+                            <span>
+                                @if (isPremium)
+                                {
+                                    <text>Spontaneous new product alerts</text>
+                                }
+                                else if (isAdvance)
+                                {
+
+                                    <text>Alerts within 24 hours</text>
+                                }
+                                else
+                                {
+
+                                    <text>Customer notifications</text>
+                                }
+                            </span>
+                        </li>
                     </ul>
 
                     @if (hasPendingRequest)
@@ -280,29 +347,40 @@
     </div>
 </div>
 
-<div class="modal fade" id="disclaimerModal" tabindex="-1" aria-hidden="true">
+@* Enhanced Disclaimer Modal with Legal Links *@
+<div class="modal fade" id="disclaimerModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold">Plan Confirmation</h5>
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-shield-alt text-primary me-2"></i>Subscription Agreement</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted small">Before applying for the <strong id="modalTierName" class="text-primary"></strong> plan, please acknowledge the following:</p>
+                <p class="text-muted small">By subscribing to the <strong id="modalTierName" class="text-primary"></strong> plan, you acknowledge the following terms:</p>
                 <ul class="disclaimer-list">
-                    <li><i class="fas fa-id-card"></i> <span><strong>Verification:</strong> Payments are verified manually via ITS ID/Reference. This process takes 24-48 hours.</span></li>
-                    <li><i class="fas fa-arrow-up"></i> <span><strong>Upgrades:</strong> New plans will extend your current expiry date and update limits instantly upon approval.</span></li>
-                    <li><i class="fas fa-exclamation-triangle"></i> <span><strong>No Downgrades:</strong> Once confirmed, you cannot switch to a lower plan until this term expires.</span></li>
-                    <li><i class="fas fa-receipt"></i> <span><strong>Accuracy:</strong> Ensure your payment proof is clear. Incorrect details will result in rejection.</span></li>
+                    <li><i class="fas fa-history"></i> <span><strong>Verification:</strong> Manual ITS ID/Reference verification takes 24-48 working hours.</span></li>
+                    <li><i class="fas fa-ban"></i> <span><strong>No-Refund Policy:</strong> All subscription payments are final and non-refundable.</span></li>
+                    <li><i class="fas fa-layer-group"></i> <span><strong>Upgrade/Downgrade:</strong> Upgrades apply instantly; downgrades are only possible after expiry.</span></li>
+                    <li><i class="fas fa-camera"></i> <span><strong>Payment Proof:</strong> You must upload a clear screenshot of the payment receipt.</span></li>
+                    <li><i class="fas fa-user-shield"></i> <span><strong>Usage Policy:</strong> Account sharing or scraping B2B data results in suspension.</span></li>
                 </ul>
-                <div class="form-check mt-4 p-3 bg-light rounded">
-                    <input class="form-check-input ms-0 me-2" type="checkbox" id="agreeCheckbox">
-                    <label class="form-check-label small fw-bold" for="agreeCheckbox">I agree to the terms and wish to proceed.</label>
+
+                <div class="form-check mt-4 p-3 bg-light rounded border">
+                    <input class="form-check-input ms-0 me-2" type="checkbox" id="agreeCheckbox" style="cursor:pointer">
+                    <label class="form-check-label small fw-bold text-dark" for="agreeCheckbox" style="cursor:pointer">
+                        I agree to the terms and the legal policies listed below.
+                    </label>
+                </div>
+
+                <div class="legal-footer-links">
+                    By proceeding, you agree to our
+                    <a href="/Subscription/Terms" target="_blank">Terms of Service</a> &
+                    <a href="/Subscription/Privacy" target="_blank">Privacy Policy</a>
                 </div>
             </div>
             <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" id="proceedBtn" class="btn btn-primary px-4 disabled" onclick="redirectToRegister()">Proceed</button>
+                <button type="button" class="btn btn-light btn-sm text-muted" data-bs-dismiss="modal">Decline</button>
+                <button type="button" id="proceedBtn" class="btn btn-primary px-4 disabled" onclick="redirectToRegister()">Accept & Proceed</button>
             </div>
         </div>
     </div>
@@ -329,20 +407,19 @@
         });
 
         function redirectToRegister() {
-            if (selectedTierId) {
+            if (selectedTierId && checkbox.checked) {
                 window.location.href = `@Url.Action("Register", "Subscription")?tierId=${selectedTierId}`;
             }
         }
 
-        // Smooth reveal animation
-        document.querySelectorAll('.pricing-card').forEach(card => {
+        document.querySelectorAll('.pricing-card').forEach((card, index) => {
             card.style.opacity = "0";
             card.style.transform = "translateY(20px)";
-            card.style.transition = "all 0.6s ease-out";
+            card.style.transition = "all 0.5s ease-out";
             setTimeout(() => {
                 card.style.opacity = "1";
                 card.style.transform = "translateY(0)";
-            }, 100);
+            }, 100 * index);
         });
     </script>
 }

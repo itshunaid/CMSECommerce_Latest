@@ -2,16 +2,30 @@
 @{
     ViewData["Title"] = "User Subscription Details";
     var history = ViewBag.History as IEnumerable<CMSECommerce.Models.SubscriptionRequest>;
-    var totalSpent = ViewBag.TotalSpent;
+    var totalSpent = ViewBag.TotalSpent ?? 0m;
     ViewData["HideLayoutSidebar"] = true;
 }
 
 @section Styles {
     <style>
+        :root {
+            --navy-blue: #1e293b;
+            --primary-blue: #2563eb;
+            --success-green: #48bb78;
+            --warning-orange: #ed8936;
+            --danger-red: #f56565;
+        }
+
+        body {
+            background-color: #f8fafc;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
         .detail-card {
             border: none;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            background: white;
         }
 
         .stat-label {
@@ -19,6 +33,7 @@
             text-transform: uppercase;
             color: #718096;
             font-weight: 700;
+            letter-spacing: 0.5px;
         }
 
         .stat-value {
@@ -27,11 +42,16 @@
             color: #2d3748;
         }
 
+        .text-xs {
+            font-size: 0.75rem;
+        }
+
         /* Timeline UI */
         .timeline {
             position: relative;
             padding: 20px 0;
             list-style: none;
+            margin-bottom: 0;
         }
 
             .timeline:before {
@@ -46,9 +66,13 @@
 
         .timeline-item {
             position: relative;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             padding-left: 50px;
         }
+
+            .timeline-item:last-child {
+                margin-bottom: 0;
+            }
 
         .timeline-marker {
             position: absolute;
@@ -58,96 +82,168 @@
             border-radius: 50%;
             background: #cbd5e0;
             border: 3px solid #fff;
+            z-index: 2;
         }
 
+        /* Using dynamic status classes from your RequestStatus Enum */
         .status-Approved {
-            background: #48bb78;
+            background: var(--success-green) !important;
+            box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.2);
         }
 
         .status-Pending {
-            background: #ed8936;
+            background: var(--warning-orange) !important;
+            box-shadow: 0 0 0 3px rgba(237, 137, 54, 0.2);
         }
 
         .status-Rejected {
-            background: #f56565;
+            background: var(--danger-red) !important;
+            box-shadow: 0 0 0 3px rgba(245, 101, 101, 0.2);
+        }
+
+        .badge-status {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        hr {
+            margin: 1rem 0;
+            opacity: 0.1;
         }
     </style>
 }
 
 <div class="container py-4">
+    @* --- HEADER SECTION --- *@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <a asp-action="AdminDashboard" class="btn btn-sm btn-outline-secondary mb-2">
-                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
             </a>
-            <h2 class="h4 fw-bold">User Portfolio: @Model.User.UserName</h2>
+            <h2 class="h4 fw-bold mb-0">User Portfolio: @(Model.User?.UserName ?? "Unknown User")</h2>
         </div>
         <div class="text-end">
-            <span class="badge @(Model.SubscriptionEndDate > DateTime.Now ? "bg-success" : "bg-secondary") py-2 px-3">
-                @(Model.SubscriptionEndDate > DateTime.Now ? "ACTIVE SUBSCRIBER" : "INACTIVE")
-            </span>
+            @if (Model.SubscriptionEndDate.HasValue && Model.SubscriptionEndDate > DateTime.Now)
+            {
+                <span class="badge bg-success py-2 px-3 shadow-sm" style="border-radius: 50px;">
+                    <i class="fas fa-check-circle me-1"></i> ACTIVE SUBSCRIBER
+                </span>
+            }
+            else
+            {
+                <span class="badge bg-secondary py-2 px-3 shadow-sm" style="border-radius: 50px;">
+                    <i class="fas fa-times-circle me-1"></i> INACTIVE
+                </span>
+            }
         </div>
     </div>
 
     <div class="row g-4">
+        @* --- LEFT COLUMN: STATS --- *@
         <div class="col-md-4">
             <div class="card detail-card p-4 mb-4">
                 <div class="stat-label">Total Contribution</div>
-                @* Updated to Indian Rupee Symbol and Formatting *@
                 <div class="stat-value text-primary">₹@string.Format("{0:N2}", totalSpent)</div>
+
                 <hr>
+
                 <div class="stat-label">Current Plan</div>
-                <div class="stat-value">@(Model.CurrentTierId.HasValue ? $"Tier {Model.CurrentTierId}" : "No Active Tier")</div>
+                <div class="stat-value">
+                    @if (Model.CurrentTier != null)
+                    {
+                        <span class="text-navy"><i class="fas fa-crown text-warning me-2"></i>@Model.CurrentTier.Name</span>
+                    }
+                    else if (Model.CurrentTierId.HasValue)
+                    {
+                        <span>Tier @Model.CurrentTierId</span>
+                    }
+                    else
+                    {
+                        <span class="text-muted fw-normal">No Active Tier</span>
+                    }
+                </div>
+
                 <hr>
+
                 <div class="stat-label">Expiry Date</div>
-                <div class="stat-value text-danger">@(Model.SubscriptionEndDate?.ToString("MMM dd, yyyy") ?? "N/A")</div>
+                <div class="stat-value @(Model.SubscriptionEndDate < DateTime.Now ? "text-danger" : "text-dark")">
+                    <i class="far fa-calendar-alt me-2 opacity-50"></i>
+                    @(Model.SubscriptionEndDate?.ToString("MMM dd, yyyy") ?? "N/A")
+                </div>
             </div>
 
             <div class="card detail-card p-4">
-                <h6 class="fw-bold mb-3">Identity Details</h6>
-                <div class="mb-2">
+                <h6 class="fw-bold mb-3"><i class="fas fa-id-card me-2 text-muted"></i>Identity Details</h6>
+                <div class="mb-3">
                     <div class="stat-label">ITS Number</div>
-                    <div class="fw-bold">@history.FirstOrDefault()?.ItsNumber</div>
+                    <div class="fw-bold">
+                        @(history?.OrderByDescending(h => h.CreatedAt).FirstOrDefault()?.ItsNumber ?? "Not Provided")
+                    </div>
                 </div>
                 <div>
-                    <div class="stat-label">User ID</div>
-                    <code class="text-xs">@Model.UserId</code>
+                    <div class="stat-label">Internal User ID</div>
+                    <code class="text-xs bg-light p-1 rounded">@Model.UserId</code>
                 </div>
             </div>
         </div>
 
+        @* --- RIGHT COLUMN: TIMELINE --- *@
         <div class="col-md-8">
             <div class="card detail-card p-4">
                 <h6 class="fw-bold mb-4"><i class="fas fa-history me-2 text-muted"></i>Subscription Timeline</h6>
 
                 <ul class="timeline">
-                    @foreach (var req in history)
+                    @if (history != null && history.Any())
                     {
-                        <li class="timeline-item">
-                            <div class="timeline-marker status-@req.Status"></div>
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <span class="fw-bold">@req.Tier.Name Plan</span>
-                                    @if (req.IsUpgrade)
-                                    {
-                                        <span class="badge bg-info text-white ms-1" style="font-size:0.6rem;">UPGRADE</span>
-                                    }
-                                    <div class="text-xs text-muted">Submitted on @req.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")</div>
+                        foreach (var req in history.OrderByDescending(r => r.CreatedAt))
+                        {
+                            <li class="timeline-item">
+                                <div class="timeline-marker status-@req.Status"></div>
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <span class="fw-bold text-dark">@req.Tier.Name Plan</span>
+                                        @if (req.IsUpgrade)
+                                        {
+                                            <span class="badge bg-info text-white ms-1" style="font-size:0.6rem; vertical-align: middle;">UPGRADE</span>
+                                        }
+                                        <div class="text-xs text-muted mt-1">
+                                            <i class="far fa-clock me-1"></i>Submitted @req.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold @(req.Status == RequestStatus.Approved ? "text-success" : (req.Status == RequestStatus.Pending ? "text-warning" : "text-danger"))" style="font-size: 0.8rem;">
+                                            @req.Status.ToString().ToUpper()
+                                        </div>
+                                        @if (req.Status == RequestStatus.Approved)
+                                        {
+                                            <div class="text-xs text-success fw-bold">+₹@string.Format("{0:N2}", req.Tier.Price)</div>
+                                        }
+                                    </div>
                                 </div>
-                                <div class="text-end">
-                                    <div class="badge-status @(req.Status == RequestStatus.Approved ? "text-success" : "text-danger") fw-bold">@req.Status</div>
-                                    @if (req.Status == RequestStatus.Approved)
-                                    {
-                                        @* Updated to Indian Rupee Symbol *@
-                                        <div class="text-xs text-success">+₹@string.Format("{0:N2}", req.Tier.Price)</div>
-                                    }
-                                </div>
-                            </div>
-                            @if (!string.IsNullOrEmpty(req.RejectionReason))
-                            {
-                                <div class="alert alert-danger py-1 px-2 mt-2 text-xs">Reason: @req.RejectionReason</div>
-                            }
-                        </li>
+
+                                @if (!string.IsNullOrEmpty(req.RejectionReason))
+                                {
+                                    <div class="alert alert-danger py-2 px-3 mt-2 mb-0 text-xs border-0 shadow-sm">
+                                        <strong>Rejection Reason:</strong> @req.RejectionReason
+                                    </div>
+                                }
+
+                                @if (req.Status == RequestStatus.Pending)
+                                {
+                                    <div class="mt-2">
+                                        <a asp-action="ReviewRequest" asp-route-id="@req.Id" class="btn btn-xs btn-primary py-0" style="font-size: 0.7rem;">Review Now</a>
+                                    </div>
+                                }
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-folder-open fa-3x text-light mb-3"></i>
+                            <p class="text-muted">No subscription history found for this user.</p>
+                        </div>
                     }
                 </ul>
             </div>

@@ -240,39 +240,44 @@ namespace CMSECommerce.Controllers
             var user = await _userManager.FindByIdAsync(request.UserId);
             if (user == null) return BadRequest("User not found.");
 
-            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+            var profile = await _context.UserProfiles
+                .Include(p => p.CurrentTier) // Include current tier to get the name
+                .FirstOrDefaultAsync(p => p.UserId == user.Id);
             if (profile == null) return BadRequest("User profile missing.");
 
-            // Safety check: Ensure profile hasn't been deactivated
+            // Safety check
             if (user.LockoutEnabled && await _userManager.IsLockedOutAsync(user))
                 return BadRequest("User is currently deactivated/locked.");
 
-            // 2. Identify Tier context
+            // 2. Identify Tier context & Capture Old Plan Name for the UI
             int currentTierId = profile.CurrentTierId ?? 0;
             int requestedTierId = request.TierId;
+            string oldPlanName = profile.CurrentTier?.Name ?? "No Active Plan";
 
-            // 3. Downgrade Check
+            // 3. Upgrade Detection Logic
+            // Force IsUpgrade to true if requested tier is higher than current
+            if (requestedTierId > currentTierId && currentTierId != 0)
+            {
+                request.IsUpgrade = true;
+            }
+
+            // 4. Downgrade Check
             if (requestedTierId < currentTierId && currentTierId != 0)
             {
                 string reason = $"Downgrade not permitted. Active Tier: {currentTierId}, Requested: {requestedTierId}.";
-                // Assuming Reject is a local method or logic to set status to Rejected
                 return await Reject(requestId, reason);
             }
 
-            // 4. Calculate Date Baseline (Stacking Logic)
-            // If current subscription is still active, start the new duration from the end of the old one.
+            // 5. Calculate Date Baseline (Stacking Logic)
             DateTime baseline = (profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate.Value > DateTime.Now)
                                 ? profile.SubscriptionEndDate.Value
                                 : DateTime.Now;
 
-            // 5. Upgrade or Renewal Logic
-            // We update the limit and tier ID regardless if it's an upgrade or same-tier renewal
+            // 6. Update Profile
             profile.SubscriptionEndDate = baseline.AddMonths(request.Tier.DurationMonths);
             profile.CurrentProductLimit = request.Tier.ProductLimit;
             profile.CurrentTierId = requestedTierId;
 
-            // 6. Handle New Subscription Start Date
-            // If they never had a sub or it was expired, set the start date to today
             if (!profile.SubscriptionStartDate.HasValue || profile.SubscriptionEndDate.Value.AddMonths(-request.Tier.DurationMonths) < DateTime.Now)
             {
                 profile.SubscriptionStartDate = DateTime.Now;
@@ -285,17 +290,20 @@ namespace CMSECommerce.Controllers
                 await _userManager.AddToRoleAsync(user, "Subscriber");
             }
 
-            // Update Request Status and Save
+            // 8. Update Request Status and Save
             request.Status = RequestStatus.Approved;
-            _context.UserProfiles.Update(profile);
+
+            // Persist changes to both entities
             _context.SubscriptionRequests.Update(request);
+            _context.UserProfiles.Update(profile);
 
             await _context.SaveChangesAsync();
-
-            // Force user security refresh (re-logs them to update claims/roles)
             await _userManager.UpdateSecurityStampAsync(user);
 
-            TempData["Success"] = $"Plan '{request.Tier.Name}' Approved! New expiry: {profile.SubscriptionEndDate?.ToString("dd MMM yyyy")}";
+            // 9. Enhanced Success Message showing the transition
+            string upgradeNote = request.IsUpgrade ? $" (Upgraded from {oldPlanName})" : "";
+            TempData["Success"] = $"Plan '{request.Tier.Name}' Approved!{upgradeNote} New expiry: {profile.SubscriptionEndDate?.ToString("dd MMM yyyy")}";
+
             return RedirectToAction(nameof(AdminDashboard));
         }
 
@@ -363,6 +371,7 @@ namespace CMSECommerce.Controllers
 
             // 4. Reset Request Status back to Pending
             request.Status = RequestStatus.Pending;
+            // We keep IsUpgrade as true if it was an upgrade, so it stays highlighted when pending again
 
             _context.UserProfiles.Update(profile);
             _context.SubscriptionRequests.Update(request);
@@ -372,6 +381,8 @@ namespace CMSECommerce.Controllers
             TempData["Warning"] = "Approval Reverted. Limits and Tier have been reset to previous values.";
             return RedirectToAction(nameof(AdminDashboard));
         }
+
+        
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
@@ -642,7 +653,8 @@ namespace CMSECommerce.Controllers
             return View(profile);
         }
 
-
+        public IActionResult Terms() => View();
+        public IActionResult Privacy() => View();
     }
 }
 

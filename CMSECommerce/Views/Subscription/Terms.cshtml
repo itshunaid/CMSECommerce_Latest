@@ -1,0 +1,85 @@
+﻿@{
+    ViewData["Title"] = "Terms of Service";
+    ViewData["HideLayoutSidebar"] = true;
+}
+
+<style>
+    :root {
+        --primary-color: #21409a;
+        --bg-light: #f7fafc;
+        --text-dark: #1a202c;
+        --text-muted: #4a5568;
+    }
+
+    body {
+        background-color: var(--bg-light);
+        font-family: 'Inter', sans-serif;
+        color: var(--text-dark);
+    }
+
+    .legal-container {
+        max-width: 900px;
+        margin: 4rem auto;
+        background: white;
+        padding: 3rem;
+        border-radius: 24px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    }
+
+    h1 {
+        color: var(--primary-color);
+        font-weight: 800;
+        margin-bottom: 2rem;
+    }
+
+    h3 {
+        font-weight: 700;
+        margin-top: 2rem;
+        color: var(--text-dark);
+        border-left: 4px solid var(--primary-color);
+        padding-left: 15px;
+    }
+
+    p, li {
+        color: var(--text-muted);
+        line-height: 1.7;
+        margin-bottom: 1rem;
+    }
+
+    .last-updated {
+        font-size: 0.85rem;
+        color: #a0aec0;
+        margin-bottom: 3rem;
+    }
+</style>
+
+<div class="container legal-container">
+    <div class="text-center">
+        <h1>Terms of Service</h1>
+        <p class="last-updated">Last Updated: January 2026</p>
+    </div>
+
+    <section>
+        <h3>1. Acceptance of Agreement</h3>
+        <p>By registering as a seller and purchasing a subscription plan on Weypaari, you agree to comply with and be bound by the following terms. If you do not agree to these terms, you should not proceed with the subscription.</p>
+
+        <h3>2. Subscription & Payment</h3>
+        <ul>
+            <li><strong>Manual Activation:</strong> Payments are processed manually. Sellers must provide valid transaction IDs/ITS references. Verification can take 24–48 hours.</li>
+            <li><strong>Price Changes:</strong> Weypaari reserves the right to modify subscription fees; however, active subscriptions will not be affected until the next renewal cycle.</li>
+        </ul>
+
+        <h3>3. Seller Conduct & Content</h3>
+        <p>Sellers are responsible for the accuracy of their product listings. Weypaari prohibits the sale of illegal, counterfeit, or restricted items. Violation of this policy will result in immediate account termination without refund.</p>
+
+        <h3>4. Upgrade & Refund Policy</h3>
+        <p>Upgrades to higher tiers are permitted at any time to increase product limits. <strong>Strict No-Refund Policy:</strong> Once a payment is submitted and a plan is activated, no refunds will be provided for any reason, including account inactivity.</p>
+
+        <h3>5. Limitation of Liability</h3>
+        <p>Weypaari provides a platform for display and connection. We are not responsible for direct transactions between buyers and sellers or for the quality of items sold by independent sellers.</p>
+    </section>
+
+    <div class="mt-5 pt-4 border-top text-center">
+        <a href="@Url.Action("Index", "Subscription")" class="btn btn-outline-primary rounded-pill px-4">Back to Plans</a>
+    </div>
+</div>
