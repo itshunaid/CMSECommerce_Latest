@@ -71,8 +71,10 @@
                                         <p class="text-success small mb-1">In Stock</p>
                                     }
 
-                                    <div class="text-muted small mb-2">Sold by Local Seller</div>
-
+                                    @* Find the "Sold by" line and simplify it *@
+                                    <div class="text-muted small mb-2">
+                                        Sold by: <span class="fw-bold text-dark">@item.SellerName</span>
+                                    </div>
                                     <div class="d-flex align-items-center flex-wrap gap-2 mt-3">
                                         <form method="post" asp-action="UpdateQuantity" class="d-inline">
                                             <input type="hidden" name="id" value="@item.ProductId" />

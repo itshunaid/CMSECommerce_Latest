@@ -226,6 +226,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
         }
 
         // GET /seller/products/create
+        // GET /seller/products/create
         public IActionResult Create()
         {
             try
@@ -235,10 +236,9 @@ namespace CMSECommerce.Areas.Seller.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error preparing Create View for seller {User}.", _userManager.GetUserName(User));
-                TempData["Error"] = "Failed to load categories for product creation.";
-                ViewBag.Categories = new SelectList(new List<Category>());
-                return View();
+                _logger.LogError(ex, "Error loading Category list for Create View.");
+                TempData["Error"] = "System error: Could not load categories.";
+                return RedirectToAction("Index");
             }
         }
 
@@ -247,111 +247,88 @@ namespace CMSECommerce.Areas.Seller.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Product product)
         {
-            // Retrieve user information early
             var userId = _userManager.GetUserId(User);
-            var userName = _userManager.GetUserName(User);
 
-            // Check if the seller has a valid profile AND include the Store relationship
+            // 1. Validate Profile and Subscription
             var profile = await _context.UserProfiles
                 .Include(p => p.Store)
                 .FirstOrDefaultAsync(p => p.UserId == userId);
 
-            // 0. Ensure profile and store exist
-            if (profile == null || profile.StoreId == 0)
+            if (profile?.Store == null)
             {
-                TempData["Error"] = "You must complete your profile and create a store before adding products.";
+                TempData["Error"] = "You must have an active store to add products.";
                 return RedirectToAction("Index", "UserProfiles");
             }
 
-            // 1. Check if Subscription has expired
             if (!profile.SubscriptionEndDate.HasValue || profile.SubscriptionEndDate.Value < DateTime.Now)
             {
-                ModelState.AddModelError("", "Your subscription has expired. Please renew to continue adding products.");
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
-                return View(product);
+                ModelState.AddModelError("", "Subscription expired. Please renew to continue.");
             }
 
-            // 2. Check Product Limit
+            // 2. Check Product Limits
             var currentProductCount = await _context.Products.CountAsync(p => p.UserId == userId);
-
             if (currentProductCount >= profile.CurrentProductLimit)
             {
-                ModelState.AddModelError("", $"You have reached your limit of {profile.CurrentProductLimit} products. Upgrade your plan to add more.");
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
-                return View(product);
+                ModelState.AddModelError("", $"Limit reached ({profile.CurrentProductLimit} products).");
             }
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    // Generate Slug
-                    product.Slug = product.Name.ToLower().Replace(" ", "-");
+                    // 3. Generate Unique Slug (Allows duplicate Names)
+                    string baseSlug = product.Name.ToLower().Trim().Replace(" ", "-");
+                    string uniqueSlug = baseSlug;
+                    int suffix = 1;
 
-                    // Check for slug duplication
-                    var slugExists = await _context.Products.AnyAsync(x => x.Slug == product.Slug);
-                    if (slugExists)
+                    // Loop to find a truly unique slug in the DB
+                    while (await _context.Products.AnyAsync(p => p.Slug == uniqueSlug))
                     {
-                        ModelState.AddModelError("Name", "That product name already exists!");
-                        ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
-                        return View(product);
+                        uniqueSlug = $"{baseSlug}-{suffix}";
+                        suffix++;
                     }
+                    product.Slug = uniqueSlug;
 
-                    // Handle Image Upload
-                    string imageName = "noimage.png";
-
+                    // 4. Handle Image Upload Safely
                     if (product.ImageUpload != null)
                     {
                         string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/products");
                         if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
 
-                        imageName = Guid.NewGuid().ToString() + "_" + product.ImageUpload.FileName;
-                        string filePath = Path.Combine(uploadsDir, imageName);
+                        string fileName = $"{Guid.NewGuid()}_{Path.GetFileName(product.ImageUpload.FileName)}";
+                        string filePath = Path.Combine(uploadsDir, fileName);
 
-                        await using (FileStream fs = new FileStream(filePath, FileMode.Create))
+                        using (var fs = new FileStream(filePath, FileMode.Create))
                         {
                             await product.ImageUpload.CopyToAsync(fs);
                         }
+                        product.Image = fileName;
                     }
-
-                    // --- CRITICAL CHANGES FOR STORE ASSOCIATION ---
-                    product.Image = imageName;
-                    product.Status = ProductStatus.Pending;
-                    product.UserId = userId;
-                    product.OwnerName = userName;
-
-                    // Assign the Store ID from the merchant's profile
-                    product.StoreId = profile.StoreId ?? 0;
-                    if (profile == null || profile.StoreId == 0 || profile.StoreId == null)
+                    else
                     {
-                        TempData["Error"] = "You must complete your profile and create a store before adding products.";
-                        return RedirectToAction("Index", "UserProfiles");
+                        product.Image = "noimage.png";
                     }
+
+                    // 5. Assign Ownership and Metadata
+                    product.UserId = userId;
+                    product.OwnerName = _userManager.GetUserName(User);
+                    product.StoreId = profile.StoreId ?? 0;
+                    product.Status = ProductStatus.Pending;
 
                     _context.Add(product);
                     await _context.SaveChangesAsync();
 
-                    TempData["Success"] = "The product has been added and is pending admin approval!";
+                    TempData["Success"] = "Product created successfully and is awaiting approval.";
                     return RedirectToAction("Index");
-                }
-                catch (DbUpdateException dbEx)
-                {
-                    _logger.LogError(dbEx, "Database error during product creation by seller {User}.", userName);
-                    ModelState.AddModelError("", "A database error occurred while saving the product.");
-                }
-                catch (IOException ioEx)
-                {
-                    _logger.LogError(ioEx, "File system error during image upload for product creation by seller {User}.", userName);
-                    ModelState.AddModelError("", "An error occurred while saving the product image.");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Unexpected error during product creation by seller {User}.", userName);
-                    ModelState.AddModelError("", "An unexpected error occurred.");
+                    _logger.LogError(ex, "Critical error creating product for user {UserId}", userId);
+                    ModelState.AddModelError("", "A server error occurred. Please try again.");
                 }
             }
 
-            // If we got this far, something failed, redisplay form
+            // Repopulate Categories if validation fails
             ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
             return View(product);
         }
