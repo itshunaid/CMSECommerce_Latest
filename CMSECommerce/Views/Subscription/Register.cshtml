@@ -54,6 +54,37 @@
         border-radius: 8px;
         color: #2c5282;
     }
+
+    /* Price Breakdown Styling */
+    .price-summary-box {
+        background-color: #f8fafc;
+        border: 1px dashed #cbd5e0;
+        border-radius: 8px;
+        padding: 15px;
+    }
+
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        font-size: 0.8rem;
+    }
+
+    .summary-total {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #e2e8f0;
+        font-weight: 800;
+        font-size: 0.95rem;
+        color: #1a202c;
+    }
+
+    .credit-text {
+        color: #38a169;
+        font-weight: 600;
+    }
 </style>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -79,23 +110,51 @@
                         <input type="hidden" asp-for="IsUpgrade" />
                         <input type="hidden" asp-for="TierName" />
                         <input type="hidden" asp-for="Price" />
+                        @* New fields for the adjustment logic *@
+                        <input type="hidden" asp-for="FinalAmount" />
+                        <input type="hidden" asp-for="CreditApplied" />
 
                         <div class="mb-3">
                             <label asp-for="ITSNumber" class="form-label fw-bold"></label>
-                            <input asp-for="ITSNumber" class="form-control form-control-sm-custom bg-light" readonly />
+                            <input asp-for="ITSNumber" class="form-control form-control-sm-custom bg-light" readonly />                            
                             <span asp-validation-for="ITSNumber" class="text-danger text-xs"></span>
+                        </div>
+                        <div class="mb-3">                           
+                            <label asp-for="FullName" class="form-label fw-bold"></label>
+                            <input asp-for="FullName" class="form-control form-control-sm-custom bg-light" readonly />
+                            <span asp-validation-for="FullName" class="text-danger text-xs"></span>
+                        </div>
+
+                        @* Fair Adjustment Summary Section *@
+                        <div class="price-summary-box mb-4">
+                            <label class="form-label fw-bold mb-2 d-block">Price Breakdown</label>
+
+                            <div class="summary-item">
+                                <span>New Plan Fee (@Model.TierName):</span>
+                                <span>₹@Model.Price.ToString("N0")</span>
+                            </div>
+
+                            @if (Model.IsUpgrade && Model.CreditApplied > 0)
+                            {
+                                <div class="summary-item credit-text">
+                                    <span>Credit (Unused Previous Plan):</span>
+                                    <span>- ₹@Model.CreditApplied.ToString("N0")</span>
+                                </div>
+                            }
+
+                            <div class="summary-total">
+                                <span>Total Amount to Pay:</span>
+                                <span>₹@Model.FinalAmount.ToString("N0")</span>
+                            </div>
                         </div>
 
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="form-label fw-bold mb-0">Payment Receipt</label>
-                                <span class="badge @(Model.IsUpgrade ? "bg-primary" : "bg-success")" style="font-size: 0.7rem;">
-                                    Amount Payable: ₹@Model.Price.ToString("N0")
-                                </span>
                             </div>
                             <input type="file" asp-for="Receipt" class="form-control form-control-sm-custom" accept="image/*" required />
-                            <div class="helper-text mt-1">
-                                <i class="fas fa-info-circle me-1"></i>Max size: 2MB (JPG or PNG)
+                            <div class="helper-text mt-2">
+                                <i class="fas fa-info-circle me-1"></i>Please upload a screenshot of your payment of <strong>₹@Model.FinalAmount.ToString("N0")</strong>.
                             </div>
                             <span asp-validation-for="Receipt" class="text-danger text-xs"></span>
                         </div>
@@ -104,11 +163,11 @@
                         @if (Model.IsUpgrade)
                         {
                             <div class="upgrade-alert p-3 mb-4 d-flex align-items-start gap-2">
-                                <i class="fas fa-info-circle mt-1"></i>
+                                <i class="fas fa-magic mt-1"></i>
                                 <div>
-                                    <strong class="d-block mb-1" style="font-size: 0.8rem;">Upgrade Information</strong>
+                                    <strong class="d-block mb-1" style="font-size: 0.8rem;">Fair Value Credit Applied</strong>
                                     <span class="helper-text" style="color: inherit;">
-                                        By upgrading, your existing subscription validity will be merged with the new plan duration and your product limits will increase immediately upon approval.
+                                        We have adjusted the cost by crediting the remaining value of your current plan. Your new <strong>@Model.TierName Subscription Plan</strong> will start immediately upon approval.
                                     </span>
                                 </div>
                             </div>
@@ -121,7 +180,7 @@
                                 <i class="fas fa-arrow-left me-1"></i> Back to Plans
                             </a>
                             <button type="submit" class="btn @(Model.IsUpgrade ? "btn-primary" : "btn-success") btn-action px-4 py-2 shadow-sm">
-                                @(Model.IsUpgrade ? "Confirm Upgrade" : "Submit Request")
+                                @(Model.IsUpgrade ? "Pay & Confirm" : "Submit Request")
                             </button>
                         </div>
                     </form>
@@ -147,7 +206,7 @@
             var successMessage = '@TempData["Success"]';
             var infoMessage = '@TempData["Info"]';
 
-            // Error handling (e.g., Downgrade attempts or session timeout)
+            // Error handling
             if (errorMessage) {
                 Swal.fire({
                     icon: 'error',
@@ -160,14 +219,14 @@
                 });
             }
 
-            // Information handling (e.g., trying to buy the same plan)
+            // Info handling
             if (infoMessage) {
                 Swal.fire({
                     icon: 'info',
-                    title: '<span style="font-size: 1.1rem">Already Subscribed</span>',
+                    title: '<span style="font-size: 1.1rem">Notice</span>',
                     html: '<span style="font-size: 0.85rem">' + infoMessage + '</span>',
                     confirmButtonColor: '#21409a',
-                    confirmButtonText: 'View My Status'
+                    confirmButtonText: 'Check Status'
                 }).then(() => {
                     window.location.href = '@Url.Action("Status", "Subscription")';
                 });
@@ -177,7 +236,7 @@
             if (successMessage) {
                 Swal.fire({
                     icon: 'success',
-                    title: '<span style="font-size: 1.1rem">Submitted Successfully</span>',
+                    title: '<span style="font-size: 1.1rem">Request Submitted</span>',
                     html: '<span style="font-size: 0.85rem">' + successMessage + '</span>',
                     confirmButtonColor: '#198754'
                 });
