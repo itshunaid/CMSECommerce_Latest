@@ -211,13 +211,24 @@ namespace CMSECommerce.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AdminDashboard()
         {
+            // 1. Fetch requests
             var requests = await _context.SubscriptionRequests
                 .Include(r => r.Tier)
-                // Join with UserProfile to see what they are currently on vs what they want
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
 
-            // Optional: Calculate stats for the View
+            // 2. Efficiently fetch all relevant profiles in ONE query
+            var userIds = requests.Select(r => r.UserId).Distinct().ToList();
+
+            var userProfiles = await _context.UserProfiles
+                .Include(r=> r.User) // Include User for easier access to username/email in the View
+                .Where(p => userIds.Contains(p.UserId))
+                .ToListAsync();
+
+            // 3. Store in ViewBag for the View to access
+            ViewBag.UserProfiles = userProfiles;
+
+            // 4. Stats
             ViewBag.PendingCount = requests.Count(r => r.Status == RequestStatus.Pending);
             ViewBag.UpgradeCount = requests.Count(r => r.IsUpgrade && r.Status == RequestStatus.Pending);
 

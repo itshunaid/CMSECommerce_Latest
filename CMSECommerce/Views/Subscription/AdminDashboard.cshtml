@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = "Subscription Admin";
     ViewData["HideLayoutSidebar"] = true;
+    // Retrieve profiles from ViewBag
+    var profiles = ViewBag.UserProfiles as List<UserProfile> ?? new List<UserProfile>();
 }
 
 @section Styles {
@@ -128,6 +130,12 @@
             justify-content: flex-end;
             gap: 4px;
         }
+
+        .user-name {
+            color: #2d3748;
+            display: block;
+            line-height: 1.2;
+        }
     </style>
 }
 
@@ -213,6 +221,7 @@
                     <tbody>
                         @foreach (var item in Model.OrderByDescending(r => r.CreatedAt))
                         {
+                            var userProfile = profiles.FirstOrDefault(p => p.UserId == item.UserId);
                             <tr class="request-row @(item.IsUpgrade ? "row-upgrade" : "")"
                                 data-its="@item.ItsNumber"
                                 data-status="@item.Status"
@@ -230,6 +239,15 @@
                                                 <span class="badge-upgrade ms-1" title="This request is a Tier Upgrade"><i class="fas fa-arrow-up me-1"></i>Upgrade</span>
                                             }
                                         </div>
+
+                                        @if (userProfile != null)
+                                        {
+                                            <div class="user-name fw-600 mt-1">@userProfile.FirstName @userProfile.LastName</div>                                            
+                                        }
+                                        else
+                                        {
+                                            <div class="text-danger text-xs">Profile Not Found</div>
+                                        }
 
                                         <a asp-action="UserDetails" asp-route-userId="@item.UserId" class="text-muted text-xs profile-link">
                                             <i class="fas fa-user-circle me-1"></i> View Profile & History
@@ -262,7 +280,6 @@
                                         }
                                         else
                                         {
-                                            @* Revert button is removed. Displaying a locked state for security/clarity. *@
                                             <span class="action-locked">
                                                 <i class="fas fa-lock"></i> Locked
                                             </span>

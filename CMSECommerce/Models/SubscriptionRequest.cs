@@ -14,5 +14,7 @@
 
         public virtual SubscriptionTier Tier { get; set; }
         public bool IsUpgrade { get; set; }
+
+        
     }
 }
