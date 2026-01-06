@@ -20,7 +20,7 @@ namespace CMSECommerce.Controllers
             IUserStatusService userStatusService,
             RoleManager<IdentityRole> roleManager,
             ILogger<AccountController> logger,
-            IUserService userService) : Controller
+            IUserService userService) : BaseController
     {
         private DataContext _context = dataContext;
         private UserManager<IdentityUser> _userManager = userManager;

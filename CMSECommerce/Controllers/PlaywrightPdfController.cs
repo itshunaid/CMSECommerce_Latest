@@ -7,8 +7,8 @@ using System;
 
 namespace CMSECommerce.Controllers
 {
- public class PlaywrightPdfController : Controller
- {
+ public class PlaywrightPdfController : BaseController
+    {
  private readonly DataContext _context;
 
  public PlaywrightPdfController(DataContext context)

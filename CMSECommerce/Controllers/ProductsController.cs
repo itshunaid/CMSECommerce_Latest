@@ -19,7 +19,7 @@ namespace CMSECommerce.Controllers
         IWebHostEnvironment webHostEnvironment,
         UserManager<IdentityUser> userManager,
         IUserStatusService userStatusService
-    ) : Controller
+    ) : BaseController
     {
         private readonly DataContext _context = context;
         private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;

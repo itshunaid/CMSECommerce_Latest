@@ -13,7 +13,7 @@ namespace CMSECommerce.Controllers
                                  DataContext context,
                                  UserManager<IdentityUser> userManager,
                                  SignInManager<IdentityUser> signInManager
-                                 /*, ILogger<OrdersController> logger */) : Controller
+                                 /*, ILogger<OrdersController> logger */) : BaseController
     {
         private readonly DataContext _context = context;
         private readonly SignInManager<IdentityUser> _signInManager = signInManager;

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace CMSECommerce.Controllers
 {
-    public class CartController(DataContext context, ILogger<CartController> logger) : Controller
+    public class CartController(DataContext context, ILogger<CartController> logger) : BaseController
     {
         private readonly DataContext _context = context;
         private readonly ILogger<CartController> _logger= logger; // 1. Add this field

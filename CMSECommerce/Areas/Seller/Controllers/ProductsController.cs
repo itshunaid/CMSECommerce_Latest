@@ -1,4 +1,5 @@
-﻿using CMSECommerce.Infrastructure;
+﻿using CMSECommerce.Controllers;
+using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -16,7 +17,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
         IWebHostEnvironment webHostEnvironment,
         IEmailSender emailSender,
         UserManager<IdentityUser> userManager,
-        ILogger<ProductsController> logger) : Controller
+        ILogger<ProductsController> logger) : BaseController
     {
         private readonly DataContext _context = context;
         private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;

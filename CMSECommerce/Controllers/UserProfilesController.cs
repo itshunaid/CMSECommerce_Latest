@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CMSECommerce.Controllers
 {
     [Authorize]
-    public class UserProfilesController : Controller
+    public class UserProfilesController : BaseController
     {
         private readonly DataContext _context;
         private readonly UserManager<IdentityUser> _userManager;

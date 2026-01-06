@@ -13,7 +13,7 @@ namespace CMSECommerce.Controllers
 
     [Authorize]
     
-    public class SubscriptionController : Controller
+    public class SubscriptionController : BaseController
     {
         private readonly DataContext _context;
         private readonly UserManager<IdentityUser> _userManager;
