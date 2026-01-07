@@ -141,8 +141,6 @@ namespace CMSECommerce.Controllers
             return View(model);
         }
 
-
-
         // 3. Form Submission (POST)       
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -283,7 +281,6 @@ namespace CMSECommerce.Controllers
             var user = await _userManager.FindByIdAsync(request.UserId);
             if (user == null) return BadRequest("User not found.");
 
-            // IMPORTANT: Include CurrentTier to avoid nulls in price calculation
             var profile = await _context.UserProfiles
                 .Include(p => p.CurrentTier)
                 .FirstOrDefaultAsync(p => p.UserId == user.Id);
@@ -293,43 +290,24 @@ namespace CMSECommerce.Controllers
             if (user.LockoutEnabled && await _userManager.IsLockedOutAsync(user))
                 return BadRequest("User is currently deactivated/locked.");
 
-            // 4. Prorated Price Calculation Logic
-            decimal originalPrice = request.Tier.Price;
-            decimal creditFromOldPlan = 0;
-            decimal finalPriceToCharge = originalPrice;
-            int remainingDays = 0;
+            // 4. ARCHITECTURAL CHANGE: Use Saved Values
+            // Instead of recalculating, we use the values frozen at the time of user submission.
+            // This ensures the Admin approves the exact amount the user paid/submitted.
+            decimal finalPriceToCharge = request.FinalAmount;
+            decimal creditFromOldPlan = request.CreditApplied;
 
-            if (profile.CurrentTier != null && profile.SubscriptionEndDate > DateTime.Now)
-            {
-                remainingDays = (int)(profile.SubscriptionEndDate.Value - DateTime.Now).TotalDays;
-
-                if (remainingDays > 0)
-                {
-                    // Use Math.Max to prevent division by zero
-                    int totalDaysInOldPlan = Math.Max(1, profile.CurrentTier.DurationMonths * 30);
-                    decimal dailyRate = profile.CurrentTier.Price / totalDaysInOldPlan;
-
-                    creditFromOldPlan = dailyRate * remainingDays;
-                    finalPriceToCharge = Math.Max(0, originalPrice - creditFromOldPlan);
-                }
-            }
-
-            // 5. Upgrade/Downgrade Meta-data
-            bool isActuallyUpgrade = profile.CurrentTierId.HasValue &&
-                                     request.Tier.Price > (profile.CurrentTier?.Price ?? 0);
-            request.IsUpgrade = isActuallyUpgrade;
-
-            // 6. Apply New Subscription Dates & Quotas
-            DateTime newStartDate = DateTime.Now;
+            // 5. Apply New Subscription Dates & Quotas
+            // Use UTC for server-side consistency
+            DateTime newStartDate = DateTime.UtcNow;
             int newPlanDays = request.Tier.DurationMonths * 30;
 
             profile.SubscriptionStartDate = newStartDate;
             profile.SubscriptionEndDate = newStartDate.AddDays(newPlanDays);
             profile.CurrentTierId = request.TierId;
             profile.CurrentProductLimit = request.Tier.ProductLimit;
-            profile.IsDeactivated = false; // Ensure profile is active upon approval
+            profile.IsDeactivated = false;
 
-            // 7. Role Management
+            // 6. Role Management (Optimized check)
             var currentRoles = await _userManager.GetRolesAsync(user);
             if (currentRoles.Any())
             {
@@ -337,38 +315,37 @@ namespace CMSECommerce.Controllers
             }
             await _userManager.AddToRoleAsync(user, "Subscriber");
 
-            // 8. Store Logic & Finalize (The Fix)
+            // 7. Store Logic & Finalize
             request.Status = RequestStatus.Approved;
+            request.ApprovedAt = DateTime.UtcNow; // Audit trail
+            request.ApprovedBy= User.Identity.Name;
 
-            // Fetch the store using the UserId
             var store = await _context.Stores.FirstOrDefaultAsync(s => s.UserId == user.Id);
-
             if (store != null)
             {
                 store.IsActive = true;
-
-                // Sync the StoreId back to the Profile if it's missing (Crucial for your model relationship)
                 if (profile.StoreId == null)
                 {
                     profile.StoreId = store.Id;
                 }
-
                 _context.Stores.Update(store);
             }
 
+            // 8. Transactional Save
             _context.SubscriptionRequests.Update(request);
             _context.UserProfiles.Update(profile);
 
-            // Save all changes in a single transaction
             await _context.SaveChangesAsync();
+
+            // Refresh security stamp so the user's "Subscriber" role takes effect immediately
             await _userManager.UpdateSecurityStampAsync(user);
 
             // 9. Feedback Message
             string creditNote = creditFromOldPlan > 0
-                ? $" ₹{creditFromOldPlan:N2} credit applied for {remainingDays} remaining days."
+                ? $" ₹{creditFromOldPlan:N2} credit applied."
                 : "";
 
-            TempData["Success"] = $"Plan '{request.Tier.Name}' Approved! Total Charged: ₹{finalPriceToCharge:N2}.{creditNote}";
+            TempData["Success"] = $"Plan '{request.Tier.Name}' Approved! Total: ₹{finalPriceToCharge:N2}.{creditNote}";
 
             return RedirectToAction("AdminDashboard", "Subscription");
         }
