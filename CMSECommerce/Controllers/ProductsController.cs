@@ -29,6 +29,10 @@ namespace CMSECommerce.Controllers
         [HttpGet("mystore")]
         public async Task<IActionResult> StoreFront(int? id, int p = 1, string search = "", string category = "", string sort = "")
         {
+            if(User.IsInRole("Customer"))
+            {
+                return RedirectToAction("Index", "UserProfiles");
+            }
             //Logic to handle Optional ID
             if (id == null)
             {

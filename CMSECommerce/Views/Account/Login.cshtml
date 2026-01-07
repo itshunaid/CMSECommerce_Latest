@@ -82,7 +82,7 @@
 
                     @* USERNAME FIELD (Always Visible) *@
                     <div class="mb-3 position-relative">
-                        <label asp-for="UserName" class="form-label fw-bold mb-1 small">Username / Email / Mobile</label>
+                        <label asp-for="UserName" class="form-label fw-bold mb-1 small required-label">Email / Mobile / ITSNumber</label>
                         <input asp-for="UserName" id="UserNameInput" class="form-control amazon-modern-input" autofocus autocomplete="username" />
                         <div id="checkLoader" class="spinner-border spinner-border-sm text-amazon-orange position-absolute d-none" style="right: 10px; top: 38px; z-index: 5;"></div>
                         <span id="UserNameError" class="text-danger x-small mt-1 d-block"></span>
@@ -95,7 +95,7 @@
                         <div id="passwordFieldBlock" style="display: none;">
                             <div class="mb-2 position-relative">
                                 <div class="d-flex justify-content-between">
-                                    <label asp-for="Password" class="form-label fw-bold mb-1 small">Password</label>
+                                    <label asp-for="Password" class="form-label fw-bold mb-1 small required-label">Password</label>
                                     <a asp-action="ForgotPassword" class="small text-amazon-link text-decoration-none">Forgot?</a>
                                 </div>
                                 <div class="position-relative">
@@ -209,6 +209,13 @@
         .rounded-2 {
             border-radius: 4px !important;
         }
+
+        /* --- Red Asterisk Addition --- */
+        .required-label::after {
+            content: " *";
+            color: #d00;
+            font-weight: bold;
+        }
     </style>
 }
 
@@ -293,7 +300,6 @@
                     e.preventDefault();
                     window.location.href = '@Url.Action("Register", "Account")' + '?username=' + encodeURIComponent(val);
                 }
-                // If not register mode, standard form POST to Account/Login occurs
             });
 
             // Reset UI when user starts re-typing

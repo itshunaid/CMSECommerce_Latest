@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = "Account Verification Required - Create Your Profile";
     ViewData["HideLayoutSidebar"] = true;
+    // Safe check for null ViewBag
+    bool IsCustomer = ViewBag.IsCustomer ?? false;
 }
 
 <div class="container py-5">
@@ -13,14 +15,19 @@
                 <i class="fas fa-exclamation-circle fa-2x me-3 text-warning"></i>
                 <div>
                     <h6 class="alert-heading fw-bold mb-1">Action Required: Profile Verification</h6>
-                    <p class="mb-0 small">To ensure secure transactions, you must <strong>Create a User Profile</strong> before you can proceed with <strong>Order Placement</strong>.</p>
+                    <p class="mb-0 small">
+                        To ensure secure transactions, you must <strong>Create a User Profile</strong> before you can proceed with
+                        <strong>Order Placement</strong> @(IsCustomer ? "" : "(OR) Becoming Seller").
+                    </p>
                 </div>
             </div>
 
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white border-bottom py-3">
-                    <h4 class="fw-bold mb-0 text-amazon-teal">Merchant Registration & Profile Setup</h4>
-                    <p class="text-muted small mb-0">Complete the form below to unlock ordering and selling capabilities.</p>
+                    <h4 class="fw-bold mb-0 text-amazon-teal">
+                        @(IsCustomer ? "Customer Profile Setup" : "Merchant Registration & Profile Setup")
+                    </h4>
+                    <p class="text-muted small mb-0">Complete the form below to unlock ordering @(IsCustomer ? "" : "and selling") capabilities.</p>
                 </div>
                 <div class="card-body p-4">
                     <form id="profileForm" asp-action="Create" method="post" enctype="multipart/form-data">
@@ -28,6 +35,9 @@
 
                         <input type="hidden" asp-for="UserId" />
                         <input type="hidden" asp-for="StoreId" value="0" />
+
+                        @* --- HIDE ITS NUMBER FIELD BUT KEEP IN MODEL --- *@
+                        <input type="hidden" asp-for="ITSNumber" value="0" />
 
                         @* --- PERSIST VIEWBACK VALUES --- *@
                         <input type="hidden" name="tierId" value="@ViewBag.TierId" />
@@ -49,93 +59,108 @@
                                 <span asp-validation-for="LastName" class="text-danger small"></span>
                             </div>
 
-                            <div class="col-md-4">
-                                <label asp-for="Profession" class="form-label small fw-bold">Profession</label>
-                                <input asp-for="Profession" class="form-control" placeholder="e.g. Baker, Tailor" />
-                            </div>
+                            @if (!IsCustomer)
+                            {
+                                <div class="col-md-6">
+                                    <label asp-for="Profession" class="form-label small fw-bold">Profession</label>
+                                    <input asp-for="Profession" class="form-control" placeholder="e.g. Baker, Tailor" />
+                                </div>
+                            }
 
-                            @* Mandatory ITS Number *@
-                            <div class="col-md-4">
-                                <label asp-for="ITSNumber" class="form-label small fw-bold">ITS Number</label>
-                                <input asp-for="ITSNumber" class="form-control" placeholder="Enter ITS ID" required />
-                                <span asp-validation-for="ITSNumber" class="text-danger small"></span>
-                            </div>
-
-                            @* Mandatory WhatsApp Number *@
-                            <div class="col-md-4">
+                            @* Mandatory WhatsApp Number - Full width for Customer, Half for Merchant *@
+                            <div class="col-md-@(IsCustomer ? "12" : "6")">
                                 <label asp-for="WhatsAppNumber" class="form-label small fw-bold">WhatsApp Number</label>
                                 <input asp-for="WhatsAppNumber" class="form-control" placeholder="91XXXXXXXXXX" required />
                                 <span asp-validation-for="WhatsAppNumber" class="text-danger small"></span>
                             </div>
 
-                            <div class="col-12 border-bottom pb-2 mt-5">
-                                <h6 class="text-amazon-teal fw-bold"><i class="fas fa-id-card me-2"></i>Merchant Identity & Media</h6>
-                            </div>
+                            @* --- PROFILE IMAGE UPLOAD (Now for everyone) --- *@
+                            @if (IsCustomer)
+                            {
+                                <div class="col-12 border-bottom pb-2 mt-4">
+                                    <h6 class="text-amazon-teal fw-bold"><i class="fas fa-camera me-2"></i>Profile Media</h6>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label small fw-bold">Profile Image</label>
+                                    <input type="file" name="profileImg" class="form-control" accept="image/*" />
+                                    <div class="form-text small">Upload a photo for your profile identification.</div>
+                                </div>
+                            }
 
-                            <div class="col-md-6">
-                                <label class="form-label small fw-bold">Profile Image</label>
-                                <input type="file" name="profileImg" class="form-control" accept="image/*" />
-                                <div class="form-text small">Your photo will be used for merchant verification.</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label asp-for="ServicesProvided" class="form-label small fw-bold">Services Provided</label>
-                                <input asp-for="ServicesProvided" class="form-control" placeholder="e.g. Home Delivery, Pick-up" />
-                            </div>
+                            @if (!IsCustomer)
+                            {
+                                <div class="col-12 border-bottom pb-2 mt-5">
+                                    <h6 class="text-amazon-teal fw-bold"><i class="fas fa-id-card me-2"></i>Merchant Identity & Media</h6>
+                                </div>
 
-                            <div class="col-12">
-                                <label asp-for="About" class="form-label small fw-bold">Business Description</label>
-                                <textarea asp-for="About" class="form-control" rows="3" placeholder="Tell us about what you sell..."></textarea>
-                            </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Profile Image</label>
+                                    <input type="file" name="profileImg" class="form-control" accept="image/*" />
+                                    <div class="form-text small">Your photo will be used for merchant verification.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="ServicesProvided" class="form-label small fw-bold">Services Provided</label>
+                                    <input asp-for="ServicesProvided" class="form-control" placeholder="e.g. Home Delivery, Pick-up" />
+                                </div>
 
-                            @* Mandatory Home Address *@
-                            <div class="col-md-6">
+                                <div class="col-12">
+                                    <label asp-for="About" class="form-label small fw-bold">Business Description</label>
+                                    <textarea asp-for="About" class="form-control" rows="3" placeholder="Tell us about what you sell..."></textarea>
+                                </div>
+                            }
+
+                            @* Mandatory Home Address - Always visible *@
+                            <div class="col-md-@(IsCustomer ? "12" : "6")">
                                 <label asp-for="HomeAddress" class="form-label small fw-bold">Home Address</label>
-                                <input asp-for="HomeAddress" class="form-control" required />
+                                <input asp-for="HomeAddress" id="HomeAddress" class="form-control" required />
                                 <span asp-validation-for="HomeAddress" class="text-danger small"></span>
                             </div>
 
-                            @* Mandatory Business Address *@
-                            <div class="col-md-6">
+                            @* Mandatory Business Address - Hidden if Customer *@
+                            <div class="col-md-6 @(IsCustomer ? "d-none" : "")">
                                 <label asp-for="BusinessAddress" class="form-label small fw-bold">Business Address</label>
-                                <input asp-for="BusinessAddress" class="form-control" placeholder="Enter business location" required />
+                                <input asp-for="BusinessAddress" id="BusinessAddress" class="form-control" placeholder="Enter business location" required />
                                 <span asp-validation-for="BusinessAddress" class="text-danger small"></span>
                             </div>
 
-                            <div class="col-12 border-bottom pb-2 mt-5">
-                                <h6 class="text-amazon-teal fw-bold"><i class="fas fa-wallet me-2"></i>Payment Information (Required for Orders)</h6>
-                            </div>
+                            @if (!IsCustomer)
+                            {
+                                <div class="col-12 border-bottom pb-2 mt-5">
+                                    <h6 class="text-amazon-teal fw-bold"><i class="fas fa-wallet me-2"></i>Payment Information (Required for Orders)</h6>
+                                </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label small fw-bold">GPay QR Code</label>
-                                <input type="file" name="gpayQR" class="form-control" accept="image/*" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label small fw-bold">PhonePe QR Code</label>
-                                <input type="file" name="phonepeQR" class="form-control" accept="image/*" />
-                            </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">GPay QR Code</label>
+                                    <input type="file" name="gpayQR" class="form-control" accept="image/*" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">PhonePe QR Code</label>
+                                    <input type="file" name="phonepeQR" class="form-control" accept="image/*" />
+                                </div>
 
-                            <div class="col-md-4">
-                                <label asp-for="FacebookUrl" class="form-label small fw-bold">Facebook URL</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="fab fa-facebook text-primary"></i></span>
-                                    <input asp-for="FacebookUrl" class="form-control" />
+                                <div class="col-md-4">
+                                    <label asp-for="FacebookUrl" class="form-label small fw-bold">Facebook URL</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="fab fa-facebook text-primary"></i></span>
+                                        <input asp-for="FacebookUrl" class="form-control" />
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-4">
-                                <label asp-for="InstagramUrl" class="form-label small fw-bold">Instagram URL</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="fab fa-instagram text-danger"></i></span>
-                                    <input asp-for="InstagramUrl" class="form-control" />
+                                <div class="col-md-4">
+                                    <label asp-for="InstagramUrl" class="form-label small fw-bold">Instagram URL</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="fab fa-instagram text-danger"></i></span>
+                                        <input asp-for="InstagramUrl" class="form-control" />
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-check mt-4">
-                                    <input asp-for="IsProfileVisible" class="form-check-input" type="checkbox">
-                                    <label class="form-check-label fw-bold small" asp-for="IsProfileVisible">
-                                        Make Profile Visible to Customers
-                                    </label>
+                                <div class="col-md-4">
+                                    <div class="form-check mt-4">
+                                        <input asp-for="IsProfileVisible" class="form-check-input" type="checkbox">
+                                        <label class="form-check-label fw-bold small" asp-for="IsProfileVisible">
+                                            Make Profile Visible to Customers
+                                        </label>
+                                    </div>
                                 </div>
-                            </div>
+                            }
                         </div>
 
                         <hr class="my-4" />
@@ -144,7 +169,7 @@
                             <a asp-controller="Products" asp-action="Index" class="text-muted text-decoration-none small">Cancel</a>
 
                             <button type="submit" id="btnSubmit" class="btn btn-amazon-yellow px-5 py-2 fw-bold rounded-pill shadow-sm">
-                                <span id="btnText">Save Profile & Enable Ordering</span>
+                                <span id="btnText">@(IsCustomer ? "Save Profile & Enable Ordering" : "Save Profile & Enable Selling")</span>
                                 <span id="btnSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                             </button>
                         </div>
@@ -185,7 +210,6 @@
                 transform: translateY(-1px);
             }
 
-            /* Loading State Styling */
             .btn-amazon-yellow:disabled {
                 background-color: #f7df66 !important;
                 opacity: 0.8;
@@ -200,13 +224,21 @@
 }
 
 @section Scripts {
-    @* Include validation scripts to enable spontaneous validation *@
     <partial name="_ValidationScriptsPartial" />
 
     <script>
         $(document).ready(function () {
             $('#profileForm').on('submit', function (e) {
-                // Only trigger loading state if the form passes validation
+                // Pre-fill hidden required business fields for customers to prevent validation failure
+                @if (IsCustomer)
+                {
+                        <text>
+                        if ($('#BusinessAddress').val() === "") {
+                            $('#BusinessAddress').val($('#HomeAddress').val());
+                        }
+                        </text>
+                }
+
                 if ($(this).valid()) {
                     const btn = $('#btnSubmit');
                     const text = $('#btnText');

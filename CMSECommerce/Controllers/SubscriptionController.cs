@@ -59,6 +59,8 @@ namespace CMSECommerce.Controllers
         [HttpGet]
         public async Task<IActionResult> Register(int tierId)
         {
+            var isCustomer = User.IsInRole("Customer");
+            ViewBag.IsCustomer = isCustomer;
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
@@ -144,6 +146,8 @@ namespace CMSECommerce.Controllers
             return View(model);
         }
 
+
+
         // 3. Form Submission (POST)
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -158,6 +162,18 @@ namespace CMSECommerce.Controllers
             var userProfile = await _context.UserProfiles
                 .Include(up => up.CurrentTier)
                 .FirstOrDefaultAsync(up => up.UserId == userId);
+
+            if (userProfile == null) return NotFound();
+
+            // --- NEW LOGIC: Update ITSNumber in UserProfile if provided (for Customers) ---
+            // We assume if IsCustomer is true (passed from view or checked via role), we allow the update.
+            // You can also add a role check here: await _userManager.IsInRoleAsync(user, "Customer")
+            if (!string.IsNullOrEmpty(model.ITSNumber) && userProfile.ITSNumber != model.ITSNumber)
+            {
+                userProfile.ITSNumber = model.ITSNumber;
+                _context.UserProfiles.Update(userProfile);
+                // Note: SaveChangesAsync is called later in Step 6 to keep the operation atomic
+            }
 
             // 2. Final Gatekeeper: Block if a PENDING request already exists
             var hasPending = await _context.SubscriptionRequests
@@ -194,8 +210,6 @@ namespace CMSECommerce.Controllers
                 }
 
                 // --- THE UPDATED FAIR CREDIT CALCULATION ---
-                // Logic: Final Price = New Plan Price - Old Plan Price
-                // Credit Applied = Old Plan Price
                 serverCalculatedCredit = userProfile.CurrentTier.Price;
                 serverCalculatedFinalAmount = Math.Max(0, targetTier.Price - serverCalculatedCredit);
             }
@@ -227,25 +241,24 @@ namespace CMSECommerce.Controllers
                 ReceiptImagePath = fileName,
                 CreatedAt = DateTime.UtcNow,
                 Status = RequestStatus.Pending,
-                // Check if it's an upgrade based on price logic or existing tier
                 IsUpgrade = userProfile?.CurrentTierId != null && targetTier.Price > (userProfile.CurrentTier?.Price ?? 0),
-
-                // SAVE THESE VALUES FOR AUDIT
                 FinalAmount = serverCalculatedFinalAmount,
                 CreditApplied = serverCalculatedCredit
             };
 
             _context.SubscriptionRequests.Add(request);
+
+            // This will save BOTH the UserProfile update and the SubscriptionRequest
             await _context.SaveChangesAsync();
 
             // 7. Success Message
             if (userProfile?.CurrentTierId != null)
             {
-                TempData["Success"] = $"Upgrade submitted! Adjusted price: ₹{serverCalculatedFinalAmount} (₹{serverCalculatedCredit} credit applied from your {userProfile.CurrentTier.Name} plan).";
+                TempData["Success"] = $"Upgrade submitted! Adjusted price: ₹{serverCalculatedFinalAmount} (₹{serverCalculatedCredit} credit applied from your {userProfile.CurrentTier.Name} plan). Profile updated.";
             }
             else
             {
-                TempData["Success"] = "Subscription request submitted for review.";
+                TempData["Success"] = "Subscription request submitted and profile updated.";
             }
 
             return RedirectToAction("Status");
@@ -343,6 +356,17 @@ namespace CMSECommerce.Controllers
             var roles = await _userManager.GetRolesAsync(user);
             if (!roles.Contains("Subscriber"))
             {
+                // --- NEW ROLE REPLACEMENT LOGIC ---
+                // Get all current roles for the user
+                var currentRoles = await _userManager.GetRolesAsync(user);
+
+                // Remove the user from all current roles
+                if (currentRoles.Any())
+                {
+                    await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                }
+
+                // Add the user to the "Subscriber" role
                 await _userManager.AddToRoleAsync(user, "Subscriber");
             }
 

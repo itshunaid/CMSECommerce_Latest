@@ -1,9 +1,11 @@
 ﻿using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
+using CMSECommerce.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace CMSECommerce.Controllers
 {
@@ -24,6 +26,8 @@ namespace CMSECommerce.Controllers
         // GET: UserProfiles/Index
         public async Task<IActionResult> Index(string userId = null)
         {
+            var isCustomer = User.IsInRole("Customer");
+            ViewBag.IsCustomer = isCustomer;
             bool requestFromDictionary = false;
             if (string.IsNullOrEmpty(userId))
             {
@@ -34,7 +38,8 @@ namespace CMSECommerce.Controllers
                 requestFromDictionary = true;
             }
 
-            if (string.IsNullOrEmpty(userId)) return Challenge();
+
+            if (string.IsNullOrEmpty(userId)) return Challenge();            
 
             var profile = await _context.UserProfiles
                 .Include(p => p.Store)
@@ -71,12 +76,21 @@ namespace CMSECommerce.Controllers
         public async Task<IActionResult> Create(bool isNewProfile, string callingFrom = "", int tierId = 0)
         {
             var userId = _userManager.GetUserId(User);
+            
+
             var existingProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
 
             if (existingProfile != null)
             {
                 return RedirectToAction("Index");
             }
+
+            if(User.IsInRole("Customer"))
+            {
+
+                ViewBag.IsCustomer = true;
+            }
+
 
             // Pre-fill defaults for the view to satisfy Migration Requirements
             var model = new UserProfile
@@ -138,10 +152,14 @@ namespace CMSECommerce.Controllers
 
                 // 2. Link Store to Profile and Save Profile
                 profile.StoreId = newStore.Id;
+                Random generator = new Random();
+                // Generates a number between 10,000,000 and 99,999,999
+                int randomNumber = generator.Next(10000000, 100000000);
+                profile.ITSNumber = randomNumber.ToString();
                 _context.UserProfiles.Add(profile);
                 await _context.SaveChangesAsync();
 
-                TempData["Success"] = "Profile and Store created successfully.";
+                TempData["Success"] = "Profile created successfully.";
 
                 if (callingFrom == "UserProfiles" && tierId > 0)
                 {
@@ -160,6 +178,9 @@ namespace CMSECommerce.Controllers
         // GET: UserProfiles/Edit
         public async Task<IActionResult> Edit()
         {
+
+            var isCustomer = User.IsInRole("Customer");
+            ViewBag.IsCustomer = isCustomer;
             var userId = _userManager.GetUserId(User);
             var profile = await _context.UserProfiles
                 .Include(p => p.Store)
@@ -212,6 +233,10 @@ namespace CMSECommerce.Controllers
                     existingProfile.Store.StoreName = model.Store?.StoreName ?? existingProfile.Store.StoreName;
                     existingProfile.Store.StreetAddress = model.BusinessAddress;
                     existingProfile.Store.Email = model.Store?.Email ?? existingProfile.Store.Email;
+                    existingProfile.Store.PostCode = model.Store?.PostCode ?? existingProfile.Store.PostCode;
+                    existingProfile.Store.City = model.Store?.City ?? existingProfile.Store.City;
+                    existingProfile.Store.Country = model.Store?.Country ?? existingProfile.Store.Country;
+
                 }
 
                 _context.Update(existingProfile);
@@ -226,6 +251,11 @@ namespace CMSECommerce.Controllers
                 return View(model);
             }
         }
+
+
+
+
+
 
         // Remote validation for uniqueness
         [HttpGet]

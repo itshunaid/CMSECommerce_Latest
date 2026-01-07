@@ -4,12 +4,37 @@
 @{
     ViewData["Title"] = Model.IsUpgrade ? "Upgrade Plan" : "Register Plan";
     ViewData["HideLayoutSidebar"] = true;
+    bool isCustomer = ViewBag.IsCustomer ?? false;
 }
 
 <style>
     /* Small Text UI refinements */
     .reg-container {
         font-size: 0.85rem;
+    }
+
+    /* ITS Number Highlighting */
+    .its-highlight {
+        font-weight: 800 !important;
+        border: 2px solid #21409a !important;
+        background-color: #fffbeb !important; /* Light yellow tint */
+        color: #1a202c !important;
+    }
+
+    :root {
+        --primary-color: #21409a;
+    }
+
+    .qr-badge {
+        background: #ffffff;
+        padding: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1.5rem;
     }
 
     .card-header h5 {
@@ -55,7 +80,6 @@
         color: #2c5282;
     }
 
-    /* Price Breakdown Styling */
     .price-summary-box {
         background-color: #f8fafc;
         border: 1px dashed #cbd5e0;
@@ -93,7 +117,6 @@
     <div class="row justify-content-center">
         <div class="col-md-5">
             <div class="card shadow-sm border-0">
-                @* Dynamic Header Color based on Upgrade Status *@
                 <div class="card-header @(Model.IsUpgrade ? "bg-upgrade" : "bg-dark") text-white text-center py-3">
                     <h5 class="mb-0">
                         <i class="fas @(Model.IsUpgrade ? "fa-arrow-circle-up" : "fa-user-plus") me-2"></i>
@@ -102,33 +125,38 @@
                 </div>
 
                 <div class="card-body p-4">
-                    <form asp-action="SubmitRequest" method="post" enctype="multipart/form-data">
+                    <form id="subscriptionForm" asp-action="SubmitRequest" method="post" enctype="multipart/form-data">
                         <div asp-validation-summary="ModelOnly" class="text-danger text-xs mb-3"></div>
 
-                        @* Hidden Fields to preserve state during Postback *@
                         <input type="hidden" asp-for="TierId" />
                         <input type="hidden" asp-for="IsUpgrade" />
                         <input type="hidden" asp-for="TierName" />
                         <input type="hidden" asp-for="Price" />
-                        @* New fields for the adjustment logic *@
                         <input type="hidden" asp-for="FinalAmount" />
                         <input type="hidden" asp-for="CreditApplied" />
 
                         <div class="mb-3">
                             <label asp-for="ITSNumber" class="form-label fw-bold"></label>
-                            <input asp-for="ITSNumber" class="form-control form-control-sm-custom bg-light" readonly />                            
+                            @if (isCustomer)
+                            {
+                                <input asp-for="ITSNumber" class="form-control form-control-sm-custom its-highlight" placeholder="Enter ITS Number" id="itsInput" />
+                                <div class="helper-text mt-1 text-primary fw-bold">Note: This ITS number will be saved to your profile.</div>
+                            }
+                            else
+                            {
+                                <input asp-for="ITSNumber" class="form-control form-control-sm-custom bg-light fw-bold" readonly />
+                            }
                             <span asp-validation-for="ITSNumber" class="text-danger text-xs"></span>
                         </div>
-                        <div class="mb-3">                           
+
+                        <div class="mb-3">
                             <label asp-for="FullName" class="form-label fw-bold"></label>
                             <input asp-for="FullName" class="form-control form-control-sm-custom bg-light" readonly />
                             <span asp-validation-for="FullName" class="text-danger text-xs"></span>
                         </div>
 
-                        @* Fair Adjustment Summary Section *@
                         <div class="price-summary-box mb-4">
                             <label class="form-label fw-bold mb-2 d-block">Price Breakdown</label>
-
                             <div class="summary-item">
                                 <span>New Plan Fee (@Model.TierName):</span>
                                 <span>₹@Model.Price.ToString("N0")</span>
@@ -148,6 +176,15 @@
                             </div>
                         </div>
 
+                        <div class="qr-badge">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://weypaari.com"
+                                 style="width: 50px; height: 50px;" alt="QR Code">
+                            <div class="text-start">
+                                <div class="fw-bold text-dark" style="font-size: 0.8rem;">Instant Activation</div>
+                                <div class="text-muted" style="font-size: 0.7rem;">Scan this QR to pay <strong>₹@Model.FinalAmount.ToString("N0")</strong></div>
+                            </div>
+                        </div>
+
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="form-label fw-bold mb-0">Payment Receipt</label>
@@ -159,7 +196,6 @@
                             <span asp-validation-for="Receipt" class="text-danger text-xs"></span>
                         </div>
 
-                        @* Special Info Box for Upgraders *@
                         @if (Model.IsUpgrade)
                         {
                             <div class="upgrade-alert p-3 mb-4 d-flex align-items-start gap-2">
@@ -201,44 +237,64 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            // Retrieve messages from Controller
+            const form = document.getElementById('subscriptionForm');
+            const itsInput = document.getElementById('itsInput');
+            const originalITS = itsInput ? itsInput.value : '';
+
+            // 1. Handling Server Side Messages
             var errorMessage = '@TempData["Error"]';
             var successMessage = '@TempData["Success"]';
             var infoMessage = '@TempData["Info"]';
 
-            // Error handling
             if (errorMessage) {
-                Swal.fire({
-                    icon: 'error',
-                    title: '<span style="font-size: 1.1rem">Action Restricted</span>',
-                    html: '<span style="font-size: 0.85rem">' + errorMessage + '</span>',
-                    confirmButtonColor: '#dc3545',
-                    confirmButtonText: 'Return to Plans'
-                }).then(() => {
-                    window.location.href = '@Url.Action("Index", "Subscription")';
-                });
+                Swal.fire({ icon: 'error', title: 'Action Restricted', html: errorMessage, confirmButtonColor: '#dc3545' });
             }
-
-            // Info handling
             if (infoMessage) {
-                Swal.fire({
-                    icon: 'info',
-                    title: '<span style="font-size: 1.1rem">Notice</span>',
-                    html: '<span style="font-size: 0.85rem">' + infoMessage + '</span>',
-                    confirmButtonColor: '#21409a',
-                    confirmButtonText: 'Check Status'
-                }).then(() => {
-                    window.location.href = '@Url.Action("Status", "Subscription")';
-                });
+                Swal.fire({ icon: 'info', title: 'Notice', html: infoMessage, confirmButtonColor: '#21409a' });
+            }
+            if (successMessage) {
+                Swal.fire({ icon: 'success', title: 'Success', html: successMessage, confirmButtonColor: '#198754' });
             }
 
-            // Success confirmation
-            if (successMessage) {
+            // 2. Form Submission Interceptor
+            form.addEventListener('submit', function (e) {
+                e.preventDefault(); // Stop form
+
+                if (!$(form).valid()) return false; // Trigger jQuery Validation
+
+                // If ITS changed, reconfirm ITS specifically first
+                if (itsInput && itsInput.value !== originalITS) {
+                    Swal.fire({
+                        title: 'Confirm ITS Number',
+                        html: `You have updated your ITS Number to: <br><b style="font-size:1.2rem; color:#21409a;">${itsInput.value}</b><br><br>Once saved, this cannot be updated. Is this correct?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, it is correct',
+                        cancelButtonText: 'Let me check',
+                        confirmButtonColor: '#21409a'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            showFinalConfirmation();
+                        }
+                    });
+                } else {
+                    showFinalConfirmation();
+                }
+            });
+
+            function showFinalConfirmation() {
                 Swal.fire({
-                    icon: 'success',
-                    title: '<span style="font-size: 1.1rem">Request Submitted</span>',
-                    html: '<span style="font-size: 0.85rem">' + successMessage + '</span>',
-                    confirmButtonColor: '#198754'
+                    title: 'Confirm Submission',
+                    text: "Are you sure you want to submit this subscription request?",
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#198754',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Confirm & Submit'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit(); // Actually submit the form
+                    }
                 });
             }
         });
