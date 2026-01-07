@@ -57,29 +57,27 @@ namespace CMSECommerce.Controllers
 
 
         [HttpGet]
+        [Route("Register")] // Explicit route to prevent 404
         public async Task<IActionResult> Register(int tierId)
         {
-            var isCustomer = User.IsInRole("Customer");
-            ViewBag.IsCustomer = isCustomer;
+            // 1. Basic Identity check
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
-            // 1. Fetch User Profile and Target Tier concurrently to save time
-            var userProfileTask = _context.UserProfiles
+            ViewBag.IsCustomer = User.IsInRole("Customer");
+
+            // 2. Fetch data SEQUENTIALLY to prevent DbContext thread collision
+            // Do NOT use Task.WhenAll here; EF Core Context is not thread-safe.
+            var userProfile = await _context.UserProfiles
                 .Include(up => up.CurrentTier)
                 .FirstOrDefaultAsync(up => up.UserId == user.Id);
 
-            var targetTierTask = _context.SubscriptionTiers
-                                    .FirstOrDefaultAsync(t => t.Id == tierId);
+            var targetTier = await _context.SubscriptionTiers
+                .FirstOrDefaultAsync(t => t.Id == tierId);
 
-            await Task.WhenAll(userProfileTask, targetTierTask);
-
-            var userProfile = await userProfileTask;
-            var targetTier = await targetTierTask;
-
+            // 3. Validation
             if (targetTier == null) return NotFound();
 
-            // 2. Profile & ITS Validation
             if (userProfile == null)
             {
                 TempData["Error"] = "Please update your profile first.";
@@ -92,7 +90,7 @@ namespace CMSECommerce.Controllers
                 return RedirectToAction("Edit", "UserProfiles", new { id = userProfile.Id });
             }
 
-            // 3. Pending Request Shield
+            // 4. Pending Request Shield
             var hasPending = await _context.SubscriptionRequests
                 .AnyAsync(r => r.UserId == user.Id && r.Status == RequestStatus.Pending);
 
@@ -102,42 +100,39 @@ namespace CMSECommerce.Controllers
                 return RedirectToAction("Status");
             }
 
-            // 4. Fair Value Upgrade Logic & Calculation
+            // 5. Fair Value Upgrade Logic
             decimal finalPriceToPay = targetTier.Price;
             decimal creditApplied = 0;
             bool isUpgrade = false;
 
-            // Check if user is currently an active subscriber
             if (userProfile.CurrentTierId.HasValue && userProfile.SubscriptionEndDate > DateTime.Now)
             {
-                // Prevent requesting the same plan
                 if (userProfile.CurrentTierId == tierId)
                 {
                     TempData["Info"] = "You are already on this plan.";
                     return RedirectToAction("Status");
                 }
 
-                // Block downgrades (Safety check)
-                if (targetTier.Price <= userProfile.CurrentTier.Price)
+                // Use a null check on CurrentTier before accessing Price
+                if (userProfile.CurrentTier != null && targetTier.Price <= userProfile.CurrentTier.Price)
                 {
                     TempData["Error"] = "Downgrades are not permitted. Please wait for your current plan to expire.";
                     return RedirectToAction("Index");
                 }
 
-                // SUCCESSFUL UPGRADE PATH
                 isUpgrade = true;
-                creditApplied = userProfile.CurrentTier.Price;
+                creditApplied = userProfile.CurrentTier?.Price ?? 0;
                 finalPriceToPay = Math.Max(0, targetTier.Price - creditApplied);
             }
 
-            // 5. Build the ViewModel
+            // 6. Build the ViewModel
             var model = new SubscriptionRequestViewModel
             {
                 TierId = tierId,
                 TierName = targetTier.Name,
-                Price = targetTier.Price,           // Base price of new tier
-                FinalAmount = finalPriceToPay,      // What they pay now
-                CreditApplied = creditApplied,      // The "Discount" shown
+                Price = targetTier.Price,
+                FinalAmount = finalPriceToPay,
+                CreditApplied = creditApplied,
                 ITSNumber = userProfile.ITSNumber,
                 FullName = $"{userProfile.FirstName} {userProfile.LastName}",
                 IsUpgrade = isUpgrade
