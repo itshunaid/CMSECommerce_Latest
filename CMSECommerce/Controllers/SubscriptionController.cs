@@ -512,13 +512,10 @@ namespace CMSECommerce.Controllers
             var userId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-            // 1. Fetch the profile including the CurrentTierId marker
+            // 1. Fetch the profile with the current tier
             var profile = await _context.UserProfiles
-                .Include(p => p.CurrentTier) // Optional: include if you want to show tier name
+                .Include(p => p.CurrentTier)
                 .FirstOrDefaultAsync(p => p.UserId == userId);
-
-            // Pass the profile to ViewBag
-            ViewBag.UserProfile = profile;
 
             // 2. Fetch all subscription requests for this user
             var requests = await _context.SubscriptionRequests
@@ -527,10 +524,28 @@ namespace CMSECommerce.Controllers
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
 
-            // 3. Optional architectural check: 
-            // If profile.SubscriptionEndDate < DateTime.Now, you might want to 
-            // flag in the UI that the current tier is expired despite what CurrentTierId says.
+            // 3. --- NEW: CALCULATE CURRENT TRADE-IN VALUE ---
+            decimal currentProratedValue = 0;
+            int remainingDays = 0;
+
+            if (profile?.CurrentTier != null && profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate > DateTime.Now)
+            {
+                remainingDays = (int)(profile.SubscriptionEndDate.Value - DateTime.Now).TotalDays;
+
+                if (remainingDays > 0)
+                {
+                    // Logic: (Price / TotalDays) * RemainingDays
+                    int totalDaysInPlan = profile.CurrentTier.DurationMonths * 30;
+                    decimal dailyRate = profile.CurrentTier.Price / totalDaysInPlan;
+                    currentProratedValue = dailyRate * remainingDays;
+                }
+            }
+
+            // 4. Pass data to ViewBag
+            ViewBag.UserProfile = profile;
             ViewBag.IsExpired = profile?.SubscriptionEndDate < DateTime.Now;
+            ViewBag.RemainingDays = Math.Max(0, remainingDays);
+            ViewBag.CurrentTradeInValue = currentProratedValue; // To show "You have ₹XX credit available for upgrade"
 
             return View(requests);
         }
@@ -540,9 +555,20 @@ namespace CMSECommerce.Controllers
         public async Task<IActionResult> GetLatestStatuses()
         {
             var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            // Fetch the latest state of all requests for this user
             var statuses = await _context.SubscriptionRequests
                 .Where(r => r.UserId == userId)
-                .Select(r => new { id = r.Id, status = r.Status.ToString() })
+                .Select(r => new
+                {
+                    id = r.Id,
+                    status = r.Status.ToString(),
+                    // Adding these ensures that any UI logic tracking amount 
+                    // changes during the background poll stays in sync
+                    finalAmount = r.FinalAmount,
+                    creditApplied = r.CreditApplied
+                })
                 .ToListAsync();
 
             return Json(statuses);
