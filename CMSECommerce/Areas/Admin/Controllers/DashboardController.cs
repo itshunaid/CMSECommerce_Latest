@@ -33,34 +33,44 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 PendingSubscriberRequests = 0,
                 Categories = 0,
                 RecentOrders = new List<Order>(),
-                UserProfilesCount = 0
+                UserProfilesCount = 0,
+                DeactivatedStoresCount = 0 // New property initialized
             };
 
             try
             {
-                // To avoid "A second operation was started on this context", 
-                // we await each query individually. 
-                // This ensures the DbContext finishes one task before starting the next.
-
+                // 1. Identity User Count
                 model.UsersCount = await _userManager.Users.CountAsync();
 
+                // 2. Total Products
                 model.ProductsCount = await _context.Products.CountAsync();
 
+                // 3. Pending/Rejected Product Requests
                 model.ProductsRequestCount = await _context.Products
                     .Where(p => p.Status == ProductStatus.Pending || p.Status == ProductStatus.Rejected)
                     .CountAsync();
 
+                // 4. Global Order Metrics
                 model.OrdersCount = await _context.Orders.CountAsync();
 
+                // 5. Taxonomy Metrics
                 model.Categories = await _context.Categories.CountAsync();
 
+                // 6. Profile Image Moderation Queue
                 model.UserProfilesCount = await _context.UserProfiles
                     .Where(p => !p.IsImageApproved && p.ProfileImagePath != null)
                     .CountAsync();
 
+                // 7. Seller Onboarding Queue
                 model.PendingSubscriberRequests = await _context.SubscriberRequests
                     .CountAsync(r => r.Approved == false);
 
+                // 8. NEW: Deactivated Stores Metric (Architecture Churn Metric)
+                // We count stores where IsActive is explicitly false
+                model.DeactivatedStoresCount = await _context.Stores
+                    .CountAsync(s => !s.IsActive);
+
+                // 9. Recent Activity Feed
                 model.RecentOrders = await _context.Orders
                     .OrderByDescending(o => o.Id)
                     .Take(5)
@@ -68,8 +78,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
             }
             catch (Exception ex)
             {
-                // Log general exceptions (It's better to catch general Exception to handle both DB and Logic errors)
-                // _logger.LogError(ex, "Error in Admin Dashboard Index action.");
+                // ARCHITECT NOTE: Ensure you have an ILogger injected to capture 'ex' details
+                // _logger.LogError(ex, "Error fetching Admin Dashboard stats");
+
                 TempData["Error"] = "An error occurred while loading dashboard statistics. Data displayed may be incomplete.";
             }
 

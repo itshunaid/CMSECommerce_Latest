@@ -70,6 +70,7 @@ namespace CMSECommerce.Models
         // Optional: Navigation property if you want to access Tier details directly from the profile
         [ForeignKey("CurrentTierId")]
         public virtual SubscriptionTier? CurrentTier { get; set; }
+        public bool IsDeactivated { get; set; } = false;
     }
 
     public class Store
@@ -92,5 +93,6 @@ namespace CMSECommerce.Models
         public virtual IdentityUser User { get; set; }
 
         public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+        public bool IsActive { get; set; } = true; // Default to active
     }
 }

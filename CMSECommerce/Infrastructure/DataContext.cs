@@ -32,6 +32,10 @@ namespace CMSECommerce.Infrastructure
         {
             base.OnModelCreating(modelBuilder);
 
+            // ARCHITECTURE: Automatically filter out deactivated stores globally
+            modelBuilder.Entity<Store>()
+                .HasQueryFilter(s => s.IsActive);
+
             modelBuilder.Entity<UserProfile>()
         .HasIndex(u => u.ITSNumber)
         .IsUnique();
