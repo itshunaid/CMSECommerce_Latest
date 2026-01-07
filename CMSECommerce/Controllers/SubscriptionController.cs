@@ -57,17 +57,14 @@ namespace CMSECommerce.Controllers
 
 
         [HttpGet]
-        [Route("Register")] // Explicit route to prevent 404
+        [Route("Register")]
         public async Task<IActionResult> Register(int tierId)
         {
-            // 1. Basic Identity check
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
             ViewBag.IsCustomer = User.IsInRole("Customer");
 
-            // 2. Fetch data SEQUENTIALLY to prevent DbContext thread collision
-            // Do NOT use Task.WhenAll here; EF Core Context is not thread-safe.
             var userProfile = await _context.UserProfiles
                 .Include(up => up.CurrentTier)
                 .FirstOrDefaultAsync(up => up.UserId == user.Id);
@@ -75,7 +72,6 @@ namespace CMSECommerce.Controllers
             var targetTier = await _context.SubscriptionTiers
                 .FirstOrDefaultAsync(t => t.Id == tierId);
 
-            // 3. Validation
             if (targetTier == null) return NotFound();
 
             if (userProfile == null)
@@ -90,7 +86,6 @@ namespace CMSECommerce.Controllers
                 return RedirectToAction("Edit", "UserProfiles", new { id = userProfile.Id });
             }
 
-            // 4. Pending Request Shield
             var hasPending = await _context.SubscriptionRequests
                 .AnyAsync(r => r.UserId == user.Id && r.Status == RequestStatus.Pending);
 
@@ -100,7 +95,7 @@ namespace CMSECommerce.Controllers
                 return RedirectToAction("Status");
             }
 
-            // 5. Fair Value Upgrade Logic
+            // --- UPDATED PRORATED CALCULATION FOR VIEW ---
             decimal finalPriceToPay = targetTier.Price;
             decimal creditApplied = 0;
             bool isUpgrade = false;
@@ -113,7 +108,6 @@ namespace CMSECommerce.Controllers
                     return RedirectToAction("Status");
                 }
 
-                // Use a null check on CurrentTier before accessing Price
                 if (userProfile.CurrentTier != null && targetTier.Price <= userProfile.CurrentTier.Price)
                 {
                     TempData["Error"] = "Downgrades are not permitted. Please wait for your current plan to expire.";
@@ -121,11 +115,16 @@ namespace CMSECommerce.Controllers
                 }
 
                 isUpgrade = true;
-                creditApplied = userProfile.CurrentTier?.Price ?? 0;
+
+                // Calculate daily value of current subscription
+                int totalDaysOldPlan = userProfile.CurrentTier.DurationMonths * 30;
+                decimal dailyRate = userProfile.CurrentTier.Price / totalDaysOldPlan;
+                int remainingDays = (int)(userProfile.SubscriptionEndDate.Value - DateTime.Now).TotalDays;
+
+                creditApplied = dailyRate * Math.Max(0, remainingDays);
                 finalPriceToPay = Math.Max(0, targetTier.Price - creditApplied);
             }
 
-            // 6. Build the ViewModel
             var model = new SubscriptionRequestViewModel
             {
                 TierId = tierId,
@@ -143,7 +142,7 @@ namespace CMSECommerce.Controllers
 
 
 
-        // 3. Form Submission (POST)
+        // 3. Form Submission (POST)       
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SubmitRequest(SubscriptionRequestViewModel model)
@@ -151,28 +150,20 @@ namespace CMSECommerce.Controllers
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
-            var userId = user.Id;
-
-            // 1. Fetch User Profile with CurrentTier to validate/re-calculate credit
             var userProfile = await _context.UserProfiles
                 .Include(up => up.CurrentTier)
-                .FirstOrDefaultAsync(up => up.UserId == userId);
+                .FirstOrDefaultAsync(up => up.UserId == user.Id);
 
             if (userProfile == null) return NotFound();
 
-            // --- NEW LOGIC: Update ITSNumber in UserProfile if provided (for Customers) ---
-            // We assume if IsCustomer is true (passed from view or checked via role), we allow the update.
-            // You can also add a role check here: await _userManager.IsInRoleAsync(user, "Customer")
             if (!string.IsNullOrEmpty(model.ITSNumber) && userProfile.ITSNumber != model.ITSNumber)
             {
                 userProfile.ITSNumber = model.ITSNumber;
                 _context.UserProfiles.Update(userProfile);
-                // Note: SaveChangesAsync is called later in Step 6 to keep the operation atomic
             }
 
-            // 2. Final Gatekeeper: Block if a PENDING request already exists
             var hasPending = await _context.SubscriptionRequests
-                .AnyAsync(r => r.UserId == userId && r.Status == RequestStatus.Pending);
+                .AnyAsync(r => r.UserId == user.Id && r.Status == RequestStatus.Pending);
 
             if (hasPending)
             {
@@ -180,81 +171,67 @@ namespace CMSECommerce.Controllers
                 return RedirectToAction("Status");
             }
 
-            // 3. Fetch Target Tier to verify price
             var targetTier = await _context.SubscriptionTiers.FindAsync(model.TierId);
             if (targetTier == null) return NotFound();
 
-            // 4. THE FAIR VALUE UPGRADE LOGIC (Server-Side Implementation)
+            // --- UPDATED SERVER-SIDE PRORATED CALCULATION ---
             decimal serverCalculatedFinalAmount = targetTier.Price;
             decimal serverCalculatedCredit = 0;
 
-            if (userProfile?.CurrentTierId != null && userProfile.SubscriptionEndDate > DateTime.Now)
+            if (userProfile.CurrentTierId != null && userProfile.SubscriptionEndDate > DateTime.Now)
             {
-                // Block same-plan requests if already active
                 if (userProfile.CurrentTierId == model.TierId)
                 {
                     TempData["Info"] = "You are already on this plan.";
                     return RedirectToAction("Status");
                 }
 
-                // Only Upgrade allowed (Target Price > Current Price)
                 if (targetTier.Price <= userProfile.CurrentTier.Price)
                 {
-                    TempData["Error"] = "Downgrading or switching to a cheaper plan is not supported.";
+                    TempData["Error"] = "Downgrading is not supported.";
                     return RedirectToAction("Index");
                 }
 
-                // --- THE UPDATED FAIR CREDIT CALCULATION ---
-                serverCalculatedCredit = userProfile.CurrentTier.Price;
+                // Exact Proration Calculation
+                int totalDaysOldPlan = userProfile.CurrentTier.DurationMonths * 30;
+                decimal dailyRate = userProfile.CurrentTier.Price / totalDaysOldPlan;
+                int remainingDays = (int)(userProfile.SubscriptionEndDate.Value - DateTime.Now).TotalDays;
+
+                serverCalculatedCredit = dailyRate * Math.Max(0, remainingDays);
                 serverCalculatedFinalAmount = Math.Max(0, targetTier.Price - serverCalculatedCredit);
             }
 
             if (!ModelState.IsValid) return View("Register", model);
 
-            // 5. Handle Receipt Upload
             string fileName = "default.png";
             if (model.Receipt != null)
             {
                 var uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
                 if (!Directory.Exists(uploadFolder)) Directory.CreateDirectory(uploadFolder);
-
                 fileName = Guid.NewGuid() + Path.GetExtension(model.Receipt.FileName);
                 string path = Path.Combine(uploadFolder, fileName);
-
-                using (var stream = new FileStream(path, FileMode.Create))
-                {
-                    await model.Receipt.CopyToAsync(stream);
-                }
+                using (var stream = new FileStream(path, FileMode.Create)) await model.Receipt.CopyToAsync(stream);
             }
 
-            // 6. Create Subscription Request with New Columns
             var request = new SubscriptionRequest
             {
-                UserId = userId!,
+                UserId = user.Id,
                 TierId = model.TierId,
                 ItsNumber = model.ITSNumber,
                 ReceiptImagePath = fileName,
                 CreatedAt = DateTime.UtcNow,
                 Status = RequestStatus.Pending,
-                IsUpgrade = userProfile?.CurrentTierId != null && targetTier.Price > (userProfile.CurrentTier?.Price ?? 0),
+                IsUpgrade = userProfile.CurrentTierId != null,
                 FinalAmount = serverCalculatedFinalAmount,
                 CreditApplied = serverCalculatedCredit
             };
 
             _context.SubscriptionRequests.Add(request);
-
-            // This will save BOTH the UserProfile update and the SubscriptionRequest
             await _context.SaveChangesAsync();
 
-            // 7. Success Message
-            if (userProfile?.CurrentTierId != null)
-            {
-                TempData["Success"] = $"Upgrade submitted! Adjusted price: ₹{serverCalculatedFinalAmount} (₹{serverCalculatedCredit} credit applied from your {userProfile.CurrentTier.Name} plan). Profile updated.";
-            }
-            else
-            {
-                TempData["Success"] = "Subscription request submitted and profile updated.";
-            }
+            TempData["Success"] = userProfile.CurrentTierId != null
+                ? $"Upgrade submitted! Adjusted price: ₹{serverCalculatedFinalAmount:N2} (₹{serverCalculatedCredit:N2} credit applied)."
+                : "Subscription request submitted successfully.";
 
             return RedirectToAction("Status");
         }
@@ -287,16 +264,18 @@ namespace CMSECommerce.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Approve(int requestId)
         {
+            // 1. Fetch Request with Tier details
             var request = await _context.SubscriptionRequests
                 .Include(r => r.Tier)
                 .FirstOrDefaultAsync(r => r.Id == requestId);
 
             if (request == null) return NotFound();
 
-            // 1. Basic Constraint Checks
+            // 2. Status Guard Clauses
             if (request.Status == RequestStatus.Approved) return BadRequest("This request is already approved.");
             if (request.Status == RequestStatus.Rejected) return BadRequest("Cannot approve a rejected request.");
 
+            // 3. Fetch User and Profile
             var user = await _userManager.FindByIdAsync(request.UserId);
             if (user == null) return BadRequest("User not found.");
 
@@ -308,65 +287,60 @@ namespace CMSECommerce.Controllers
             if (user.LockoutEnabled && await _userManager.IsLockedOutAsync(user))
                 return BadRequest("User is currently deactivated/locked.");
 
-            // 2. Capture Current Context & Old Plan Data
-            int currentTierId = profile.CurrentTierId ?? 0;
-            int requestedTierId = request.TierId;
-            string oldPlanName = profile.CurrentTier?.Name ?? "No Active Plan";
+            // 4. Prorated Price Calculation Logic
+            decimal originalPrice = request.Tier.Price;
+            decimal creditFromOldPlan = 0;
+            decimal finalPriceToCharge = originalPrice;
+            int remainingDays = 0;
 
-            // --- THE FAIR PLAY DATE CALCULATION (CARRY OVER) ---
-            // Rule: New plan duration starts TODAY + Append remaining days from the old plan.
-            int carryOverDays = 0;
-            if (profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate.Value > DateTime.Now)
+            // Check if there is an active plan to "buy back" time from
+            if (profile.CurrentTier != null && profile.SubscriptionEndDate > DateTime.Now)
             {
-                carryOverDays = (int)(profile.SubscriptionEndDate.Value - DateTime.Now).TotalDays;
+                remainingDays = (int)(profile.SubscriptionEndDate.Value - DateTime.Now).TotalDays;
+
+                if (remainingDays > 0)
+                {
+                    // Calculate how much 1 day of the OLD plan was worth
+                    // Standardizing months to 30 days
+                    int totalDaysInOldPlan = profile.CurrentTier.DurationMonths * 30;
+                    decimal dailyRate = profile.CurrentTier.Price / totalDaysInOldPlan;
+
+                    // Credit = Value of unused time
+                    creditFromOldPlan = dailyRate * remainingDays;
+
+                    // Final Price = New Plan Price - Credit
+                    // Math.Max(0,...) ensures we don't owe the user money if the credit is huge
+                    finalPriceToCharge = Math.Max(0, originalPrice - creditFromOldPlan);
+                }
             }
 
-            // 3. Upgrade Detection Logic
-            // Using price-based logic to match the Register/SubmitRequest actions
+            // 5. Upgrade/Downgrade Meta-data
             bool isActuallyUpgrade = profile.CurrentTierId.HasValue &&
                                      request.Tier.Price > (profile.CurrentTier?.Price ?? 0);
-
             request.IsUpgrade = isActuallyUpgrade;
 
-            // 4. Downgrade Check (Double-check before final approval)
-            if (profile.CurrentTierId.HasValue && request.Tier.Price < profile.CurrentTier.Price)
-            {
-                string reason = $"Downgrade detected (Price Drop). Active: {oldPlanName}, Requested: {request.Tier.Name}. Approval blocked.";
-                return await Reject(requestId, reason);
-            }
-
-            // 5. Apply Dates
+            // 6. Apply New Subscription Dates & Quotas
+            // We start the plan TODAY because we already gave a price discount for the old time
             DateTime newStartDate = DateTime.Now;
-            int newPlanDays = request.Tier.DurationMonths * 30; // Standardized duration
+            int newPlanDays = request.Tier.DurationMonths * 30;
 
-            // New Expiry = Today + New Plan Days + Carried Over Days
-            profile.SubscriptionEndDate = newStartDate.AddDays(newPlanDays + Math.Max(0, carryOverDays));
             profile.SubscriptionStartDate = newStartDate;
-
-            // 6. Update Profile Quotas & Tier
+            profile.SubscriptionEndDate = newStartDate.AddDays(newPlanDays);
+            profile.CurrentTierId = request.TierId;
             profile.CurrentProductLimit = request.Tier.ProductLimit;
-            profile.CurrentTierId = requestedTierId;
 
             // 7. Role Management
-            var roles = await _userManager.GetRolesAsync(user);
-            if (!roles.Contains("Subscriber"))
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            if (currentRoles.Any())
             {
-                // --- NEW ROLE REPLACEMENT LOGIC ---
-                // Get all current roles for the user
-                var currentRoles = await _userManager.GetRolesAsync(user);
-
-                // Remove the user from all current roles
-                if (currentRoles.Any())
-                {
-                    await _userManager.RemoveFromRolesAsync(user, currentRoles);
-                }
-
-                // Add the user to the "Subscriber" role
-                await _userManager.AddToRoleAsync(user, "Subscriber");
+                await _userManager.RemoveFromRolesAsync(user, currentRoles);
             }
+            await _userManager.AddToRoleAsync(user, "Subscriber");
 
-            // 8. Finalize Request
+            // 8. Finalize Request and Save
             request.Status = RequestStatus.Approved;
+            // Optional: Store the calculated price in the request for history
+            // request.AmountPaid = finalPriceToCharge; 
 
             _context.SubscriptionRequests.Update(request);
             _context.UserProfiles.Update(profile);
@@ -374,12 +348,12 @@ namespace CMSECommerce.Controllers
             await _context.SaveChangesAsync();
             await _userManager.UpdateSecurityStampAsync(user);
 
-            // 9. Success Message
-            string upgradeNote = isActuallyUpgrade
-                ? $" (Upgraded from {oldPlanName}. {carryOverDays} days carried over)"
+            // 9. Feedback Message
+            string creditNote = creditFromOldPlan > 0
+                ? $" ₹{creditFromOldPlan:N2} credit applied for {remainingDays} remaining days."
                 : "";
 
-            TempData["Success"] = $"Plan '{request.Tier.Name}' Approved!{upgradeNote} New expiry: {profile.SubscriptionEndDate?.ToString("dd MMM yyyy")}";
+            TempData["Success"] = $"Plan '{request.Tier.Name}' Approved! Total Charged: ₹{finalPriceToCharge:N2}.{creditNote}";
 
             return RedirectToAction(nameof(AdminDashboard));
         }
@@ -749,20 +723,29 @@ namespace CMSECommerce.Controllers
                 .Sum(r => r.FinalAmount > 0 ? r.FinalAmount : r.Tier.Price);
 
             // 4. Calculate Total Credits Applied (Fair Adjustment Savings)
-            // This shows the Admin how much the user has "saved" via the upgrade logic.
             ViewBag.TotalCreditsGranted = history
                 .Where(r => r.Status == RequestStatus.Approved)
                 .Sum(r => r.CreditApplied);
 
-            // 5. Calculate Remaining Days & Current Value
-            // This helps the Admin see if the user is eligible for another upgrade soon.
+            // 5. Calculate Remaining Days & Current Monetary Value
             int remainingDays = 0;
+            decimal currentProRatedValue = 0;
+
             if (profile.SubscriptionEndDate.HasValue && profile.SubscriptionEndDate > DateTime.Now)
             {
                 remainingDays = (int)(profile.SubscriptionEndDate.Value - DateTime.Now).TotalDays;
-            }
-            ViewBag.RemainingDays = Math.Max(0, remainingDays);
 
+                // NEW: Calculate what the remaining time is worth in currency
+                if (profile.CurrentTier != null && remainingDays > 0)
+                {
+                    int totalDaysInPlan = profile.CurrentTier.DurationMonths * 30;
+                    decimal dailyRate = profile.CurrentTier.Price / totalDaysInPlan;
+                    currentProRatedValue = dailyRate * remainingDays;
+                }
+            }
+
+            ViewBag.RemainingDays = Math.Max(0, remainingDays);
+            ViewBag.CurrentValue = currentProRatedValue; // The "Trade-in" value if they upgrade now
             ViewBag.History = history;
 
             return View(profile);

@@ -185,11 +185,44 @@
 
                     @* RIGHT COLUMN *@
                     <div class="col-lg-4">
+                        @* Media Card *@
                         <div class="card border-0 shadow-sm mb-4">
                             <div class="card-body p-4 text-center">
-                                <h6 class="text-start fw-bold small text-uppercase text-muted mb-3">Photo</h6>
+                                @* Profile Photo *@
+                                <h6 class="text-start fw-bold small text-uppercase text-muted mb-3">Profile Photo</h6>
                                 <img src="@Model.ProfileImagePath" id="profilePreview" class="rounded-circle border mb-3" style="width: 140px; height: 140px; object-fit: cover;" />
-                                <input type="file" name="profileImg" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'profilePreview')" />
+                                <input type="file" name="profileImg" class="form-control form-control-sm mb-4" accept="image/*" onchange="previewImage(this, 'profilePreview')" />
+
+                                @* NEW: QR Code Section (Visible to Merchants Only) *@
+                                @if (!isCustomer)
+                                {
+                                    <hr />
+                                    <div class="mb-3 text-center">
+                                        <label class="d-block text-start small fw-bold">Google Pay QR</label>
+                                        @if (!string.IsNullOrEmpty(Model.GpayQRCodePath))
+                                        {
+                                            <img src="@Model.GpayQRCodePath" id="gpayPrev" class="img-thumbnail my-2" style="max-height: 100px;" />
+                                        }
+                                        else
+                                        {
+                                            <img id="gpayPrev" src="/images/no-qr.png" class="img-thumbnail my-2 d-none" style="max-height: 100px;" />
+                                        }
+                                        <input type="file" name="gpayQR" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'gpayPrev')" />
+                                    </div>
+
+                                    <div class="text-center">
+                                        <label class="d-block text-start small fw-bold">PhonePe QR</label>
+                                        @if (!string.IsNullOrEmpty(Model.PhonePeQRCodePath))
+                                        {
+                                            <img src="@Model.PhonePeQRCodePath" id="phonepePrev" class="img-thumbnail my-2" style="max-height: 100px;" />
+                                        }
+                                        else
+                                        {
+                                            <img id="phonepePrev" src="/images/no-qr.png" class="img-thumbnail my-2 d-none" style="max-height: 100px;" />
+                                        }
+                                        <input type="file" name="phonepeQR" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'phonepePrev')" />
+                                    </div>
+                                }
                             </div>
                         </div>
 
@@ -234,11 +267,11 @@
             border: none;
         }
 
-            .btn-primary:disabled {
-                background-color: #66aab6;
-                cursor: not-allowed;
-                opacity: 0.8;
-            }
+        .btn-primary:disabled {
+            background-color: #66aab6;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
     </style>
 }
 
@@ -249,20 +282,18 @@
         function previewImage(input, previewId) {
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
-                reader.onload = function (e) { $(`#${previewId}`).attr('src', e.target.result); }
+                reader.onload = function (e) { 
+                    $(`#${previewId}`).attr('src', e.target.result).removeClass('d-none'); 
+                }
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
         $(document).ready(function () {
-            // Track uniqueness status for fields
             let uniqueness = { WhatsAppNumber: true, StoreName: true, StoreEmail: true, StoreContact: true };
 
-            // Unified function to check if button should be enabled
             function validateForm() {
                 let allFilled = true;
-
-                // 1. Check all visible fields with 'req-field' class
                 $('.req-field:visible').each(function() {
                     if ($(this).val().trim() === "") {
                         allFilled = false;
@@ -270,21 +301,16 @@
                     }
                 });
 
-                // 2. Check if all AJAX uniqueness flags are true
                 let allUnique = Object.values(uniqueness).every(v => v === true);
-
-                // 3. Check if standard jQuery validation is passing (for formats like email)
                 let isValidated = $('#editProfileForm').valid();
 
                 $('#btnSubmit').prop('disabled', !(allFilled && allUnique && isValidated));
             }
 
-            // Trigger validation whenever user types or changes an input
             $('#editProfileForm input').on('keyup change blur', function() {
                 validateForm();
             });
 
-            // AJAX Uniqueness Logic
             $('.unique-check').on('blur', function () {
                 const input = $(this);
                 const fieldName = input.data('field');
@@ -318,15 +344,14 @@
             });
 
             $('#editProfileForm').on('submit', function (e) {
-                // Ensure hidden fields for Customers are populated before submit
                 @if (isCustomer)
                 {
-                        <text>
-                        if ($('#StoreName').val() === "") $('#StoreName').val($('#FirstName').val() + "'s Profile");
-                        if ($('#StoreEmail').val() === "") $('#StoreEmail').val("customer@placeholder.com");
-                        if ($('#StoreContact').val() === "") $('#StoreContact').val($('#WhatsAppNumber').val());
-                        if ($('#BusinessAddress').val() === "") $('#BusinessAddress').val($('#HomeAddress').val());
-                        </text>
+                    <text>
+                    if ($('#StoreName').val() === "") $('#StoreName').val($('#FirstName').val() + "'s Profile");
+                    if ($('#StoreEmail').val() === "") $('#StoreEmail').val("customer@placeholder.com");
+                    if ($('#StoreContact').val() === "") $('#StoreContact').val($('#WhatsAppNumber').val());
+                    if ($('#BusinessAddress').val() === "") $('#BusinessAddress').val($('#HomeAddress').val());
+                    </text>
                 }
 
                 if ($(this).valid()) {
@@ -338,7 +363,6 @@
                 }
             });
 
-            // Run on load to set initial button state
             validateForm();
         });
     </script>

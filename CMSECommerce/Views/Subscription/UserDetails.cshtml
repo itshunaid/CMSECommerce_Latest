@@ -3,6 +3,8 @@
     ViewData["Title"] = "User Subscription Details";
     var history = ViewBag.History as IEnumerable<CMSECommerce.Models.SubscriptionRequest>;
     var totalSpent = ViewBag.TotalSpent ?? 0m;
+    var currentValue = ViewBag.CurrentValue ?? 0m; // Added from Controller
+    var remainingDays = ViewBag.RemainingDays ?? 0; // Added from Controller
     ViewData["HideLayoutSidebar"] = true;
 }
 
@@ -14,6 +16,7 @@
             --success-green: #48bb78;
             --warning-orange: #ed8936;
             --danger-red: #f56565;
+            --info-cyan: #0bc5ea;
         }
 
         body {
@@ -85,7 +88,6 @@
             z-index: 2;
         }
 
-        /* Using dynamic status classes from your RequestStatus Enum */
         .status-Approved {
             background: var(--success-green) !important;
             box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.2);
@@ -111,11 +113,19 @@
             margin: 1rem 0;
             opacity: 0.1;
         }
+
+        .credit-tag {
+            background: #ebf8ff;
+            color: #2b6cb0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: bold;
+        }
     </style>
 }
 
 <div class="container py-4">
-    @* --- HEADER SECTION --- *@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <a asp-action="AdminDashboard" class="btn btn-sm btn-outline-secondary mb-2">
@@ -148,15 +158,19 @@
 
                 <hr>
 
+                <div class="stat-label">Current Plan Value (Prorated)</div>
+                <div class="stat-value text-info">
+                    ₹@string.Format("{0:N2}", currentValue)
+                    <div class="text-xs text-muted fw-normal">Based on @remainingDays days remaining</div>
+                </div>
+
+                <hr>
+
                 <div class="stat-label">Current Plan</div>
                 <div class="stat-value">
                     @if (Model.CurrentTier != null)
                     {
                         <span class="text-navy"><i class="fas fa-crown text-warning me-2"></i>@Model.CurrentTier.Name</span>
-                    }
-                    else if (Model.CurrentTierId.HasValue)
-                    {
-                        <span>Tier @Model.CurrentTierId</span>
                     }
                     else
                     {
@@ -208,7 +222,7 @@
                                             <span class="badge bg-info text-white ms-1" style="font-size:0.6rem; vertical-align: middle;">UPGRADE</span>
                                         }
                                         <div class="text-xs text-muted mt-1">
-                                            <i class="far fa-clock me-1"></i>Submitted @req.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")
+                                            <i class="far fa-clock me-1"></i>@req.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")
                                         </div>
                                     </div>
                                     <div class="text-end">
@@ -217,7 +231,13 @@
                                         </div>
                                         @if (req.Status == RequestStatus.Approved)
                                         {
-                                            <div class="text-xs text-success fw-bold">+₹@string.Format("{0:N2}", req.Tier.Price)</div>
+                                            <div class="text-xs text-success fw-bold">Paid: ₹@string.Format("{0:N2}", req.FinalAmount > 0 ? req.FinalAmount : req.Tier.Price)</div>
+                                            @if (req.CreditApplied > 0)
+                                            {
+                                                <div class="credit-tag mt-1">
+                                                    <i class="fas fa-arrow-down me-1"></i>₹@string.Format("{0:N2}", req.CreditApplied) Adjusted
+                                                </div>
+                                            }
                                         }
                                     </div>
                                 </div>
@@ -226,13 +246,6 @@
                                 {
                                     <div class="alert alert-danger py-2 px-3 mt-2 mb-0 text-xs border-0 shadow-sm">
                                         <strong>Rejection Reason:</strong> @req.RejectionReason
-                                    </div>
-                                }
-
-                                @if (req.Status == RequestStatus.Pending)
-                                {
-                                    <div class="mt-2">
-                                        <a asp-action="ReviewRequest" asp-route-id="@req.Id" class="btn btn-xs btn-primary py-0" style="font-size: 0.7rem;">Review Now</a>
                                     </div>
                                 }
                             </li>
