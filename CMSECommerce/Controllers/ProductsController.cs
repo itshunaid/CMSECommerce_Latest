@@ -50,6 +50,7 @@ namespace CMSECommerce.Controllers
                 var userStore = await _context.Stores
                   
                     .FirstOrDefaultAsync(s => s.UserId == userId); // Or your specific FK column
+                
 
                 if (userStore == null)
                 {

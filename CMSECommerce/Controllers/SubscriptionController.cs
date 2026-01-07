@@ -1,4 +1,5 @@
 ﻿using CMSECommerce.Infrastructure;
+using CMSECommerce.Models;
 using CMSECommerce.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -153,13 +154,16 @@ namespace CMSECommerce.Controllers
             var userProfile = await _context.UserProfiles
                 .Include(up => up.CurrentTier)
                 .FirstOrDefaultAsync(up => up.UserId == user.Id);
+            
 
             if (userProfile == null) return NotFound();
 
             if (!string.IsNullOrEmpty(model.ITSNumber) && userProfile.ITSNumber != model.ITSNumber)
             {
                 userProfile.ITSNumber = model.ITSNumber;
+                
                 _context.UserProfiles.Update(userProfile);
+
             }
 
             var hasPending = await _context.SubscriptionRequests
@@ -279,9 +283,11 @@ namespace CMSECommerce.Controllers
             var user = await _userManager.FindByIdAsync(request.UserId);
             if (user == null) return BadRequest("User not found.");
 
+            // IMPORTANT: Include CurrentTier to avoid nulls in price calculation
             var profile = await _context.UserProfiles
                 .Include(p => p.CurrentTier)
                 .FirstOrDefaultAsync(p => p.UserId == user.Id);
+
             if (profile == null) return BadRequest("User profile missing.");
 
             if (user.LockoutEnabled && await _userManager.IsLockedOutAsync(user))
@@ -293,23 +299,17 @@ namespace CMSECommerce.Controllers
             decimal finalPriceToCharge = originalPrice;
             int remainingDays = 0;
 
-            // Check if there is an active plan to "buy back" time from
             if (profile.CurrentTier != null && profile.SubscriptionEndDate > DateTime.Now)
             {
                 remainingDays = (int)(profile.SubscriptionEndDate.Value - DateTime.Now).TotalDays;
 
                 if (remainingDays > 0)
                 {
-                    // Calculate how much 1 day of the OLD plan was worth
-                    // Standardizing months to 30 days
-                    int totalDaysInOldPlan = profile.CurrentTier.DurationMonths * 30;
+                    // Use Math.Max to prevent division by zero
+                    int totalDaysInOldPlan = Math.Max(1, profile.CurrentTier.DurationMonths * 30);
                     decimal dailyRate = profile.CurrentTier.Price / totalDaysInOldPlan;
 
-                    // Credit = Value of unused time
                     creditFromOldPlan = dailyRate * remainingDays;
-
-                    // Final Price = New Plan Price - Credit
-                    // Math.Max(0,...) ensures we don't owe the user money if the credit is huge
                     finalPriceToCharge = Math.Max(0, originalPrice - creditFromOldPlan);
                 }
             }
@@ -320,7 +320,6 @@ namespace CMSECommerce.Controllers
             request.IsUpgrade = isActuallyUpgrade;
 
             // 6. Apply New Subscription Dates & Quotas
-            // We start the plan TODAY because we already gave a price discount for the old time
             DateTime newStartDate = DateTime.Now;
             int newPlanDays = request.Tier.DurationMonths * 30;
 
@@ -328,6 +327,7 @@ namespace CMSECommerce.Controllers
             profile.SubscriptionEndDate = newStartDate.AddDays(newPlanDays);
             profile.CurrentTierId = request.TierId;
             profile.CurrentProductLimit = request.Tier.ProductLimit;
+            profile.IsDeactivated = false; // Ensure profile is active upon approval
 
             // 7. Role Management
             var currentRoles = await _userManager.GetRolesAsync(user);
@@ -337,14 +337,29 @@ namespace CMSECommerce.Controllers
             }
             await _userManager.AddToRoleAsync(user, "Subscriber");
 
-            // 8. Finalize Request and Save
+            // 8. Store Logic & Finalize (The Fix)
             request.Status = RequestStatus.Approved;
-            // Optional: Store the calculated price in the request for history
-            // request.AmountPaid = finalPriceToCharge; 
+
+            // Fetch the store using the UserId
+            var store = await _context.Stores.FirstOrDefaultAsync(s => s.UserId == user.Id);
+
+            if (store != null)
+            {
+                store.IsActive = true;
+
+                // Sync the StoreId back to the Profile if it's missing (Crucial for your model relationship)
+                if (profile.StoreId == null)
+                {
+                    profile.StoreId = store.Id;
+                }
+
+                _context.Stores.Update(store);
+            }
 
             _context.SubscriptionRequests.Update(request);
             _context.UserProfiles.Update(profile);
 
+            // Save all changes in a single transaction
             await _context.SaveChangesAsync();
             await _userManager.UpdateSecurityStampAsync(user);
 
@@ -355,7 +370,7 @@ namespace CMSECommerce.Controllers
 
             TempData["Success"] = $"Plan '{request.Tier.Name}' Approved! Total Charged: ₹{finalPriceToCharge:N2}.{creditNote}";
 
-            return RedirectToAction(nameof(AdminDashboard));
+            return RedirectToAction("AdminDashboard", "Subscription");
         }
 
         [Authorize(Roles = "Admin")]

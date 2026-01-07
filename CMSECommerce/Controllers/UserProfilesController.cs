@@ -252,11 +252,6 @@ namespace CMSECommerce.Controllers
             }
         }
 
-
-
-
-
-
         // Remote validation for uniqueness
         [HttpGet]
         public async Task<JsonResult> CheckUniqueness(string field, string value, int currentId)
