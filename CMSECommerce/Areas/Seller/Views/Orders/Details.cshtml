@@ -1,54 +1,251 @@
-@model CMSECommerce.Models.ViewModels.OrderDetailsViewModel
+@model OrderDetailsViewModel
+@using CMSECommerce.Models.ViewModels
 
-
-
-@if(Model.OrderDetails==null && Model.Order==null)
+@if (Model.Order == null || Model.OrderDetails == null || !Model.OrderDetails.Any())
 {
-
     <h1>No Order has been created for you!</h1>
 }
 else
 {
+    ViewData["Title"] = "Order Details";
 
-   
- ViewData["Title"] = "Order Details";
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">Order #@Model.Order.Id</h1>
 
-    <h1>Order #@Model.Order.Id</h1>
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>User:</strong> @Model.Order.UserName<br />
+                                <strong>Date:</strong> @Model.Order.OrderDate.Value.ToString("MMMM dd, yyyy h:mm tt")<br />
+                                <strong>Total:</strong> @Model.Order.GrandTotal.ToString("C2")
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <a asp-area="Seller" asp-controller="Orders" asp-action="Index" class="btn btn-secondary">Back to Orders</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    <div class="mb-3">
-        <strong>User:</strong> @Model.Order.UserName
+                <h3 class="mb-3">Order Items</h3>
+
+                @foreach (var item in Model.OrderDetails)
+                {
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-2">
+                                    <img src="/media/products/@item.Image" class="img-fluid rounded" alt="@item.ProductName" style="max-width: 100px;" />
+                                </div>
+                                <div class="col-md-4">
+                                    <h5 class="card-title">@item.ProductName</h5>
+                                    <p class="card-text">
+                                        Quantity: @item.Quantity<br>
+                                        Price: @item.Price.ToString("C2")<br>
+                                        Subtotal: @(item.Price * item.Quantity).ToString("C2")
+                                    </p>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            Status: <span class="badge bg-@(GetStatusBadgeClass(item.Status))">@item.Status</span>
+                                            @if (!string.IsNullOrEmpty(item.SellerNote))
+                                            {
+                                                <br>
+                                            <text>Note: @item.SellerNote</text>
+                                            }
+                                            @if (!string.IsNullOrEmpty(item.DeliveryImageUrl))
+                                            {
+                                                <br>
+                                                <a href="@item.DeliveryImageUrl" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
+                                                    <i class="fas fa-file-image me-1"></i>View Delivery Document
+                                                </a>
+                                            }
+                                        </small>
+                                    </p>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    @if (item.Status.ToString() == "Pending")
+                                    {
+                                        <button type="button" class="btn btn-success btn-sm me-2" onclick="openAcceptModal(@item.Id)">
+                                            <i class="fas fa-check"></i> Accept Order
+                                        </button>
+                                        <button type="button" class="btn btn-warning btn-sm me-2" onclick="openProcessModal(@item.Id)">
+                                            <i class="fas fa-cog"></i> Process
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm" onclick="openCancelModal(@item.Id)">
+                                            <i class="fas fa-times"></i> Cancel Item
+                                        </button>
+                                    }
+                                    else if (item.Status.ToString() == "Accepted")
+                                    {
+                                        <button type="button" class="btn btn-warning btn-sm me-2" onclick="openProcessModal(@item.Id)">
+                                            <i class="fas fa-cog"></i> Process
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm" onclick="openCancelModal(@item.Id)">
+                                            <i class="fas fa-times"></i> Cancel Item
+                                        </button>
+                                    }
+                                    else if (item.Status.ToString() == "Processing")
+                                    {
+                                        <span class="text-muted">Processing...</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">@item.Status</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
     </div>
-    <div class="mb-3">
-        <strong>Date:</strong> @Model.Order.OrderDate.Value.ToString("MMMM dd, yyyy h:mm tt")
-    </div>
-    <div class="mb-3">
-        <strong>Total:</strong> @Model.Order.GrandTotal.ToString("C2")
+
+    <!-- Accept Order Modal -->
+    <div class="modal fade" id="acceptModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-area="Seller" asp-controller="Orders" asp-action="AcceptOrder" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="acceptOrderDetailId" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">Accept Order</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to accept this order item?</p>
+                        <div class="mb-3">
+                            <label for="acceptNote" class="form-label">Note (optional)</label>
+                            <textarea class="form-control" id="acceptNote" name="note" rows="3" placeholder="Seller has Accepted your Order"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Accept Order</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Subtotal</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var d in Model.OrderDetails)
-            {
-                <tr>
-                    <td>@d.ProductName</td>
-                    <td>@d.Quantity</td>
-                    <td>@d.Price.ToString("C2")</td>
-                    <td>@(d.Price* d.Quantity).ToString("C2")</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <!-- Process Order Modal -->
+    <div class="modal fade" id="processModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-area="Seller" asp-controller="Orders" asp-action="ProcessOrder" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="OrderDetailId" id="processOrderDetailId" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">Process Order</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="deliveryImage" class="form-label">Delivery Image</label>
+                            <input type="file" class="form-control" id="deliveryImage" name="DeliveryImage" accept="image/*" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="processNote" class="form-label">Note</label>
+                            <textarea class="form-control" id="processNote" name="Note" rows="3" placeholder="Order is being processed for delivery."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning">Process Order</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
+    <!-- Cancel Item Modal -->
+    <div class="modal fade" id="cancelModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-area="Seller" asp-controller="Orders" asp-action="CancelOrder" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="OrderDetailId" id="cancelOrderDetailId" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">Cancel Item</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to cancel this order item?</p>
+                        <div class="mb-3">
+                            <label for="cancelReason" class="form-label">Reason</label>
+                            <select class="form-select" id="cancelReason" name="SelectedReason" required>
+                                <option value="">Select a reason...</option>
+                                <option value="Out of Stock">Out of Stock</option>
+                                <option value="Pricing Error">Pricing Error</option>
+                                <option value="Shipping Area Not Supported">Shipping Area Not Supported</option>
+                                <option value="Damaged Item">Damaged Item</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="customReasonDiv" style="display: none;">
+                            <label for="customReason" class="form-label">Custom Reason</label>
+                            <textarea class="form-control" id="customReason" name="CustomReason" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Cancel Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 }
 
-<p>
- <a asp-area="Seller" asp-controller="Orders" asp-action="Index" class="btn btn-secondary">Back</a>
-</p>
+@functions {
+    string GetStatusBadgeClass(CMSECommerce.Models.OrderStatus status)
+    {
+        return status switch
+        {
+            CMSECommerce.Models.OrderStatus.Pending => "secondary",
+            CMSECommerce.Models.OrderStatus.Accepted => "success",
+            CMSECommerce.Models.OrderStatus.Processing => "warning",
+            CMSECommerce.Models.OrderStatus.Shipped => "info",
+            CMSECommerce.Models.OrderStatus.Cancelled => "danger",
+            CMSECommerce.Models.OrderStatus.Returned => "dark",
+            _ => "secondary"
+        };
+    }
+}
+
+@section Scripts {
+    <script>
+        function openAcceptModal(orderDetailId) {
+            document.getElementById('acceptOrderDetailId').value = orderDetailId;
+            document.getElementById('acceptNote').value = 'Seller has Accepted your Order';
+            new bootstrap.Modal(document.getElementById('acceptModal')).show();
+        }
+
+        function openProcessModal(orderDetailId) {
+            document.getElementById('processOrderDetailId').value = orderDetailId;
+            new bootstrap.Modal(document.getElementById('processModal')).show();
+        }
+
+        function openCancelModal(orderDetailId) {
+            document.getElementById('cancelOrderDetailId').value = orderDetailId;
+            new bootstrap.Modal(document.getElementById('cancelModal')).show();
+        }
+
+        // Show custom reason field when "Other" is selected
+        const cancelReasonSelect = document.getElementById('cancelReason');
+        if (cancelReasonSelect) {
+            cancelReasonSelect.addEventListener('change', function() {
+                const customReasonDiv = document.getElementById('customReasonDiv');
+                if (this.value === 'Other') {
+                    customReasonDiv.style.display = 'block';
+                    document.getElementById('customReason').required = true;
+                } else {
+                    customReasonDiv.style.display = 'none';
+                    document.getElementById('customReason').required = false;
+                }
+            });
+        }
+    </script>
+}

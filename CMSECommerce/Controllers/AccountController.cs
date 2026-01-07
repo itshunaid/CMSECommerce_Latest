@@ -1869,59 +1869,81 @@ namespace CMSECommerce.Controllers
         {
             try
             {
-                // 1. Fetch Order with Line Items
-                // Use AsNoTracking for read-only performance
                 var order = await _context.Orders
                     .Include(o => o.OrderDetails)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Id == id);
 
-                // 2. Security/Safety Check
-                if (order == null)
-                {
-                    _logger.LogWarning("Order {OrderId} not found.", id);
-                    TempData["error"] = $"Order #{id} was not found.";
-                    return RedirectToAction("Index", "Orders");
-                }
+                if (order == null) return RedirectToAction("Index", "Orders");
 
-                // 3. Fetch UserProfile AND the linked Store in a single join
+                // --- NEW LOGIC: CALCULATE PROGRESS STEP ---
+                int currentStep = 1; // Default: Ordered
+                if (order.IsCancelled) currentStep = 0;
+                else if (order.Shipped) currentStep = 4; // Delivered/Shipped
+                else if (order.OrderDetails.Any(x => x.IsProcessed)) currentStep = 3; // Dispatched
+                else if (order.OrderDetails.Count > 0) currentStep = 2; // Processed/Accepted
+
                 var userProfile = await _context.UserProfiles
                     .Include(p => p.Store)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.UserId == order.UserId);
 
-                // 4. Null-Safety Initialization
-                // This prevents "Null Reference" crashes in the Razor View if data is missing
-                if (userProfile == null)
-                {
-                    userProfile = new UserProfile
-                    {
-                        UserId = order.UserId,
-                        FirstName = "Guest",
-                        Store = new Store { StoreName = "General Store" }
-                    };
-                }
-                else if (userProfile.Store == null)
-                {
-                    userProfile.Store = new Store { StoreName = "N/A" };
-                }
-
-                // 5. Construct and Return the ViewModel
                 var viewModel = new OrderDetailsViewModel
                 {
                     Order = order,
                     OrderDetails = order.OrderDetails?.ToList() ?? new List<OrderDetail>(),
-                    UserProfile = userProfile                  
+                    UserProfile = userProfile ?? new UserProfile { FirstName = "Guest" },
+                    // Ensure your ViewModel has a 'CurrentStep' property, or use ViewBag
                 };
+
+                ViewBag.CurrentStep = currentStep;
 
                 return View(viewModel);
             }
-            catch (Exception ex)
+            catch (Exception) { return RedirectToAction("Index", "Orders"); }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ViewTrackingImage(int orderDetailId)
+        {
+            // 1. Get current user
+            var userId = _userManager.GetUserId(User);
+
+            // 2. Fetch the order detail and verify ownership
+            var orderDetail = await _context.OrderDetails
+                .Include(od => od.Order)
+                .FirstOrDefaultAsync(od => od.Id == orderDetailId);
+
+            if (orderDetail == null || string.IsNullOrEmpty(orderDetail.DeliveryImageUrl))
             {
-                _logger.LogError(ex, "Error loading details for Order {OrderId}", id);
-                TempData["error"] = "An error occurred while loading order information.";
-                return RedirectToAction("Index", "Orders");
+                return NotFound("Image not found.");
             }
+
+            // Security check: Is this the user's order? (Or is the user an Admin?)
+            if (orderDetail.Order.UserId != userId && !User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
+            // 3. Construct the physical path
+            // It is recommended to store these in a 'PrivateUploads' folder outside wwwroot
+            var filePath = Path.Combine(_webHostEnvironment.ContentRootPath, "PrivateUploads", "DeliveryProof", orderDetail.DeliveryImageUrl);
+
+            if (!System.IO.File.Exists(filePath))
+            {
+                return NotFound("The physical image file is missing on the server.");
+            }
+
+            // 4. Return the file with the correct MIME type
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            var contentType = extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                _ => "application/octet-stream"
+            };
+
+            return PhysicalFile(filePath, contentType);
         }
 
         public IActionResult AccessDenied()
