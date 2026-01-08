@@ -75,6 +75,21 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     .OrderByDescending(o => o.Id)
                     .Take(5)
                     .ToListAsync();
+
+                // 10. Sellers with Declined Orders
+                model.SellersWithDeclines = await _context.OrderDetails
+                    .Where(od => od.IsCancelled == true)
+                    .GroupBy(od => od.ProductOwner)
+                    .Select(g => new CMSECommerce.Areas.Admin.Models.SellerDeclineSummary
+                    {
+                        SellerName = g.Key,
+                        ManualDeclines = g.Count(od => od.CancelledByRole == "Seller"),
+                        AutoDeclines = g.Count(od => od.CancelledByRole == "System"),
+                        TotalDeclines = g.Count()
+                    })
+                    .OrderByDescending(s => s.TotalDeclines)
+                    .Take(10)
+                    .ToListAsync();
             }
             catch (Exception ex)
             {

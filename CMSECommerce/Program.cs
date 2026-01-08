@@ -66,6 +66,7 @@ builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, CMSE
 builder.Services.Configure<CMSECommerce.Services.UserStatusOptions>(builder.Configuration.GetSection("UserStatus"));
 builder.Services.AddScoped<CMSECommerce.Services.IUserStatusService, CMSECommerce.Services.UserStatusService>();
 builder.Services.AddHostedService<CMSECommerce.Services.UserStatusCleanupService>();
+builder.Services.AddHostedService<CMSECommerce.Services.OrderAutoDeclineService>();
 
 builder.Services.Configure<RouteOptions>(options => { options.LowercaseUrls = true; });
 

@@ -13,5 +13,6 @@ namespace CMSECommerce.Areas.Admin.Models
         public int ProductsRequestCount { get; internal set; }
         public int Categories { get; set; }
         public int UserProfilesCount { get; set; }
+        public IEnumerable<SellerDeclineSummary> SellersWithDeclines { get; set; }
     }
 }

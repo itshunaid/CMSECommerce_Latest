@@ -136,6 +136,61 @@
             </div>
         </div>
     </div>
+
+    @* 5. SELLERS WITH DECLINES SECTION *@
+    <div class="row g-4 mb-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-light border-0">
+                    <h6 class="fw-bold text-muted text-uppercase small mb-0">
+                        <i class="fas fa-exclamation-triangle me-2 text-warning"></i>Sellers with Order Declines
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.SellersWithDeclines != null && Model.SellersWithDeclines.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="border-0">Seller Name</th>
+                                        <th class="border-0 text-center">Manual Declines</th>
+                                        <th class="border-0 text-center">Auto Declines</th>
+                                        <th class="border-0 text-center">Total Declines</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var seller in Model.SellersWithDeclines)
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold">@seller.SellerName</td>
+                                            <td class="text-center">
+                                                <span class="badge bg-warning text-dark">@seller.ManualDeclines</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-danger">@seller.AutoDeclines</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary">@seller.TotalDeclines</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h5 class="text-muted">No Declines Found</h5>
+                            <p class="text-muted small">All sellers are performing well with order acceptance.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
