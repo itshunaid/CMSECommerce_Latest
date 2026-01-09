@@ -35,12 +35,12 @@
                 <div class="filter-sidebar sticky-top" style="top: 20px; z-index: 100;">
 
                     @* --- CATEGORIES SECTION --- *@
-                    <h6 class="fw-bold mb-2 small-caps">Department</h6>
+                    @* <h6 class="fw-bold mb-2 small-caps">Categories</h6> *@
                     <ul class="list-unstyled small mb-4">
                         <li>
                             <a asp-action="Index" asp-route-slug="" asp-route-searchTerm="@currentSearchTerm"
                                class="text-decoration-none text-dark filter-link @(string.IsNullOrEmpty(currentCategorySlug) ? "fw-bold" : "")">
-                                All Departments
+                                All Categories
                             </a>
                         </li>
                         @foreach (var cat in categories)
