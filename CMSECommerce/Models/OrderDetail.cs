@@ -2,6 +2,16 @@
 
 namespace CMSECommerce.Models
 {
+
+    public enum OrderStatus
+    {
+        Pending,
+        Accepted,
+        Processing,
+        Shipped,
+        Cancelled,
+        Returned
+    }
     public class OrderDetail
     {
         public int Id { get; set; }
@@ -20,7 +30,7 @@ namespace CMSECommerce.Models
 
         // --- NEW PROPERTIES ---
         public bool IsCancelled { get; set; } = false;
-        public string? CancellationReason { get; set; }
+       
         public string? CancelledByRole { get; set; } // Admin, Seller, or User
 
         public bool IsReturned { get; set; }        // Set to true when user clicks 'Return'
@@ -28,5 +38,12 @@ namespace CMSECommerce.Models
         public DateTime? ReturnDate { get; set; }
 
         public virtual Order Order { get; set; }
+
+        public OrderStatus Status { get; set; } = OrderStatus.Pending;
+        public string? SellerNote { get; set; }
+        public string? DeliveryImageUrl { get; set; }
+        public string? CancellationReason { get; set; }
+        public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+        public DateTime? ShippedDate { get; set; }
     }
 }

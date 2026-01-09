@@ -64,5 +64,12 @@ namespace CMSECommerce.Models.ViewModels
 
         [StringLength(50)]
         public string? Country { get; set; }
+
+        // --- NEW FIELDS ---
+        [Display(Name = "Accept Terms")]
+        [Range(typeof(bool), "true", "true", ErrorMessage = "You must agree to the terms and conditions to continue.")]
+        public bool HasAcceptedTerms { get; set; }
+
+        public string AcceptedTermsVersion { get; set; } = "v1.0-2026-01"; // Optional: Track version
     }
 }

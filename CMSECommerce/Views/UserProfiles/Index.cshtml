@@ -1,0 +1,350 @@
+﻿@model CMSECommerce.Models.UserProfile
+@using System.Security.Claims
+
+@{
+    bool isCustomer = ViewBag.IsCustomer ?? false;
+    ViewData["Title"] = isCustomer ? "My Personal Profile" : "My Business Profile";
+    ViewData["HideLayoutSidebar"] = true;
+
+    // 1. Generate the Public Link for sharing
+    var publicUrl = Url.Action("View", "UserProfiles", new { id = Model.Id }, Context.Request.Scheme);
+
+    // 2. Security Check: Is the person viewing this the person who owns it?
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    bool isOwner = Model.UserId == currentUserId;
+
+    // 3. Subscription Logic
+    var daysRemaining = Model.SubscriptionEndDate.HasValue
+        ? (Model.SubscriptionEndDate.Value - DateTime.Now).Days
+        : -1;
+
+    string subStatusClass = daysRemaining < 0 ? "bg-danger text-white" : (daysRemaining <= 7 ? "bg-warning text-dark" : "bg-success text-white");
+    string subStatusText = daysRemaining < 0 ? "Expired" : (daysRemaining <= 7 ? "Expiring Soon" : "Active");
+}
+
+<style>
+    :root {
+        --brand-indigo: #6366f1;
+        --whatsapp-green: #25D366;
+        --glass-white: rgba(255, 255, 255, 0.9);
+    }
+
+    body {
+        background-color: #f1f5f9;
+        font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    /* Glassmorphism Design */
+    .glass-card {
+        background: var(--glass-white);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 28px;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s ease;
+    }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+        }
+
+    /* Modern Icon Containers */
+    .icon-container {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+
+    .icon-blue {
+        background: #eff6ff;
+        color: #3b82f6;
+    }
+
+    .icon-green {
+        background: #ecfdf5;
+        color: #10b981;
+    }
+
+    .icon-red {
+        background: #fef2f2;
+        color: #ef4444;
+    }
+
+    /* Button Styling */
+    .btn-custom {
+        border-radius: 14px;
+        padding: 12px 24px;
+        font-weight: 600;
+        border: none;
+        transition: 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .btn-wa {
+        background: var(--whatsapp-green);
+        color: white;
+    }
+
+    .btn-save {
+        background: var(--brand-indigo);
+        color: white;
+    }
+
+        .btn-wa:hover, .btn-save:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+            color: white;
+        }
+
+    .service-pill {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+</style>
+
+<div class="container py-5">
+
+    @* --- Subscription Banner (Hidden for Customers) --- *@
+    @if (isOwner && Model.SubscriptionEndDate.HasValue && !isCustomer)
+    {
+        <div class="d-flex align-items-center p-3 mb-4 rounded-4 shadow-sm @subStatusClass">
+            <i class="bi bi-lightning-charge-fill fs-4 me-3"></i>
+            <div class="flex-grow-1">
+                <span class="fw-bold">Subscription @subStatusText</span> —
+                <small>@(daysRemaining < 0 ? "Account functions limited." : $"{daysRemaining} days remaining on your plan.")</small>
+            </div>
+            @if (daysRemaining <= 7)
+            {
+                <a href="#" class="btn btn-sm btn-light rounded-pill px-4 fw-bold shadow-sm">Renew Plan</a>
+            }
+        </div>
+    }
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card p-4 text-center glass-card border-0 shadow-sm h-100">
+                <div class="position-relative d-inline-block mx-auto mb-4">
+                    <img src="@(string.IsNullOrEmpty(Model.ProfileImagePath) ? "/images/default-avatar.png" : Model.ProfileImagePath)"
+                         class="rounded-circle border border-4 border-white shadow-sm"
+                         style="width: 170px; height: 170px; object-fit: cover;" alt="Avatar" />
+
+                    @if (Model.IsImageApproved)
+                    {
+                        <span class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 border border-4 border-white" title="Verified Photo">
+                            <i class="bi bi-patch-check-fill"></i>
+                        </span>
+                    }
+                </div>
+
+                @if (isOwner && Model.IsImagePending)
+                {
+                    <div class="alert alert-secondary py-1 small rounded-pill mb-3">
+                        <i class="bi bi-hourglass-split me-1"></i> Update Pending Approval
+                    </div>
+                }
+
+                <h3 class="fw-bold text-dark mb-1">@Model.FirstName @Model.LastName</h3>
+
+                @if (!isCustomer)
+                {
+                    <p class="text-primary fw-medium mb-3">@Model.Profession</p>
+                }
+
+                <div class="badge rounded-pill bg-white text-muted border px-3 py-2 mb-4">
+                    <i class="bi bi-shield-lock-fill text-primary me-2"></i> ITS: @Model.ITSNumber
+                </div>
+
+                <div class="d-grid gap-3">
+                    @if (isOwner)
+                    {
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-custom btn-dark shadow-sm">
+                            <i class="bi bi-pencil-square"></i> Edit Profile
+                        </a>
+                    }
+
+                    <a href="https://wa.me/@Model.WhatsAppNumber" target="_blank" class="btn btn-custom btn-wa shadow-sm">
+                        <i class="bi bi-whatsapp"></i> WhatsApp Me
+                    </a>
+
+                    <button onclick="downloadVCard()" class="btn btn-custom btn-save shadow-sm">
+                        <i class="bi bi-person-plus-fill"></i> Save to Contacts
+                    </button>
+
+                    <button onclick="copyProfileLink('@publicUrl')" class="btn btn-custom bg-white text-secondary border shadow-sm">
+                        <i class="bi bi-share-fill"></i> Share Link
+                    </button>
+
+                    @if (ViewBag.RequestFromDictionary)
+                    {
+                        <a asp-controller="Account" asp-action="UserList" asp-route-id="@Model.Id" class="btn btn-custom btn-dark shadow-sm">
+                            <i class="bi bi-arrow-left"></i> Back to Dictionary
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Products" asp-action="Index" asp-route-userid="@Model.Id" class="btn btn-custom btn-dark shadow-sm">
+                            <i class="bi bi-grid"></i> Back to Products
+                        </a>
+                    }
+                </div>
+
+                @* Social Links Section *@
+                <div class="d-flex justify-content-center gap-4 mt-4 fs-3">
+                    @if (!string.IsNullOrEmpty(Model.FacebookUrl))
+                    {
+                        <a href="@Model.FacebookUrl" target="_blank" class="text-primary"><i class="bi bi-facebook"></i></a>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.InstagramUrl))
+                    {
+                        <a href="@Model.InstagramUrl" target="_blank" class="text-danger"><i class="bi bi-instagram"></i></a>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.LinkedInUrl))
+                    {
+                        <a href="@Model.LinkedInUrl" target="_blank" style="color:#0a66c2;"><i class="bi bi-linkedin"></i></a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card p-4 glass-card border-0 mb-4 shadow-sm">
+                <h5 class="fw-bold mb-4 d-flex align-items-center">
+                    <i class="bi bi-info-circle-fill me-2 text-primary"></i> Contact Information
+                </h5>
+                <div class="row g-3">
+                    @if (!isCustomer)
+                    {
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center p-3 rounded-4 bg-white border border-light shadow-sm">
+                                <div class="icon-container icon-blue"><i class="bi bi-building"></i></div>
+                                <div class="ms-3">
+                                    <small class="text-muted d-block fw-bold text-uppercase" style="font-size:0.6rem">Store Name</small>
+                                    <span class="fw-bold">@Model.Store?.StoreName</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="col-md-@(isCustomer ? "12" : "6")">
+                        <div class="d-flex align-items-center p-3 rounded-4 bg-white border border-light shadow-sm">
+                            <div class="icon-container icon-green"><i class="bi bi-whatsapp"></i></div>
+                            <div class="ms-3">
+                                <small class="text-muted d-block fw-bold text-uppercase" style="font-size:0.6rem">Primary Mobile</small>
+                                <span class="fw-bold">@Model.WhatsAppNumber</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="d-flex align-items-center p-3 rounded-4 bg-white border border-light shadow-sm">
+                            <div class="icon-container icon-red"><i class="bi bi-geo-alt-fill"></i></div>
+                            <div class="ms-3">
+                                <small class="text-muted d-block fw-bold text-uppercase" style="font-size:0.6rem">@(isCustomer ? "Home Address" : "Location")</small>
+                                <span class="fw-medium">@(isCustomer? Model.HomeAddress: Model.BusinessAddress)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Business About & Services (Hidden for Customers) *@
+            @if (!isCustomer)
+            {
+                <div class="card p-4 glass-card border-0 mb-4 shadow-sm">
+                    <h5 class="fw-bold mb-3">About My Business</h5>
+                    <p class="text-secondary leading-relaxed" style="white-space: pre-line;">@Model.About</p>
+
+                    @if (!string.IsNullOrEmpty(Model.ServicesProvided))
+                    {
+                        <h6 class="fw-bold mt-4 small text-uppercase text-muted mb-2">Specializations</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var item in Model.ServicesProvided.Split(','))
+                            {
+                                <span class="service-pill">@item.Trim()</span>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="card p-4 glass-card border-0 shadow-sm">
+                    <h5 class="fw-bold mb-4">Accept Payments</h5>
+                    <div class="row g-4 justify-content-center text-center">
+                        @if (!string.IsNullOrEmpty(Model.GpayQRCodePath))
+                        {
+                            <div class="col-md-5">
+                                <div class="p-3 border rounded-4 bg-white">
+                                    <img src="@Model.GpayQRCodePath" class="img-fluid rounded-3 mb-2" style="max-height: 160px;" alt="GPay" />
+                                    <p class="mb-0 fw-bold small text-muted">Google Pay</p>
+                                </div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.PhonePeQRCodePath))
+                        {
+                            <div class="col-md-5">
+                                <div class="p-3 border rounded-4 bg-white">
+                                    <img src="@Model.PhonePeQRCodePath" class="img-fluid rounded-3 mb-2" style="max-height: 160px;" alt="PhonePe" />
+                                    <p class="mb-0 fw-bold small text-muted">PhonePe</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyProfileLink(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Profile link copied! You can now paste and share it.');
+            });
+        }
+
+        function downloadVCard() {
+            const fName = "@Model.FirstName";
+            const lName = "@Model.LastName";
+            const phone = "@Model.WhatsAppNumber";
+
+            // Handle Customer vs Business logic for the contact card
+            const isCustomer = @(isCustomer ? "true" : "false");
+            const org = isCustomer ? "Personal Profile" : ("@Model.Store?.StoreName" || "Business Profile");
+            const rawAddr = isCustomer ? "@Model.HomeAddress" : "@Model.BusinessAddress";
+            const addr = (rawAddr || "").replace(/(\r\n|\n|\r)/gm, " ");
+
+            const vCardData = [
+                "BEGIN:VCARD",
+                "VERSION:3.0",
+                `FN:${fName} ${lName}`,
+                `N:${lName};${fName};;;`,
+                `ORG:${org}`,
+                `TEL;TYPE=CELL,VOICE:${phone}`,
+                `ADR;TYPE=HOME:;;${addr};;;;`,
+                "END:VCARD"
+            ].join("\n");
+
+            const blob = new Blob([vCardData], { type: "text/vcard" });
+            const url = window.URL.createObjectURL(blob);
+            const downloadLink = document.createElement("a");
+            downloadLink.href = url;
+            downloadLink.download = `${fName}_${lName}.vcf`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+}

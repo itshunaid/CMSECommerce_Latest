@@ -4,6 +4,7 @@
     ViewData["Title"] = "Edit Profile";
     // If ProfileStatus is false, we treat the form as restricted/hidden
     bool isReadOnly = ViewBag.ProfileStatus == false;
+    ViewData["HideLayoutSidebar"] = true;
 }
 
 <style>

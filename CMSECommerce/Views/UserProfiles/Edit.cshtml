@@ -1,0 +1,369 @@
+﻿@model CMSECommerce.Models.UserProfile
+
+@{
+    ViewData["Title"] = "Account Settings";
+    ViewData["HideLayoutSidebar"] = true;
+    bool isCustomer = ViewBag.IsCustomer ?? false;
+}
+
+<div class="container-fluid py-5" style="background-color: #f8f9fa; min-height: 100vh;">
+    <div class="row justify-content-center">
+        <div class="col-xl-10">
+
+            @* Header Section *@
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div>
+                    <h2 class="fw-bold text-dark mb-1">@(isCustomer ? "My Profile" : "Merchant Profile")</h2>
+                    <p class="text-muted mb-0">@(isCustomer ? "Manage your personal information and contact details." : "Manage your store identity, contact details, and professional bio.")</p>
+                </div>
+                @if (!isCustomer)
+                {
+                    <div class="text-end">
+                        <span class="badge @(Model.IsImageApproved ? "bg-success" : "bg-warning text-dark") p-2 px-3 rounded-pill">
+                            <i class="bi @(Model.IsImageApproved ? "bi-check-circle-fill" : "bi-clock-history") me-1"></i>
+                            @(Model.IsImageApproved ? "Verified Merchant" : "Verification Pending")
+                        </span>
+                    </div>
+                }
+            </div>
+
+            <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editProfileForm">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger shadow-sm mb-4"></div>
+
+                @* --- MANDATORY HIDDEN FIELDS --- *@
+                <input type="hidden" asp-for="Id" id="ProfileId" />
+                <input type="hidden" asp-for="UserId" />
+                <input type="hidden" asp-for="StoreId" />
+                <input type="hidden" asp-for="ProfileImagePath" />
+                <input type="hidden" asp-for="PendingProfileImagePath" />
+                <input type="hidden" asp-for="GpayQRCodePath" />
+                <input type="hidden" asp-for="PhonePeQRCodePath" />
+                <input type="hidden" asp-for="IsImageApproved" />
+                <input type="hidden" asp-for="IsImagePending" />
+                <input type="hidden" asp-for="CurrentProductLimit" />
+                <input type="hidden" asp-for="SubscriptionStartDate" />
+                <input type="hidden" asp-for="SubscriptionEndDate" />
+
+                @if (isCustomer)
+                {
+                    <input type="hidden" asp-for="ITSNumber" />
+                }
+
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        @* Personal Identity *@
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body p-4">
+                                <h5 class="section-title mb-4"><i class="bi bi-person-badge me-2"></i>Personal Identity</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="FirstName" class="form-label small fw-bold">First Name <span class="text-danger">*</span></label>
+                                        <input asp-for="FirstName" class="form-control req-field" placeholder="Enter first name" required />
+                                        <span asp-validation-for="FirstName" class="text-danger x-small"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="LastName" class="form-label small fw-bold">Last Name <span class="text-danger">*</span></label>
+                                        <input asp-for="LastName" class="form-control req-field" placeholder="Enter last name" required />
+                                        <span asp-validation-for="LastName" class="text-danger x-small"></span>
+                                    </div>
+
+                                    @if (!isCustomer)
+                                    {
+                                        <div class="col-md-6">
+                                            <label asp-for="ITSNumber" class="form-label small fw-bold text-muted">ITS Number (Locked)</label>
+                                            <input asp-for="ITSNumber" class="form-control bg-light" readonly />
+                                        </div>
+                                    }
+
+                                    <div class="col-md-@(isCustomer ? "12" : "6")">
+                                        <label asp-for="WhatsAppNumber" class="form-label small fw-bold">WhatsApp Number <span class="text-danger">*</span></label>
+                                        <div class="position-relative">
+                                            <input asp-for="WhatsAppNumber" id="WhatsAppNumber" class="form-control unique-check req-field" data-field="WhatsAppNumber" required />
+                                            <div class="spinner-border spinner-border-sm text-primary position-absolute d-none loader-icon" style="right: 10px; top: 12px;"></div>
+                                        </div>
+                                        <span class="text-danger x-small err-msg"></span>
+                                        <span asp-validation-for="WhatsAppNumber" class="text-danger x-small"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (!isCustomer)
+                        {
+                            @* Store & Professional Info *@
+                            <div class="card border-0 shadow-sm mb-4">
+                                <div class="card-body p-4">
+                                    <h5 class="section-title mb-4"><i class="bi bi-shop me-2"></i>Store & Professional Information</h5>
+                                    <div class="row g-3">
+                                        <div class="col-md-12">
+                                            <label asp-for="Store.StoreName" class="form-label small fw-bold">Store Name <span class="text-danger">*</span></label>
+                                            <div class="position-relative">
+                                                <input asp-for="Store.StoreName" id="StoreName" class="form-control unique-check req-field" data-field="StoreName" required />
+                                                <div class="spinner-border spinner-border-sm text-primary position-absolute d-none loader-icon" style="right: 10px; top: 12px;"></div>
+                                            </div>
+                                            <span class="text-danger x-small err-msg"></span>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label asp-for="Profession" class="form-label small fw-bold">Profession</label>
+                                            <input asp-for="Profession" class="form-control" placeholder="e.g. Baker, Designer" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label asp-for="ServicesProvided" class="form-label small fw-bold">Services Provided</label>
+                                            <input asp-for="ServicesProvided" class="form-control" placeholder="e.g. Home Delivery" />
+                                        </div>
+
+                                        <div class="col-12">
+                                            <label asp-for="About" class="form-label small fw-bold">About (Business Bio)</label>
+                                            <textarea asp-for="About" class="form-control" rows="3"></textarea>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label asp-for="Store.Email" class="form-label small fw-bold">Store Public Email <span class="text-danger">*</span></label>
+                                            <div class="position-relative">
+                                                <input asp-for="Store.Email" id="StoreEmail" class="form-control unique-check req-field" data-field="StoreEmail" required />
+                                                <div class="spinner-border spinner-border-sm text-primary position-absolute d-none loader-icon" style="right: 10px; top: 12px;"></div>
+                                            </div>
+                                            <span class="text-danger x-small err-msg"></span>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label asp-for="Store.Contact" class="form-label small fw-bold">Store Public Contact <span class="text-danger">*</span></label>
+                                            <div class="position-relative">
+                                                <input asp-for="Store.Contact" id="StoreContact" class="form-control unique-check req-field" data-field="StoreContact" required />
+                                                <div class="spinner-border spinner-border-sm text-primary position-absolute d-none loader-icon" style="right: 10px; top: 12px;"></div>
+                                            </div>
+                                            <span class="text-danger x-small err-msg"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="Store.StoreName" id="StoreName" />
+                            <input type="hidden" asp-for="Store.Email" id="StoreEmail" />
+                            <input type="hidden" asp-for="Store.Contact" id="StoreContact" />
+                        }
+
+                        @* Location Section *@
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body p-4">
+                                <h5 class="section-title mb-4"><i class="bi bi-geo-alt me-2"></i>Location & Addresses</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-@(isCustomer ? "12" : "6")">
+                                        <label asp-for="HomeAddress" class="form-label small fw-bold">Home Address</label>
+                                        <textarea asp-for="HomeAddress" id="HomeAddress" class="form-control" rows="2"></textarea>
+                                    </div>
+                                    @if (!isCustomer)
+                                    {
+                                        <div class="col-md-6">
+                                            <label asp-for="BusinessAddress" class="form-label small fw-bold">Business Address</label>
+                                            <textarea asp-for="BusinessAddress" id="BusinessAddress" class="form-control" rows="2"></textarea>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <input type="hidden" asp-for="BusinessAddress" id="BusinessAddress" />
+                                    }
+                                    <div class="col-md-4">
+                                        <label asp-for="Store.City" class="form-label small fw-bold">City</label>
+                                        <input asp-for="Store.City" class="form-control" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="Store.PostCode" class="form-label small fw-bold">Post Code</label>
+                                        <input asp-for="Store.PostCode" class="form-control" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="Store.Country" class="form-label small fw-bold">Country</label>
+                                        <input asp-for="Store.Country" class="form-control" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* RIGHT COLUMN *@
+                    <div class="col-lg-4">
+                        @* Media Card *@
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body p-4 text-center">
+                                @* Profile Photo *@
+                                <h6 class="text-start fw-bold small text-uppercase text-muted mb-3">Profile Photo</h6>
+                                <img src="@Model.ProfileImagePath" id="profilePreview" class="rounded-circle border mb-3" style="width: 140px; height: 140px; object-fit: cover;" />
+                                <input type="file" name="profileImg" class="form-control form-control-sm mb-4" accept="image/*" onchange="previewImage(this, 'profilePreview')" />
+
+                                @* NEW: QR Code Section (Visible to Merchants Only) *@
+                                @if (!isCustomer)
+                                {
+                                    <hr />
+                                    <div class="mb-3 text-center">
+                                        <label class="d-block text-start small fw-bold">Google Pay QR</label>
+                                        @if (!string.IsNullOrEmpty(Model.GpayQRCodePath))
+                                        {
+                                            <img src="@Model.GpayQRCodePath" id="gpayPrev" class="img-thumbnail my-2" style="max-height: 100px;" />
+                                        }
+                                        else
+                                        {
+                                            <img id="gpayPrev" src="/images/no-qr.png" class="img-thumbnail my-2 d-none" style="max-height: 100px;" />
+                                        }
+                                        <input type="file" name="gpayQR" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'gpayPrev')" />
+                                    </div>
+
+                                    <div class="text-center">
+                                        <label class="d-block text-start small fw-bold">PhonePe QR</label>
+                                        @if (!string.IsNullOrEmpty(Model.PhonePeQRCodePath))
+                                        {
+                                            <img src="@Model.PhonePeQRCodePath" id="phonepePrev" class="img-thumbnail my-2" style="max-height: 100px;" />
+                                        }
+                                        else
+                                        {
+                                            <img id="phonepePrev" src="/images/no-qr.png" class="img-thumbnail my-2 d-none" style="max-height: 100px;" />
+                                        }
+                                        <input type="file" name="phonepeQR" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'phonepePrev')" />
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" id="btnSubmit" class="btn btn-primary py-3 fw-bold rounded shadow-sm">
+                                <span id="btnText"><i class="bi bi-cloud-arrow-up me-2"></i>Update Profile</span>
+                                <span id="btnSpinner" class="spinner-border spinner-border-sm d-none ms-2"></span>
+                            </button>
+                            <a asp-action="Index" asp-controller="Products" class="btn btn-link text-muted x-small">Cancel Changes</a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        :root {
+            --merchant-teal: #007185;
+        }
+
+        .section-title {
+            color: var(--merchant-teal);
+            font-weight: 700;
+            border-left: 4px solid var(--merchant-teal);
+            padding-left: 12px;
+        }
+
+        .x-small {
+            font-size: 0.75rem;
+        }
+
+        .form-control:focus {
+            border-color: var(--merchant-teal);
+            box-shadow: 0 0 0 0.25rem rgba(0, 113, 133, 0.1);
+        }
+
+        .btn-primary {
+            background-color: var(--merchant-teal);
+            border: none;
+        }
+
+        .btn-primary:disabled {
+            background-color: #66aab6;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+    </style>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        function previewImage(input, previewId) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) { 
+                    $(`#${previewId}`).attr('src', e.target.result).removeClass('d-none'); 
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        $(document).ready(function () {
+            let uniqueness = { WhatsAppNumber: true, StoreName: true, StoreEmail: true, StoreContact: true };
+
+            function validateForm() {
+                let allFilled = true;
+                $('.req-field:visible').each(function() {
+                    if ($(this).val().trim() === "") {
+                        allFilled = false;
+                        return false;
+                    }
+                });
+
+                let allUnique = Object.values(uniqueness).every(v => v === true);
+                let isValidated = $('#editProfileForm').valid();
+
+                $('#btnSubmit').prop('disabled', !(allFilled && allUnique && isValidated));
+            }
+
+            $('#editProfileForm input').on('keyup change blur', function() {
+                validateForm();
+            });
+
+            $('.unique-check').on('blur', function () {
+                const input = $(this);
+                const fieldName = input.data('field');
+                const val = input.val();
+                if (!val) return;
+
+                const container = input.closest('.position-relative');
+                const loader = container.find('.loader-icon');
+                const errorSpan = container.next('.err-msg');
+
+                loader.removeClass('d-none');
+
+                $.ajax({
+                    url: '@Url.Action("CheckUniqueness", "UserProfiles")',
+                    type: 'GET',
+                    data: { field: fieldName, value: val, currentId: $('#ProfileId').val() },
+                    success: function (res) {
+                        loader.addClass('d-none');
+                        if (res.isDuplicate) {
+                            errorSpan.text(`This is already in use.`);
+                            input.addClass('is-invalid');
+                            uniqueness[fieldName] = false;
+                        } else {
+                            errorSpan.text('');
+                            input.removeClass('is-invalid');
+                            uniqueness[fieldName] = true;
+                        }
+                        validateForm();
+                    }
+                });
+            });
+
+            $('#editProfileForm').on('submit', function (e) {
+                @if (isCustomer)
+                {
+                    <text>
+                    if ($('#StoreName').val() === "") $('#StoreName').val($('#FirstName').val() + "'s Profile");
+                    if ($('#StoreEmail').val() === "") $('#StoreEmail').val("customer@placeholder.com");
+                    if ($('#StoreContact').val() === "") $('#StoreContact').val($('#WhatsAppNumber').val());
+                    if ($('#BusinessAddress').val() === "") $('#BusinessAddress').val($('#HomeAddress').val());
+                    </text>
+                }
+
+                if ($(this).valid()) {
+                    $('#btnSubmit').prop('disabled', true);
+                    $('#btnText').text('Processing...');
+                    $('#btnSpinner').removeClass('d-none');
+                } else {
+                    e.preventDefault();
+                }
+            });
+
+            validateForm();
+        });
+    </script>
+}

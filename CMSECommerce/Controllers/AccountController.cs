@@ -1,16 +1,14 @@
-﻿using CMSECommerce.Areas.Admin.Controllers;
+﻿
 using CMSECommerce.Areas.Admin.Models;
 using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
-using CMSECommerce.Models;
 using CMSECommerce.Models.ViewModels;
 using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.Blazor;
-using System.Security.Claims;
+
 
 namespace CMSECommerce.Controllers
 {
@@ -22,7 +20,7 @@ namespace CMSECommerce.Controllers
             IUserStatusService userStatusService,
             RoleManager<IdentityRole> roleManager,
             ILogger<AccountController> logger,
-            IUserService userService) : Controller
+            IUserService userService) : BaseController
     {
         private DataContext _context = dataContext;
         private UserManager<IdentityUser> _userManager = userManager;
@@ -96,13 +94,21 @@ namespace CMSECommerce.Controllers
             }
         }
 
-        public IActionResult Register()
+        // --- 3. REGISTER (GET) ---
+        // Updated to accept the 'username' parameter from the Login redirect
+        [HttpGet]
+        public IActionResult Register(string username = null)
         {
-            // Assuming a ViewModel named 'User' is used for registration.
-            return View();
+            // If the user was redirected from Login, pre-populate the ViewModel
+            var model = new RegisterViewModel
+            {
+                Username = username
+            };
+
+            return View(model);
         }
 
-        
+
         [HttpGet]
         [AllowAnonymous]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
@@ -234,7 +240,22 @@ namespace CMSECommerce.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
+            if (!model.HasAcceptedTerms)
+            {
+                ModelState.AddModelError("HasAcceptedTerms", "You must agree to the terms.");
+            }
+
             if (!ModelState.IsValid) return View(model);
+
+            // Check if user already exists
+            var existingUser = await _userManager.FindByNameAsync(model.Username);
+            if (existingUser != null)
+            {
+                return RedirectToAction("Login", new { username = model.Username });
+            }
+
+
+
 
             // 1. Simplified Uniqueness Check 
             // We only check UserManager for existing credentials to prevent crashes.
@@ -267,6 +288,28 @@ namespace CMSECommerce.Controllers
 
                 if (result.Succeeded)
                 {
+                    // Define the specific content the user just saw in the modal
+                    string agreementText = @"
+                <h6>1. Acceptance of Terms</h6><p>By accessing or using the Weypaari platform...</p>
+                <h6>2. Eligibility & Registration</h6><p>To use Weypaari, you must provide a valid 8-digit ITS...</p>
+                <h6>3. Privacy & Data Security</h6><p>Your privacy is important to us...</p>
+                <h6>4. User Conduct</h6><p>Users shall not engage in any activity...</p>
+                <h6>5. Transactions & Listings</h6><p>Weypaari provides a marketplace platform...</p>
+                <h6>6. Termination of Use</h6><p>We reserve the right to terminate...</p>
+                <h6>7. Modifications to Service</h6><p>Weypaari reserves the right to modify...</p>";
+                    var agreement = new UserAgreement
+                    {
+                        UserId = newUser.Id,
+                        AgreementType = "Registration_Terms_Privacy",
+                        FullContent = agreementText, // Mapping the full snapshot
+                        Version = "v1.0-2026-01",
+                        AcceptedAt = DateTime.UtcNow,
+                        IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+                    };
+
+                    _context.UserAgreements.Add(agreement);
+                    await _context.SaveChangesAsync();
+
                     // 3. Role Assignment
                     // We keep this to ensure your [Authorize(Roles="Customer")] attributes don't break.
                     await _userManager.AddToRoleAsync(newUser, "Customer");
@@ -1826,59 +1869,81 @@ namespace CMSECommerce.Controllers
         {
             try
             {
-                // 1. Fetch Order with Line Items
-                // Use AsNoTracking for read-only performance
                 var order = await _context.Orders
                     .Include(o => o.OrderDetails)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Id == id);
 
-                // 2. Security/Safety Check
-                if (order == null)
-                {
-                    _logger.LogWarning("Order {OrderId} not found.", id);
-                    TempData["error"] = $"Order #{id} was not found.";
-                    return RedirectToAction("Index", "Orders");
-                }
+                if (order == null) return RedirectToAction("Index", "Orders");
 
-                // 3. Fetch UserProfile AND the linked Store in a single join
+                // --- NEW LOGIC: CALCULATE PROGRESS STEP ---
+                int currentStep = 1; // Default: Ordered
+                if (order.IsCancelled) currentStep = 0;
+                else if (order.Shipped) currentStep = 4; // Delivered/Shipped
+                else if (order.OrderDetails.Any(x => x.IsProcessed)) currentStep = 3; // Dispatched
+                else if (order.OrderDetails.Count > 0) currentStep = 2; // Processed/Accepted
+
                 var userProfile = await _context.UserProfiles
                     .Include(p => p.Store)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.UserId == order.UserId);
 
-                // 4. Null-Safety Initialization
-                // This prevents "Null Reference" crashes in the Razor View if data is missing
-                if (userProfile == null)
-                {
-                    userProfile = new UserProfile
-                    {
-                        UserId = order.UserId,
-                        FirstName = "Guest",
-                        Store = new Store { StoreName = "General Store" }
-                    };
-                }
-                else if (userProfile.Store == null)
-                {
-                    userProfile.Store = new Store { StoreName = "N/A" };
-                }
-
-                // 5. Construct and Return the ViewModel
                 var viewModel = new OrderDetailsViewModel
                 {
                     Order = order,
                     OrderDetails = order.OrderDetails?.ToList() ?? new List<OrderDetail>(),
-                    UserProfile = userProfile                  
+                    UserProfile = userProfile ?? new UserProfile { FirstName = "Guest" },
+                    // Ensure your ViewModel has a 'CurrentStep' property, or use ViewBag
                 };
+
+                ViewBag.CurrentStep = currentStep;
 
                 return View(viewModel);
             }
-            catch (Exception ex)
+            catch (Exception) { return RedirectToAction("Index", "Orders"); }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ViewTrackingImage(int orderDetailId)
+        {
+            // 1. Get current user
+            var userId = _userManager.GetUserId(User);
+
+            // 2. Fetch the order detail and verify ownership
+            var orderDetail = await _context.OrderDetails
+                .Include(od => od.Order)
+                .FirstOrDefaultAsync(od => od.Id == orderDetailId);
+
+            if (orderDetail == null || string.IsNullOrEmpty(orderDetail.DeliveryImageUrl))
             {
-                _logger.LogError(ex, "Error loading details for Order {OrderId}", id);
-                TempData["error"] = "An error occurred while loading order information.";
-                return RedirectToAction("Index", "Orders");
+                return NotFound("Image not found.");
             }
+
+            // Security check: Is this the user's order? (Or is the user an Admin?)
+            if (orderDetail.Order.UserId != userId && !User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
+            // 3. Construct the physical path
+            // It is recommended to store these in a 'PrivateUploads' folder outside wwwroot
+            var filePath = Path.Combine(_webHostEnvironment.ContentRootPath, "PrivateUploads", "DeliveryProof", orderDetail.DeliveryImageUrl);
+
+            if (!System.IO.File.Exists(filePath))
+            {
+                return NotFound("The physical image file is missing on the server.");
+            }
+
+            // 4. Return the file with the correct MIME type
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            var contentType = extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                _ => "application/octet-stream"
+            };
+
+            return PhysicalFile(filePath, contentType);
         }
 
         public IActionResult AccessDenied()

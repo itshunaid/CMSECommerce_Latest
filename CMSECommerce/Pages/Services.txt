@@ -1,0 +1,76 @@
+﻿<div class="container py-5 text-center">
+    <h1 class="fw-bold mb-3">Our Services</h1>
+    <p class="text-muted mx-auto" style="max-width: 700px;">
+        WEypaari is built on the principle of independence. We provide the digital tools; you maintain the creative control. Our services are designed to simplify the "business side" of your passion.
+    </p>
+</div>
+
+<div class="container mb-5">
+    <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm p-4 text-center">
+                <div class="mb-3">
+                    <i class="fas fa-laptop-house fa-3x text-warning"></i>
+                </div>
+                <h4 class="fw-bold">Virtual Marketplace</h4>
+                <p class="text-muted small">Transform your home business into a professional online brand. Our platform allows you to list products, manage stock levels, and track sales performance in real-time.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm p-4 text-center">
+                <div class="mb-3">
+                    <i class="fas fa-hand-holding-heart fa-3x text-warning"></i>
+                </div>
+                <h4 class="fw-bold">Direct Fulfillment</h4>
+                <p class="text-muted small">Maintain the personal touch. You choose how to deliver your goods—whether through local pickup, personal delivery, or your preferred courier service.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm p-4 text-center">
+                <div class="mb-3">
+                    <i class="fas fa-address-book fa-3x text-warning"></i>
+                </div>
+                <h4 class="fw-bold">Business Directory</h4>
+                <p class="text-muted small">Gain visibility through our verified directory. We connect your store with a community of buyers specifically looking to support women-led home enterprises.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row align-items-center mb-5">
+        <div class="col-md-6">
+            <img src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="img-fluid rounded shadow" alt="Women in Business">
+        </div>
+        <div class="col-md-6 ps-md-5 mt-4 mt-md-0">
+            <h3 class="fw-bold">Marketing & Brand Growth</h3>
+            <p class="text-muted">We handle the technical SEO and platform marketing so you can focus on creating. Our platform is optimized to ensure your products appear in searches, giving you a professional edge.</p>
+            <ul class="list-unstyled">
+                <li><i class="fas fa-check-circle text-success me-2"></i> Custom Storefront URLs</li>
+                <li><i class="fas fa-check-circle text-success me-2"></i> Social Media Integrated Links</li>
+                <li><i class="fas fa-check-circle text-success me-2"></i> Category-wise Customer Reach</li>
+            </ul>
+        </div>
+    </div>
+
+
+
+    <div class="row align-items-center flex-md-row-reverse">
+        <div class="col-md-6">
+            <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="img-fluid rounded shadow" alt="Supportive Community">
+        </div>
+        <div class="col-md-6 pe-md-5 mt-4 mt-md-0">
+            <h3 class="fw-bold">Community Networking</h3>
+            <p class="text-muted">Success isn't solitary. Join a network of like-minded women entrepreneurs. Share experiences, collaborate on cross-promotions, and grow together within the WEypaari ecosystem.</p>
+            <a href="/Account/UserList" class="btn btn-dark mt-2">View Member Directory</a>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid py-5 text-center" style="background-color: #232f3e; color: white;">
+    <h2 class="fw-bold">No Middlemen. No Complexity.</h2>
+    <p class="mb-4 text-white-50">Just your products, your customers, and our platform to bring them together.</p>
+    <a href="/Subscription/Index" class="btn btn-warning fw-bold btn-lg" style="background-color: #febd69; border:none;">Explore Seller Plans</a>
+</div>

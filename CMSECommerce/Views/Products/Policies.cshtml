@@ -1,54 +1,79 @@
 ﻿@{
     ViewData["Title"] = "Policies & Disclaimers";
+    ViewData["HideLayoutSidebar"] = true;
 }
 
-<div class="container my-4">
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-4 p-md-5">
-            <h2 class="mb-4" style="color: var(--amazon-blue); font-weight: 700;">Platform Policies & Disclaimers</h2>
-            <p class="text-muted">Last Updated: @DateTime.Now.ToString("MMMM dd, yyyy")</p>
-            <hr />
+<div class="container py-5 text-center">
+    <h1 class="fw-bold mb-3" style="color: #232f3e;">Platform Policies & Disclaimers</h1>
+    <p class="text-muted mx-auto" style="max-width: 700px;">
+        Last Updated: January 04, 2026
+    </p>
+    <div class="mx-auto" style="width: 80px; height: 4px; background-color: #febd69;"></div>
+</div>
 
-            <section class="mt-4">
-                <h5 class="fw-bold text-danger"><i class="fas fa-ban me-2"></i>1. Prohibited Activities & Content</h5>
-                <p>Weypaari maintains a zero-tolerance policy. Violation results in an immediate permanent ban:</p>
-                <ul class="list-group list-group-flush mb-4">
-                    <li class="list-group-item"><strong>Inappropriate Content:</strong> Adultery, pornographic, or sexually explicit images/services.</li>
-                    <li class="list-group-item"><strong>Illegal Products:</strong> Sale of drugs, weapons, stolen goods, or regulated items.</li>
-                    <li class="list-group-item"><strong>Misleading Info:</strong> Fake reviews, deceptive descriptions, or fraudulent practices.</li>
-                    <li class="list-group-item"><strong>Suspicious Activity:</strong> Identity theft or using the platform to facilitate scams.</li>
-                    <li class="list-group-item"><strong>Harassment:</strong> Abusive behavior toward buyers or fellow entrepreneurs.</li>
+<div class="container mb-5">
+    <div class="row align-items-center g-5">
+        <div class="col-lg-6">
+            <h3 class="fw-bold mb-4 text-danger"><i class="fas fa-ban me-2"></i>1. Prohibited Activities & Content</h3>
+            <p class="text-muted">Weypaari maintains a <strong>zero-tolerance policy</strong>. Violation results in an immediate permanent ban:</p>
+            <ul class="list-group list-group-flush shadow-sm rounded">
+                <li class="list-group-item"><i class="fas fa-exclamation-triangle text-danger me-2"></i> <strong>Inappropriate Content:</strong> Adultery, pornographic, or sexually explicit images/services.</li>
+                <li class="list-group-item"><i class="fas fa-gavel text-danger me-2"></i> <strong>Illegal Products:</strong> Sale of drugs, weapons, stolen goods, or regulated items.</li>
+                <li class="list-group-item"><i class="fas fa-user-secret text-danger me-2"></i> <strong>Misleading Info:</strong> Fake reviews, deceptive descriptions, or fraudulent practices.</li>
+                <li class="list-group-item"><i class="fas fa-user-shield text-danger me-2"></i> <strong>Suspicious Activity:</strong> Identity theft or using the platform to facilitate scams.</li>
+                <li class="list-group-item"><i class="fas fa-hand-paper text-danger me-2"></i> <strong>Harassment:</strong> Abusive behavior toward buyers or fellow entrepreneurs.</li>
+            </ul>
+        </div>
+        <div class="col-lg-6">
+            <img src="https://images.unsplash.com/photo-1573496130407-57329f01f769?auto=format&fit=crop&q=80&w=800"
+                 alt="Modern Platform Governance and Professional Standards"
+                 class="img-fluid rounded shadow-lg"
+                 style="width: 100%; height: auto; display: block;">
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid py-5" style="background-color: #232f3e; color: white;">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-md-6">
+                <h4 class="fw-bold" style="color: #febd69;"><i class="fas fa-search me-2"></i>2. Lead Generation Disclaimer</h4>
+                <p class="text-white-50">Weypaari acts solely as a <strong>discovery platform</strong>. We do not participate in, control, or take responsibility for the actual transaction between buyers and sellers. We do not handle payments, escrow, or physical delivery of products.</p>
+            </div>
+            <div class="col-md-6">
+                <h4 class="fw-bold" style="color: #febd69;"><i class="fas fa-handshake me-2"></i>3. Direct Transaction & Liability</h4>
+                <p class="text-white-50">Sellers have 100% control over their payment terms. By using this platform, you acknowledge:</p>
+                <ul class="list-unstyled text-white-50">
+                    <li class="mb-2"><i class="fas fa-check text-warning me-2"></i> Weypaari is <strong>not liable</strong> for any financial loss or non-payment.</li>
+                    <li class="mb-2"><i class="fas fa-check text-warning me-2"></i> Payment methods (COD, transfer) are agreed upon at your own risk.</li>
+                    <li class="mb-2"><i class="fas fa-check text-warning me-2"></i> We recommend keeping records of all communication and proof of delivery.</li>
                 </ul>
-            </section>
-
-            <section class="p-4 mb-4 rounded" style="background-color: #fff8e1; border-left: 5px solid var(--amazon-orange);">
-                <h5 class="fw-bold text-dark"><i class="fas fa-info-circle me-2"></i>2. Lead Generation Disclaimer</h5>
-                <p class="mb-0">Weypaari acts solely as a <strong>discovery platform</strong>. We do not participate in, control, or take responsibility for the actual transaction between buyers and sellers. We do not handle payments, escrow, or physical delivery of products.</p>
-            </section>
-
-            <section class="mb-4">
-                <h5 class="fw-bold"><i class="fas fa-shield-alt me-2"></i>3. Direct Transaction & Liability</h5>
-                <p>Sellers have 100% control over their payment terms. By using this platform, you acknowledge:</p>
-                <ul>
-                    <li>Weypaari is <strong>not liable</strong> for any financial loss, non-payment, or chargebacks.</li>
-                    <li>Buyers and sellers agree upon payment methods (COD, bank transfer, etc.) at their own risk.</li>
-                    <li>We recommend keeping records of all communications and proof of delivery.</li>
-                </ul>
-            </section>
-
-            <section class="mb-4">
-                <h5 class="fw-bold"><i class="fas fa-eye me-2"></i>4. Monitoring & Enforcement</h5>
-                <p>We reserve the right to monitor listings and remove content at our sole discretion that creates a risk of legal liability or community harm.</p>
-            </section>
-
-            <section class="mb-4">
-                <h5 class="fw-bold"><i class="fas fa-camera me-2"></i>5. Your Content</h5>
-                <p>Sellers retain ownership of photos/descriptions. By posting, you grant Weypaari a non-exclusive right to display your business content globally to facilitate lead generation.</p>
-            </section>
-
-            <div class="mt-5 pt-4 border-top text-center">
-                <p class="mb-0">Questions? Contact us at <a href="mailto:askwe@weypaari.com" class="fw-bold" style="color: var(--amazon-orange);">askwe@weypaari.com</a></p>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row align-items-center flex-md-row-reverse g-5">
+        <div class="col-lg-6">
+            <h3 class="fw-bold mb-3">4. Monitoring & Enforcement</h3>
+            <p class="text-muted">We reserve the right to monitor listings and remove content at our sole discretion that creates a risk of legal liability or community harm.</p>
+            <hr>
+            <h3 class="fw-bold mb-3">5. Your Content</h3>
+            <p class="text-muted">Sellers retain ownership of photos/descriptions. By posting, you grant Weypaari a non-exclusive right to display your business content globally to facilitate lead generation.</p>
+        </div>
+        <div class="col-lg-6">
+            <img src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&q=80&w=800" alt="Monitoring and Content Management" class="img-fluid rounded shadow">
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="p-4 bg-light text-center rounded border">
+        <h4 class="fw-bold">Questions about our policies?</h4>
+        <p class="text-muted">Our support team is here to ensure a safe and professional environment for all entrepreneurs.</p>
+        <a href="mailto:askwe@weypaari.com" class="btn btn-dark px-4 py-2 fw-bold" style="background-color: #232f3e;">
+            <i class="fas fa-envelope me-2"></i>Contact askwe@weypaari.com
+        </a>
     </div>
 </div>

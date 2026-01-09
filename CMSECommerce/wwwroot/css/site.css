@@ -42,3 +42,46 @@ img#imgpreview {
 .activeul li.active a {
     color: white !important;
 }
+.alert {
+    border-radius: 8px; /* Softer corners */
+    font-size: 0.95rem;
+}
+.alert strong {
+        display: block;
+        margin-bottom: 2px;
+}
+
+/* Styling the Toasts */
+.toast {
+    border-radius: 4px !important;
+    overflow: hidden;
+    min-width: 300px;
+}
+
+.toast-header {
+    padding: 10px 15px;
+    font-weight: 700;
+}
+
+.toast-body {
+    font-size: 0.9rem;
+    color: #333;
+    border-radius: 0 0 4px 4px;
+}
+
+/* Add a slide-in animation */
+.toast.show {
+    animation: slideInRight 0.3s ease-in-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

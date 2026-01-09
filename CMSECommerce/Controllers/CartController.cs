@@ -6,51 +6,62 @@ using System.Collections.Generic;
 
 namespace CMSECommerce.Controllers
 {
-    public class CartController(DataContext context) : Controller
+    public class CartController(DataContext context, ILogger<CartController> logger) : BaseController
     {
         private readonly DataContext _context = context;
+        private readonly ILogger<CartController> _logger= logger; // 1. Add this field
 
         // Note: ILogger<CartController> logger is often injected here for real-world logging
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            List<CartItem> cart = [];
             try
             {
-                // 1. Retrieve cart from session
-                cart = HttpContext.Session.GetJson<List<CartItem>>("Cart") ?? [];
+                var cart = HttpContext.Session.GetJson<List<CartItem>>("Cart") ?? new List<CartItem>();
 
                 if (cart.Count == 0)
                 {
                     return View(new CartViewModel { CartItems = [], GrandTotal = 0 });
                 }
 
-                // 2. Fetch Product Metadata and Stock in one trip
                 var productIds = cart.Select(c => c.ProductId).Distinct().ToList();
-                var productData = _context.Products
-                    .Where(p => productIds.Contains(p.Id))
-                    .Select(p => new { p.Id, p.StockQuantity, p.Image, p.Slug })
-                    .ToDictionary(p => p.Id);
 
-                // 3. Update Cart based on current DB state
+                // 1. Fetch data into a lightweight dictionary
+                var productLookup = await _context.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .Select(p => new
+                    {
+                        p.Id,
+                        p.StockQuantity,
+                        p.Image,
+                        p.Slug,
+                        // Flatten the Store Name or Username right here in the query
+                        DisplayName = _context.UserProfiles
+                            .Where(up => up.UserId == p.UserId)
+                            .Select(up => up.Store.StoreName)
+                            .FirstOrDefault() ?? p.User.UserName
+                    })
+                    .ToDictionaryAsync(x => x.Id);
+
+                // 2. Map data to the cart items
                 foreach (var item in cart)
                 {
-                    if (productData.TryGetValue(item.ProductId, out var details))
+                    if (productLookup.TryGetValue(item.ProductId, out var dbProduct))
                     {
-                        item.Image = details.Image;
-                        item.ProductSlug = details.Slug;
+                        item.Image = dbProduct.Image;
+                        item.ProductSlug = dbProduct.Slug;
+                        item.SellerName = dbProduct.DisplayName; // Simple string mapping
 
-                        if (item.Quantity > details.StockQuantity)
+                        // Handle stock levels
+                        if (item.Quantity > dbProduct.StockQuantity)
                         {
                             item.IsOutOfStock = true;
-                            item.Quantity = Math.Max(0, details.StockQuantity);
-                            if (item.Quantity == 0) item.Quantity = 1; // Keep 1 for UI display but flag as OutOfStock
-
-                            TempData["warning"] = $"Quantity for '{item.ProductName}' adjusted due to available stock.";
+                            item.Quantity = Math.Max(1, dbProduct.StockQuantity);
+                            TempData["warning"] = $"Quantity for '{item.ProductName}' adjusted due to stock.";
                         }
                         else
                         {
-                            item.IsOutOfStock = false;
+                            item.IsOutOfStock = dbProduct.StockQuantity <= 0;
                         }
                     }
                     else
@@ -59,37 +70,19 @@ namespace CMSECommerce.Controllers
                     }
                 }
 
-                // 4. Save adjusted cart back to session
+                // 3. Save clean strings to Session
                 HttpContext.Session.SetJson("Cart", cart);
 
-                // 5. OPTIMIZED: Fetch all required UserProfiles in a single query
-                var ownerNames = cart.Select(c => c.ProductOwner).Distinct().ToList();
-                var profiles = _context.UserProfiles
-                    .Include(p => p.User)
-                    .Where(p => ownerNames.Contains(p.User.UserName))
-                    .ToDictionary(p => p.User.UserName);
-
-                // 6. Map profiles back to cart items
-                foreach (var item in cart)
-                {
-                    if (profiles.TryGetValue(item.ProductOwner, out var profile))
-                    {
-                        item.UserProfile = profile;
-                    }
-                }
-
-                CartViewModel cartVM = new()
+                return View(new CartViewModel
                 {
                     CartItems = cart,
                     GrandTotal = cart.Sum(x => x.Price * x.Quantity)
-                };
-
-                return View(cartVM);
+                });
             }
             catch (Exception ex)
             {
-                // _logger.LogError(ex, "Error loading cart");
-                TempData["error"] = "An error occurred while loading your shopping cart.";
+                _logger.LogError(ex, "Error rendering shopping cart.");
+                TempData["error"] = "An error occurred. Please try again.";
                 return RedirectToAction("Index", "Home");
             }
         }

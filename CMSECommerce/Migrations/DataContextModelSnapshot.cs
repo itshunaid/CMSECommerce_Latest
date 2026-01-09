@@ -184,6 +184,9 @@ namespace CMSECommerce.Migrations
                     b.Property<string>("CustomerNumber")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DeliveryImageUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Image")
                         .HasColumnType("nvarchar(max)");
 
@@ -195,6 +198,9 @@ namespace CMSECommerce.Migrations
 
                     b.Property<bool>("IsReturned")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("OrderId")
                         .HasColumnType("int");
@@ -219,6 +225,15 @@ namespace CMSECommerce.Migrations
 
                     b.Property<string>("ReturnReason")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SellerNote")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ShippedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -328,12 +343,17 @@ namespace CMSECommerce.Migrations
                     b.Property<int>("StockQuantity")
                         .HasColumnType("int");
 
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
                     b.Property<string>("UserId")
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("StoreId");
 
                     b.HasIndex("UserId");
 
@@ -347,10 +367,13 @@ namespace CMSECommerce.Migrations
                             Description = "Juicy apples",
                             Image = "apple1.jpg",
                             Name = "Apples",
+                            OwnerName = "Admin",
                             Price = 1.50m,
                             Slug = "apples",
                             Status = 1,
-                            StockQuantity = 0
+                            StockQuantity = 100,
+                            StoreId = 1,
+                            UserId = "a18265d3-05b8-4766-adcc-ca43d3960199"
                         },
                         new
                         {
@@ -359,10 +382,13 @@ namespace CMSECommerce.Migrations
                             Description = "Juicy grapefruit",
                             Image = "grapefruit1.jpg",
                             Name = "Grapefruit",
+                            OwnerName = "Admin",
                             Price = 2m,
                             Slug = "grapefruit",
                             Status = 1,
-                            StockQuantity = 0
+                            StockQuantity = 100,
+                            StoreId = 1,
+                            UserId = "a18265d3-05b8-4766-adcc-ca43d3960199"
                         },
                         new
                         {
@@ -371,10 +397,13 @@ namespace CMSECommerce.Migrations
                             Description = "Fresh grapes",
                             Image = "grapes1.jpg",
                             Name = "Grapes",
+                            OwnerName = "Admin",
                             Price = 1.80m,
                             Slug = "grapes",
                             Status = 1,
-                            StockQuantity = 0
+                            StockQuantity = 100,
+                            StoreId = 1,
+                            UserId = "a18265d3-05b8-4766-adcc-ca43d3960199"
                         },
                         new
                         {
@@ -383,10 +412,13 @@ namespace CMSECommerce.Migrations
                             Description = "Fresh oranges",
                             Image = "orange1.jpg",
                             Name = "Oranges",
+                            OwnerName = "Admin",
                             Price = 1.50m,
                             Slug = "oranges",
                             Status = 1,
-                            StockQuantity = 0
+                            StockQuantity = 100,
+                            StoreId = 1,
+                            UserId = "a18265d3-05b8-4766-adcc-ca43d3960199"
                         },
                         new
                         {
@@ -395,10 +427,13 @@ namespace CMSECommerce.Migrations
                             Description = "Nice blue t-shirt",
                             Image = "blue1.jpg",
                             Name = "Blue shirt",
+                            OwnerName = "Admin",
                             Price = 7.99m,
                             Slug = "blue-shirt",
                             Status = 1,
-                            StockQuantity = 0
+                            StockQuantity = 100,
+                            StoreId = 1,
+                            UserId = "a18265d3-05b8-4766-adcc-ca43d3960199"
                         },
                         new
                         {
@@ -407,10 +442,13 @@ namespace CMSECommerce.Migrations
                             Description = "Nice red t-shirt",
                             Image = "red1.jpg",
                             Name = "Red shirt",
+                            OwnerName = "Admin",
                             Price = 8.99m,
                             Slug = "red-shirt",
                             Status = 1,
-                            StockQuantity = 0
+                            StockQuantity = 100,
+                            StoreId = 1,
+                            UserId = "a18265d3-05b8-4766-adcc-ca43d3960199"
                         },
                         new
                         {
@@ -419,10 +457,13 @@ namespace CMSECommerce.Migrations
                             Description = "Nice green t-shirt",
                             Image = "green1.png",
                             Name = "Green shirt",
+                            OwnerName = "Admin",
                             Price = 9.99m,
                             Slug = "green-shirt",
                             Status = 1,
-                            StockQuantity = 0
+                            StockQuantity = 100,
+                            StoreId = 1,
+                            UserId = "a18265d3-05b8-4766-adcc-ca43d3960199"
                         },
                         new
                         {
@@ -431,10 +472,13 @@ namespace CMSECommerce.Migrations
                             Description = "Nice pink t-shirt",
                             Image = "pink1.png",
                             Name = "Pink shirt",
+                            OwnerName = "Admin",
                             Price = 10.99m,
                             Slug = "pink-shirt",
                             Status = 1,
-                            StockQuantity = 0
+                            StockQuantity = 100,
+                            StoreId = 1,
+                            UserId = "a18265d3-05b8-4766-adcc-ca43d3960199"
                         });
                 });
 
@@ -501,6 +545,9 @@ namespace CMSECommerce.Migrations
                     b.Property<string>("GSTIN")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("PostCode")
                         .HasColumnType("nvarchar(max)");
 
@@ -518,6 +565,20 @@ namespace CMSECommerce.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Stores");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            City = "Mumbai",
+                            Contact = "0000000000",
+                            Country = "India",
+                            Email = "admin@local.local",
+                            IsActive = true,
+                            PostCode = "400001",
+                            StoreName = "Admin Central Store",
+                            UserId = "a18265d3-05b8-4766-adcc-ca43d3960199"
+                        });
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.SubscriberRequest", b =>
@@ -559,8 +620,23 @@ namespace CMSECommerce.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ApprovedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal>("CreditApplied")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("FinalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsUpgrade")
+                        .HasColumnType("bit");
 
                     b.Property<string>("ItsNumber")
                         .HasColumnType("nvarchar(max)");
@@ -610,6 +686,40 @@ namespace CMSECommerce.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("SubscriptionTiers");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DurationMonths = 1,
+                            Name = "Trial",
+                            Price = 99m,
+                            ProductLimit = 5
+                        },
+                        new
+                        {
+                            Id = 2,
+                            DurationMonths = 6,
+                            Name = "Basic",
+                            Price = 499m,
+                            ProductLimit = 25
+                        },
+                        new
+                        {
+                            Id = 3,
+                            DurationMonths = 12,
+                            Name = "Intermediate",
+                            Price = 899m,
+                            ProductLimit = 50
+                        },
+                        new
+                        {
+                            Id = 4,
+                            DurationMonths = 12,
+                            Name = "Premium",
+                            Price = 1499m,
+                            ProductLimit = 120
+                        });
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.UnlockRequest", b =>
@@ -645,6 +755,43 @@ namespace CMSECommerce.Migrations
                     b.ToTable("UnlockRequests");
                 });
 
+            modelBuilder.Entity("CMSECommerce.Models.UserAgreement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AcceptedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AgreementType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FullContent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserAgreements");
+                });
+
             modelBuilder.Entity("CMSECommerce.Models.UserProfile", b =>
                 {
                     b.Property<int>("Id")
@@ -657,12 +804,16 @@ namespace CMSECommerce.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("BusinessAddress")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("BusinessPhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("CurrentProductLimit")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CurrentTierId")
                         .HasColumnType("int");
 
                     b.Property<string>("FacebookUrl")
@@ -675,16 +826,21 @@ namespace CMSECommerce.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("HomeAddress")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("HomePhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ITSNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("InstagramUrl")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeactivated")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsImageApproved")
                         .HasColumnType("bit");
@@ -729,9 +885,15 @@ namespace CMSECommerce.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("WhatsAppNumber")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CurrentTierId");
+
+                    b.HasIndex("ITSNumber")
+                        .IsUnique();
 
                     b.HasIndex("StoreId");
 
@@ -740,6 +902,28 @@ namespace CMSECommerce.Migrations
                         .HasFilter("[UserId] IS NOT NULL");
 
                     b.ToTable("UserProfiles");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            About = "Default System Administrator",
+                            BusinessAddress = "Main Admin Office, Mumbai",
+                            CurrentProductLimit = 1000,
+                            FirstName = "System",
+                            HomeAddress = "Default Admin Home",
+                            ITSNumber = "000000",
+                            IsDeactivated = false,
+                            IsImageApproved = false,
+                            IsImagePending = false,
+                            IsProfileVisible = true,
+                            LastName = "Admin",
+                            Profession = "Administrator",
+                            StoreId = 1,
+                            SubscriptionStartDate = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            UserId = "a18265d3-05b8-4766-adcc-ca43d3960199",
+                            WhatsAppNumber = "0000000000"
+                        });
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.UserStatusSetting", b =>
@@ -802,6 +986,26 @@ namespace CMSECommerce.Migrations
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
                     b.ToTable("AspNetRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "5f90378b-3001-443b-8736-411a91341c2c",
+                            Name = "Admin",
+                            NormalizedName = "ADMIN"
+                        },
+                        new
+                        {
+                            Id = "6f90378b-3001-443b-8736-411a91341c2d",
+                            Name = "Customer",
+                            NormalizedName = "CUSTOMER"
+                        },
+                        new
+                        {
+                            Id = "7f90378b-3001-443b-8736-411a91341c2e",
+                            Name = "Subscriber",
+                            NormalizedName = "SUBSCRIBER"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -892,6 +1096,24 @@ namespace CMSECommerce.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "a18265d3-05b8-4766-adcc-ca43d3960199",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "505e4aa1-63e9-442b-bf3f-07f68749b6d0",
+                            Email = "admin@local.local",
+                            EmailConfirmed = true,
+                            LockoutEnabled = false,
+                            NormalizedEmail = "ADMIN@LOCAL.LOCAL",
+                            NormalizedUserName = "ADMIN",
+                            PasswordHash = "AQAAAAIAAYagAAAAEPDrzLCDxdQwoPDf6p8wG2U60yUemc2UtK7z/g+L6CtDDEP5zzAamGsr4qGZANTJwg==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "",
+                            TwoFactorEnabled = false,
+                            UserName = "admin"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -954,6 +1176,13 @@ namespace CMSECommerce.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetUserRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = "a18265d3-05b8-4766-adcc-ca43d3960199",
+                            RoleId = "5f90378b-3001-443b-8736-411a91341c2c"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -994,12 +1223,20 @@ namespace CMSECommerce.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CMSECommerce.Models.Store", "Store")
+                        .WithMany("Products")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Category");
+
+                    b.Navigation("Store");
 
                     b.Navigation("User");
                 });
@@ -1035,8 +1272,23 @@ namespace CMSECommerce.Migrations
                     b.Navigation("Tier");
                 });
 
+            modelBuilder.Entity("CMSECommerce.Models.UserAgreement", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("CMSECommerce.Models.UserProfile", b =>
                 {
+                    b.HasOne("CMSECommerce.Models.SubscriptionTier", "CurrentTier")
+                        .WithMany()
+                        .HasForeignKey("CurrentTierId");
+
                     b.HasOne("CMSECommerce.Models.Store", "Store")
                         .WithMany()
                         .HasForeignKey("StoreId")
@@ -1046,6 +1298,8 @@ namespace CMSECommerce.Migrations
                         .WithOne()
                         .HasForeignKey("CMSECommerce.Models.UserProfile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("CurrentTier");
 
                     b.Navigation("Store");
 
@@ -1111,6 +1365,11 @@ namespace CMSECommerce.Migrations
             modelBuilder.Entity("CMSECommerce.Models.Product", b =>
                 {
                     b.Navigation("Reviews");
+                });
+
+            modelBuilder.Entity("CMSECommerce.Models.Store", b =>
+                {
+                    b.Navigation("Products");
                 });
 #pragma warning restore 612, 618
         }

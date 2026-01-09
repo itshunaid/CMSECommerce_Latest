@@ -13,5 +13,10 @@
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public virtual SubscriptionTier Tier { get; set; }
+        public bool IsUpgrade { get; set; }
+        public decimal FinalAmount { get; set; }  // The actual amount the user paid
+        public decimal CreditApplied { get; set; } // The discount given from the old plan
+        public DateTime ApprovedAt { get;  set; }
+        public string ApprovedBy { get;  set; }
     }
 }

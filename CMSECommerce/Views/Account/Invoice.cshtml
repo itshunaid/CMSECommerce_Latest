@@ -3,6 +3,7 @@
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Tax Invoice - #" + Model.Order.Id;
+    ViewData["HideLayoutSidebar"] = true;
     var indianCulture = new CultureInfo("en-IN");
 
     // 1. Get all details and handle nulls

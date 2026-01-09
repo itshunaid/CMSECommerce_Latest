@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CMSECommerce.Controllers
 {
-    public class PagesController(DataContext context) : Controller
+    public class PagesController(DataContext context) : BaseController
     {
         private readonly DataContext _context = context;
 

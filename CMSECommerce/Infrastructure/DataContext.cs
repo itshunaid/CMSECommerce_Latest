@@ -1,12 +1,16 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using CMSECommerce.Models;
 
 namespace CMSECommerce.Infrastructure
 {
-    public class DataContext(DbContextOptions<DataContext> options) : IdentityDbContext<IdentityUser>(options)
+    public class DataContext : IdentityDbContext<IdentityUser>
     {
+        public DataContext(DbContextOptions<DataContext> options) : base(options)
+        {
+        }
+        public DbSet<UserAgreement> UserAgreements { get; set; }
         public DbSet<Page> Pages { get; set; }
         public DbSet<Store> Stores { get; set; }
         public DbSet<Category> Categories { get; set; }
@@ -21,43 +25,60 @@ namespace CMSECommerce.Infrastructure
         public DbSet<UserStatusTracker> UserStatuses { get; set; }
         public DbSet<UserStatusSetting> UserStatusSettings { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
-
         public DbSet<SubscriptionRequest> SubscriptionRequests { get; set; }
         public DbSet<SubscriptionTier> SubscriptionTiers { get; set; }
-
-
-
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // 1. Mark the property as optional (Nullable)
+            // ARCHITECTURE: Automatically filter out deactivated stores globally
+            modelBuilder.Entity<Store>()
+                .HasQueryFilter(s => s.IsActive);
+
+            modelBuilder.Entity<UserProfile>()
+        .HasIndex(u => u.ITSNumber)
+        .IsUnique();
+
+            
+            // Ensure a user can have multiple agreement records (as versions change over time)
+            modelBuilder.Entity<UserAgreement>()
+                .HasOne(ua => ua.User)
+                .WithMany()
+                .HasForeignKey(ua => ua.UserId);
+
+            // 1. UserProfile Configuration
             modelBuilder.Entity<UserProfile>(entity =>
             {
-                // 1. Mark the property as optional (Nullable)
                 entity.Property(u => u.StoreId).IsRequired(false);
 
-                // 2. Now the SetNull action will work
                 entity.HasOne(u => u.Store)
                       .WithMany()
                       .HasForeignKey(u => u.StoreId)
                       .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(u => u.User)
+                      .WithOne()
+                      .HasForeignKey<UserProfile>(u => u.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<UserProfile>()
-    .HasOne(u => u.User)
-    .WithOne() // Assuming 1 user has 1 profile
-    .HasForeignKey<UserProfile>(u => u.UserId)
-    .OnDelete(DeleteBehavior.Cascade); // Delete profile if User is deleted
+            // 2. Product Relationships
+            modelBuilder.Entity<Product>(entity =>
+            {
+                entity.HasOne(p => p.Store)
+                      .WithMany(s => s.Products)
+                      .HasForeignKey(p => p.StoreId)
+                      .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Product>()
-        .HasOne(p => p.User)
-        .WithMany() // or .WithMany(u => u.Products) if you have a collection
-        .HasForeignKey(p => p.UserId)
-        .OnDelete(DeleteBehavior.Cascade); // This automatically deletes products
+                entity.HasOne(p => p.User)
+                      .WithMany()
+                      .HasForeignKey(p => p.UserId)
+                      .OnDelete(DeleteBehavior.NoAction);
+            });
 
-            modelBuilder.Entity<CMSECommerce.Models.ChatMessage>(b =>
+            // 3. Chat Message Configuration
+            modelBuilder.Entity<ChatMessage>(b =>
             {
                 b.ToTable("ChatMessages");
                 b.HasKey(x => x.Id);
@@ -67,92 +88,98 @@ namespace CMSECommerce.Infrastructure
                 b.HasIndex(x => new { x.RecipientId, x.IsRead });
             });
 
+            // --- 4. IDENTITY SEEDING (Roles & Admin User) ---
+
+            string adminRoleId = "5f90378b-3001-443b-8736-411a91341c2c";
+            string customerRoleId = "6f90378b-3001-443b-8736-411a91341c2d";
+            string subscriberRoleId = "7f90378b-3001-443b-8736-411a91341c2e";
+            string adminUserId = "a18265d3-05b8-4766-adcc-ca43d3960199";
+
+            modelBuilder.Entity<IdentityRole>().HasData(
+                new IdentityRole { Id = adminRoleId, Name = "Admin", NormalizedName = "ADMIN" },
+                new IdentityRole { Id = customerRoleId, Name = "Customer", NormalizedName = "CUSTOMER" },
+                new IdentityRole { Id = subscriberRoleId, Name = "Subscriber", NormalizedName = "SUBSCRIBER" }
+            );
+
+            var hasher = new PasswordHasher<IdentityUser>();
+            modelBuilder.Entity<IdentityUser>().HasData(new IdentityUser
+            {
+                Id = adminUserId,
+                UserName = "admin",
+                NormalizedUserName = "ADMIN",
+                Email = "admin@local.local",
+                NormalizedEmail = "ADMIN@LOCAL.LOCAL",
+                EmailConfirmed = true,
+                PasswordHash = hasher.HashPassword(null, "Pass@local110"),
+                SecurityStamp = string.Empty
+            });
+
+            modelBuilder.Entity<IdentityUserRole<string>>().HasData(new IdentityUserRole<string>
+            {
+                RoleId = adminRoleId,
+                UserId = adminUserId
+            });
+
+            // --- 5. DOMAIN SEED DATA ---
+
             modelBuilder.Entity<Category>().HasData(
                 new Category { Id = 1, Name = "Shirts", Slug = "shirts" },
                 new Category { Id = 2, Name = "Fruit", Slug = "fruit" }
             );
 
-            modelBuilder.Entity<Product>().HasData(
-                new Product
+            modelBuilder.Entity<Store>().HasData(
+                new Store
                 {
                     Id = 1,
-                    Name = "Apples",
-                    Slug = "apples",
-                    Description = "Juicy apples",
-                    Price = 1.50M,
-                    CategoryId = 2,
-                    Image = "apple1.jpg"
-                },
-                new Product
-                {
-                    Id = 2,
-                    Name = "Grapefruit",
-                    Slug = "grapefruit",
-                    Description = "Juicy grapefruit",
-                    Price = 2M,
-                    CategoryId = 2,
-                    Image = "grapefruit1.jpg"
-                },
-                new Product
-                {
-                    Id = 3,
-                    Name = "Grapes",
-                    Slug = "grapes",
-                    Description = "Fresh grapes",
-                    Price = 1.80M,
-                    CategoryId = 2,
-                    Image = "grapes1.jpg"
-                },
-                new Product
-                {
-                    Id = 4,
-                    Name = "Oranges",
-                    Slug = "oranges",
-                    Description = "Fresh oranges",
-                    Price = 1.50M,
-                    CategoryId = 2,
-                    Image = "orange1.jpg"
-                },
-                new Product
-                {
-                    Id = 5,
-                    Name = "Blue shirt",
-                    Slug = "blue-shirt",
-                    Description = "Nice blue t-shirt",
-                    Price = 7.99M,
-                    CategoryId = 1,
-                    Image = "blue1.jpg"
-                },
-                new Product
-                {
-                    Id = 6,
-                    Name = "Red shirt",
-                    Slug = "red-shirt",
-                    Description = "Nice red t-shirt",
-                    Price = 8.99M,
-                    CategoryId = 1,
-                    Image = "red1.jpg"
-                },
-                new Product
-                {
-                    Id = 7,
-                    Name = "Green shirt",
-                    Slug = "green-shirt",
-                    Description = "Nice green t-shirt",
-                    Price = 9.99M,
-                    CategoryId = 1,
-                    Image = "green1.png"
-                },
-                new Product
-                {
-                    Id = 8,
-                    Name = "Pink shirt",
-                    Slug = "pink-shirt",
-                    Description = "Nice pink t-shirt",
-                    Price = 10.99M,
-                    CategoryId = 1,
-                    Image = "pink1.png"
+                    UserId = adminUserId,
+                    StoreName = "Admin Central Store",
+                    Email = "admin@local.local",
+                    Contact = "0000000000",
+                    City = "Mumbai",
+                    Country = "India",
+                    PostCode = "400001"
                 }
+            );
+
+           
+            modelBuilder.Entity<UserProfile>().HasData(
+                new UserProfile
+                {
+                    Id = 1,
+                    UserId = adminUserId,
+                    StoreId = 1,
+                    FirstName = "System",
+                    LastName = "Admin",
+                    ITSNumber = "000000",
+                    IsProfileVisible = true,
+                    CurrentProductLimit = 1000,
+                    SubscriptionStartDate = DateTime.Parse("2026-01-01"),
+                    WhatsAppNumber = "0000000000",
+                    // ADD THIS LINE TO FIX THE ERROR:
+                    BusinessAddress = "Main Admin Office, Mumbai",
+                    HomeAddress = "Default Admin Home",
+                    // Ensure other required fields like 'About' or 'Profession' are also filled if they are not nullable
+                    About = "Default System Administrator",
+                    Profession = "Administrator"
+                }
+            );
+
+            modelBuilder.Entity<SubscriptionTier>().HasData(
+                new SubscriptionTier { Id = 1, Name = "Trial", Price = 99, DurationMonths = 1, ProductLimit = 5 },
+                new SubscriptionTier { Id = 2, Name = "Basic", Price = 499, DurationMonths = 6, ProductLimit = 25 },
+                new SubscriptionTier { Id = 3, Name = "Intermediate", Price = 899, DurationMonths = 12, ProductLimit = 50 },
+                new SubscriptionTier { Id = 4, Name = "Premium", Price = 1499, DurationMonths = 12, ProductLimit = 120 }
+            );
+
+            modelBuilder.Entity<Product>().HasData(
+                new Product { Id = 1, Name = "Apples", Slug = "apples", Description = "Juicy apples", Price = 1.50M, CategoryId = 2, Image = "apple1.jpg", StoreId = 1, Status = ProductStatus.Approved, StockQuantity = 100, UserId = adminUserId, OwnerName = "Admin" },
+                new Product { Id = 2, Name = "Grapefruit", Slug = "grapefruit", Description = "Juicy grapefruit", Price = 2M, CategoryId = 2, Image = "grapefruit1.jpg", StoreId = 1, Status = ProductStatus.Approved, StockQuantity = 100, UserId = adminUserId, OwnerName = "Admin" },
+                new Product { Id = 3, Name = "Grapes", Slug = "grapes", Description = "Fresh grapes", Price = 1.80M, CategoryId = 2, Image = "grapes1.jpg", StoreId = 1, Status = ProductStatus.Approved, StockQuantity = 100, UserId = adminUserId, OwnerName = "Admin" },
+                new Product { Id = 4, Name = "Oranges", Slug = "oranges", Description = "Fresh oranges", Price = 1.50M, CategoryId = 2, Image = "orange1.jpg", StoreId = 1, Status = ProductStatus.Approved, StockQuantity = 100, UserId = adminUserId, OwnerName = "Admin" },
+                new Product { Id = 5, Name = "Blue shirt", Slug = "blue-shirt", Description = "Nice blue t-shirt", Price = 7.99M, CategoryId = 1, Image = "blue1.jpg", StoreId = 1, Status = ProductStatus.Approved, StockQuantity = 100, UserId = adminUserId, OwnerName = "Admin" },
+                new Product { Id = 6, Name = "Red shirt", Slug = "red-shirt", Description = "Nice red t-shirt", Price = 8.99M, CategoryId = 1, Image = "red1.jpg", StoreId = 1, Status = ProductStatus.Approved, StockQuantity = 100, UserId = adminUserId, OwnerName = "Admin" },
+                new Product { Id = 7, Name = "Green shirt", Slug = "green-shirt", Description = "Nice green t-shirt", Price = 9.99M, CategoryId = 1, Image = "green1.png", StoreId = 1, Status = ProductStatus.Approved, StockQuantity = 100, UserId = adminUserId, OwnerName = "Admin" },
+                new Product { Id = 8, Name = "Pink shirt", Slug = "pink-shirt", Description = "Nice pink t-shirt", Price = 10.99M, CategoryId = 1, Image = "pink1.png", StoreId = 1, Status = ProductStatus.Approved, StockQuantity = 100, UserId = adminUserId, OwnerName = "Admin" }
             );
 
             modelBuilder.Entity<Page>().HasData(

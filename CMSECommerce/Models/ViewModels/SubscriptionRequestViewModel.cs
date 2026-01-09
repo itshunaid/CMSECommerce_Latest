@@ -26,6 +26,12 @@ namespace CMSECommerce.Models.ViewModels
 
         // Optional: Helpful for displaying existing status if they revisit
         public string? StatusMessage { get; set; }
+
+        // Add this line
+        public bool IsUpgrade { get; set; }
+        public decimal FinalAmount { get; set; }
+        public decimal CreditApplied { get;  set; }
+        public string FullName { get;  set; }
     }
 }
 

@@ -1,4 +1,6 @@
-﻿namespace CMSECommerce.Models
+﻿using System.Text.Json.Serialization;
+
+namespace CMSECommerce.Models
 {
     public class CartItem
     {
@@ -14,8 +16,11 @@
 
         public bool IsOutOfStock { get; set; }
 
+        // Remove or mark [JsonIgnore] the complex object to prevent loops
+        [JsonIgnore]
         public UserProfile UserProfile { get; set; }
 
+        public string SellerName { get; set; }
 
         public CartItem()
         {

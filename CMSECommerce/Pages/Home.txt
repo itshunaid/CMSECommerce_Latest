@@ -1,0 +1,78 @@
+﻿<div class="container-fluid px-0 mb-5">
+    <div class="position-relative bg-dark text-white" style="min-height: 400px; background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1556740734-7f9583b7458d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'); background-size: cover; background-position: center; display: flex; align-items: center; border-radius: 8px;">
+        <div class="container py-5">
+            <div class="row">
+                <div class="col-lg-7">
+                    <h1 class="display-4 fw-bold mb-3" style="color: #febd69;">Empowering Women Entrepreneurs</h1>
+                    <p class="lead mb-4">Weypaari is the ultimate marketplace for home-grown brands. Turn your passion into a business and reach thousands of customers today.</p>
+                    <div class="d-flex gap-3">
+                        <a href="/Subscription/Index" class="btn btn-warning btn-lg fw-bold" style="background-color: #ffd814; border: none; color: #111;">Start Selling</a>
+                        <a href="/Products" class="btn btn-outline-light btn-lg">Browse Collection</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container my-5 text-center">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h2 class="fw-bold border-bottom pb-3 mb-4">Why WEypaari?</h2>
+            <p class="text-muted fs-5">We provide a platform specifically designed for women running home-based businesses. From handmade crafts to professional services, we help you scale your dreams.</p>
+        </div>
+    </div>
+</div>
+
+<div class="container mb-5">
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="card-img-top" alt="Handmade Decor" style="height: 250px; object-fit: cover;">
+                <div class="card-body text-center">
+                    <h5 class="card-title fw-bold">Handmade & Decor</h5>
+                    <p class="card-text text-muted small">Unique home-made decor pieces crafted with love.</p>
+                    <a href="/Products?category=decor" class="text-decoration-none fw-bold" style="color: #007185;">Shop Now</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="card-img-top" alt="Fashion" style="height: 250px; object-fit: cover;">
+                <div class="card-body text-center">
+                    <h5 class="card-title fw-bold">Apparel & Textiles</h5>
+                    <p class="card-text text-muted small">Custom clothing and designer textiles from home studios.</p>
+                    <a href="/Products?category=fashion" class="text-decoration-none fw-bold" style="color: #007185;">View All</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="card-img-top" alt="Catering" style="height: 250px; object-fit: cover;">
+                <div class="card-body text-center">
+                    <h5 class="card-title fw-bold">Home Kitchens</h5>
+                    <p class="card-text text-muted small">Authentic, organic, and freshly made home treats.</p>
+                    <a href="/Products?category=food" class="text-decoration-none fw-bold" style="color: #007185;">Order Fresh</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid py-5" style="background-color: #232f3e; color: white; border-radius: 8px;">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6 mb-4 mb-md-0 text-center">
+                <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="img-fluid rounded-circle shadow" alt="Success Story" style="width: 250px; height: 250px; object-fit: cover; border: 5px solid #febd69;">
+            </div>
+            <div class="col-md-6">
+                <h2 class="fw-bold mb-3">Join Our Community</h2>
+                <p class="fst-italic opacity-75">"WEypaari gave me the tools to move from my dining table to a full-scale online business. The support for women entrepreneurs is unmatched."</p>
+                <p class="fw-bold">— Fatima R., Home Baker</p>
+                <hr style="border-color: #febd69;">
+                <p>Register as a seller and get your store verified in 24 hours.</p>
+                <a href="/Account/Register" class="btn btn-warning fw-bold px-4 py-2">Create Seller Account</a>
+            </div>
+        </div>
+    </div>
+</div>

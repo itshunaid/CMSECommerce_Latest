@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Business Directory";
+    ViewData["HideLayoutSidebar"] = true;
 }
 
 <div class="container mt-5">
@@ -93,7 +94,7 @@
                                 <span class="badge bg-light text-dark border">@(user.Profession ?? "Seller")</span>
                             </td>
                             <td class="text-center align-middle">
-                                <a asp-action="UserDetails" asp-route-id="@user.UserId" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                <a asp-controller="UserProfiles" asp-action="Index" asp-route-userid="@user.UserId" class="btn btn-sm btn-outline-primary rounded-pill px-3">
                                     <i class="fas fa-id-card me-1"></i> View Profile
                                 </a>
                             </td>
