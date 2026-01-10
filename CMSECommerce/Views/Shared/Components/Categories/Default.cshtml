@@ -1,26 +1,28 @@
 ﻿@model IEnumerable<Category>
 
-<div class="card shadow-lg mb-4 border-dark rounded-3">
-    <div class="card-body p-0">
-        <ul class="list-group list-group-flush activeul">
+<div class="amazon-sidebar-card">
+    <div class="amazon-sidebar-title">Shop by Department</div>
 
-            <li class="list-group-item category-list-item @(ViewBag.CategorySlug == null || ViewBag.CategorySlug == "" ? "active-category" : "")">
-                <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center"
-                   asp-controller="Products"
-                   asp-action="Index"
-                   asp-route-slug="">
-                    <span><i class="fas fa-boxes me-2"></i> All Products</span>
-                    <i class="fas fa-chevron-right small text-muted"></i>
-                </a>
-            </li>
+    <ul class="amazon-list list-unstyled p-2">
 
-            @foreach (var root in Model)
-            {
-                @await Html.PartialAsync("_CategoryNode", Tuple.Create(root, 0))
-            }
+        <li class="category-list-item @(string.IsNullOrEmpty(ViewBag.CategorySlug) ? "active-category" : "")">
+            <a class="amazon-sidebar-link nav-link text-decoration-none d-flex justify-content-between align-items-center"
+               asp-controller="Products"
+               asp-action="Index"
+               asp-route-slug="">
+                <span>
+                    <i class="fas fa-th-large me-2"></i>
+                    All Departments
+                </span>
+            </a>
+        </li>
 
-        </ul>
-    </div>
+        @foreach (var root in Model)
+        {
+            <partial name="_CategoryNode" model="Tuple.Create(root, 0)" />
+        }
+
+    </ul>
 </div>
 
 @section Styles {
@@ -31,13 +33,27 @@
             transition: all 0.2s ease-in-out;
         }
 
-        .category-list-item:hover { background-color: #f0f0f0; }
+            .category-list-item:hover {
+                background-color: #f0f0f0;
+            }
 
-        .category-list-item .nav-link { color: var(--bs-dark) !important; padding: 0.75rem 1rem; }
+            .category-list-item .nav-link {
+                color: var(--bs-dark) !important;
+                padding: 0.75rem 1rem;
+            }
 
-        .active-category { border-left: 3px solid var(--bs-dark) !important; background-color: #e6e6e6 !important; }
-        .active-category .nav-link { color: var(--bs-warning) !important; font-weight: 700; }
-        .active-category .fa-chevron-right { display: none; }
+        .active-category {
+            border-left: 3px solid var(--bs-dark) !important;
+            background-color: #e6e6e6 !important;
+        }
 
+            .active-category .nav-link {
+                color: var(--bs-warning) !important;
+                font-weight: 700;
+            }
+
+            .active-category .fa-chevron-right {
+                display: none;
+            }
     </style>
 }

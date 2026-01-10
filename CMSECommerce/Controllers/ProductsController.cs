@@ -128,7 +128,10 @@ namespace CMSECommerce.Controllers
     string slug = "",
     int p = 1,
     string searchTerm = "",
-    string sortOrder = "")
+    string sortOrder = "",
+    decimal? minPrice = null,
+    decimal? maxPrice = null,
+    int? rating = null)
         {
             // --- Paging Configuration ---
             const int pageSize = 20;
@@ -160,10 +163,11 @@ namespace CMSECommerce.Controllers
             {
                 // --- 1. NEW: Fetch All Categories for the Sidebar (Based on StoreFront logic) ---
                 // This ensures the sidebar in your new CSHTML has data to display
-                ViewBag.Categories = await _context.Categories
-                    .OrderBy(c => c.Name)
-                    .AsNoTracking()
-                    .ToListAsync();
+                var allCategories = _context.Categories
+                    .OrderBy(c => c.Level)
+                    .ToList();
+
+                ViewBag.CategoryTree = allCategories;
 
                 // --- 2. Existing Order/User Logic (Preserved for SignalR/Chat) ---
                 List<string> customerUserNames = await _context.OrderDetails
@@ -220,6 +224,23 @@ namespace CMSECommerce.Controllers
                     string lowerSearch = searchFilter.ToLower();
                     products = products.Where(x => x.Name.ToLower().Contains(lowerSearch) ||
                                                  x.Description.ToLower().Contains(lowerSearch));
+                }
+
+                // Apply Price Filters
+                if (minPrice.HasValue)
+                {
+                    products = products.Where(x => x.Price >= minPrice.Value);
+                }
+                if (maxPrice.HasValue)
+                {
+                    products = products.Where(x => x.Price <= maxPrice.Value);
+                }
+
+                // Apply Rating Filter (if rating is provided, filter products with average rating >= rating)
+                if (rating.HasValue && rating.Value > 0)
+                {
+                    products = products.Where(x => x.Reviews.Any() &&
+                                                 x.Reviews.Average(r => r.Rating) >= rating.Value);
                 }
 
                 // Apply Sorting (Preserving your existing keys)

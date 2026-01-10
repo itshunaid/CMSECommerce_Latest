@@ -1,6 +1,9 @@
-# TODO: Implement Hierarchical Category Dropdown for Seller
-
-## Tasks
-- [x] Modify Areas/Seller/Views/Products/Create.cshtml to replace the simple select with a hierarchical select dropdown.
-- [x] Add JavaScript initialization for the hierarchical dropdown in seller create page.
-- [ ] Test the hierarchical dropdown selection in seller product creation.
+- [x] Remove the "Shop by Category" dropdown from the navbar in _Layout.cshtml
+- [ ] Delete the TopCategoriesViewComponent.cs file
+- [ ] Delete the TopCategories view folder
+- [x] Implement Amazon-style collapsible sidebar menu for categories
+  - [x] Update Default.cshtml with Amazon-style title and structure
+  - [x] Modify _CategoryNode.cshtml for collapsible parents with toggle icons
+  - [x] Add CSS styles for sidebar in amazon-style.css
+  - [x] Add JS for expand/collapse functionality in _Layout.cshtml
+  - [x] Test sidebar display, navigation, and ensure no regressions
