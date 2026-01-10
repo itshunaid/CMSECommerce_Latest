@@ -22,6 +22,12 @@
             </div>
 
             <div class="form-group mb-3">
+                <label asp-for="ParentId" class="control-label fw-bold">Parent Category (optional)</label>
+                <select asp-for="ParentId" asp-items="(IEnumerable<SelectListItem>)ViewBag.ParentCategories" class="form-select"></select>
+                <span asp-validation-for="ParentId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
                 <label asp-for="Slug" class="control-label fw-bold">Slug (Auto-generated)</label>
                 @* Display the slug but make it readonly/disabled as it's generated from the name in the controller *@
                 <input asp-for="Slug" class="form-control" disabled />

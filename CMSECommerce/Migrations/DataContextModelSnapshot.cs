@@ -61,13 +61,27 @@ namespace CMSECommerce.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Slug")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.ToTable("Categories");
 
@@ -75,14 +89,48 @@ namespace CMSECommerce.Migrations
                         new
                         {
                             Id = 1,
+                            Level = 0,
                             Name = "Shirts",
                             Slug = "shirts"
                         },
                         new
                         {
                             Id = 2,
+                            Level = 0,
                             Name = "Fruit",
                             Slug = "fruit"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Level = 1,
+                            Name = "T-Shirts",
+                            ParentId = 1,
+                            Slug = "t-shirts"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Level = 1,
+                            Name = "Formal Shirts",
+                            ParentId = 1,
+                            Slug = "formal-shirts"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Level = 1,
+                            Name = "Apples",
+                            ParentId = 2,
+                            Slug = "apples"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Level = 1,
+                            Name = "Oranges",
+                            ParentId = 2,
+                            Slug = "oranges"
                         });
                 });
 
@@ -1102,13 +1150,13 @@ namespace CMSECommerce.Migrations
                         {
                             Id = "a18265d3-05b8-4766-adcc-ca43d3960199",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "505e4aa1-63e9-442b-bf3f-07f68749b6d0",
+                            ConcurrencyStamp = "39d78532-7bd4-4ab5-a5a4-030dcfaeaf59",
                             Email = "admin@local.local",
                             EmailConfirmed = true,
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@LOCAL.LOCAL",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEPDrzLCDxdQwoPDf6p8wG2U60yUemc2UtK7z/g+L6CtDDEP5zzAamGsr4qGZANTJwg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEImctZWYYGoHDnBNPkgFiSRkG/X7TUc0MdQNOs/Vl29Jj4emIicCY7X14e9iNuxPAw==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "",
                             TwoFactorEnabled = false,
@@ -1202,6 +1250,16 @@ namespace CMSECommerce.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("CMSECommerce.Models.Category", b =>
+                {
+                    b.HasOne("CMSECommerce.Models.Category", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Parent");
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.OrderDetail", b =>
@@ -1355,6 +1413,11 @@ namespace CMSECommerce.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("CMSECommerce.Models.Category", b =>
+                {
+                    b.Navigation("Children");
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.Order", b =>

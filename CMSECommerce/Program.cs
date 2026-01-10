@@ -1,5 +1,6 @@
 ﻿using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
+using CMSECommerce.Infrastructure.Filters;
 using CMSECommerce.Models;
 using CMSECommerce.Services;
 using Microsoft.AspNetCore.Identity;
@@ -11,7 +12,14 @@ using System.Globalization;
 var builder = WebApplication.CreateBuilder(args);
 
 // --- 1. SERVICES CONFIGURATION ---
-builder.Services.AddControllersWithViews();
+// Register the PopulateCategoriesFilter so it can be injected as a service-based filter
+builder.Services.AddScoped<PopulateCategoriesFilter>();
+
+builder.Services.AddControllersWithViews(options =>
+{
+    // Add the categories filter as a service filter so ViewBag.Categories is populated for controller views
+    options.Filters.AddService<PopulateCategoriesFilter>();
+});
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
@@ -81,10 +89,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         context.Database.Migrate();
-        if (app.Environment.IsDevelopment())
-        {
-            DbSeeder.SeedData(app.Services);
-        }
+        DbSeeder.SeedData(app.Services);
     }
     catch (Exception ex)
     {
@@ -136,7 +141,7 @@ app.MapControllerRoute(name: "products", pattern: "products/{slug?}", defaults: 
 // --- ADDED STORE SPECIFIC ROUTE TO ENSURE OPTIONAL ID WORKS ---
 app.MapControllerRoute(
     name: "storefront",
-    pattern: "/storefront/{id?}",
+    pattern: "storefront/{id?}",
     defaults: new { controller = "Products", action = "StoreFront" });
 
 // Generic Default Route

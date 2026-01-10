@@ -54,7 +54,25 @@ namespace CMSECommerce.Infrastructure
                 }
             }
 
-            // 4. Seed Admin Store and Profile
+            // 4. Seed Categories
+            if (!context.Categories.Any())
+            {
+                var categories = new List<Category>
+                {
+                    new Category { Name = "Electronics", Slug = "electronics", Level = 0 },
+                    new Category { Name = "Clothing", Slug = "clothing", Level = 0 },
+                    new Category { Name = "Home & Garden", Slug = "home-garden", Level = 0 },
+                    new Category { Name = "Books", Slug = "books", Level = 0 },
+                    new Category { Name = "Sports", Slug = "sports", Level = 0 },
+                    new Category { Name = "Health & Beauty", Slug = "health-beauty", Level = 0 },
+                    new Category { Name = "Toys & Games", Slug = "toys-games", Level = 0 },
+                    new Category { Name = "Automotive", Slug = "automotive", Level = 0 }
+                };
+                context.Categories.AddRange(categories);
+                context.SaveChanges();
+            }
+
+            // 5. Seed Admin Store and Profile
             if (adminUser != null)
             {
                 // Refresh adminUser check after possible creation/role update

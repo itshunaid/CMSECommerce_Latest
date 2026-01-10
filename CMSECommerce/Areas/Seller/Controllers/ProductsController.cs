@@ -31,7 +31,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
             int pageSize = 3;
             try
             {
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
+                ViewBag.Categories = BuildCategorySelectList(categoryId);
 
                 ViewBag.SelectedCategory = categoryId.ToString();
                 ViewBag.CurrentSearch = search;
@@ -98,7 +98,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
             int pageSize = 3;
             try
             {
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
+                ViewBag.Categories = BuildCategorySelectList(categoryId);
 
                 ViewBag.SelectedCategory = categoryId.ToString();
                 ViewBag.CurrentSearch = search;
@@ -166,7 +166,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
             int pageSize = 3;
             try
             {
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
+                ViewBag.Categories = BuildCategorySelectList(categoryId);
 
                 ViewBag.SelectedCategory = categoryId.ToString();
                 ViewBag.CurrentSearch = search;
@@ -232,7 +232,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
         {
             try
             {
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name");
+                ViewBag.Categories = BuildCategorySelectList();
                 return View();
             }
             catch (Exception ex)
@@ -313,7 +313,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
                     // 5. Assign Ownership and Metadata
                     product.UserId = userId;
                     product.OwnerName = _userManager.GetUserName(User);
-                    product.StoreId = profile.StoreId ?? 0;
+                    product.StoreId = (int)profile.StoreId;
                     product.Status = ProductStatus.Pending;
 
                     _context.Add(product);
@@ -330,16 +330,19 @@ namespace CMSECommerce.Areas.Seller.Controllers
             }
 
             // Repopulate Categories if validation fails
-            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
+            ViewBag.Categories = BuildCategorySelectList(product.CategoryId);
             return View(product);
         }
 
         // GET /seller/products/edit/5
         public async Task<IActionResult> Edit(int id)
         {
+            // 1. Declare the variable here so it's accessible in both try and catch
+            Product product = null;
+
             try
             {
-                Product product = await _context.Products.FindAsync(id);
+                product = await _context.Products.FindAsync(id);
 
                 if (product == null) { return NotFound(); }
 
@@ -350,9 +353,9 @@ namespace CMSECommerce.Areas.Seller.Controllers
                     return RedirectToAction("Index");
                 }
 
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
+                ViewBag.Categories = BuildCategorySelectList(product.CategoryId);
 
-                // File operation: Loading gallery images
+                // File operation
                 string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + id.ToString());
 
                 if (Directory.Exists(uploadsDir))
@@ -365,8 +368,18 @@ namespace CMSECommerce.Areas.Seller.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading Edit View for product ID {ProductId} by seller {User}.", id, _userManager.GetUserName(User));
-                TempData["Error"] = "Failed to load product details for editing.";
-                return RedirectToAction("Index");
+
+                TempData["Error"] = "Failed to load categories, but you can still edit the product.";
+                ViewBag.Categories = new SelectList(new List<Category>());
+
+                // 2. Now 'product' is accessible here. 
+                // Note: If FindAsync failed, product might still be null.
+                if (product == null)
+                {
+                    return RedirectToAction("Index");
+                }
+
+                return View(product);
             }
         }
 
@@ -375,7 +388,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(Product product)
         {
-            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
+            ViewBag.Categories = BuildCategorySelectList(product.CategoryId);
 
             // Fetch the existing product from the database
             Product dbProduct = null;
@@ -782,6 +795,30 @@ namespace CMSECommerce.Areas.Seller.Controllers
             }
 
             return RedirectToAction("Index");
+        }
+
+        // Helper method to build hierarchical category select list
+        private SelectList BuildCategorySelectList(int selectedCategoryId = 0)
+        {
+            var categories = _context.Categories
+                .OrderBy(c => c.Level)
+                .ThenBy(c => c.Name)
+                .ToList();
+
+            var selectListItems = new List<SelectListItem>();
+
+            foreach (var category in categories)
+            {
+                var indent = new string('—', category.Level);
+                selectListItems.Add(new SelectListItem
+                {
+                    Value = category.Id.ToString(),
+                    Text = $"{indent} {category.Name}",
+                    Selected = category.Id == selectedCategoryId
+                });
+            }
+
+            return new SelectList(selectListItems, "Value", "Text");
         }
     }
 }

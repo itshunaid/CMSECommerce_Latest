@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMSECommerce.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20260106082305_RemoveDisplayProperties")]
-    partial class RemoveDisplayProperties
+    [Migration("20260110064340_AddedNewColumnsToCategory")]
+    partial class AddedNewColumnsToCategory
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -64,13 +64,27 @@ namespace CMSECommerce.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Slug")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.ToTable("Categories");
 
@@ -78,14 +92,48 @@ namespace CMSECommerce.Migrations
                         new
                         {
                             Id = 1,
+                            Level = 0,
                             Name = "Shirts",
                             Slug = "shirts"
                         },
                         new
                         {
                             Id = 2,
+                            Level = 0,
                             Name = "Fruit",
                             Slug = "fruit"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Level = 1,
+                            Name = "T-Shirts",
+                            ParentId = 1,
+                            Slug = "t-shirts"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Level = 1,
+                            Name = "Formal Shirts",
+                            ParentId = 1,
+                            Slug = "formal-shirts"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Level = 1,
+                            Name = "Apples",
+                            ParentId = 2,
+                            Slug = "apples"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Level = 1,
+                            Name = "Oranges",
+                            ParentId = 2,
+                            Slug = "oranges"
                         });
                 });
 
@@ -187,6 +235,9 @@ namespace CMSECommerce.Migrations
                     b.Property<string>("CustomerNumber")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DeliveryImageUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Image")
                         .HasColumnType("nvarchar(max)");
 
@@ -198,6 +249,9 @@ namespace CMSECommerce.Migrations
 
                     b.Property<bool>("IsReturned")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("OrderId")
                         .HasColumnType("int");
@@ -222,6 +276,15 @@ namespace CMSECommerce.Migrations
 
                     b.Property<string>("ReturnReason")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SellerNote")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ShippedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -533,6 +596,9 @@ namespace CMSECommerce.Migrations
                     b.Property<string>("GSTIN")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("PostCode")
                         .HasColumnType("nvarchar(max)");
 
@@ -559,6 +625,7 @@ namespace CMSECommerce.Migrations
                             Contact = "0000000000",
                             Country = "India",
                             Email = "admin@local.local",
+                            IsActive = true,
                             PostCode = "400001",
                             StoreName = "Admin Central Store",
                             UserId = "a18265d3-05b8-4766-adcc-ca43d3960199"
@@ -603,6 +670,12 @@ namespace CMSECommerce.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ApprovedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -817,6 +890,9 @@ namespace CMSECommerce.Migrations
                     b.Property<string>("InstagramUrl")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsDeactivated")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsImageApproved")
                         .HasColumnType("bit");
 
@@ -888,6 +964,7 @@ namespace CMSECommerce.Migrations
                             FirstName = "System",
                             HomeAddress = "Default Admin Home",
                             ITSNumber = "000000",
+                            IsDeactivated = false,
                             IsImageApproved = false,
                             IsImagePending = false,
                             IsProfileVisible = true,
@@ -1076,13 +1153,13 @@ namespace CMSECommerce.Migrations
                         {
                             Id = "a18265d3-05b8-4766-adcc-ca43d3960199",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "2183b129-7f46-44ca-b0a4-d4c96533ea98",
+                            ConcurrencyStamp = "39d78532-7bd4-4ab5-a5a4-030dcfaeaf59",
                             Email = "admin@local.local",
                             EmailConfirmed = true,
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@LOCAL.LOCAL",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEDkzhAolIUdI1XkSG9B+6XvWZUsBN7FdFeA9boTybvWyLq/vtujFJLrGVRRP1hv/xg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEImctZWYYGoHDnBNPkgFiSRkG/X7TUc0MdQNOs/Vl29Jj4emIicCY7X14e9iNuxPAw==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "",
                             TwoFactorEnabled = false,
@@ -1176,6 +1253,16 @@ namespace CMSECommerce.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("CMSECommerce.Models.Category", b =>
+                {
+                    b.HasOne("CMSECommerce.Models.Category", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Parent");
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.OrderDetail", b =>
@@ -1329,6 +1416,11 @@ namespace CMSECommerce.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("CMSECommerce.Models.Category", b =>
+                {
+                    b.Navigation("Children");
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.Order", b =>

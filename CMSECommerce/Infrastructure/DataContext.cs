@@ -1,5 +1,4 @@
-﻿
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,7 +39,13 @@ namespace CMSECommerce.Infrastructure
         .HasIndex(u => u.ITSNumber)
         .IsUnique();
 
-            
+            modelBuilder.Entity<Category>()
+        .HasOne(c => c.Parent)
+        .WithMany(c => c.Children)
+        .HasForeignKey(c => c.ParentId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+
             // Ensure a user can have multiple agreement records (as versions change over time)
             modelBuilder.Entity<UserAgreement>()
                 .HasOne(ua => ua.User)
@@ -123,8 +128,14 @@ namespace CMSECommerce.Infrastructure
             // --- 5. DOMAIN SEED DATA ---
 
             modelBuilder.Entity<Category>().HasData(
-                new Category { Id = 1, Name = "Shirts", Slug = "shirts" },
-                new Category { Id = 2, Name = "Fruit", Slug = "fruit" }
+                new Category { Id = 1, Name = "Shirts", Slug = "shirts", Level = 0, ParentId = null },
+                new Category { Id = 2, Name = "Fruit", Slug = "fruit", Level = 0, ParentId = null },
+
+                // Additional seeded child categories for richer demo data
+                new Category { Id = 3, Name = "T-Shirts", Slug = "t-shirts", Level = 1, ParentId = 1 },
+                new Category { Id = 4, Name = "Formal Shirts", Slug = "formal-shirts", Level = 1, ParentId = 1 },
+                new Category { Id = 5, Name = "Apples", Slug = "apples", Level = 1, ParentId = 2 },
+                new Category { Id = 6, Name = "Oranges", Slug = "oranges", Level = 1, ParentId = 2 }
             );
 
             modelBuilder.Entity<Store>().HasData(
