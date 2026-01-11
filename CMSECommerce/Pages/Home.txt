@@ -71,7 +71,7 @@
                 <p class="fw-bold">— Fatima R., Home Baker</p>
                 <hr style="border-color: #febd69;">
                 <p>Register as a seller and get your store verified in 24 hours.</p>
-                <a href="/Account/Register" class="btn btn-warning fw-bold px-4 py-2">Create Seller Account</a>
+                <a href="/Subscription/Index" class="btn btn-warning fw-bold px-4 py-2">Create Seller Account</a>
             </div>
         </div>
     </div>

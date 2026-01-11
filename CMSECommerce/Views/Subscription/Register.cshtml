@@ -176,14 +176,38 @@
                             </div>
                         </div>
 
-                        <div class="qr-badge">
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://weypaari.com"
-                                 style="width: 50px; height: 50px;" alt="QR Code">
-                            <div class="text-start">
-                                <div class="fw-bold text-dark" style="font-size: 0.8rem;">Instant Activation</div>
-                                <div class="text-muted" style="font-size: 0.7rem;">Scan this QR to pay <strong>₹@Model.FinalAmount.ToString("N0")</strong></div>
-                            </div>
-                        </div>
+                        <div class="qr-badge d-flex flex-column align-items-center text-center">
+    <img src="~/images/gpay/abbas_gpay_qrcode.jpeg" style="width: 153px; height: 153px;" alt="QR Code" class="mb-2">
+
+    <div class="qr-details mb-3">
+        <div class="fw-bold text-dark" style="font-size: 0.8rem;">Instant Activation</div>
+        <div class="text-muted" style="font-size: 0.7rem;">
+            Scan or tap an app to pay <strong>₹@Model.FinalAmount.ToString("N0")</strong>
+        </div>
+    </div>
+
+    <div class="d-lg-none w-100">
+    <p class="text-uppercase fw-bold text-muted mb-2" style="font-size: 0.6rem; letter-spacing: 1px;">Select App to Pay</p>
+    
+    <div class="d-lg-none w-100 mt-3">
+       <a href="upi://pay?pa=abbas99631848@barodampay&pn=Abbas Kanchwala&am=@Model.FinalAmount&cu=INR"
+       class="btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center shadow-sm" 
+       style="border-radius: 12px; padding: 12px; background-color: #1976D2; border: none;">
+        
+        <div class="d-flex align-items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-wallet2 me-2" viewBox="0 0 16 16">
+                <path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.432-1.499L12.136.326zM5.562 3H13V1.78a.5.5 0 0 0-.621-.484L5.562 3zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-13z"/>
+            </svg>
+            <span style="font-weight: 600; font-size: 1rem;">Pay ₹@Model.FinalAmount.ToString("N0") via UPI</span>
+        </div>
+    </a>
+    
+    <p class="text-muted text-center mt-2" style="font-size: 0.7rem;">
+        Clicking will open GPay, PhonePe, Paytm, or your bank app
+    </p>
+</div>
+</div>
+</div>
 
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-1">
