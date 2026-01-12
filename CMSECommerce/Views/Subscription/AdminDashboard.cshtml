@@ -242,7 +242,7 @@
 
                                         @if (userProfile != null)
                                         {
-                                            <div class="user-name fw-600 mt-1">@userProfile.FirstName @userProfile.LastName</div>                                            
+                                            <div class="user-name fw-600 mt-1">@userProfile.FirstName @userProfile.LastName</div>
                                         }
                                         else
                                         {
@@ -308,7 +308,7 @@
 
 <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm modal-dialog-centered">
-        <form asp-action="Reject" method="post">
+        <form asp-action="Reject" method="post" id="rejectForm">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-dark text-white py-2">
                     <h6 class="modal-title fs-7 fw-bold">Rejection Details</h6>
@@ -316,7 +316,21 @@
                 </div>
                 <div class="modal-body p-3">
                     <input type="hidden" name="requestId" id="modalRequestId" />
-                    <textarea name="reason" class="form-control text-xs" rows="3" required placeholder="Reason for rejection..."></textarea>
+
+                    <label class="form-label fw-bold text-xs mb-1">Select Reason</label>
+                    <select id="predefinedReason" class="form-select form-select-sm text-xs mb-2">
+                        <option value="">-- Choose a reason --</option>
+                        <option value="Payment proof is blurry or unreadable.">Blurry Payment Proof</option>
+                        <option value="Transaction ID / Amount does not match our records.">Payment Mismatch</option>
+                        <option value="Incorrect ITS number provided for this profile.">ITS Mismatch</option>
+                        <option value="Plan selected does not match the payment amount.">Wrong Plan Selected</option>
+                        <option value="OTHER">Other (Type below...)</option>
+                    </select>
+
+                    <div id="customReasonWrapper" style="display:none;">
+                        <label class="form-label fw-bold text-xs mb-1">Custom Reason</label>
+                        <textarea name="reason" id="modalReasonText" class="form-control text-xs" rows="3" placeholder="Explain why..."></textarea>
+                    </div>
                 </div>
                 <div class="modal-footer py-2">
                     <button type="submit" class="btn btn-xs btn-danger text-xs px-3">Confirm Reject</button>
@@ -332,6 +346,41 @@
         const statusFilter = document.getElementById('statusFilter');
         const upgradeOnlyFilter = document.getElementById('upgradeOnlyFilter');
         const rows = document.querySelectorAll('.request-row');
+
+        // Logic for Predefined Reasons
+        const predefinedSelect = document.getElementById('predefinedReason');
+        const customWrapper = document.getElementById('customReasonWrapper');
+        const reasonTextarea = document.getElementById('modalReasonText');
+
+        predefinedSelect.addEventListener('change', function() {
+            const val = this.value;
+            if (val === "OTHER") {
+                customWrapper.style.display = 'block';
+                reasonTextarea.value = "";
+                reasonTextarea.required = true;
+            } else if (val !== "") {
+                customWrapper.style.display = 'none';
+                reasonTextarea.value = val;
+                reasonTextarea.required = false;
+            } else {
+                customWrapper.style.display = 'none';
+                reasonTextarea.value = "";
+                reasonTextarea.required = false;
+            }
+        });
+
+        // Ensure user selects something before submitting
+        document.getElementById('rejectForm').onsubmit = function() {
+            if (predefinedSelect.value === "") {
+                alert("Please select a reason for rejection.");
+                return false;
+            }
+            if (predefinedSelect.value === "OTHER" && reasonTextarea.value.trim() === "") {
+                alert("Please type a custom reason.");
+                return false;
+            }
+            return true;
+        };
 
         function filterTable() {
             const searchText = itsSearch.value.toLowerCase();
@@ -364,6 +413,11 @@
 
         function showRejectModal(id) {
             document.getElementById('modalRequestId').value = id;
+            // Reset modal state
+            predefinedSelect.value = "";
+            customWrapper.style.display = 'none';
+            reasonTextarea.value = "";
+
             var modal = new bootstrap.Modal(document.getElementById('rejectModal'));
             modal.show();
         }

@@ -133,6 +133,7 @@
                         <input type="hidden" asp-for="Price" />
                         <input type="hidden" asp-for="FinalAmount" />
                         <input type="hidden" asp-for="CreditApplied" />
+                        <input type="hidden" asp-for="ITSNumber" />
 
                         <div class="mb-3 d-none">
                             <label asp-for="ITSNumber" class="form-label fw-bold"></label>
@@ -253,6 +254,7 @@
             if (itsInput) {
                 itsInput.value = "";
             }
+
 
             // 1. Handling Server Side Messages
             var errorMessage = '@TempData["Error"]';

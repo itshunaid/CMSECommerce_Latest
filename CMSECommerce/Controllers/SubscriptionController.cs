@@ -146,6 +146,7 @@ namespace CMSECommerce.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SubmitRequest(SubscriptionRequestViewModel model)
         {
+            ModelState.Remove("ITSNumber");
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 
