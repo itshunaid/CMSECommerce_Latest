@@ -4,7 +4,6 @@
     ViewData["Title"] = "Membership Plans";
     ViewData["HideLayoutSidebar"] = true;
 
-    // Retrieve metadata from ViewBag passed by the Controller
     int? currentTierId = ViewBag.CurrentTierId;
     bool hasPendingRequest = ViewBag.HasPendingRequest ?? false;
     bool isActiveSubscriber = ViewBag.IsActiveSubscriber ?? false;
@@ -12,6 +11,7 @@
 
 @section Styles {
     <style>
+        /* Existing Variables */
         :root {
             --primary-gradient: linear-gradient(135deg, #21409a 0%, #152a66 100%);
             --primary-color: #21409a;
@@ -30,6 +30,7 @@
             color: var(--text-dark);
         }
 
+        /* --- PRICING STYLES (Unchanged) --- */
         .pricing-header {
             padding: 4rem 0 3rem;
             text-align: center;
@@ -50,7 +51,6 @@
                 margin: 0 auto;
             }
 
-        /* Pricing Card Base */
         .pricing-card {
             background: var(--white);
             border: 1px solid var(--border-color);
@@ -70,7 +70,6 @@
                 border-color: var(--primary-color);
             }
 
-            /* Special States */
             .pricing-card.premium {
                 border: 2px solid var(--primary-color);
                 background: linear-gradient(to bottom, #ffffff, #f8faff);
@@ -81,7 +80,6 @@
                 background-color: #f0fdf4;
             }
 
-        /* Badges/Labels */
         .premium-label, .current-label {
             position: absolute;
             top: -15px;
@@ -95,7 +93,6 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             z-index: 10;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
         .premium-label {
@@ -105,17 +102,15 @@
         .current-label {
             background: var(--success);
             white-space: nowrap;
-            display: flex; /* Optional: ensures perfect vertical alignment */
-            align-items: center; /* Optional: centers icon and text vertically */
+            display: flex;
+            align-items: center;
         }
 
-        /* Plan Details */
         .plan-name {
             font-size: 0.9rem;
             font-weight: 700;
             color: var(--primary-color);
             text-transform: uppercase;
-            letter-spacing: 0.1em;
             margin-bottom: 1rem;
             display: block;
         }
@@ -136,7 +131,6 @@
                 margin-left: 4px;
             }
 
-        /* Features */
         .feature-list {
             margin-bottom: 2rem;
             padding: 0;
@@ -151,7 +145,6 @@
             margin-bottom: 1rem;
             font-size: 0.95rem;
             color: #475569;
-            line-height: 1.5;
         }
 
             .feature-item i {
@@ -169,18 +162,17 @@
                     color: #cbd5e1;
                 }
 
-        /* Buttons */
         .btn-upgrade {
             width: 100%;
             padding: 0.8rem 1.5rem;
             border-radius: 12px;
             font-weight: 700;
             text-align: center;
-            text-decoration: none;
-            transition: all 0.2s;
             border: none;
             cursor: pointer;
             display: inline-block;
+            text-decoration: none;
+            transition: 0.2s;
         }
 
         .btn-fill {
@@ -210,7 +202,7 @@
             cursor: not-allowed;
         }
 
-        /* Modal Customization */
+        /* --- MODAL UPDATES --- */
         .modal-content {
             border-radius: 24px;
             border: none;
@@ -220,8 +212,10 @@
         .disclaimer-box {
             background-color: #f1f5f9;
             border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            padding: 1.2rem;
+            margin-bottom: 1.2rem;
+            max-height: 220px;
+            overflow-y: auto;
         }
 
         .disclaimer-list {
@@ -231,17 +225,66 @@
         }
 
             .disclaimer-list li {
-                font-size: 0.85rem;
+                font-size: 0.8rem;
                 display: flex;
                 gap: 10px;
-                margin-bottom: 10px;
+                margin-bottom: 8px;
                 color: #334155;
+                line-height: 1.4;
             }
 
             .disclaimer-list i {
                 color: var(--primary-color);
                 margin-top: 3px;
+                font-size: 0.85rem;
             }
+
+        /* Reading Tracker Styles */
+        .reading-requirement {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .smallest-caps {
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.05em;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .read-link-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+
+            .read-link-item:last-child {
+                margin-bottom: 0;
+            }
+
+        .btn-read-sm {
+            font-size: 0.75rem;
+            padding: 2px 10px;
+            border-radius: 6px;
+        }
+
+        #checkboxWrapper {
+            transition: all 0.3s ease;
+        }
+
+        .locked-state {
+            opacity: 0.5;
+            background-color: #f8fafc !important;
+            pointer-events: none;
+        }
     </style>
 }
 
@@ -299,7 +342,7 @@
                         </li>
                         <li class="feature-item @(isAdvance || isPremium ? "" : "locked")">
                             <i class="fas @(isAdvance || isPremium ? "fa-star" : "fa-lock")"></i>
-                            <span>Recommended Slider @(isPremium ? "(Daily)" : isAdvance ? "(2x Weekly)" : "")</span>
+                            <span>Slider @(isPremium ? "(Daily)" : isAdvance ? "(2x Weekly)" : "")</span>
                         </li>
                         <li class="feature-item @(isTrial ? "locked" : "")">
                             <i class="fas @(isTrial ? "fa-lock" : "fa-book-open")"></i>
@@ -307,22 +350,7 @@
                         </li>
                         <li class="feature-item @(isAdvance || isPremium ? "" : "locked")">
                             <i class="fas @(isAdvance || isPremium ? "fa-bell" : "fa-lock")"></i>
-                            <span>
-                                @if (isPremium)
-                                {
-                                    <text>Instant Lead Alerts</text>
-                                }
-                                else if (isAdvance)
-                                {
-
-                                    <text>24h Lead Alerts</text>
-                                }
-                                else
-                                {
-
-                                    <text>Customer Notifications</text>
-                                }
-                            </span>
+                            <span>@(isPremium ? "Instant Lead Alerts" : isAdvance ? "24h Lead Alerts" : "Standard Alerts")</span>
                         </li>
                     </ul>
 
@@ -357,7 +385,7 @@
     </div>
 </div>
 
-@* Disclaimer Modal *@
+@* Enhanced Disclaimer Modal *@
 <div class="modal fade" id="disclaimerModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -366,22 +394,38 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted small mb-3">By continuing with the <strong id="modalTierName" class="text-primary"></strong> plan, you agree to:</p>
+                <p class="text-muted small mb-3">Please review the following to proceed with the <strong id="modalTierName" class="text-primary"></strong> plan:</p>
 
                 <div class="disclaimer-box">
                     <ul class="disclaimer-list">
                         <li><i class="fas fa-shield-alt"></i> <span><strong>Verification:</strong> Approval takes 24-48 working hours.</span></li>
-                        <li><i class="fas fa-hand-holding-usd"></i> <span><strong>Final Sale:</strong> Payments are non-refundable.</span></li>
+                        <li><i class="fas fa-hand-holding-usd"></i> <span><strong>Final Sale:</strong> Payments are non-refundable once verified.</span></li>
                         <li><i class="fas fa-file-invoice"></i> <span><strong>Proof:</strong> A valid payment screenshot is required.</span></li>
                         <li><i class="fas fa-exclamation-triangle"></i> <span><strong>Conduct:</strong> Account sharing is strictly prohibited.</span></li>
+                        <li><i class="fas fa-database"></i> <span><strong>Accuracy:</strong> You are responsible for your store's info.</span></li>
                     </ul>
                 </div>
 
-                <div class="form-check p-3 rounded border bg-light">
-                    <input class="form-check-input ms-0 me-2" type="checkbox" id="agreeCheckbox" style="cursor:pointer">
-                    <label class="form-check-label small fw-bold text-dark" for="agreeCheckbox" style="cursor:pointer">
-                        I agree to the terms and conditions.
+                <div class="reading-requirement">
+                    <span class="smallest-caps">Required Reading</span>
+                    <div class="read-link-item">
+                        <span><i id="icon-tc" class="fas fa-circle-notch text-muted me-2"></i> Terms & Conditions</span>
+                        <a href="@Url.Action("Terms", "Subscription")" target="_blank" class="btn btn-outline-primary btn-read-sm" onclick="markAsRead('tc')">View</a>
+                    </div>
+                    <div class="read-link-item">
+                        <span><i id="icon-pp" class="fas fa-circle-notch text-muted me-2"></i> Privacy Policy</span>
+                        <a href="@Url.Action("Privacy", "Subscription")" target="_blank" class="btn btn-outline-primary btn-read-sm" onclick="markAsRead('pp')">View</a>
+                    </div>
+                </div>
+
+                <div class="form-check p-3 rounded border locked-state" id="checkboxWrapper">
+                    <input class="form-check-input ms-0 me-2" type="checkbox" id="agreeCheckbox" disabled>
+                    <label class="form-check-label small fw-bold text-dark" for="agreeCheckbox">
+                        I agree to the Terms and Privacy.
                     </label>
+                </div>
+                <div id="unlockMsg" class="smallest text-danger mt-2">
+                    <i class="fas fa-lock me-1"></i> Please click both links above to unlock the checkbox.
                 </div>
             </div>
             <div class="modal-footer border-0">
@@ -394,16 +438,52 @@
 @section Scripts {
     <script>
         let selectedTierId = null;
-        const modal = new bootstrap.Modal(document.getElementById('disclaimerModal'));
+        let hasReadTC = false;
+        let hasReadPP = false;
+
+        const modalEl = document.getElementById('disclaimerModal');
+        const modal = new bootstrap.Modal(modalEl);
         const proceedBtn = document.getElementById('proceedBtn');
         const checkbox = document.getElementById('agreeCheckbox');
+        const checkboxWrapper = document.getElementById('checkboxWrapper');
+        const unlockMsg = document.getElementById('unlockMsg');
 
         function openDisclaimer(tierId, tierName) {
             selectedTierId = tierId;
             document.getElementById('modalTierName').innerText = tierName;
+
+            // Reset state every time modal opens
+            hasReadTC = false;
+            hasReadPP = false;
             checkbox.checked = false;
+            checkbox.disabled = true;
+            checkboxWrapper.classList.add('locked-state');
+            unlockMsg.classList.remove('d-none');
             proceedBtn.classList.add('disabled');
+
+            // Reset Icons
+            document.getElementById('icon-tc').className = "fas fa-circle-notch text-muted me-2";
+            document.getElementById('icon-pp').className = "fas fa-circle-notch text-muted me-2";
+
             modal.show();
+        }
+
+        function markAsRead(type) {
+            if (type === 'tc') {
+                hasReadTC = true;
+                document.getElementById('icon-tc').className = "fas fa-check-circle text-success me-2";
+            } else if (type === 'pp') {
+                hasReadPP = true;
+                document.getElementById('icon-pp').className = "fas fa-check-circle text-success me-2";
+            }
+
+            // Unlock checkbox only if both links are clicked
+            if (hasReadTC && hasReadPP) {
+                checkbox.disabled = false;
+                checkboxWrapper.classList.remove('locked-state');
+                checkboxWrapper.style.backgroundColor = "#fff";
+                unlockMsg.classList.add('d-none');
+            }
         }
 
         checkbox.addEventListener('change', function() {
