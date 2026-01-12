@@ -284,6 +284,7 @@
                     allowEscapeKey: false,
                     confirmButtonColor: '#21409a',
                     confirmButtonText: 'Verify & Proceed',
+                    showLoaderOnConfirm: true, // Show loading spinner while AJAX runs
                     inputValidator: (value) => {
                         if (!value) {
                             return 'ITS Number cannot be empty!';
@@ -291,6 +292,24 @@
                         if (!/^\d{8}$/.test(value)) {
                             return 'Please enter exactly 8 numeric digits.';
                         }
+
+                        // AJAX Check for Uniqueness
+                        // Replace '/User/CheckUniqueITS' with your actual Controller/Action path
+                        return fetch(`/Account/CheckUniqueITS?itsNumber=${encodeURIComponent(value)}`)
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Network response was not ok');
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.exists) {
+                                    return 'This ITS Number is already registered in our system.';
+                                }
+                            })
+                            .catch(error => {
+                                Swal.showValidationMessage(`Request failed: ${error}`);
+                            });
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
@@ -304,7 +323,7 @@
                         });
                         Toast.fire({
                             icon: 'success',
-                            title: 'ITS Number Captured'
+                            title: 'ITS Number Verified'
                         });
                     }
                 });

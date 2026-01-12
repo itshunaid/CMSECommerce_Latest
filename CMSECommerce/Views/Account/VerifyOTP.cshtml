@@ -1,0 +1,122 @@
+@model CMSECommerce.Models.ViewModels.RegisterViewModel
+@{
+    ViewData["Title"] = "Verify OTP";
+    var registrationId = ViewBag.RegistrationId as string;
+    var otpIdentifier = ViewBag.OtpIdentifier as string;
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Verify Your Email/Phone</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        We've sent a verification code to <strong>@otpIdentifier</strong>.
+                        Please enter the code below to complete your registration.
+                    </p>
+
+                    @if (TempData["error"] != null)
+                    {
+                        <div class="alert alert-danger">
+                            @TempData["error"]
+                        </div>
+                    }
+
+                    <form asp-action="VerifyOTP" method="post">
+                        <input type="hidden" name="registrationId" value="@registrationId" />
+
+                        <div class="mb-3">
+                            <label for="otp" class="form-label">Verification Code</label>
+                            <input type="text" class="form-control" id="otp" name="otp"
+                                   placeholder="Enter 6-digit code" maxlength="6"
+                                   pattern="[0-9]{6}" required />
+                            <div class="form-text">Enter the 6-digit code sent to your email/phone.</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Verify & Complete Registration</button>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <p class="mb-2">Didn't receive the code?</p>
+                        <button type="button" class="btn btn-link" id="resendBtn">
+                            Resend Code
+                        </button>
+                        <div id="resendMessage" class="mt-2" style="display: none;"></div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <a href="@Url.Action("Register")" class="text-decoration-none">
+                            ? Back to Registration
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('resendBtn').addEventListener('click', function() {
+            const btn = this;
+            const messageDiv = document.getElementById('resendMessage');
+
+            // Disable button and show loading
+            btn.disabled = true;
+            btn.innerHTML = 'Sending...';
+            messageDiv.style.display = 'none';
+
+            fetch('@Url.Action("ResendOTP")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: 'registrationId=@registrationId'
+            })
+            .then(response => response.json())
+            .then(data => {
+                messageDiv.style.display = 'block';
+                if (data.success) {
+                    messageDiv.innerHTML = '<div class="alert alert-success">' + data.message + '</div>';
+                    // Start countdown for next resend
+                    startResendCountdown();
+                } else {
+                    messageDiv.innerHTML = '<div class="alert alert-danger">' + data.message + '</div>';
+                    btn.disabled = false;
+                    btn.innerHTML = 'Resend Code';
+                }
+            })
+            .catch(error => {
+                messageDiv.style.display = 'block';
+                messageDiv.innerHTML = '<div class="alert alert-danger">An error occurred. Please try again.</div>';
+                btn.disabled = false;
+                btn.innerHTML = 'Resend Code';
+            });
+        });
+
+        function startResendCountdown() {
+            const btn = document.getElementById('resendBtn');
+            let countdown = 60;
+
+            const timer = setInterval(() => {
+                btn.innerHTML = `Resend in ${countdown}s`;
+                countdown--;
+
+                if (countdown < 0) {
+                    clearInterval(timer);
+                    btn.disabled = false;
+                    btn.innerHTML = 'Resend Code';
+                }
+            }, 1000);
+        }
+
+        // Auto-focus OTP input
+        document.getElementById('otp').focus();
+    </script>
+}

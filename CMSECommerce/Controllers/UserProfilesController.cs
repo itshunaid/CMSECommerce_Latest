@@ -165,6 +165,10 @@ namespace CMSECommerce.Controllers
                 {
                     return RedirectToAction("Register", "Subscription", new { tierId = tierId });
                 }
+                if (callingFrom == "Subscription" && tierId > 0)
+                {
+                    return RedirectToAction("Register", "Subscription", new { tierId = tierId });
+                }
 
                 return RedirectToAction("Index");
             }

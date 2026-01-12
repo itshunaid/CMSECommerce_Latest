@@ -35,6 +35,8 @@ builder.Services.AddDbContext<DataContext>(options =>
 builder.Services.AddHostedService<SubscriptionExpiryService>();
 
 builder.Services.AddDistributedMemoryCache();
+
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);

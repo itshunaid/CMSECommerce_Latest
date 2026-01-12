@@ -25,7 +25,8 @@ namespace CMSECommerce.Controllers
             RoleManager<IdentityRole> roleManager,
             ILogger<AccountController> logger,
             IUserService userService,
-            IEmailService emailService) : BaseController
+            IEmailService emailService
+           ) : BaseController
     {
         private DataContext _context = dataContext;
         private UserManager<IdentityUser> _userManager = userManager;
@@ -36,6 +37,7 @@ namespace CMSECommerce.Controllers
         private readonly ILogger<AccountController> _logger = logger;
         private readonly IUserService _userService = userService;
         private readonly IEmailService _emailService = emailService;
+        
 
 
         [Authorize]
@@ -263,6 +265,15 @@ namespace CMSECommerce.Controllers
             }
         }
 
+
+        [HttpGet]        
+        public async Task<IActionResult> CheckUniqueITS(string itsNumber)
+        {
+            // Replace with your actual database context logic
+            var exists = await _context.UserProfiles.AnyAsync(u => u.ITSNumber == itsNumber);
+            return Json(new { exists = exists });
+        }
+
         [HttpGet]
         [AllowAnonymous]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
@@ -398,37 +409,37 @@ namespace CMSECommerce.Controllers
 
                 if (result.Succeeded)
                 {
-                    // Define the specific content the user just saw in the modal
-                    string agreementText = @"
-                <h6>1. Acceptance of Terms</h6><p>By accessing or using the Weypaari platform...</p>
-                <h6>2. Eligibility & Registration</h6><p>To use Weypaari, you must provide a valid 8-digit ITS...</p>
-                <h6>3. Privacy & Data Security</h6><p>Your privacy is important to us...</p>
-                <h6>4. User Conduct</h6><p>Users shall not engage in any activity...</p>
-                <h6>5. Transactions & Listings</h6><p>Weypaari provides a marketplace platform...</p>
-                <h6>6. Termination of Use</h6><p>We reserve the right to terminate...</p>
-                <h6>7. Modifications to Service</h6><p>Weypaari reserves the right to modify...</p>";
-                    var agreement = new UserAgreement
+                    // Save a pending profile (UserProfile) with IsEmailVerified/IsPhoneVerified = false
+                    var userProfile = new UserProfile
                     {
                         UserId = newUser.Id,
-                        AgreementType = "Registration_Terms_Privacy",
-                        FullContent = agreementText, // Mapping the full snapshot
-                        Version = "v1.0-2026-01",
-                        AcceptedAt = DateTime.UtcNow,
-                        IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+                        FirstName = model.FirstName,
+                        LastName = model.LastName,
+                        ITSNumber = model.ITSNumber,
+                        WhatsAppNumber = model.WhatsAppNumber,
+                        Store = null,
+                        IsProfileVisible = true,
+                        IsImageApproved = false
+                        
                     };
 
-                    _context.UserAgreements.Add(agreement);
+                    _context.UserProfiles.Add(userProfile);
                     await _context.SaveChangesAsync();
 
                     // 3. Role Assignment
-                    // We keep this to ensure your [Authorize(Roles="Customer")] attributes don't break.
                     await _userManager.AddToRoleAsync(newUser, "Customer");
 
-                    // 4. Immediate Sign-In (The Amazon Experience)
-                    await _sign_in_manager.SignInAsync(newUser, isPersistent: false);
+                   
 
-                    _logger.LogInformation("User {Username} registered successfully.", model.Username);
-                    return RedirectToAction("Index", "Home");
+
+                   
+                    _context.Update(userProfile);
+                    await _context.SaveChangesAsync();
+
+                    // Redirect to VerifyOTP view
+                    ViewBag.RegistrationId = userProfile.Id.ToString();
+                    ViewBag.OtpIdentifier = model.Email;
+                    return View("VerifyOTP", model);
                 }
 
                 // Add Identity errors (like password complexity issues) to the UI
@@ -552,6 +563,7 @@ namespace CMSECommerce.Controllers
             var detail = await _context.OrderDetails.FindAsync(orderDetailId);
             var order = await _context.Orders.FindAsync(orderId);
             
+
 
             if (detail == null || order == null)
             {
@@ -1049,6 +1061,7 @@ namespace CMSECommerce.Controllers
                     PhoneNumber = user.PhoneNumber,
                     Role = roles.FirstOrDefault(),
 
+
                     // UserProfile Fields
                     FirstName = userProfile?.FirstName,
                     LastName = userProfile?.LastName,
@@ -1072,14 +1085,14 @@ namespace CMSECommerce.Controllers
 
                     // Store Details (Flattened from the navigation property)
                     StoreId = userProfile?.Store?.Id,
-                    StoreName = userProfile?.Store?.StoreName,
-                    StoreStreetAddress = userProfile?.Store?.StreetAddress,
+                    StoreName = userProfile?.Store?.StoreName ?? "Independent",
                     StoreCity = userProfile?.Store?.City,
-                    StorePostCode = userProfile?.Store?.PostCode,
-                    StoreCountry = userProfile?.Store?.Country,
-                    GSTIN = userProfile?.Store?.GSTIN,
+                    StoreContact = userProfile?.Store?.Contact,
                     StoreEmail = userProfile?.Store?.Email,
-                    StoreContact = userProfile?.Store?.Contact
+                    GSTIN = userProfile?.Store?.GSTIN,
+                    StoreStreetAddress = userProfile?.Store?.StreetAddress,
+                    StorePostCode = userProfile?.Store?.PostCode,
+                    StoreCountry = userProfile?.Store?.Country
                 };
 
                 // 5. Populate Role List for Dropdowns
@@ -1151,6 +1164,7 @@ namespace CMSECommerce.Controllers
                     Email = user.Email,
                     PhoneNumber = user.PhoneNumber,
                     Role = roles.FirstOrDefault(),
+
 
                     // Personal Details
                     FirstName = userProfile?.FirstName,
@@ -1754,6 +1768,7 @@ namespace CMSECommerce.Controllers
                         };
                         _context.Add(newRequest);
                         await _context.SaveChangesAsync();
+
                         TempData["success"] = "Your request was automatically created. Please check the status below.";
                     }
                     catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
@@ -2035,6 +2050,7 @@ namespace CMSECommerce.Controllers
                     Email = user.Email,
                     PhoneNumber = user.PhoneNumber,
                     Role = roles.FirstOrDefault(),
+
 
                     // UserProfile Fields
                     FirstName = userProfile?.FirstName,
@@ -2339,6 +2355,40 @@ namespace CMSECommerce.Controllers
             {
                 _logger.LogError(ex, "Error fetching chat contacts for user {UserId}", _userManager.GetUserId(User));
                 return Json(new { success = false, message = "Error loading contacts" });
+            }
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> VerifyOTP(int registrationId, string otp)
+        {
+            try
+            {
+                var profile = await _context.UserProfiles.FindAsync(registrationId);
+                if (profile == null)
+                {
+                    TempData["error"] = "Invalid registration session.";
+                    return RedirectToAction("Register");
+                }
+
+                var email = (await _userManager.FindByIdAsync(profile.UserId)).Email;
+                var phone = profile.WhatsAppNumber ?? (await _userManager.FindByIdAsync(profile.UserId)).PhoneNumber;
+
+              
+                await _context.SaveChangesAsync();
+
+                // Sign-in the user now (or redirect to login)
+                var user = await _userManager.FindByIdAsync(profile.UserId);
+                await _sign_in_manager.SignInAsync(user, isPersistent: false);
+
+                return RedirectToAction("Index", "Home");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "OTP verification failed");
+                TempData["error"] = "An error occurred during verification.";
+                return View("VerifyOTP", new RegisterViewModel());
             }
         }
 
