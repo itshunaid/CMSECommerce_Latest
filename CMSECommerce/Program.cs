@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,7 +69,10 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Customer", policy => policy.RequireRole("Customer"));
 });
 
+ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
 // Custom Services
+builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
 builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, CMSECommerce.Services.NameUserIdProvider>();
 builder.Services.Configure<CMSECommerce.Services.UserStatusOptions>(builder.Configuration.GetSection("UserStatus"));

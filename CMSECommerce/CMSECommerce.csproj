@@ -27,6 +27,13 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
     <PackageReference Include="Microsoft.Playwright" Version="1.40.0" />
     <PackageReference Include="Rotativa.AspNetCore" Version="1.4.0" />
+
+    <!-- Test helper packages added to main project to allow in-repo unit tests to compile in CI/build agent -->
+    <PackageReference Include="xunit" Version="2.4.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.3" />
+
+    <!-- MailKit for robust SMTP (preferred over System.Net.Mail.SmtpClient) -->
+    <PackageReference Include="MailKit" Version="4.0.2" />
   </ItemGroup>
 
   <ItemGroup>
