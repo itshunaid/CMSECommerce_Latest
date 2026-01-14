@@ -230,6 +230,7 @@ namespace CMSECommerce.Controllers
                 existingProfile.HomeAddress = model.HomeAddress;
                 existingProfile.BusinessAddress = model.BusinessAddress;
                 existingProfile.IsProfileVisible = model.IsProfileVisible;
+                existingProfile.ServicesProvided=model.ServicesProvided;
 
                 // Sync Store details
                 if (existingProfile.Store != null)
