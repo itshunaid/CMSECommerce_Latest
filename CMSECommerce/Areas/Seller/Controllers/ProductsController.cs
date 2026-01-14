@@ -797,6 +797,37 @@ namespace CMSECommerce.Areas.Seller.Controllers
             return RedirectToAction("Index");
         }
 
+        // POST: /Seller/Products/ToggleVisibility
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleVisibility(int id, bool isVisible)
+        {
+            try
+            {
+                var product = await _context.Products.FindAsync(id);
+                if (product == null)
+                {
+                    return Json(new { success = false, message = "Product not found." });
+                }
+
+                // Authorization check
+                if (product.OwnerName != _userManager.GetUserName(User))
+                {
+                    return Json(new { success = false, message = "You are not authorized to modify this product." });
+                }
+
+                product.IsVisible = isVisible;
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = $"Product visibility set to {(isVisible ? "visible" : "hidden")}." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling visibility for product ID {ProductId} by seller {User}.", id, _userManager.GetUserName(User));
+                return Json(new { success = false, message = "An error occurred while updating product visibility." });
+            }
+        }
+
         // Helper method to build hierarchical category select list
         private SelectList BuildCategorySelectList(int selectedCategoryId = 0)
         {

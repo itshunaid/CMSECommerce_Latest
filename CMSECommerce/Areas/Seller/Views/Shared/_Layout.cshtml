@@ -1,4 +1,32 @@
-﻿<!DOCTYPE html>
+﻿@using CMSECommerce.Infrastructure
+@using Microsoft.AspNetCore.Identity
+@inject DataContext _context
+@inject UserManager<IdentityUser> UserManager
+
+@{
+    // ARCHITECT NOTE: We resolve the display name once at the top to avoid
+    // multiple database calls or complex logic inside the HTML tags.
+    string userDisplayName = User.Identity?.Name ?? "Guest";
+
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        var userId = UserManager.GetUserId(User);
+
+        // Use a projection (Select) to fetch only the necessary columns for better performance
+        var profile = _context.UserProfiles
+            .Where(u => u.UserId == userId)
+            .Select(u => new { u.FirstName, u.LastName })
+            .FirstOrDefault();
+
+        if (profile != null && !string.IsNullOrWhiteSpace(profile.FirstName) && !string.IsNullOrWhiteSpace(profile.LastName))
+        {
+            userDisplayName = $"{profile.FirstName} {profile.LastName}";
+        }
+        // Fallback is already handled by userDisplayName = User.Identity.Name (which is usually the email)
+    }
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -23,7 +51,6 @@
             background-color: var(--amz-bg-light);
         }
 
-        /* Header Styling */
         .amz-header-primary {
             background-color: var(--amz-navy);
             padding: 5px 0;
@@ -42,13 +69,11 @@
                 border: 1px solid transparent;
             }
 
-                .amz-header-primary .nav-link:hover,
-                .amz-header-primary .show > .nav-link {
+                .amz-header-primary .nav-link:hover, .amz-header-primary .show > .nav-link {
                     border: 1px solid #fff;
                     border-radius: 3px;
                 }
 
-        /* Sub-Menu (Dropdown) Styling */
         .amz-dropdown-menu {
             background-color: #fff;
             border-radius: 4px;
@@ -77,7 +102,6 @@
             padding: 5px 20px;
         }
 
-        /* Footer */
         .amz-footer {
             background-color: var(--amz-navy-2);
             color: #ccc;
@@ -106,41 +130,14 @@
                                 <i class="fas fa-home me-1"></i> Dashboard
                             </a>
                         </li>
-
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="inventoryDrop" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-cube me-1"></i> Inventory
-                            </a>
-                            <ul class="dropdown-menu amz-dropdown-menu">
-                                <li><h6 class="dropdown-header">Catalog</h6></li>
-                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Products" asp-action="Index">Manage Products</a></li>
-                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Products" asp-action="inventory">Low Stock Products</a></li>
-                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Products" asp-action="Create">Add a Product</a></li>
-
-                                <li><hr class="dropdown-divider"></li>
-                                <li><h6 class="dropdown-header">Setup</h6></li>
-                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Categories" asp-action="Index">Product Categories</a></li>
-                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Categories" asp-action="Create">Add New Category</a></li>
-                            </ul>
-                        </li>
-
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="ordersDrop" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-shopping-cart me-1"></i> Orders
-                            </a>
-                            <ul class="dropdown-menu amz-dropdown-menu">
-                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Orders" asp-action="Index">Unshipped Orders</a></li>
-                                <li><a class="dropdown-item amz-dropdown-item" asp-area="Seller" asp-controller="Orders" asp-action="Shipped">Shipping History</a></li>
-                            </ul>
-                        </li>
                     </ul>
 
                     <ul class="navbar-nav justify-content-end align-items-center">
-                        @if (User.Identity.IsAuthenticated)
+                        @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-white" href="#" id="userAccountDrop" role="button" data-bs-toggle="dropdown">
-                                    Hello, <span style="font-weight:600; color:var(--amz-orange);">@User.Identity.Name</span>
+                                    Hello, <span style="font-weight:600; color:var(--amz-orange);">@userDisplayName</span>
                                 </a>
                                 <ul class="dropdown-menu amz-dropdown-menu dropdown-menu-end shadow">
                                     <li><h6 class="dropdown-header">Your Account</h6></li>

@@ -58,6 +58,10 @@ namespace CMSECommerce.Areas.Seller.Controllers
             model.ProductsCount = await SafeCountAsync(() => _context.Products.Where(p => p.OwnerName == currentUserName).CountAsync(), "Products Count");
             model.LowProductsCount = await SafeCountAsync(() => _context.Products.Where(p => p.OwnerName == currentUserName && p.StockQuantity == 0).CountAsync(), "Low Stock Count");
 
+            // Product Visibility Counts
+            model.VisibleProductsCount = await SafeCountAsync(() => _context.Products.Where(p => p.OwnerName == currentUserName && p.IsVisible == true).CountAsync(), "Visible Products Count");
+            model.HiddenProductsCount = await SafeCountAsync(() => _context.Products.Where(p => p.OwnerName == currentUserName && p.IsVisible == false).CountAsync(), "Hidden Products Count");
+
             // 3. Seller-Specific Order Counts
             model.OrdersCount = await SafeCountAsync(() => _context.OrderDetails.Where(p => p.ProductOwner == currentUserName && p.IsProcessed == false && !p.IsCancelled).CountAsync(), "Pending Orders Count");
             model.IsProcessedCount = await SafeCountAsync(() => _context.OrderDetails.Where(p => p.ProductOwner == currentUserName && p.IsProcessed == true).CountAsync(), "Processed Orders Count");

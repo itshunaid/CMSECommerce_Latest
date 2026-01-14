@@ -1,9 +1,10 @@
-- [x] Remove the "Shop by Category" dropdown from the navbar in _Layout.cshtml
-- [ ] Delete the TopCategoriesViewComponent.cs file
-- [ ] Delete the TopCategories view folder
-- [x] Implement Amazon-style collapsible sidebar menu for categories
-  - [x] Update Default.cshtml with Amazon-style title and structure
-  - [x] Modify _CategoryNode.cshtml for collapsible parents with toggle icons
-  - [x] Add CSS styles for sidebar in amazon-style.css
-  - [x] Add JS for expand/collapse functionality in _Layout.cshtml
-  - [x] Test sidebar display, navigation, and ensure no regressions
+# TODO: Implement Seller Product Visibility Feature
+
+## Tasks
+- [x] Add IsVisible property to Product model
+- [x] Create migration for IsVisible column
+- [x] Update ProductsController Index to pass total product count
+- [x] Add ToggleVisibility action in ProductsController
+- [x] Update Index.cshtml view to include visibility checkboxes and JavaScript logic
+- [x] Run migration to update database
+- [x] Test the functionality

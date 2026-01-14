@@ -13,5 +13,9 @@ namespace CMSECommerce.Areas.Seller.Models
         public int Categories { get;  set; }
         public int LowProductsCount { get;  set; }
         public int IsOrderCancelledCount { get; set; }
+
+        // Product Visibility Counts
+        public int VisibleProductsCount { get; set; }
+        public int HiddenProductsCount { get; set; }
     }
 }

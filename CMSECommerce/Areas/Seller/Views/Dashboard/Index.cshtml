@@ -134,6 +134,26 @@
         </div>
     </div>
 
+    @* Product Visibility *@
+    <div class="col-xl-3 col-md-6">
+        <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background: linear-gradient(135deg,#6610f2,#5a0fc8);">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-uppercase fw-bold mb-1 fs-6">Visible Products</div>
+                    <div class="h3 fw-bolder mb-0">@Model.VisibleProductsCount</div>
+                    <div class="small opacity-75">Hidden: @Model.HiddenProductsCount</div>
+                </div>
+                <i class="fas fa-eye fa-3x opacity-75"></i>
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center bg-white bg-opacity-10 p-3">
+                <a asp-area="Seller" asp-controller="Products" asp-action="Index" class="small text-white text-decoration-none fw-bold stretched-link">
+                    Manage Visibility
+                </a>
+                <i class="fas fa-arrow-circle-right"></i>
+            </div>
+        </div>
+    </div>
+
   
 
 </div>
