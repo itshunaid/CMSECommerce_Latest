@@ -806,5 +806,33 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportUsersCsv()
+        {
+            try
+            {
+                var users = await _userManager.Users.ToListAsync();
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("Id,UserName,Email,PhoneNumber,Roles,HasProfile,ProfileId,ITSNumber");
+
+                foreach (var u in users)
+                {
+                    var roles = await _userManager.GetRolesAsync(u);
+                    var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == u.Id);
+                    var its = profile?.ITSNumber ?? string.Empty;
+                    var profileId = profile?.Id.ToString() ?? string.Empty;
+                    sb.AppendLine($"{u.Id},\"{u.UserName}\",\"{u.Email}\",\"{u.PhoneNumber}\",\"{string.Join(";", roles)}\",{(profile!=null)},{profileId},\"{its}\"");
+                }
+
+                var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+                return File(bytes, "text/csv", $"users_{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting users CSV");
+                return StatusCode(500, "Failed to export users.");
+            }
+        }
     }
 }
