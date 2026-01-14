@@ -1,4 +1,8 @@
 ﻿@using System.Security.Claims
+@using CMSECommerce.Infrastructure
+@using Microsoft.AspNetCore.Identity
+@inject DataContext _context
+@inject UserManager<IdentityUser> UserManager
 
 <style>
     /* 1. The Top-Level Link */
@@ -77,7 +81,23 @@
 <ul class="navbar-nav align-items-center">
     @if (User.Identity.IsAuthenticated)
     {
-        var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.Identity.Name;
+        // 1. Fetch the current user and their profile
+        var userId = UserManager.GetUserId(User);
+        var profile = _context.UserProfiles.FirstOrDefault(u => u.UserId == userId);
+
+        // 2. Determine the display name
+        string displayName = "";
+
+        if (profile != null && !string.IsNullOrEmpty(profile.FirstName) && !string.IsNullOrEmpty(profile.LastName))
+        {
+            displayName = $"{profile.FirstName} {profile.LastName}";
+        }
+        else
+        {
+            displayName = User.Identity.Name; // This is usually the Email in Identity
+        }
+        //var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.Identity.Name;
+        var userEmail = displayName;
         <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle nav-account__link"
                href="#" id="UserAccountDropdown" role="button"
@@ -86,7 +106,7 @@
                 <div class="d-flex flex-column">
                     <span class="nav-account__line-1">Welcome,</span>
                     <span style="color: #ffffff; font-weight: 700; font-size: 14px;">
-                        @User.Identity.Name
+                        @displayName
                         <i class="fas fa-caret-down nav-account__caret"></i>
                     </span>
                 </div>

@@ -1,4 +1,9 @@
-﻿<!DOCTYPE html>
+﻿@using CMSECommerce.Infrastructure
+@using Microsoft.AspNetCore.Identity
+@inject DataContext _context
+@inject UserManager<IdentityUser> UserManager
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -147,9 +152,25 @@
                     <ul class="navbar-nav justify-content-end">
                         @if (User.Identity.IsAuthenticated)
                         {
+                            // 1. Fetch the current user and their profile
+                            var userId = UserManager.GetUserId(User);
+                            var profile = _context.UserProfiles.FirstOrDefault(u => u.UserId == userId);
+
+                            // 2. Determine the display name
+                            string displayName = "";
+
+                            if (profile != null && !string.IsNullOrEmpty(profile.FirstName) && !string.IsNullOrEmpty(profile.LastName))
+                            {
+                                displayName = $"{profile.FirstName} {profile.LastName}";
+                            }
+                            else
+                            {
+                                displayName = User.Identity.Name; // This is usually the Email in Identity
+                            }
+
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-white" href="#" id="accountDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Hello, <span style="font-weight:600; color:var(--amz-orange);">@User.Identity.Name</span>
+                                    Hello, <span style="font-weight:600; color:var(--amz-orange);">@displayName</span>
                                 </a>
                                 <ul class="dropdown-menu amz-dropdown-menu dropdown-menu-end shadow">
                                     <li><a class="dropdown-item amz-dropdown-item" asp-area="" asp-controller="UserProfiles" asp-action="Index">Profile Settings</a></li>
