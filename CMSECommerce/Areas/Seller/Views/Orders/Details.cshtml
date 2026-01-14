@@ -20,7 +20,7 @@ else
                             <div class="col-md-6">
                                 <strong>User:</strong> @Model.Order.UserName<br />
                                 <strong>Date:</strong> @Model.Order.OrderDate.Value.ToString("MMMM dd, yyyy h:mm tt")<br />
-                                <strong>Total:</strong> @Model.Order.GrandTotal.ToString("C2")
+                                <strong>Total:</strong> @Model.Order.GrandTotal.ToString("C", new System.Globalization.CultureInfo("en-IN"))
                             </div>
                             <div class="col-md-6 text-end">
                                 <a asp-area="Seller" asp-controller="Orders" asp-action="Index" class="btn btn-secondary">Back to Orders</a>
@@ -43,8 +43,8 @@ else
                                     <h5 class="card-title">@item.ProductName</h5>
                                     <p class="card-text">
                                         Quantity: @item.Quantity<br>
-                                        Price: @item.Price.ToString("C2")<br>
-                                        Subtotal: @(item.Price * item.Quantity).ToString("C2")
+                                        Price: @item.Price.ToString("C", new System.Globalization.CultureInfo("en-IN"))<br>
+                                        Subtotal: @(item.Price * item.Quantity).ToString("C", new System.Globalization.CultureInfo("en-IN"))
                                     </p>
                                     <p class="card-text">
                                         <small class="text-muted">

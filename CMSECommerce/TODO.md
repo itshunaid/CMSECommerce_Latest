@@ -1,10 +1,7 @@
-# TODO: Implement Seller Product Visibility Feature
+# Sales Analytics Implementation for Seller Dashboard
 
 ## Tasks
-- [x] Add IsVisible property to Product model
-- [x] Create migration for IsVisible column
-- [x] Update ProductsController Index to pass total product count
-- [x] Add ToggleVisibility action in ProductsController
-- [x] Update Index.cshtml view to include visibility checkboxes and JavaScript logic
-- [x] Run migration to update database
-- [x] Test the functionality
+- [ ] Update SellerDashboardViewModel.cs to add properties for total revenue, monthly sales trends, and top-selling products.
+- [ ] Modify DashboardController.cs to compute sales analytics from OrderDetails for the current seller.
+- [ ] Update Areas/Seller/Views/Dashboard/Index.cshtml to display the new analytics.
+- [x] Test the implementation to ensure no existing features are broken.

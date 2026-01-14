@@ -106,6 +106,60 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 model.RecentOrders = new List<Order>();
             }
 
+            // Sales Analytics
+            try
+            {
+                model.TotalRevenue = await _context.OrderDetails
+                    .Where(od => od.ProductOwner == currentUserName && !od.IsCancelled)
+                    .SumAsync(od => od.Quantity * od.Price);
+
+                var monthlySales = new Dictionary<string, decimal>();
+                try
+                {
+                    var orderDetailsWithOrders = await _context.OrderDetails
+                        .Where(od => od.ProductOwner == currentUserName && !od.IsCancelled)
+                        .Include(od => od.Order)
+                        .Where(od => od.Order != null && od.Order.OrderDate.HasValue)
+                        .ToListAsync();
+
+                    monthlySales = orderDetailsWithOrders
+                        .GroupBy(od => od.Order.OrderDate.Value.ToString("yyyy-MM"))
+                        .ToDictionary(g => g.Key, g => g.Sum(od => od.Quantity * od.Price));
+                }
+                catch
+                {
+                    // If query fails, leave monthlySales empty
+                    monthlySales = new Dictionary<string, decimal>();
+                }
+
+                model.MonthlySales = monthlySales;
+
+                var topProducts = await _context.OrderDetails
+                    .Where(od => od.ProductOwner == currentUserName && !od.IsCancelled)
+                    .GroupBy(od => od.ProductName)
+                    .Select(g => new
+                    {
+                        ProductName = g.Key,
+                        TotalSold = g.Sum(od => od.Quantity),
+                        TotalRevenue = g.Sum(od => od.Quantity * od.Price)
+                    })
+                    .OrderByDescending(p => p.TotalSold)
+                    .Take(5)
+                    .ToListAsync();
+
+                model.TopSellingProducts = topProducts.Select(p => new SellerDashboardViewModel.TopSellingProduct
+                {
+                    ProductName = p.ProductName,
+                    TotalSold = p.TotalSold,
+                    TotalRevenue = p.TotalRevenue
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error computing sales analytics for seller {User}.", currentUserName);
+                TempData["Warning"] = TempData["Warning"] + "Error loading sales analytics. ";
+            }
+
             // Display a single consolidated error message if any warning occurred
             if (TempData["Warning"] != null)
             {
