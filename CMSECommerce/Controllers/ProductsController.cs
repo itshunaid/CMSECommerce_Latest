@@ -64,7 +64,7 @@ namespace CMSECommerce.Controllers
 
             // 1. Fetch the store including products
             var store = await _context.Stores
-                .Include(s => s.Products.Where(p=> p.Status==ProductStatus.Approved))
+                .Include(s => s.Products.Where(p=> p.Status==ProductStatus.Approved && p.IsVisible))
                 .FirstOrDefaultAsync(s => s.Id == id);
 
             if (store == null) return NotFound();
@@ -194,7 +194,7 @@ namespace CMSECommerce.Controllers
 
                 // --- 3. Product Catalog Retrieval ---
                 IQueryable<Product> products = _context.Products
-                    .Where(x => x.Status == Models.ProductStatus.Approved)
+                    .Where(x => x.Status == Models.ProductStatus.Approved && x.IsVisible)
                     .AsNoTracking();
 
                 // Apply Category Filter (Slug-based)
