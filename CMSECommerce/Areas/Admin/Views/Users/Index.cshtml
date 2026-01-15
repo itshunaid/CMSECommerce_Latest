@@ -5,177 +5,274 @@
     var allRoles = ViewBag.AllRoles as List<string> ?? new List<string>();
     var totalUsers = Model.Count();
     var lockedUsers = Model.Count(u => u.IsLockedOut);
-    var deactivatedUsers = Model.Count(u => u.IsDeactivated);
 }
 
 <style>
     :root {
-        --amz-navy: #232f3e;
-        --amz-navy-2: #1e2a33;
-        --amz-orange: #febd69;
-        --amz-slate: #37475a;
-        --amz-bg: #f4f7f9;
-        --amz-border: #e0e0e0;
-        --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+        --premier-navy: #0f172a;
+        --premier-accent: #3b82f6;
+        --premier-success: #10b981;
+        --premier-danger: #ef4444;
+        --premier-bg: #f8fafc;
+        --premier-card-bg: #ffffff;
+        --premier-border: #e2e8f0;
+        --premier-text-main: #1e293b;
+        --premier-text-muted: #64748b;
     }
 
-    body { background-color: var(--amz-bg); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body {
+        background-color: var(--premier-bg);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        color: var(--premier-text-main);
+    }
 
-    /* Product Card Styling */
-    .user-card {
+    /* Top Control Plane */
+    .control-plane {
+        background: var(--premier-navy);
+        padding: 1.5rem 2rem;
+        margin: -1.5rem -1.5rem 2rem -1.5rem;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    }
+
+    /* Premier Stats Cards */
+    .stat-pill {
         background: white;
+        border: 1px solid var(--premier-border);
         border-radius: 12px;
-        border: 1px solid var(--amz-border);
-        transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    /* User Card Styling */
+    .user-card {
+        background: var(--premier-card-bg);
+        border: 1px solid var(--premier-border);
+        border-radius: 16px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         height: 100%;
-        position: relative;
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
-    }
-
-    .user-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        border-color: var(--amz-orange);
-    }
-
-    .card-header-img {
-        height: 100px;
-        background: var(--amz-navy);
         position: relative;
-        margin-bottom: 45px;
     }
 
-    .profile-img-container {
+        .user-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(0,0,0,0.1);
+            border-color: var(--premier-accent);
+        }
+
+    .card-header-banner {
+        height: 80px;
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        position: relative;
+    }
+
+    .profile-img-wrapper {
         position: absolute;
-        bottom: -35px;
+        bottom: -30px;
         left: 20px;
+        padding: 4px;
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
     }
 
-    .profile-img-lg {
-        width: 75px;
-        height: 75px;
-        border-radius: 50%;
-        border: 4px solid white;
+    .profile-img-premier {
+        width: 64px;
+        height: 64px;
+        border-radius: 10px;
         object-fit: cover;
-        box-shadow: var(--shadow-sm);
     }
 
-    .card-body-content { padding: 0 1.25rem 1.25rem 1.25rem; }
-
-    .user-name { font-size: 1.1rem; font-weight: 700; color: var(--amz-navy); margin-bottom: 2px; }
-    .user-email { font-size: 0.85rem; color: #64748b; margin-bottom: 12px; }
-
-    .role-badge {
-        font-size: 0.65rem;
-        padding: 4px 10px;
-        border-radius: 50px;
-        background: #f1f5f9;
-        color: #475569;
-        border: 1px solid #e2e8f0;
-        text-transform: uppercase;
-        font-weight: 600;
+    /* Content Area */
+    .card-main-content {
+        padding: 45px 1.5rem 1.5rem 1.5rem;
+        flex-grow: 1;
     }
 
-    .status-ribbon {
+    .user-identity-name {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--premier-navy);
+        margin-bottom: 0.25rem;
+    }
+
+    .user-identity-email {
+        font-size: 0.875rem;
+        color: var(--premier-text-muted);
+        margin-bottom: 1rem;
+    }
+
+    /* Badge Systems */
+    .premier-status {
         position: absolute;
-        top: 12px;
-        right: 12px;
+        top: 1rem;
+        right: 1rem;
         padding: 4px 12px;
         border-radius: 20px;
         font-size: 0.7rem;
         font-weight: 700;
-        z-index: 2;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
     }
 
-    .ribbon-active { background: #dcfce7; color: #166534; }
-    .ribbon-locked { background: #fee2e2; color: #991b1b; }
+    .status-online {
+        background: #dcfce7;
+        color: #166534;
+    }
 
-    .action-bar {
-        border-top: 1px solid #f1f5f9;
-        padding: 10px 15px;
-        background: #fafafa;
+    .status-offline {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .role-pill {
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 2px 10px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* Filter Panel */
+    .filter-panel-premier {
+        background: white;
+        border: 1px solid var(--premier-border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    /* Actions */
+    .action-group-footer {
+        padding: 1rem 1.5rem;
+        background: #f8fafc;
+        border-top: 1px solid var(--premier-border);
         display: flex;
-        justify-content: flex-end;
-        gap: 8px;
+        justify-content: space-between;
+        align-items: center;
     }
 
-    .stat-card {
-        background: white; padding: 1.25rem; border-radius: 10px; border: 1px solid var(--amz-border);
-        display: flex; align-items: center; gap: 1rem; box-shadow: var(--shadow-sm);
+    .btn-action {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+        border: 1px solid var(--premier-border);
+        background: white;
+        color: var(--premier-text-muted);
     }
 
-    .filter-section { background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--amz-border); margin-bottom: 2rem; }
-    .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end; }
-    .filter-label { font-size: 0.75rem; font-weight: 700; color: var(--amz-slate); text-transform: uppercase; margin-bottom: 0.5rem; }
+        .btn-action:hover {
+            background: var(--premier-navy);
+            color: white;
+            border-color: var(--premier-navy);
+        }
 
-    .action-btn {
-        width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e2e8f0;
-        background: white; color: #64748b; display: flex; align-items: center; justify-content: center; transition: 0.2s;
+    .btn-delete-premier:hover {
+        background: var(--premier-danger);
+        border-color: var(--premier-danger);
+        color: white;
     }
-    .action-btn:hover { background: var(--amz-navy); color: white; }
-    .btn-delete:hover { background: #ef4444 !important; border-color: #ef4444; }
+
+    .btn-premier-primary {
+        background: var(--premier-accent);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.25rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: 0.2s;
+    }
+
+        .btn-premier-primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
 </style>
 
-<div class="container-fluid py-4">
-    <div class="row align-items-center mb-4">
-        <div class="col">
-            <h3 class="fw-bold text-dark mb-0">User Directory</h3>
-            <p class="text-muted small">Manage your team and system access settings.</p>
+<div class="container-fluid py-0">
+    <div class="control-plane">
+        <div>
+            <h4 class="mb-0 fw-bold">Identity Directory</h4>
+            <p class="mb-0 small opacity-75">Manage organizational access and system permissions</p>
         </div>
-        <div class="col-auto d-flex gap-2">
-            <a asp-action="ExportUsersCsv" class="btn btn-light border btn-sm px-3">Export CSV</a>
-            <a asp-action="Create" class="btn btn-primary btn-sm px-3" style="background: var(--amz-navy); border: none;">+ Add New User</a>
+        <div class="d-flex gap-2">
+            <a asp-action="ExportUsersCsv" class="btn btn-outline-light btn-sm px-3" style="border-radius: 10px;">Export Data</a>
+            <a asp-action="Create" class="btn btn-premier-primary">+ Add New User</a>
         </div>
     </div>
 
     <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="stat-card">
-                <div class="p-2 bg-primary-subtle rounded text-primary">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+            <div class="stat-pill">
+                <div class="rounded-circle bg-primary-subtle p-3 text-primary">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                 </div>
-                <div><span class="text-muted small d-block">Total Users</span><h4 class="fw-bold mb-0" id="user-count">@totalUsers</h4></div>
+                <div>
+                    <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.65rem;">Active Users</small>
+                    <h4 class="mb-0 fw-bold" id="user-count">@totalUsers</h4>
+                </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="stat-card">
-                <div class="p-2 bg-danger-subtle rounded text-danger">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <div class="stat-pill">
+                <div class="rounded-circle bg-danger-subtle p-3 text-danger">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 </div>
-                <div><span class="text-muted small d-block">Locked</span><h4 class="fw-bold mb-0">@lockedUsers</h4></div>
+                <div>
+                    <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.65rem;">Locked Accounts</small>
+                    <h4 class="mb-0 fw-bold text-danger">@lockedUsers</h4>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="filter-section">
-        <div class="filter-grid">
-            <div>
-                <label class="filter-label">Search Name</label>
-                <input type="text" id="filter-userinfo" class="form-control form-control-sm" placeholder="e.g. John Doe" onkeyup="filterTable()">
+    <div class="filter-panel-premier shadow-sm">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="small fw-bold text-uppercase text-muted mb-2 d-block" style="font-size: 0.7rem;">Identity Search</label>
+                <input type="text" id="filter-userinfo" class="form-control" style="border-radius: 10px;" placeholder="Search by name or username..." onkeyup="filterTable()">
             </div>
-            <div>
-                <label class="filter-label">Email Address</label>
-                <input type="text" id="filter-email" class="form-control form-control-sm" placeholder="e.g. user@domain.com" onkeyup="filterTable()">
+            <div class="col-md-3">
+                <label class="small fw-bold text-uppercase text-muted mb-2 d-block" style="font-size: 0.7rem;">Email Address</label>
+                <input type="text" id="filter-email" class="form-control" style="border-radius: 10px;" placeholder="filter@domain.com" onkeyup="filterTable()">
             </div>
-            <div>
-                <label class="filter-label">System Role</label>
-                <select id="filter-role" class="form-select form-select-sm" onchange="filterTable()">
+            <div class="col-md-2">
+                <label class="small fw-bold text-uppercase text-muted mb-2 d-block" style="font-size: 0.7rem;">System Role</label>
+                <select id="filter-role" class="form-select" style="border-radius: 10px;" onchange="filterTable()">
                     <option value="">All Roles</option>
-                    @foreach (var r in allRoles) { <option value="@r">@r</option> }
+                    @foreach (var r in allRoles)
+                    {
+                        <option value="@r">@r</option>
+                    }
                 </select>
             </div>
-            <div>
-                <label class="filter-label">Account Status</label>
-                <select id="filter-status" class="form-select form-select-sm" onchange="filterTable()">
+            <div class="col-md-2">
+                <label class="small fw-bold text-uppercase text-muted mb-2 d-block" style="font-size: 0.7rem;">Status</label>
+                <select id="filter-status" class="form-select" style="border-radius: 10px;" onchange="filterTable()">
                     <option value="">All Statuses</option>
                     <option value="Active">Active</option>
                     <option value="Disabled">Disabled</option>
                 </select>
             </div>
-            <input type="hidden" id="filter-profession" value="">
-            <input type="hidden" id="filter-visibility" value="">
-            <div>
-                <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetFilters()">Clear Filters</button>
+            <div class="col-md-2">
+                <button class="btn btn-light border w-100 fw-bold" style="border-radius: 10px; padding: 0.6rem;" onclick="resetFilters()">Clear Filters</button>
             </div>
         </div>
     </div>
@@ -183,81 +280,81 @@
     <div class="row g-4" id="usersTbody">
         @foreach (var u in Model)
         {
-            <div class="col-12 col-md-6 col-lg-4 col-xl-3 user-item-container" 
+            <div class="col-12 col-md-6 col-lg-4 col-xl-3 user-item-container"
                  data-status="@(u.IsLockedOut ? "Disabled" : "Active")"
                  data-visibility="@(u.IsDeactivated ? "Hidden" : "Visible")">
-                
+
                 <div class="user-card">
                     <span class="d-none" data-label="User Info" data-search-info="@u.UserName.ToLower()"></span>
                     <span class="d-none" data-label="Email" data-search-info="@u.Email.ToLower()"></span>
                     <span class="d-none" data-label="Role">@string.Join(", ", u.Roles)</span>
 
-                    <div class="card-header-img">
-                        <div class="status-ribbon @(u.IsLockedOut ? "ribbon-locked" : "ribbon-active")">
-                            <span id="badge-islockedout-@u.Id">@(u.IsLockedOut ? "LOCKED" : "ACTIVE")</span>
+                    <div class="card-header-banner">
+                        <div id="badge-islockedout-@u.Id" class="premier-status @(u.IsLockedOut ? "status-offline" : "status-online")">
+                            @(u.IsLockedOut ? "LOCKED" : "ACTIVE")
                         </div>
-                        <div class="profile-img-container">
-                            <img src="@(string.IsNullOrEmpty(u.ProfileImagePath) ? "/images/default-user.png" : u.ProfileImagePath)" class="profile-img-lg" />
+                        <div class="profile-img-wrapper">
+                            <img src="@(string.IsNullOrEmpty(u.ProfileImagePath) ? "/images/default-user.png" : u.ProfileImagePath)" class="profile-img-premier" alt="Avatar" />
                         </div>
                     </div>
 
-                    <div class="card-body-content">
-                        <div class="user-name">@u.UserName</div>
-                        <div class="user-email text-truncate">@u.Email</div>
-                        
-                        <div class="mb-3">
-                            <div class="text-muted small fw-bold mb-1">ROLES</div>
+                    <div class="card-main-content">
+                        <div class="user-identity-name text-truncate">@u.UserName</div>
+                        <div class="user-identity-email text-truncate">@u.Email</div>
+
+                        <div class="mt-3">
+                            <span class="small fw-bold text-uppercase text-muted d-block mb-2" style="font-size: 0.6rem;">Privileges</span>
                             <div class="d-flex flex-wrap gap-1">
-                                @foreach (var role in u.Roles) {
-                                    <span class="role-badge">@role</span>
+                                @foreach (var role in u.Roles)
+                                {
+                                    <span class="role-pill">@role</span>
                                 }
                             </div>
                         </div>
 
-                        <div class="small text-muted">
-                            <i class="bi bi-telephone"></i> @(u.PhoneNumber ?? "No Phone")
+                        <div class="mt-3 pt-3 border-top small text-muted">
+                            <i class="bi bi-phone me-2"></i>@(u.PhoneNumber ?? "No Contact Linked")
                         </div>
                     </div>
 
-                    <div class="action-bar">
-                        <a asp-area=""
-                           asp-controller="UserProfiles"
-                           asp-action="Edit"
-                           asp-route-id="@u.Id"
-                           class="action-btn"
-                           title="Edit">
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10z" />
-                            </svg>
-                        </a>
-                        <form asp-action="EnableDisable" method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@u.Id" />
-                            <button type="submit" class="action-btn" title="Toggle Access">
-                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/></svg>
-                            </button>
-                        </form>
+                    <div class="action-group-footer">
+                        <div class="d-flex gap-2">
+                            <a asp-area="" asp-controller="UserProfiles" asp-action="Edit" asp-route-id="@u.Id" class="btn-action" title="Edit Profile">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10z" /></svg>
+                            </a>
 
-                        @if (!u.IsDeactivated) {
-                            <form asp-action="SoftDelete" method="post" class="d-inline">
+                            <form asp-action="EnableDisable" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@u.Id" />
-                                <button type="submit" class="action-btn" title="Soft Delete">
-                                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/></svg>
+                                <button type="submit" class="btn-action" title="Toggle Access">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" /></svg>
                                 </button>
                             </form>
-                        } else {
-                            <form asp-action="Restore" method="post" class="d-inline">
-                                <input type="hidden" name="id" value="@u.Id" />
-                                <button type="submit" class="action-btn" title="Restore">
-                                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/></svg>
-                                </button>
-                            </form>
-                        }
+
+                            @if (!u.IsDeactivated)
+                            {
+                                <form asp-action="SoftDelete" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@u.Id" />
+                                    <button type="submit" class="btn-action" title="Soft Delete">
+                                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" /></svg>
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-action="Restore" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@u.Id" />
+                                    <button type="submit" class="btn-action" title="Restore User">
+                                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" /></svg>
+                                    </button>
+                                </form>
+                            }
+                        </div>
 
                         <form asp-action="Delete" method="post" class="d-inline">
                             <input type="hidden" name="id" value="@u.Id" />
-                            <button type="submit" class="action-btn btn-delete" title="Hard Delete">
-                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5z"/></svg>
+                            <button type="submit" class="btn-action btn-delete-premier" title="Permanent Delete" onclick="return confirm('CRITICAL: This will permanently purge this user from the system.')">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5z" /></svg>
                             </button>
                         </form>
                     </div>
@@ -269,9 +366,7 @@
 
 @section Scripts {
     <script>
-        // ARCHITECT NOTE: The logic below targets selectors that I've 
-        // embedded inside the cards to maintain full backward compatibility.
-        
+        // BACKWARD COMPATIBLE FILTERING
         function filterTable() {
             const filters = {
                 userInfo: document.getElementById('filter-userinfo').value.toLowerCase(),
@@ -280,7 +375,6 @@
                 status: document.getElementById('filter-status').value.toLowerCase()
             };
 
-            // Select card containers instead of table rows
             const cards = document.querySelectorAll('.user-item-container');
             let visibleCount = 0;
 
@@ -311,11 +405,12 @@
             filterTable();
         }
 
+        // BACKWARD COMPATIBLE AJAX
         async function updateField(userId, fieldName, value) {
             const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
             const badgeElement = document.getElementById(`badge-${fieldName.toLowerCase()}-${userId}`);
             const cardContainer = badgeElement.closest('.user-item-container');
-            
+
             let finalValue = (typeof value === 'boolean') ? (value ? 'true' : 'false') : value;
             const data = new URLSearchParams({
                 userId: userId, fieldName: fieldName, value: finalValue,
@@ -333,16 +428,13 @@
                     if (fieldName === 'IsLockedOut') {
                         const statusTxt = value ? 'Disabled' : 'Active';
                         cardContainer.setAttribute('data-status', statusTxt);
-                        
-                        // Update UI Ribbon
                         badgeElement.textContent = value ? 'LOCKED' : 'ACTIVE';
-                        const ribbon = badgeElement.parentElement;
-                        ribbon.className = `status-ribbon ${value ? 'ribbon-locked' : 'ribbon-active'}`;
+                        badgeElement.className = `premier-status ${value ? 'status-offline' : 'status-online'}`;
                     }
                     filterTable();
                 }
             } catch (error) {
-                console.error('Update failed', error);
+                console.error('API Update failed', error);
             }
         }
     </script>

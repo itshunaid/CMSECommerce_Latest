@@ -82,7 +82,7 @@ namespace CMSECommerce.Controllers
 
             if (existingProfile != null)
             {
-                return RedirectToAction("Index");
+                return RedirectToAction("Edit");
             }
 
             if(User.IsInRole("Customer"))
