@@ -95,7 +95,8 @@ namespace CMSECommerce.Areas.Admin.Controllers
                         BusinessAddress = p?.BusinessAddress,
                         BusinessPhoneNumber = p?.BusinessPhoneNumber,
                         GpayQRCodePath = p?.GpayQRCodePath,
-                        PhonePeQRCodePath = p?.PhonePeQRCodePath
+                        PhonePeQRCodePath = p?.PhonePeQRCodePath,
+                        IsDeactivated = p?.IsDeactivated ?? false
                     });
                 }
 
@@ -257,6 +258,116 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "Failed to toggle status for user {UserId}", id);
                 TempData["error"] = "A system error occurred while updating the account status.";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SoftDelete(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return NotFound();
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                TempData["error"] = "User not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // 1. Update UserProfile: Set IsDeactivated = true, IsProfileVisible = false
+                var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == id);
+                if (profile != null)
+                {
+                    profile.IsDeactivated = true;
+                    profile.IsProfileVisible = false;
+                    _context.UserProfiles.Update(profile);
+                }
+
+                // 2. Set all user's products to Pending
+                var productsToUpdate = await _context.Products
+                    .Where(p => p.OwnerName == user.Id || p.OwnerName == user.UserName)
+                    .ToListAsync();
+
+                if (productsToUpdate.Any())
+                {
+                    foreach (var product in productsToUpdate)
+                    {
+                        product.Status = ProductStatus.Pending;
+                    }
+                    _context.Products.UpdateRange(productsToUpdate);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                TempData["success"] = $"User '{user.UserName}' has been soft deleted. Profile is hidden and products are pending.";
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Failed to soft delete user {UserId}", id);
+                TempData["error"] = "A system error occurred while soft deleting the user.";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Restore(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return NotFound();
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                TempData["error"] = "User not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // 1. Update UserProfile: Set IsDeactivated = false, IsProfileVisible = true
+                var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == id);
+                if (profile != null)
+                {
+                    profile.IsDeactivated = false;
+                    profile.IsProfileVisible = true;
+                    _context.UserProfiles.Update(profile);
+                }
+
+                // 2. Set all user's products to Approved
+                var productsToUpdate = await _context.Products
+                    .Where(p => p.OwnerName == user.Id || p.OwnerName == user.UserName)
+                    .ToListAsync();
+
+                if (productsToUpdate.Any())
+                {
+                    foreach (var product in productsToUpdate)
+                    {
+                        product.Status = ProductStatus.Approved;
+                    }
+                    _context.Products.UpdateRange(productsToUpdate);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                TempData["success"] = $"User '{user.UserName}' has been restored. Profile is visible and products are approved.";
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Failed to restore user {UserId}", id);
+                TempData["error"] = "A system error occurred while restoring the user.";
             }
 
             return RedirectToAction(nameof(Index));
@@ -730,13 +841,63 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
             string userName = user.UserName;
 
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
             try
             {
                 // --- 1. Find and Delete Dependent Records (CRITICAL STEP) ---
 
-                // a. Delete UserProfile
-                var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == id);
+                // a. Delete UserStatusTracker
+                var userStatus = await _context.UserStatuses.FirstOrDefaultAsync(us => us.UserId == id);
+                if (userStatus != null)
+                {
+                    _context.UserStatuses.Remove(userStatus);
+                }
 
+                // b. Delete ChatMessages (both as sender and recipient)
+                var chatMessages = await _context.ChatMessages
+                    .Where(cm => cm.SenderId == id || cm.RecipientId == id)
+                    .ToListAsync();
+                _context.ChatMessages.RemoveRange(chatMessages);
+
+                // c. Delete UnlockRequests
+                var unlockRequests = await _context.UnlockRequests.Where(ur => ur.UserId == id).ToListAsync();
+                _context.UnlockRequests.RemoveRange(unlockRequests);
+
+                // d. Delete SubscriptionRequests
+                var subscriptionRequests = await _context.SubscriptionRequests.Where(sr => sr.UserId == id).ToListAsync();
+                _context.SubscriptionRequests.RemoveRange(subscriptionRequests);
+
+                // e. Delete SubscriberRequests
+                var subscriberRequests = await _context.SubscriberRequests.Where(r => r.UserId == id).ToListAsync();
+                _context.SubscriberRequests.RemoveRange(subscriberRequests);
+
+                // f. Delete Reviews
+                var reviews = await _context.Reviews.Where(r => r.UserId == id).ToListAsync();
+                _context.Reviews.RemoveRange(reviews);
+
+                // g. Delete Orders and OrderDetails (historical data, but delete if user is being removed)
+                var orders = await _context.Orders.Where(o => o.UserId == id).ToListAsync();
+                if (orders.Any())
+                {
+                    var orderIds = orders.Select(o => o.Id).ToList();
+                    var orderDetails = await _context.OrderDetails.Where(od => orderIds.Contains(od.OrderId)).ToListAsync();
+                    _context.OrderDetails.RemoveRange(orderDetails);
+                    _context.Orders.RemoveRange(orders);
+                }
+
+                // h. Delete Stores (and their products will be deleted via cascade)
+                var stores = await _context.Stores.Where(s => s.UserId == id).ToListAsync();
+                _context.Stores.RemoveRange(stores);
+
+                // i. Delete Products (both by OwnerName and UserId)
+                var userProducts = await _context.Products
+                    .Where(p => p.OwnerName == user.UserName || p.OwnerName == user.Id || p.UserId == id)
+                    .ToListAsync();
+                _context.Products.RemoveRange(userProducts);
+
+                // j. Delete UserProfile and associated files
+                var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == id);
                 if (userProfile != null)
                 {
                     // Delete associated physical files (Image/QRCode)
@@ -748,27 +909,29 @@ namespace CMSECommerce.Areas.Admin.Controllers
                             System.IO.File.Delete(fullPath); // File System Operation
                         }
                     }
+                    if (!string.IsNullOrEmpty(userProfile.GpayQRCodePath))
+                    {
+                        string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, userProfile.GpayQRCodePath.TrimStart('/'));
+                        if (System.IO.File.Exists(fullPath))
+                        {
+                            System.IO.File.Delete(fullPath);
+                        }
+                    }
+                    if (!string.IsNullOrEmpty(userProfile.PhonePeQRCodePath))
+                    {
+                        string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, userProfile.PhonePeQRCodePath.TrimStart('/'));
+                        if (System.IO.File.Exists(fullPath))
+                        {
+                            System.IO.File.Delete(fullPath);
+                        }
+                    }
 
                     _context.UserProfiles.Remove(userProfile);
                 }
 
-                // b. Delete Address records (Assuming they link directly to UserId)
+                // k. Delete Address records
                 var userAddresses = await _context.Addresses.Where(a => a.UserId == id).ToListAsync();
                 _context.Addresses.RemoveRange(userAddresses);
-
-                // c. Delete SubscriberRequests
-                var subscriberRequests = await _context.SubscriberRequests.Where(r => r.UserId == id).ToListAsync();
-                _context.SubscriberRequests.RemoveRange(subscriberRequests);
-
-                // d. Delete Product records (Assuming products have an OwnerId/UserId field)
-                // Depending on your model, you might need to handle product files/gallery too.
-                // Assuming Product.OwnerId is the UserId (string)
-                var userProductsByUserName = await _context.Products.Where(p => p.OwnerName == user.UserName).ToListAsync();
-                var userProductsByOwerId = await _context.Products.Where(p => p.OwnerName == user.Id).ToListAsync();
-                // **WARNING:** Deleting products may require file system cleanup of images/gallery. 
-                // This is a complex dependency that should be handled explicitly.
-                _context.Products.RemoveRange(userProductsByUserName);
-                _context.Products.RemoveRange(userProductsByOwerId);
 
                 // Save changes to delete custom records from your DataContext
                 await _context.SaveChangesAsync(); // Database operation
@@ -778,6 +941,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                 if (result.Succeeded)
                 {
+                    await transaction.CommitAsync();
                     TempData["success"] = $"User '{userName}' and all associated data deleted successfully.";
                     return RedirectToAction(nameof(Index));
                 }
@@ -789,17 +953,19 @@ namespace CMSECommerce.Areas.Admin.Controllers
             }
             catch (DbUpdateException dbEx)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(dbEx, "Database error deleting user ID: {UserId} and associated records.", id);
                 TempData["error"] = "A database error occurred while deleting the user. Ensure all foreign key constraints are handled.";
             }
             catch (IOException ioEx)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ioEx, "File system error during user deletion for ID: {UserId}", id);
                 TempData["error"] = "File error occurred while deleting user profile data. The user was not deleted from the database.";
-                // Re-throw or return if you want to stop the Identity deletion
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Unexpected error deleting user ID: {UserId}", id);
                 TempData["error"] = "An unexpected error occurred during user deletion.";
             }
