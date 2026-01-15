@@ -682,6 +682,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
         }
 
         // GET: Admin/Users/Edit/5
+        [HttpGet]
         public async Task<IActionResult> Edit(string id)
         {
             if (string.IsNullOrEmpty(id)) return NotFound();
@@ -804,7 +805,8 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                 await _context.SaveChangesAsync();
                 TempData["success"] = "User and Profile updated successfully!";
-                return RedirectToAction(nameof(Index));
+                // To this:
+                return RedirectToAction("Index", "Users", new { area = "Admin" });
             }
 
             foreach (var error in result.Errors) ModelState.AddModelError("", error.Description);

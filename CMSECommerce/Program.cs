@@ -135,7 +135,7 @@ app.MapRazorPages();
 // Specific Area Route
 app.MapControllerRoute(
     name: "areas",
-    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
+    pattern: "{area}/{controller=Home}/{action=Index}/{id?}");
 
 // Specialized Routes
 app.MapControllerRoute(name: "product", pattern: "products/product/{slug?}", defaults: new { controller = "Products", action = "Product" });

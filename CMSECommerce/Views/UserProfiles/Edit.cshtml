@@ -4,6 +4,7 @@
     ViewData["Title"] = "Account Settings";
     ViewData["HideLayoutSidebar"] = true;
     bool isCustomer = ViewBag.IsCustomer ?? false;
+    bool callingFromAdminPanel = ViewBag.CallingFromAdminPanel ?? false;
 }
 
 <div class="container-fluid py-5" style="background-color: #f8f9fa; min-height: 100vh;">
@@ -44,6 +45,8 @@
                 <input type="hidden" asp-for="CurrentProductLimit" />
                 <input type="hidden" asp-for="SubscriptionStartDate" />
                 <input type="hidden" asp-for="SubscriptionEndDate" />
+                <input type="hidden" name="callingFrom" value="@ViewBag.CallingFrom" />
+                <input type="hidden" name="userId" value="@ViewBag.UserId" />
 
                 @if (isCustomer)
                 {
@@ -226,7 +229,10 @@
                             </div>
                         </div>
 
-                        <div class="d-grid gap-2">
+                            <div class="d-grid gap-2">
+
+
+                           
                             <button type="submit" id="btnSubmit" class="btn btn-primary py-3 fw-bold rounded shadow-sm">
                                 <span id="btnText"><i class="bi bi-cloud-arrow-up me-2"></i>Update Profile</span>
                                 <span id="btnSpinner" class="spinner-border spinner-border-sm d-none ms-2"></span>
