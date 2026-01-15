@@ -28,23 +28,19 @@ namespace CMSECommerce.Areas.Seller.Controllers
         // GET /seller/products/index
         public async Task<IActionResult> Index(int categoryId = 0, string search = "", string status = "", int p = 1)
         {
-            int pageSize = 3;
+            int pageSize = 8; // Set to 3 as per your requirement
             try
             {
                 ViewBag.Categories = BuildCategorySelectList(categoryId);
-
                 ViewBag.SelectedCategory = categoryId.ToString();
                 ViewBag.CurrentSearch = search;
                 ViewBag.CurrentStatus = status;
 
-                ViewBag.PageNumber = p;
-                ViewBag.PageRange = pageSize;
-
-                // Filter products by OwnerId (the current logged-in seller)
+                // Filter products by OwnerId
                 var currentUserId = _userManager.GetUserName(User);
                 var productsQuery = _context.Products
-    .Where(x => x.OwnerName == currentUserId && x.StockQuantity > 0)
-    .AsQueryable();
+                    .Where(x => x.OwnerName == currentUserId && x.StockQuantity > 0)
+                    .AsQueryable();
 
                 // 1. Apply category filter
                 if (categoryId != 0)
@@ -71,9 +67,20 @@ namespace CMSECommerce.Areas.Seller.Controllers
                     }
                 }
 
-                ViewBag.TotalPages = (int)Math.Ceiling((decimal)await productsQuery.CountAsync() / pageSize);
+                // --- PAGINATION CALCULATIONS ---
+                int totalItems = await productsQuery.CountAsync();
+                int totalPages = (int)Math.Ceiling((decimal)totalItems / pageSize);
 
-                List<Product> products = await productsQuery
+                // Safety check: ensure 'p' is within valid range
+                p = p < 1 ? 1 : p;
+                if (totalPages > 0 && p > totalPages) p = totalPages;
+
+                ViewBag.TotalPages = totalPages;
+                ViewBag.PageNumber = p;
+                ViewBag.PageRange = pageSize;
+                ViewBag.TotalItems = totalItems; // Useful for "Showing 1-3 of 10 items"
+
+                List<Product> products = await productsQuery                    
                     .Include(x => x.Category)
                     .OrderByDescending(x => x.Id)
                     .Skip((p - 1) * pageSize)
@@ -86,13 +93,12 @@ namespace CMSECommerce.Areas.Seller.Controllers
             {
                 _logger.LogError(ex, "Error loading Products Index for seller {User}.", _userManager.GetUserName(User));
                 TempData["Error"] = "Failed to load products due to a system error.";
-                // Return empty list and initialize view bag values to prevent runtime errors in the view
                 ViewBag.TotalPages = 1;
+                ViewBag.PageNumber = 1;
                 ViewBag.Categories = new SelectList(new List<Category>());
                 return View(new List<Product>());
             }
         }
-
         public async Task<IActionResult> OutOfStock(int categoryId = 0, string search = "", string status = "", int p = 1)
         {
             int pageSize = 3;

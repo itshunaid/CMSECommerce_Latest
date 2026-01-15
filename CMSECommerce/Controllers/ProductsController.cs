@@ -76,7 +76,7 @@ namespace CMSECommerce.Controllers
         .ToListAsync();
 
             // 2. Start with the full list of products for this store
-            IQueryable<Product> productsQuery = _context.Products.Where(p => p.StoreId == id);
+            IQueryable<Product> productsQuery = _context.Products.Where(p => p.StoreId == id && p.Status == ProductStatus.Approved && p.IsVisible);
 
             // 3. Apply SEARCH Filter
             if (!string.IsNullOrEmpty(search))
