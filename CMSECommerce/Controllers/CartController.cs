@@ -1,15 +1,16 @@
 ﻿using CMSECommerce.Infrastructure;
 using CMSECommerce.Models.ViewModels;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 
 namespace CMSECommerce.Controllers
 {
-    public class CartController(DataContext context, ILogger<CartController> logger) : BaseController
+    public class CartController(DataContext context, ILogger<CartController> logger, ICartService cartService) : BaseController
     {
         private readonly DataContext _context = context;
         private readonly ILogger<CartController> _logger= logger; // 1. Add this field
+        private readonly ICartService _cartService = cartService;
 
         // Note: ILogger<CartController> logger is often injected here for real-world logging
 

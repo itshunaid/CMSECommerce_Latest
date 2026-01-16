@@ -25,7 +25,10 @@ namespace CMSECommerce.Controllers
             RoleManager<IdentityRole> roleManager,
             ILogger<AccountController> logger,
             IUserService userService,
-            IEmailService emailService
+            IEmailService emailService,
+            IAuthenticationService authenticationService,
+            IOrderService orderService,
+            IValidationService validationService
            ) : BaseController
     {
         private DataContext _context = dataContext;
@@ -37,6 +40,9 @@ namespace CMSECommerce.Controllers
         private readonly ILogger<AccountController> _logger = logger;
         private readonly IUserService _userService = userService;
         private readonly IEmailService _emailService = emailService;
+        private readonly IAuthenticationService _authenticationService = authenticationService;
+        private readonly IOrderService _orderService = orderService;
+        private readonly IValidationService _validationService = validationService;
         
 
 

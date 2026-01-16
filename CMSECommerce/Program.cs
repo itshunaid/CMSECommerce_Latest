@@ -82,6 +82,18 @@ builder.Services.AddScoped<CMSECommerce.Services.IUserStatusService, CMSECommerc
 builder.Services.AddHostedService<CMSECommerce.Services.UserStatusCleanupService>();
 builder.Services.AddHostedService<CMSECommerce.Services.OrderAutoDeclineService>();
 
+// SOLID Refactored Services
+builder.Services.AddScoped<IProductQueryService, ProductQueryService>();
+builder.Services.AddScoped<IStoreService, StoreService>();
+builder.Services.AddScoped<IPaginationService, PaginationService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+
+// Additional Services for AccountController
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IValidationService, ValidationService>();
+
 builder.Services.Configure<RouteOptions>(options => { options.LowercaseUrls = true; });
 
 var app = builder.Build();

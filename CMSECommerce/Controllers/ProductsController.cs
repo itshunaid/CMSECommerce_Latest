@@ -18,13 +18,15 @@ namespace CMSECommerce.Controllers
         DataContext context,
         IWebHostEnvironment webHostEnvironment,
         UserManager<IdentityUser> userManager,
-        IUserStatusService userStatusService
+        IUserStatusService userStatusService,
+        IProductService productService
     ) : BaseController
     {
         private readonly DataContext _context = context;
         private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
         private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly IUserStatusService _userStatusService = userStatusService;
+        private readonly IProductService _productService = productService;
 
         [HttpGet("mystore")]
         public async Task<IActionResult> StoreFront(int? id, int p = 1, string search = "", string category = "", string sort = "")
@@ -307,67 +309,21 @@ namespace CMSECommerce.Controllers
                 return RedirectToAction("Index");
             }
 
-            Product product = null;
-
             try
             {
-                product = await _context.Products
-                    .Where(x => x.Slug == slug)
-                    .Include(x => x.Category)
-                    .Include(x => x.Reviews)
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync();
+                var product = await _productService.GetProductBySlugAsync(slug);
 
-                if (product == null)
-                {
-                    TempData["Warning"] = $"The product with slug '{slug}' was not found.";
-                    return RedirectToAction("Index");
-                }
+                var userProfile = await _context.UserProfiles
+                    .FirstOrDefaultAsync(p => p.User.UserName.ToLower() == product.OwnerName.ToLower());
+                ViewBag.UserProfile = userProfile;
 
-                // Only load gallery images if the product is found
-                string galleryDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + product.Id.ToString());
-
-                // Safely check and enumerate files
-                if (Directory.Exists(galleryDir))
-                {
-                    // Use a simple try/catch for the file operation, as it's separate from the DB
-                    try
-                    {
-                        product.GalleryImages = Directory.EnumerateFiles(galleryDir).Select(x => Path.GetFileName(x)).ToList();
-                    }
-                    catch (IOException ioEx)
-                    {
-                        // Log file system errors but allow the product page to load without gallery
-                        // _logger.LogError(ioEx, "File system error loading product gallery for ID {ProductId}.", product.Id);
-                        product.GalleryImages = new List<string>();
-                        TempData["Warning"] = "Could not load all image files for this product.";
-                    }
-                }
-                else
-                {
-                    product.GalleryImages = new List<string>();
-                }
-            }
-            catch (DbUpdateException dbEx)
-            {
-                // Log database errors
-                // _logger.LogError(dbEx, "Database error in Products Product detail action for slug {Slug}.", slug);
-                TempData["Error"] = "A database error occurred while fetching product details. Please try again later.";
-                return RedirectToAction("Index");
+                return View(product);
             }
             catch (Exception ex)
             {
-                // Log general exceptions
-                // _logger.LogError(ex, "Unexpected error in Products Product detail action for slug {Slug}.", slug);
-                TempData["Error"] = "An unexpected error occurred while loading the product page.";
+                TempData["Error"] = ex.Message;
                 return RedirectToAction("Index");
             }
-            
-            
-            var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.User.UserName.ToLower() == product.OwnerName.ToLower());
-            ViewBag.UserProfile = userProfile;
-            // Return the view with the product data
-            return View(product);
         }
 
 
