@@ -14,14 +14,16 @@ namespace CMSECommerce.Areas.Admin.Controllers
     public class DashboardController : Controller
     {
         private readonly DataContext _context;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _configuration;
 
-        public DashboardController(DataContext context, UserManager<IdentityUser> userManager,
+        public DashboardController(DataContext context, IUnitOfWork unitOfWork, UserManager<IdentityUser> userManager,
             IEmailService emailService, IConfiguration configuration)
         {
             _context = context;
+            _unitOfWork = unitOfWork;
             _userManager = userManager;
             _emailService = emailService;
             _configuration = configuration;
@@ -49,42 +51,45 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 model.UsersCount = await _userManager.Users.CountAsync();
 
                 // 2. Total Products
-                model.ProductsCount = await _context.Products.CountAsync();
+                model.ProductsCount = await _unitOfWork.Repository<Product>().GetAll().CountAsync();
 
                 // 3. Pending/Rejected Product Requests
-                model.ProductsRequestCount = await _context.Products
-                    .Where(p => p.Status == ProductStatus.Pending || p.Status == ProductStatus.Rejected)
+                model.ProductsRequestCount = await _unitOfWork.Repository<Product>()
+                    .Find(p => p.Status == ProductStatus.Pending || p.Status == ProductStatus.Rejected)
                     .CountAsync();
 
                 // 4. Global Order Metrics
-                model.OrdersCount = await _context.Orders.CountAsync();
+                model.OrdersCount = await _unitOfWork.Repository<Order>().GetAll().CountAsync();
 
                 // 5. Taxonomy Metrics
-                model.Categories = await _context.Categories.CountAsync();
+                model.Categories = await _unitOfWork.Repository<Category>().GetAll().CountAsync();
 
                 // 6. Profile Image Moderation Queue
-                model.UserProfilesCount = await _context.UserProfiles
-                    .Where(p => !p.IsImageApproved && p.ProfileImagePath != null)
+                model.UserProfilesCount = await _unitOfWork.Repository<UserProfile>()
+                    .Find(p => !p.IsImageApproved && p.ProfileImagePath != null)
                     .CountAsync();
 
                 // 7. Seller Onboarding Queue
-                model.PendingSubscriberRequests = await _context.SubscriberRequests
-                    .CountAsync(r => r.Approved == false);
+                model.PendingSubscriberRequests = await _unitOfWork.Repository<SubscriberRequest>()
+                    .Find(r => r.Approved == false)
+                    .CountAsync();
 
                 // 8. NEW: Deactivated Stores Metric (Architecture Churn Metric)
                 // We count stores where IsActive is explicitly false
-                model.DeactivatedStoresCount = await _context.Stores
-                    .CountAsync(s => !s.IsActive);
+                model.DeactivatedStoresCount = await _unitOfWork.Repository<Store>()
+                    .Find(s => !s.IsActive)
+                    .CountAsync();
 
                 // 9. Recent Activity Feed
-                model.RecentOrders = await _context.Orders
+                model.RecentOrders = await _unitOfWork.Repository<Order>()
+                    .GetAll()
                     .OrderByDescending(o => o.Id)
                     .Take(5)
                     .ToListAsync();
 
                 // 10. Sellers with Declined Orders
-                model.SellersWithDeclines = await _context.OrderDetails
-                    .Where(od => od.IsCancelled == true)
+                model.SellersWithDeclines = await _unitOfWork.Repository<OrderDetail>()
+                    .Find(od => od.IsCancelled == true)
                     .GroupBy(od => od.ProductOwner)
                     .Select(g => new CMSECommerce.Areas.Admin.Models.SellerDeclineSummary
                     {

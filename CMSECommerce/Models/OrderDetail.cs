@@ -45,5 +45,7 @@ namespace CMSECommerce.Models
         public string? CancellationReason { get; set; }
         public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
         public DateTime? ShippedDate { get; set; }
+
+        public virtual Product Product { get; set; }
     }
 }

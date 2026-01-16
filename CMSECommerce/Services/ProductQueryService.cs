@@ -11,25 +11,23 @@ namespace CMSECommerce.Services
 {
     public class ProductQueryService : IProductQueryService
     {
-        private readonly DataContext _context;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public ProductQueryService(DataContext context)
+        public ProductQueryService(IUnitOfWork unitOfWork)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<IQueryable<Product>> GetFilteredProductsAsync(string slug, string searchTerm, decimal? minPrice, decimal? maxPrice, int? rating)
         {
-            IQueryable<Product> products = _context.Products
-                .Where(x => x.Status == ProductStatus.Approved && x.IsVisible)
-                .AsNoTracking();
+            IQueryable<Product> products = _unitOfWork.Repository<Product>()
+                .Find(x => x.Status == ProductStatus.Approved && x.IsVisible);
 
             // Apply category filter
             if (!string.IsNullOrWhiteSpace(slug))
             {
-                var category = await _context.Categories
-                    .Where(x => x.Slug == slug)
-                    .AsNoTracking()
+                var category = await _unitOfWork.Repository<Category>()
+                    .Find(x => x.Slug == slug)
                     .FirstOrDefaultAsync();
 
                 if (category != null)
@@ -77,11 +75,10 @@ namespace CMSECommerce.Services
                 throw new ArgumentException("Invalid product identifier.");
             }
 
-            var product = await _context.Products
-                .Where(x => x.Slug == slug)
+            var product = await _unitOfWork.Repository<Product>()
+                .Find(x => x.Slug == slug)
                 .Include(x => x.Category)
                 .Include(x => x.Reviews)
-                .AsNoTracking()
                 .FirstOrDefaultAsync();
 
             if (product == null)

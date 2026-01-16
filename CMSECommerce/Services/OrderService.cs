@@ -1,5 +1,6 @@
 using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
+using CMSECommerce.Models.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -10,234 +11,174 @@ namespace CMSECommerce.Services
 {
     public class OrderService : IOrderService
     {
-        private readonly DataContext _context;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public OrderService(DataContext context)
+        public OrderService(IUnitOfWork unitOfWork)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<List<Order>> GetUserOrdersAsync(string userId)
         {
-            return await _context.Orders
+            return await _unitOfWork.Repository<Order>()
+                .Find(o => o.UserId == userId)
                 .Include(o => o.OrderDetails)
-                .Where(x => x.UserId == userId)
-                .OrderByDescending(x => x.Id)
-                .AsNoTracking()
+                .ThenInclude(od => od.Product)
+                .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
         }
 
         public async Task<Order> GetOrderByIdAsync(int orderId, string userId)
         {
-            return await _context.Orders
+            return await _unitOfWork.Repository<Order>()
+                .Find(o => o.Id == orderId && o.UserId == userId)
                 .Include(o => o.OrderDetails)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == orderId && x.UserId == userId);
+                .ThenInclude(od => od.Product)
+                .FirstOrDefaultAsync();
         }
 
         public async Task CancelOrderAsync(int orderId, string userId, string reason)
         {
-            var order = await _context.Orders
+            var order = await _unitOfWork.Repository<Order>()
+                .Find(o => o.Id == orderId && o.UserId == userId)
                 .Include(o => o.OrderDetails)
-                .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
+                .FirstOrDefaultAsync();
 
             if (order == null) throw new Exception("Order not found.");
+            if (order.Shipped) throw new Exception("Cannot cancel shipped order.");
 
-            // Time validation
-            var timeLimit = order.OrderDate.Value.AddHours(24);
-            if (DateTime.Now > timeLimit)
-            {
-                throw new Exception("Cancellation period has expired.");
-            }
-
-            // Business logic
-            if (order.Shipped)
-            {
-                throw new Exception("Shipped orders cannot be cancelled.");
-            }
-
-            // Update order and items
             order.IsCancelled = true;
-            foreach (var item in order.OrderDetails)
+            foreach (var detail in order.OrderDetails)
             {
-                item.IsCancelled = true;
-                item.CancellationReason = reason ?? "Cancelled by customer";
-                item.CancelledByRole = "Customer";
-                item.IsProcessed = false;
+                detail.IsCancelled = true;
+                detail.CancellationReason = reason;
+                detail.CancelledByRole = "Customer";
             }
 
-            await _context.SaveChangesAsync();
+            _unitOfWork.Repository<Order>().Update(order);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task ReActivateOrderAsync(int orderId, string userId)
         {
-            var order = await _context.Orders
+            var order = await _unitOfWork.Repository<Order>()
+                .Find(o => o.Id == orderId && o.UserId == userId)
                 .Include(o => o.OrderDetails)
-                .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
+                .FirstOrDefaultAsync();
 
             if (order == null) throw new Exception("Order not found.");
-
-            if (!order.IsCancelled)
-            {
-                throw new Exception("This order is already active.");
-            }
+            if (!order.IsCancelled) throw new Exception("Order is not cancelled.");
 
             order.IsCancelled = false;
-            order.OrderDate = DateTime.Now;
-
-            foreach (var item in order.OrderDetails)
+            foreach (var detail in order.OrderDetails)
             {
-                item.IsCancelled = false;
-                item.CancellationReason = null;
-                item.CancelledByRole = null;
-                item.IsProcessed = false;
+                detail.IsCancelled = false;
+                detail.CancellationReason = null;
+                detail.CancelledByRole = null;
             }
 
-            await _context.SaveChangesAsync();
+            _unitOfWork.Repository<Order>().Update(order);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task ReOrderAsync(int orderId, string userId)
         {
-            var oldOrder = await _context.Orders
+            var order = await _unitOfWork.Repository<Order>()
+                .Find(o => o.Id == orderId && o.UserId == userId)
                 .Include(o => o.OrderDetails)
-                .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
+                .ThenInclude(od => od.Product)
+                .FirstOrDefaultAsync();
 
-            if (oldOrder == null) throw new Exception("Original order not found.");
+            if (order == null) throw new Exception("Order not found.");
 
-            if (oldOrder.IsCancelled)
+            var newOrder = new Order
             {
-                // Re-activate existing order
-                oldOrder.IsCancelled = false;
-                oldOrder.OrderDate = DateTime.Now;
-                oldOrder.Shipped = false;
-                oldOrder.ShippedDate = null;
+                UserId = userId,
+                UserName = order.UserName,
+                PhoneNumber = order.PhoneNumber,
+                GrandTotal = order.GrandTotal,
+                OrderDate = DateTime.Now,
+                Shipped = false
+            };
 
-                foreach (var item in oldOrder.OrderDetails)
-                {
-                    item.IsCancelled = false;
-                    item.IsProcessed = false;
-                    item.IsReturned = false;
-                }
+            await _unitOfWork.Repository<Order>().AddAsync(newOrder);
+            await _unitOfWork.SaveChangesAsync();
 
-                _context.Update(oldOrder);
-            }
-            else
+            foreach (var detail in order.OrderDetails)
             {
-                // Create new duplicate order
-                var newOrderDetails = oldOrder.OrderDetails.Select(item => new OrderDetail
+                var newDetail = new OrderDetail
                 {
-                    ProductId = item.ProductId,
-                    ProductName = item.ProductName,
-                    Quantity = item.Quantity,
-                    Price = item.Price,
-                    Image = item.Image,
-                    ProductOwner = item.ProductOwner,
-                    IsProcessed = false,
-                    IsCancelled = false,
-                    IsReturned = false
-                }).ToList();
-
-                var newOrder = new Order
-                {
-                    UserId = userId,
-                    UserName = oldOrder.UserName,
-                    OrderDate = DateTime.Now,
-                    GrandTotal = oldOrder.GrandTotal,
-                    Shipped = false,
-                    IsCancelled = false,
-                    OrderDetails = newOrderDetails
+                    OrderId = newOrder.Id,
+                    ProductId = detail.ProductId,
+                    ProductName = detail.ProductName,
+                    Quantity = detail.Quantity,
+                    Price = detail.Price,
+                    Image = detail.Image,
+                    ProductOwner = detail.ProductOwner,
+                    Customer = detail.Customer,
+                    CustomerNumber = detail.CustomerNumber,
+                    IsProcessed = false
                 };
 
-                _context.Orders.Add(newOrder);
+                await _unitOfWork.Repository<OrderDetail>().AddAsync(newDetail);
             }
 
-            await _context.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task CancelItemAsync(int orderDetailId, string userId, string reason)
         {
-            var detail = await _context.OrderDetails
+            var orderDetail = await _unitOfWork.Repository<OrderDetail>()
+                .Find(od => od.Id == orderDetailId)
                 .Include(od => od.Order)
-                .ThenInclude(o => o.OrderDetails)
-                .FirstOrDefaultAsync(od => od.Id == orderDetailId);
+                .FirstOrDefaultAsync();
 
-            if (detail == null) throw new Exception("Order detail not found.");
+            if (orderDetail == null) throw new Exception("Order detail not found.");
+            if (orderDetail.Order.UserId != userId) throw new Exception("Unauthorized.");
+            if (orderDetail.Order.Shipped) throw new Exception("Cannot cancel item from shipped order.");
 
-            // Time validation
-            var timeLimit = detail.Order.OrderDate.Value.AddHours(24);
-            if (DateTime.Now > timeLimit)
-            {
-                throw new Exception("Cancellation period has expired.");
-            }
+            orderDetail.IsCancelled = true;
+            orderDetail.CancellationReason = reason;
+            orderDetail.CancelledByRole = "Customer";
 
-            // Permission check
-            if (detail.Customer != userId && detail.ProductOwner != userId)
-            {
-                throw new Exception("Unauthorized to cancel this item.");
-            }
-
-            // Apply cancellation
-            detail.IsCancelled = true;
-            detail.CancellationReason = reason;
-            detail.CancelledByRole = detail.Customer == userId ? "User" : "Seller";
-
-            detail.Order.GrandTotal -= (detail.Price * detail.Quantity);
-
-            if (detail.Order.OrderDetails.All(od => od.IsCancelled))
-            {
-                detail.Order.IsCancelled = true;
-            }
-
-            await _context.SaveChangesAsync();
+            _unitOfWork.Repository<OrderDetail>().Update(orderDetail);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task ReturnItemAsync(int orderDetailId, int orderId, string reason)
         {
-            var detail = await _context.OrderDetails.FindAsync(orderDetailId);
-            var order = await _context.Orders.FindAsync(orderId);
+            var orderDetail = await _unitOfWork.Repository<OrderDetail>()
+                .Find(od => od.Id == orderDetailId && od.OrderId == orderId)
+                .Include(od => od.Order)
+                .FirstOrDefaultAsync();
 
-            if (detail == null || order == null)
-            {
-                throw new Exception("Order information not found.");
-            }
+            if (orderDetail == null) throw new Exception("Order detail not found.");
+            if (!orderDetail.Order.Shipped) throw new Exception("Cannot return item from unshipped order.");
 
-            detail.IsReturned = true;
-            detail.ReturnReason = reason;
-            detail.ReturnDate = DateTime.Now;
-            detail.IsCancelled = false;
-            detail.CancellationReason = "Returned: " + reason;
-            detail.IsProcessed = false;
+            orderDetail.IsReturned = true;
+            orderDetail.ReturnReason = reason;
 
-            order.Shipped = false;
-            order.IsCancelled = false;
-            order.ShippedDate = null;
-
-            await _context.SaveChangesAsync();
+            _unitOfWork.Repository<OrderDetail>().Update(orderDetail);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task UpdateOrderShippedStatusAsync(string userId)
         {
-            if (string.IsNullOrWhiteSpace(userId)) return;
+            var orders = await _unitOfWork.Repository<Order>()
+                .Find(o => o.UserId == userId && !o.Shipped && !o.IsCancelled)
+                .Include(o => o.OrderDetails)
+                .ToListAsync();
 
-            try
+            foreach (var order in orders)
             {
-                var ordersToUpdate = await _context.Orders
-                    .Where(o => o.UserId == userId && !o.Shipped)
-                    .Where(o => o.OrderDetails.Any() && o.OrderDetails.All(d => d.IsProcessed))
-                    .ToListAsync();
-
-                if (ordersToUpdate.Any())
+                if (order.OrderDetails.All(od => od.IsProcessed || od.IsCancelled))
                 {
-                    foreach (var order in ordersToUpdate)
-                    {
-                        order.Shipped = true;
-                        _context.Entry(order).Property(x => x.Shipped).IsModified = true;
-                    }
-
-                    await _context.SaveChangesAsync();
+                    order.Shipped = true;
+                    _unitOfWork.Repository<Order>().Update(order);
                 }
             }
-            catch { }
+
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

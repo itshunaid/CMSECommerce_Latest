@@ -10,11 +10,13 @@ namespace CMSECommerce.Hubs
  public class ChatHub : Hub
  {
  private readonly DataContext _context;
+ private readonly IUnitOfWork _unitOfWork;
  private readonly IUserStatusService _userStatusService;
  private readonly ILogger<ChatHub> _logger;
- public ChatHub(DataContext context, IUserStatusService userStatusService, ILogger<ChatHub> logger)
+ public ChatHub(DataContext context, IUnitOfWork unitOfWork, IUserStatusService userStatusService, ILogger<ChatHub> logger)
  {
  _context = context;
+ _unitOfWork = unitOfWork;
  _userStatusService = userStatusService;
  _logger = logger;
  }
@@ -45,12 +47,12 @@ namespace CMSECommerce.Hubs
  {
  // Mark offline on disconnect
  await _userStatusService.UpdateActivityAsync(userId); // ensure LastActivity updated
- var status = await _context.UserStatuses.FindAsync(userId);
+ var status = await _unitOfWork.Repository<UserStatusTracker>().FirstOrDefaultAsync(s => s.UserId == userId);
  if (status != null)
  {
  status.IsOnline = false;
  status.LastActivity = DateTime.UtcNow;
- await _context.SaveChangesAsync();
+ await _unitOfWork.SaveChangesAsync();
  }
  }
  }

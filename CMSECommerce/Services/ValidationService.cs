@@ -5,16 +5,16 @@ using CMSECommerce.Infrastructure;
 
 namespace CMSECommerce.Services
 {
-    public class ValidationService(DataContext dataContext, UserManager<IdentityUser> userManager) : IValidationService
+    public class ValidationService(IUnitOfWork unitOfWork, UserManager<IdentityUser> userManager) : IValidationService
     {
-        private readonly DataContext _context = dataContext;
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
         private readonly UserManager<IdentityUser> _userManager = userManager;
 
         public async Task<bool> CheckUserNameUniqueAsync(string userName)
         {
             if (string.IsNullOrWhiteSpace(userName)) return true;
             var normalizedInput = userName.ToUpperInvariant();
-            var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(up => up.ITSNumber == userName);
+            var userProfile = await _unitOfWork.Repository<UserProfile>().Find(up => up.ITSNumber == userName).FirstOrDefaultAsync();
             if (userProfile != null) return false;
             bool isTaken = await _userManager.Users.AnyAsync(u =>
                 u.NormalizedUserName == normalizedInput ||
@@ -48,10 +48,10 @@ namespace CMSECommerce.Services
             if (string.IsNullOrWhiteSpace(value)) return true;
             bool existsInIdentity = await _userManager.Users.AnyAsync(u =>
                 u.UserName == value || u.Email == value || u.PhoneNumber == value);
-            bool existsInProfile = await _context.UserProfiles.AnyAsync(up =>
-                up.ITSNumber == value || up.WhatsAppNumber == value);
-            bool existsInStore = await _context.Stores.AnyAsync(s =>
-                s.Email == value || s.Contact == value || s.GSTIN == value);
+            bool existsInProfile = await _unitOfWork.Repository<UserProfile>().Find(up =>
+                up.ITSNumber == value || up.WhatsAppNumber == value).AnyAsync();
+            bool existsInStore = await _unitOfWork.Repository<Store>().Find(s =>
+                s.Email == value || s.Contact == value || s.GSTIN == value).AnyAsync();
             return !(existsInIdentity || existsInProfile || existsInStore);
         }
     }

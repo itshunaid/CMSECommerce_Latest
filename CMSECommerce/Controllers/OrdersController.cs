@@ -11,11 +11,13 @@ namespace CMSECommerce.Controllers
     // Injecting dependencies in the primary constructor (C#12 feature)
     public class OrdersController(
                                  DataContext context,
+                                 IUnitOfWork unitOfWork,
                                  UserManager<IdentityUser> userManager,
                                  SignInManager<IdentityUser> signInManager
                                  /*, ILogger<OrdersController> logger */) : BaseController
     {
         private readonly DataContext _context = context;
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
         private readonly SignInManager<IdentityUser> _signInManager = signInManager;
         private readonly UserManager<IdentityUser> _userManager = userManager;
         // private readonly ILogger<OrdersController> _logger = logger; // Uncomment if logging is enabled
@@ -58,8 +60,8 @@ namespace CMSECommerce.Controllers
                     .FirstOrDefaultAsync(p => p.UserId == userId);
 
                 // 3. Status Synchronization Logic
-                var ordersToCheck = await _context.Orders
-                    .Where(o => o.UserId == userId && !o.Shipped && !o.IsCancelled)
+                var ordersToCheck = await _unitOfWork.Repository<Order>()
+                    .Find(o => o.UserId == userId && !o.Shipped && !o.IsCancelled)
                     .Select(o => new
                     {
                         Order = o,

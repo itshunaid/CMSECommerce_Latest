@@ -17,10 +17,12 @@ namespace CMSECommerce.Controllers
     public class SubscriptionController : BaseController
     {
         private readonly DataContext _context;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly UserManager<IdentityUser> _userManager;
-        public SubscriptionController(DataContext context, UserManager<IdentityUser> userManager)
+        public SubscriptionController(DataContext context, IUnitOfWork unitOfWork, UserManager<IdentityUser> userManager)
         {
             _context = context;
+            _unitOfWork = unitOfWork;
             _userManager = userManager;
         }
 
@@ -28,7 +30,7 @@ namespace CMSECommerce.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
-            var tiers = await _context.SubscriptionTiers.OrderBy(t => t.Id).ToListAsync();
+            var tiers = await _unitOfWork.Repository<SubscriptionTier>().GetAll().OrderBy(t => t.Id).ToListAsync();
 
             // Check if the user is logged in to provide personalized tier selection
             if (User.Identity.IsAuthenticated)

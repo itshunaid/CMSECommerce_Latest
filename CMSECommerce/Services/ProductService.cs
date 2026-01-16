@@ -15,20 +15,20 @@ namespace CMSECommerce.Services
     {
         private readonly IProductQueryService _productQueryService;
         private readonly IStoreService _storeService;
-        private readonly DataContext _context;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IUserStatusService _userStatusService;
 
         public ProductService(
             IProductQueryService productQueryService,
             IStoreService storeService,
-            DataContext context,
+            IUnitOfWork unitOfWork,
             UserManager<IdentityUser> userManager,
             IUserStatusService userStatusService)
         {
             _productQueryService = productQueryService;
             _storeService = storeService;
-            _context = context;
+            _unitOfWork = unitOfWork;
             _userManager = userManager;
             _userStatusService = userStatusService;
         }
@@ -62,25 +62,26 @@ namespace CMSECommerce.Services
             try
             {
                 // Fetch all categories for sidebar
-                var allCategories = await _context.Categories
+                var allCategories = await _unitOfWork.Repository<Category>()
+                    .GetAll()
                     .OrderBy(c => c.Level)
                     .ToListAsync();
 
                 // Existing order/user logic for SignalR/Chat
-                List<string> customerUserNames = await _context.OrderDetails
-                    .Where(p => p.ProductOwner == userName && p.IsProcessed == false)
+                List<string> customerUserNames = await _unitOfWork.Repository<OrderDetail>()
+                    .Find(p => p.ProductOwner == userName && p.IsProcessed == false)
                     .Select(p => p.Customer)
                     .Distinct()
                     .ToListAsync();
 
                 string usernameLower = userName?.ToLower() ?? "";
-                List<int> orderIds = await _context.Orders
-                    .Where(o => o.UserName.ToLower().Contains(usernameLower) && o.Shipped == false)
+                List<int> orderIds = await _unitOfWork.Repository<Order>()
+                    .Find(o => o.UserName.ToLower().Contains(usernameLower) && o.Shipped == false)
                     .Select(p => p.Id)
                     .ToListAsync();
 
-                List<string> distinctProductOwners = await _context.OrderDetails
-                    .Where(x => orderIds.Contains(x.OrderId))
+                List<string> distinctProductOwners = await _unitOfWork.Repository<OrderDetail>()
+                    .Find(x => orderIds.Contains(x.OrderId))
                     .Select(detail => detail.ProductOwner)
                     .Distinct()
                     .ToListAsync();
@@ -90,15 +91,15 @@ namespace CMSECommerce.Services
                 userNamesToLookUp = userNamesToLookUp.Distinct().ToList();
 
                 // Product catalog retrieval
-                IQueryable<Product> products = _context.Products
-                    .Where(x => x.Status == ProductStatus.Approved && x.IsVisible)
+                IQueryable<Product> products = _unitOfWork.Repository<Product>()
+                    .Find(x => x.Status == ProductStatus.Approved && x.IsVisible)
                     .AsNoTracking();
 
                 // Apply category filter
                 if (!string.IsNullOrWhiteSpace(slug))
                 {
-                    var category = await _context.Categories
-                        .Where(x => x.Slug == slug)
+                    var category = await _unitOfWork.Repository<Category>()
+                        .Find(x => x.Slug == slug)
                         .AsNoTracking()
                         .FirstOrDefaultAsync();
 

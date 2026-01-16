@@ -1,13 +1,10 @@
-# Soft Delete Implementation for Users
+# TODO: Fix '_unitOfWork' does not exist in current context
 
 ## Tasks
-- [x] Add IsDeactivated field to UserViewModel in Areas/Admin/Models/UserAdminViewModels.cs
-- [x] Update UsersController Index method to map IsDeactivated from UserProfile
-- [x] Add SoftDelete action in UsersController to set IsDeactivated=true, IsProfileVisible=false, products to Pending
-- [x] Add Restore action in UsersController to set IsDeactivated=false, IsProfileVisible=true, products to Approved
-- [x] Update UpdateUserField action to handle IsDeactivated if needed
-- [x] Update Areas/Admin/Views/Users/Index.cshtml to display IsDeactivated status and add Soft Delete/Restore buttons
-- [x] Test the functionality
-
-## Progress
-- Implementation completed. Ready for testing.
+- [x] Update ChatHub.cs constructor to inject IUnitOfWork and assign _unitOfWork
+- [x] Replace _context usage with _unitOfWork.Repository<T>() in ProductService.cs
+- [x] Replace _context usage with _unitOfWork.Repository<T>() in ValidationService.cs
+- [x] Update DashboardController.cs constructor to inject IUnitOfWork and assign _unitOfWork
+- [x] Update ProductQueryService.cs constructor to inject IUnitOfWork and assign _unitOfWork
+- [x] Update UserStatusService.cs constructor to inject IUnitOfWork and assign _unitOfWork
+- [x] Test compilation to ensure no errors

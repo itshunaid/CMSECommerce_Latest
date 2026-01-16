@@ -1,4 +1,5 @@
 using CMSECommerce.Infrastructure;
+using CMSECommerce.Models;
 using CMSECommerce.Models.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -11,12 +12,12 @@ namespace CMSECommerce.Services
 {
     public class CartService : ICartService
     {
-        private readonly DataContext _context;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public CartService(DataContext context, IHttpContextAccessor httpContextAccessor)
+        public CartService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccessor)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
             _httpContextAccessor = httpContextAccessor;
         }
 
@@ -32,16 +33,16 @@ namespace CMSECommerce.Services
 
             var productIds = cart.Select(c => c.ProductId).Distinct().ToList();
 
-            var productLookup = await _context.Products
-                .Where(p => productIds.Contains(p.Id))
+            var productLookup = await _unitOfWork.Repository<Product>()
+                .Find(p => productIds.Contains(p.Id))
                 .Select(p => new
                 {
                     p.Id,
                     p.StockQuantity,
                     p.Image,
                     p.Slug,
-                    DisplayName = _context.UserProfiles
-                        .Where(up => up.UserId == p.UserId)
+                    DisplayName = _unitOfWork.Repository<UserProfile>()
+                        .Find(up => up.UserId == p.UserId)
                         .Select(up => up.Store.StoreName)
                         .FirstOrDefault() ?? p.User.UserName
                 })
@@ -82,7 +83,7 @@ namespace CMSECommerce.Services
 
         public async Task AddToCartAsync(int productId)
         {
-            var product = await _context.Products.FindAsync(productId);
+            var product = await _unitOfWork.Repository<Product>().GetByIdAsync(productId);
             if (product == null) throw new Exception("Product not found.");
 
             var session = _httpContextAccessor.HttpContext.Session;
@@ -115,8 +116,8 @@ namespace CMSECommerce.Services
 
             if (cartItem == null) throw new Exception("Item not found in cart.");
 
-            var productInfo = await _context.Products
-                .Where(p => p.Id == productId)
+            var productInfo = await _unitOfWork.Repository<Product>()
+                .Find(p => p.Id == productId)
                 .Select(p => new { p.StockQuantity, p.Name })
                 .FirstOrDefaultAsync();
 
