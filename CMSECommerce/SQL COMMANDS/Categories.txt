@@ -1,4 +1,4 @@
-﻿Delete from Categories;
+Delete from Categories;
 -- Allow manual insertion of IDs
 SET IDENTITY_INSERT Categories ON;
 

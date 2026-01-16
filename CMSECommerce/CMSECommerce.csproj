@@ -8,11 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="SQL COMMANDS\Categories.txt" />
-    <Compile Include="SQL COMMANDS\SubscriptionTiers.txt" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="Pages\Contact.txt" />
     <Content Include="Pages\Home.txt" />
     <Content Include="Pages\Services.txt" />

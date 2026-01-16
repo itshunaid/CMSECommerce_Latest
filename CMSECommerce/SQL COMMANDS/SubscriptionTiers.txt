@@ -1,4 +1,4 @@
-﻿Delete from SubscriptionTiers;
+Delete from SubscriptionTiers;
 
 -- Allow manual insertion of values into the Identity (Auto-increment) column
 SET IDENTITY_INSERT SubscriptionTiers ON;
