@@ -208,6 +208,48 @@ a {
     font-weight: 400
 }
 
+.category-list-item {
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease-in-out;
+}
+
+.category-list-item:hover {
+    background-color: #f0f0f0;
+}
+
+.active-category {
+    border-left: 3px solid var(--amazon-link-teal) !important;
+    background-color: #e6f7ff !important;
+}
+
+.active-category .amazon-sidebar-link {
+    color: var(--amazon-link-teal-hover) !important;
+    font-weight: 700;
+}
+
+.category-toggle {
+    color: var(--amazon-black);
+    font-weight: 500;
+}
+
+.category-toggle:hover {
+    background-color: #f0f0f0;
+    color: var(--amazon-link-teal);
+}
+
+.toggle-icon {
+    transition: transform 0.2s ease;
+    font-size: 0.75rem;
+}
+
+.category-toggle[aria-expanded="true"] .toggle-icon {
+    transform: rotate(90deg);
+}
+
+.collapse {
+    margin-left: 1rem;
+}
+
 .chat-messages {
     border: 1px solid #ccc;
     padding: 8px;
@@ -230,7 +272,7 @@ a {
         color: var(--amazon-link-teal) !important
     }
 
-@@media (max-width:576px) {
+@media (max-width:576px) {
     .product-image-wrapper {
         padding-top: 100%
     }
@@ -240,7 +282,7 @@ a {
     }
 }
 
-@@media (max-width:767.98px) {
+@media (max-width:767.98px) {
     .floating-chat-btn {
         width: 60px !important;
         height: 60px !important;

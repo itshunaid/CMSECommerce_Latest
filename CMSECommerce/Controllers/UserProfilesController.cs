@@ -82,7 +82,7 @@ namespace CMSECommerce.Controllers
 
             if (existingProfile != null)
             {
-                return RedirectToAction("Index");
+                return RedirectToAction("Edit");
             }
 
             if(User.IsInRole("Customer"))
@@ -165,6 +165,10 @@ namespace CMSECommerce.Controllers
                 {
                     return RedirectToAction("Register", "Subscription", new { tierId = tierId });
                 }
+                if (callingFrom == "Subscription" && tierId > 0)
+                {
+                    return RedirectToAction("Register", "Subscription", new { tierId = tierId });
+                }
 
                 return RedirectToAction("Index");
             }
@@ -176,12 +180,24 @@ namespace CMSECommerce.Controllers
         }
 
         // GET: UserProfiles/Edit
-        public async Task<IActionResult> Edit()
+        public async Task<IActionResult> Edit(string? id)
         {
-
+            string userId = string.Empty;
             var isCustomer = User.IsInRole("Customer");
             ViewBag.IsCustomer = isCustomer;
-            var userId = _userManager.GetUserId(User);
+
+            if (!string.IsNullOrEmpty(id))
+            {
+                userId = id;
+                ViewBag.CallingFrom = "Admin";
+            }
+            else
+            {
+
+                userId = _userManager.GetUserId(User);
+            }
+            ViewBag.UserId = userId;
+
             var profile = await _context.UserProfiles
                 .Include(p => p.Store)
                 .FirstOrDefaultAsync(p => p.UserId == userId);
@@ -194,9 +210,13 @@ namespace CMSECommerce.Controllers
         // POST: UserProfiles/Edit
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(UserProfile model, IFormFile? profileImg, IFormFile? gpayQR, IFormFile? phonepeQR)
+        public async Task<IActionResult> Edit(string? userId, UserProfile model, IFormFile? profileImg, IFormFile? gpayQR, IFormFile? phonepeQR, string callingFrom)
         {
-            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId)) 
+            {
+                userId = _userManager.GetUserId(User);
+            }
+             
             var existingProfile = await _context.UserProfiles
                 .Include(p => p.Store)
                 .FirstOrDefaultAsync(p => p.UserId == userId);
@@ -206,6 +226,10 @@ namespace CMSECommerce.Controllers
             ModelState.Remove("User");
             ModelState.Remove("UserId");
             ModelState.Remove("Store");
+            if(callingFrom=="Admin")
+            {
+                ModelState.Remove("Id");
+            }
 
             if (!ModelState.IsValid) return View(model);
 
@@ -221,11 +245,17 @@ namespace CMSECommerce.Controllers
                 existingProfile.LastName = model.LastName;
                 existingProfile.Profession = model.Profession;
                 existingProfile.About = model.About;
-                existingProfile.ITSNumber = model.ITSNumber;
+                if(callingFrom!="Admin")
+                {
+                    existingProfile.ITSNumber = model.ITSNumber;
+
+                }
+                
                 existingProfile.WhatsAppNumber = model.WhatsAppNumber;
                 existingProfile.HomeAddress = model.HomeAddress;
                 existingProfile.BusinessAddress = model.BusinessAddress;
                 existingProfile.IsProfileVisible = model.IsProfileVisible;
+                existingProfile.ServicesProvided=model.ServicesProvided;
 
                 // Sync Store details
                 if (existingProfile.Store != null)
@@ -243,6 +273,12 @@ namespace CMSECommerce.Controllers
                 await _context.SaveChangesAsync();
 
                 TempData["Success"] = "Profile updated successfully.";
+
+                if (callingFrom == "Admin")
+                {
+                    // Explicitly targeting the 'Admin' area
+                    return RedirectToAction("Index", "Users", new { area = "Admin" });
+                }
                 return RedirectToAction("Index");
             }
             catch (Exception ex)

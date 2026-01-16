@@ -16,6 +16,7 @@
   <ItemGroup>
     <PackageReference Include="ExcelDataReader" Version="3.8.0" />
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.8.0" />
+    <PackageReference Include="MediatR" Version="14.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.3" />
@@ -27,9 +28,18 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
     <PackageReference Include="Microsoft.Playwright" Version="1.40.0" />
     <PackageReference Include="Rotativa.AspNetCore" Version="1.4.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.10.1" />
+
+    <!-- Test helper packages added to main project to allow in-repo unit tests to compile in CI/build agent -->
+    <PackageReference Include="xunit" Version="2.4.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.3" />
+
+    <!-- MailKit for robust SMTP (preferred over System.Net.Mail.SmtpClient) -->
+    <PackageReference Include="MailKit" Version="4.0.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Areas\Seller\Views\Categories\" />
     <Folder Include="Views\Cart\" />
     <Folder Include="wwwroot\images\useruploads\" />
   </ItemGroup>

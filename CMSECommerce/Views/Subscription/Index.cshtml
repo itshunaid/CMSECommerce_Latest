@@ -4,7 +4,6 @@
     ViewData["Title"] = "Membership Plans";
     ViewData["HideLayoutSidebar"] = true;
 
-    // Retrieve metadata from ViewBag passed by the Controller
     int? currentTierId = ViewBag.CurrentTierId;
     bool hasPendingRequest = ViewBag.HasPendingRequest ?? false;
     bool isActiveSubscriber = ViewBag.IsActiveSubscriber ?? false;
@@ -12,62 +11,57 @@
 
 @section Styles {
     <style>
+        /* Existing Variables */
         :root {
             --primary-gradient: linear-gradient(135deg, #21409a 0%, #152a66 100%);
             --primary-color: #21409a;
             --text-dark: #1a202c;
-            --text-light: #718096;
-            --bg-light: #f7fafc;
+            --text-light: #64748b;
+            --bg-light: #f8fafc;
             --white: #ffffff;
-            --success: #38a169;
-            --warning: #d97706;
-            --info: #3182ce;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --border-color: #e2e8f0;
         }
 
         body {
             background-color: var(--bg-light);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--text-dark);
         }
 
-        .pricing-container {
-            max-width: 1300px;
-            margin: 0 auto;
-        }
-
+        /* --- PRICING STYLES (Unchanged) --- */
         .pricing-header {
-            padding: 3rem 0;
+            padding: 4rem 0 3rem;
             text-align: center;
         }
 
             .pricing-header h1 {
                 font-weight: 800;
-                color: var(--text-dark);
                 font-size: 2.5rem;
-                letter-spacing: -0.025em;
+                letter-spacing: -0.02em;
+                margin-bottom: 1rem;
+                color: var(--text-dark);
             }
 
-        .qr-badge {
-            background: var(--white);
-            padding: 1rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            display: inline-flex;
-            align-items: center;
-            gap: 1rem;
-            border: 1px solid #e2e8f0;
-            margin-bottom: 2rem;
-        }
+            .pricing-header p {
+                font-size: 1.1rem;
+                color: var(--text-light);
+                max-width: 700px;
+                margin: 0 auto;
+            }
 
         .pricing-card {
             background: var(--white);
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border-color);
             border-radius: 24px;
-            padding: 2rem 1.25rem;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 2.5rem 1.5rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             flex-direction: column;
             height: 100%;
             position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
             .pricing-card:hover {
@@ -78,26 +72,26 @@
 
             .pricing-card.premium {
                 border: 2px solid var(--primary-color);
-                background: linear-gradient(to bottom, #ffffff, #f0f4ff);
+                background: linear-gradient(to bottom, #ffffff, #f8faff);
             }
 
             .pricing-card.current {
                 border: 2px solid var(--success);
-                background-color: #f0fff4;
+                background-color: #f0fdf4;
             }
 
         .premium-label, .current-label {
             position: absolute;
-            top: 0;
+            top: -15px;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
             color: white;
-            padding: 0.5rem 1.5rem;
-            border-radius: 99px;
+            padding: 0.5rem 1.25rem;
+            border-radius: 50px;
             font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
-            white-space: nowrap;
+            letter-spacing: 0.05em;
             z-index: 10;
         }
 
@@ -107,32 +101,38 @@
 
         .current-label {
             background: var(--success);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
         }
 
         .plan-name {
-            font-size: 0.875rem;
+            font-size: 0.9rem;
             font-weight: 700;
             color: var(--primary-color);
             text-transform: uppercase;
-            margin-bottom: 0.5rem;
+            margin-bottom: 1rem;
             display: block;
         }
 
         .plan-price {
-            font-size: 2.25rem;
+            font-size: 2.75rem;
             font-weight: 800;
+            margin-bottom: 1.5rem;
             color: var(--text-dark);
-            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: baseline;
         }
 
             .plan-price span {
-                font-size: 0.9rem;
+                font-size: 1rem;
                 font-weight: 500;
                 color: var(--text-light);
+                margin-left: 4px;
             }
 
         .feature-list {
-            margin: 1.5rem 0;
+            margin-bottom: 2rem;
             padding: 0;
             list-style: none;
             flex-grow: 1;
@@ -142,51 +142,59 @@
             display: flex;
             align-items: flex-start;
             gap: 0.75rem;
-            margin-bottom: 0.85rem;
-            font-size: 0.88rem;
-            color: #4a5568;
-            line-height: 1.4;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+            color: #475569;
         }
 
             .feature-item i {
                 color: var(--success);
-                font-size: 1rem;
-                margin-top: 2px;
+                font-size: 1.1rem;
                 flex-shrink: 0;
+                margin-top: 2px;
             }
 
             .feature-item.locked {
-                color: #a0aec0;
+                color: #94a3b8;
             }
 
                 .feature-item.locked i {
-                    color: #cbd5e0;
+                    color: #cbd5e1;
                 }
 
         .btn-upgrade {
-            background: var(--primary-gradient);
-            color: white;
-            font-weight: 700;
-            padding: 0.85rem;
+            width: 100%;
+            padding: 0.8rem 1.5rem;
             border-radius: 12px;
+            font-weight: 700;
             text-align: center;
-            text-decoration: none;
-            transition: all 0.2s;
             border: none;
             cursor: pointer;
-            width: 100%;
+            display: inline-block;
+            text-decoration: none;
+            transition: 0.2s;
         }
 
-            .btn-upgrade:hover {
-                opacity: 0.95;
-                color: white;
+        .btn-fill {
+            background: var(--primary-gradient);
+            color: white !important;
+        }
+
+            .btn-fill:hover {
+                opacity: 0.9;
+                transform: scale(1.02);
             }
 
         .btn-outline {
             background: transparent;
-            border: 2px solid #e2e8f0;
+            border: 2px solid var(--border-color);
             color: var(--text-dark);
         }
+
+            .btn-outline:hover {
+                border-color: var(--primary-color);
+                background-color: #f8faff;
+            }
 
         .btn-locked {
             background: #e2e8f0;
@@ -194,72 +202,99 @@
             cursor: not-allowed;
         }
 
-        .btn-pending {
-            background: var(--warning);
-            color: white;
+        /* --- MODAL UPDATES --- */
+        .modal-content {
+            border-radius: 24px;
+            border: none;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
 
-        /* Enhanced Modal Styling */
-        .modal-content {
-            border-radius: 20px;
-            border: none;
+        .disclaimer-box {
+            background-color: #f1f5f9;
+            border-radius: 16px;
+            padding: 1.2rem;
+            margin-bottom: 1.2rem;
+            max-height: 220px;
+            overflow-y: auto;
         }
 
         .disclaimer-list {
-            padding-left: 0;
+            padding: 0;
+            margin: 0;
             list-style: none;
         }
 
             .disclaimer-list li {
-                margin-bottom: 12px;
+                font-size: 0.8rem;
                 display: flex;
                 gap: 10px;
-                font-size: 0.88rem;
-                color: #4a5568;
-                line-height: 1.5;
+                margin-bottom: 8px;
+                color: #334155;
+                line-height: 1.4;
             }
 
             .disclaimer-list i {
                 color: var(--primary-color);
-                margin-top: 4px;
-                flex-shrink: 0;
+                margin-top: 3px;
+                font-size: 0.85rem;
             }
 
-        .legal-footer-links {
-            font-size: 0.75rem;
-            color: #718096;
-            margin-top: 15px;
-            text-align: center;
+        /* Reading Tracker Styles */
+        .reading-requirement {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 15px;
         }
 
-            .legal-footer-links a {
-                color: var(--primary-color);
-                text-decoration: none;
-                font-weight: 600;
+        .smallest-caps {
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.05em;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .read-link-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+
+            .read-link-item:last-child {
+                margin-bottom: 0;
             }
 
-                .legal-footer-links a:hover {
-                    text-decoration: underline;
-                }
+        .btn-read-sm {
+            font-size: 0.75rem;
+            padding: 2px 10px;
+            border-radius: 6px;
+        }
+
+        #checkboxWrapper {
+            transition: all 0.3s ease;
+        }
+
+        .locked-state {
+            opacity: 0.5;
+            background-color: #f8fafc !important;
+            pointer-events: none;
+        }
     </style>
 }
 
-<div class="container pricing-container py-5">
+<div class="container py-5">
     <div class="pricing-header">
         <h1>Elevate Your Business</h1>
-        <p>Choose the right tools to showcase your products and manage your orders with Weypaari’s professional seller ecosystem.</p>
-
-        <div class="qr-badge">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://weypaari.com"
-                 style="width: 60px; height: 60px;" alt="QR Code">
-            <div class="text-start">
-                <div class="fw-bold text-dark" style="font-size: 0.85rem;">Instant Activation</div>
-                <div class="text-muted small">Scan to pay & start selling</div>
-            </div>
-        </div>
+        <p>Unlock professional tools to manage your inventory and scale your sales with Weypaari’s ecosystem.</p>
     </div>
 
-    <div class="row g-4 justify-content-center">
+    <div class="row g-4 justify-content-center align-items-stretch">
         @foreach (var tier in Model.OrderBy(t => t.Id))
         {
             bool isTrial = tier.Name.Contains("Trial", StringComparison.OrdinalIgnoreCase);
@@ -270,12 +305,12 @@
             bool isCurrentTier = currentTierId == tier.Id;
             bool isDowngrade = currentTierId != null && tier.Id < currentTierId;
 
-            <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
                 <div class="pricing-card @(isPremium ? "premium" : "") @(isCurrentTier ? "current" : "")">
 
                     @if (isCurrentTier)
                     {
-                        <div class="current-label"><i class="fas fa-check me-1"></i> Your Plan</div>
+                        <div class="current-label text-nowrap"><i class="fas fa-check me-1"></i> Current Plan</div>
                     }
                     else if (isPremium)
                     {
@@ -283,104 +318,118 @@
                     }
 
                     <span class="plan-name">@tier.Name</span>
-                    <div class="plan-price">₹@tier.Price.ToString("N0")<span>/@(tier.DurationMonths == 1 ? "1 month" : tier.DurationMonths + " months")</span></div>
+                    <div class="plan-price">
+                        ₹@tier.Price.ToString("N0")
+                        <span>/@(tier.DurationMonths == 1 ? "mo" : tier.DurationMonths + " mos")</span>
+                    </div>
 
                     <ul class="feature-list">
-                        <li class="feature-item"><i class="fas fa-check-circle"></i> <strong>@tier.ProductLimit Products</strong></li>
-                        <li class="feature-item"><i class="fas fa-check-circle"></i> Personal Store Page</li>
-                        <li class="feature-item"><i class="fas fa-check-circle"></i> Seller Dashboard</li>
+                        <li class="feature-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span><strong>@tier.ProductLimit</strong> Product Listings</span>
+                        </li>
+                        <li class="feature-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Storefront Customization</span>
+                        </li>
+                        <li class="feature-item">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Sales Analytics Dashboard</span>
+                        </li>
                         <li class="feature-item">
                             <i class="fas fa-bolt"></i>
-                            <span>@(isPremium ? "Peak Hours Daily" : "Twice a week") front page display</span>
+                            <span>@(isPremium ? "Peak Hour Priority" : "Standard") Visibility</span>
                         </li>
                         <li class="feature-item @(isAdvance || isPremium ? "" : "locked")">
                             <i class="fas @(isAdvance || isPremium ? "fa-star" : "fa-lock")"></i>
-                            <span>Recommended Slider @(isPremium ? "(Peak Hours Daily)" : isAdvance ? "(Twice a week)" : "")</span>
+                            <span>Slider @(isPremium ? "(Daily)" : isAdvance ? "(2x Weekly)" : "")</span>
                         </li>
                         <li class="feature-item @(isTrial ? "locked" : "")">
-                            <i class="fas @(isTrial ? "fa-lock" : "fa-book")"></i>
-                            <span>Seller Dictionary (B2B)</span>
+                            <i class="fas @(isTrial ? "fa-lock" : "fa-book-open")"></i>
+                            <span>B2B Seller Directory</span>
                         </li>
                         <li class="feature-item @(isAdvance || isPremium ? "" : "locked")">
                             <i class="fas @(isAdvance || isPremium ? "fa-bell" : "fa-lock")"></i>
-                            <span>
-                                @if (isPremium)
-                                {
-                                    <text>Spontaneous new product alerts</text>
-                                }
-                                else if (isAdvance)
-                                {
-
-                                    <text>Alerts within 24 hours</text>
-                                }
-                                else
-                                {
-
-                                    <text>Customer notifications</text>
-                                }
-                            </span>
+                            <span>@(isPremium ? "Instant Lead Alerts" : isAdvance ? "24h Lead Alerts" : "Standard Alerts")</span>
                         </li>
                     </ul>
 
-                    @if (hasPendingRequest)
-                    {
-                        <a asp-action="Status" class="btn-upgrade btn-pending"><i class="fas fa-clock me-2"></i> Request Pending</a>
-                    }
-                    else if (isCurrentTier)
-                    {
-                        <a asp-action="Status" class="btn-upgrade btn-outline">Manage Subscription</a>
-                    }
-                    else if (isDowngrade)
-                    {
-                        <button class="btn-upgrade btn-locked" title="Downgrades are not available"><i class="fas fa-lock me-2"></i> Lower Plan</button>
-                    }
-                    else
-                    {
-                        <button type="button" class="btn-upgrade @(isPremium ? "" : "btn-outline")"
-                                onclick="openDisclaimer(@tier.Id, '@tier.Name')">
-                            @(currentTierId != null ? "Upgrade Now" : "Get Started Now")
-                        </button>
-                    }
+                    <div class="mt-auto">
+                        @if (hasPendingRequest)
+                        {
+                            <a asp-action="Status" class="btn-upgrade" style="background:var(--warning); color:white;">
+                                <i class="fas fa-clock me-2"></i> Request Pending
+                            </a>
+                        }
+                        else if (isCurrentTier)
+                        {
+                            <a asp-action="Status" class="btn-upgrade btn-outline">Manage Subscription</a>
+                        }
+                        else if (isDowngrade)
+                        {
+                            <button class="btn-upgrade btn-locked" disabled title="Downgrades are not available">
+                                <i class="fas fa-lock me-2"></i> Higher Plan Only
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn-upgrade @(isPremium ? "btn-fill" : "btn-outline")"
+                                    onclick="openDisclaimer(@tier.Id, '@tier.Name')">
+                                @(currentTierId != null ? "Upgrade Now" : "Get Started")
+                            </button>
+                        }
+                    </div>
                 </div>
             </div>
         }
     </div>
 </div>
 
-@* Enhanced Disclaimer Modal with Legal Links *@
+@* Enhanced Disclaimer Modal *@
 <div class="modal fade" id="disclaimerModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold"><i class="fas fa-shield-alt text-primary me-2"></i>Subscription Agreement</h5>
+                <h5 class="modal-title fw-bold">Plan Agreement</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted small">By subscribing to the <strong id="modalTierName" class="text-primary"></strong> plan, you acknowledge the following terms:</p>
-                <ul class="disclaimer-list">
-                    <li><i class="fas fa-history"></i> <span><strong>Verification:</strong> Manual ITS ID/Reference verification takes 24-48 working hours.</span></li>
-                    <li><i class="fas fa-ban"></i> <span><strong>No-Refund Policy:</strong> All subscription payments are final and non-refundable.</span></li>
-                    <li><i class="fas fa-layer-group"></i> <span><strong>Upgrade/Downgrade:</strong> Upgrades apply instantly; downgrades are only possible after expiry.</span></li>
-                    <li><i class="fas fa-camera"></i> <span><strong>Payment Proof:</strong> You must upload a clear screenshot of the payment receipt.</span></li>
-                    <li><i class="fas fa-user-shield"></i> <span><strong>Usage Policy:</strong> Account sharing or scraping B2B data results in suspension.</span></li>
-                </ul>
+                <p class="text-muted small mb-3">Please review the following to proceed with the <strong id="modalTierName" class="text-primary"></strong> plan:</p>
 
-                <div class="form-check mt-4 p-3 bg-light rounded border">
-                    <input class="form-check-input ms-0 me-2" type="checkbox" id="agreeCheckbox" style="cursor:pointer">
-                    <label class="form-check-label small fw-bold text-dark" for="agreeCheckbox" style="cursor:pointer">
-                        I agree to the terms and the legal policies listed below.
-                    </label>
+                <div class="disclaimer-box">
+                    <ul class="disclaimer-list">
+                        <li><i class="fas fa-shield-alt"></i> <span><strong>Verification:</strong> Approval takes 24-48 working hours.</span></li>
+                        <li><i class="fas fa-hand-holding-usd"></i> <span><strong>Final Sale:</strong> Payments are non-refundable once verified.</span></li>
+                        <li><i class="fas fa-file-invoice"></i> <span><strong>Proof:</strong> A valid payment screenshot is required.</span></li>
+                        <li><i class="fas fa-exclamation-triangle"></i> <span><strong>Conduct:</strong> Account sharing is strictly prohibited.</span></li>
+                        <li><i class="fas fa-database"></i> <span><strong>Accuracy:</strong> You are responsible for your store's info.</span></li>
+                    </ul>
                 </div>
 
-                <div class="legal-footer-links">
-                    By proceeding, you agree to our
-                    <a href="/Subscription/Terms" target="_blank">Terms of Service</a> &
-                    <a href="/Subscription/Privacy" target="_blank">Privacy Policy</a>
+                <div class="reading-requirement">
+                    <span class="smallest-caps">Required Reading</span>
+                    <div class="read-link-item">
+                        <span><i id="icon-tc" class="fas fa-circle-notch text-muted me-2"></i> Terms & Conditions</span>
+                        <a href="@Url.Action("Terms", "Subscription")" target="_blank" class="btn btn-outline-primary btn-read-sm" onclick="markAsRead('tc')">View</a>
+                    </div>
+                    <div class="read-link-item">
+                        <span><i id="icon-pp" class="fas fa-circle-notch text-muted me-2"></i> Privacy Policy</span>
+                        <a href="@Url.Action("Privacy", "Subscription")" target="_blank" class="btn btn-outline-primary btn-read-sm" onclick="markAsRead('pp')">View</a>
+                    </div>
+                </div>
+
+                <div class="form-check p-3 rounded border locked-state" id="checkboxWrapper">
+                    <input class="form-check-input ms-0 me-2" type="checkbox" id="agreeCheckbox" disabled>
+                    <label class="form-check-label small fw-bold text-dark" for="agreeCheckbox">
+                        I agree to the Terms and Privacy.
+                    </label>
+                </div>
+                <div id="unlockMsg" class="smallest text-danger mt-2">
+                    <i class="fas fa-lock me-1"></i> Please click both links above to unlock the checkbox.
                 </div>
             </div>
             <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light btn-sm text-muted" data-bs-dismiss="modal">Decline</button>
-                <button type="button" id="proceedBtn" class="btn btn-primary px-4 disabled" onclick="redirectToRegister()">Accept & Proceed</button>
+                <button type="button" id="proceedBtn" class="btn btn-primary w-100 py-2 fw-bold disabled" onclick="redirectToRegister()">Accept & Proceed</button>
             </div>
         </div>
     </div>
@@ -389,16 +438,52 @@
 @section Scripts {
     <script>
         let selectedTierId = null;
-        const modal = new bootstrap.Modal(document.getElementById('disclaimerModal'));
+        let hasReadTC = false;
+        let hasReadPP = false;
+
+        const modalEl = document.getElementById('disclaimerModal');
+        const modal = new bootstrap.Modal(modalEl);
         const proceedBtn = document.getElementById('proceedBtn');
         const checkbox = document.getElementById('agreeCheckbox');
+        const checkboxWrapper = document.getElementById('checkboxWrapper');
+        const unlockMsg = document.getElementById('unlockMsg');
 
         function openDisclaimer(tierId, tierName) {
             selectedTierId = tierId;
             document.getElementById('modalTierName').innerText = tierName;
+
+            // Reset state every time modal opens
+            hasReadTC = false;
+            hasReadPP = false;
             checkbox.checked = false;
+            checkbox.disabled = true;
+            checkboxWrapper.classList.add('locked-state');
+            unlockMsg.classList.remove('d-none');
             proceedBtn.classList.add('disabled');
+
+            // Reset Icons
+            document.getElementById('icon-tc').className = "fas fa-circle-notch text-muted me-2";
+            document.getElementById('icon-pp').className = "fas fa-circle-notch text-muted me-2";
+
             modal.show();
+        }
+
+        function markAsRead(type) {
+            if (type === 'tc') {
+                hasReadTC = true;
+                document.getElementById('icon-tc').className = "fas fa-check-circle text-success me-2";
+            } else if (type === 'pp') {
+                hasReadPP = true;
+                document.getElementById('icon-pp').className = "fas fa-check-circle text-success me-2";
+            }
+
+            // Unlock checkbox only if both links are clicked
+            if (hasReadTC && hasReadPP) {
+                checkbox.disabled = false;
+                checkboxWrapper.classList.remove('locked-state');
+                checkboxWrapper.style.backgroundColor = "#fff";
+                unlockMsg.classList.add('d-none');
+            }
         }
 
         checkbox.addEventListener('change', function() {
@@ -412,14 +497,17 @@
             }
         }
 
-        document.querySelectorAll('.pricing-card').forEach((card, index) => {
-            card.style.opacity = "0";
-            card.style.transform = "translateY(20px)";
-            card.style.transition = "all 0.5s ease-out";
-            setTimeout(() => {
-                card.style.opacity = "1";
-                card.style.transform = "translateY(0)";
-            }, 100 * index);
+        // Entrance Animation
+        document.addEventListener("DOMContentLoaded", function() {
+            document.querySelectorAll('.pricing-card').forEach((card, index) => {
+                card.style.opacity = "0";
+                card.style.transform = "translateY(20px)";
+                setTimeout(() => {
+                    card.style.transition = "all 0.5s ease-out";
+                    card.style.opacity = "1";
+                    card.style.transform = "translateY(0)";
+                }, 100 * index);
+            });
         });
     </script>
 }

@@ -1,7 +1,7 @@
 ﻿<div aria-live="polite" aria-atomic="true" class="position-relative">
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999; margin-top: 60px;">
 
-        @if (TempData["success"] != null)
+        @if (TempData["Success"] != null)
         {
             <div class="toast show border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
                 <div class="toast-header border-0 text-white" style="background-color: #2e7d32;">
@@ -10,12 +10,12 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
                 <div class="toast-body bg-white py-3">
-                    @TempData["success"]
+                    @TempData["Success"]
                 </div>
             </div>
         }
 
-        @if (TempData["error"] != null)
+        @if (TempData["Error"] != null)
         {
             <div class="toast show border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="8000">
                 <div class="toast-header border-0 text-white" style="background-color: #d32f2f;">
@@ -24,12 +24,12 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
                 <div class="toast-body bg-white py-3">
-                    @TempData["error"]
+                    @TempData["Error"]
                 </div>
             </div>
         }
 
-        @if (TempData["warning"] != null)
+        @if (TempData["Warning"] != null)
         {
             <div class="toast show border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="10000">
                 <div class="toast-header border-0 text-dark" style="background-color: #ffd814;">
@@ -38,7 +38,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
                 <div class="toast-body bg-white py-3 border-start border-warning border-4">
-                    @TempData["warning"]
+                    @TempData["Warning"]
                 </div>
             </div>
         }

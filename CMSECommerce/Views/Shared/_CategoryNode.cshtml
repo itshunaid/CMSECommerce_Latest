@@ -1,0 +1,30 @@
+@model Tuple<Category, int>
+
+@{
+    var category = Model.Item1;
+    var level = Model.Item2;
+    var isActive = ViewBag.CategorySlug == category.Slug;
+}
+
+<li class="category-list-item @(isActive ? "active-category" : "")" style="padding-left: @(level * 20)px;">
+    <a class="amazon-sidebar-link nav-link text-decoration-none d-flex justify-content-between align-items-center"
+       asp-controller="Products"
+       asp-action="Index"
+       asp-route-slug="@category.Slug">
+        <span>
+            @if (level > 0)
+            {
+                <i class="fas fa-chevron-right me-2"></i>
+            }
+            @category.Name
+        </span>
+    </a>
+</li>
+
+@if (category.Children != null && category.Children.Any())
+{
+    foreach (var child in category.Children)
+    {
+        <partial name="_CategoryNode" model="Tuple.Create(child, level + 1)" />
+    }
+}

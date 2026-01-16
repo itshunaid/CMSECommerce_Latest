@@ -61,13 +61,27 @@ namespace CMSECommerce.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Slug")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.ToTable("Categories");
 
@@ -75,14 +89,48 @@ namespace CMSECommerce.Migrations
                         new
                         {
                             Id = 1,
+                            Level = 0,
                             Name = "Shirts",
                             Slug = "shirts"
                         },
                         new
                         {
                             Id = 2,
+                            Level = 0,
                             Name = "Fruit",
                             Slug = "fruit"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Level = 1,
+                            Name = "T-Shirts",
+                            ParentId = 1,
+                            Slug = "t-shirts"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Level = 1,
+                            Name = "Formal Shirts",
+                            ParentId = 1,
+                            Slug = "formal-shirts"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Level = 1,
+                            Name = "Apples",
+                            ParentId = 2,
+                            Slug = "apples"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Level = 1,
+                            Name = "Oranges",
+                            ParentId = 2,
+                            Slug = "oranges"
                         });
                 });
 
@@ -321,6 +369,9 @@ namespace CMSECommerce.Migrations
                     b.Property<string>("Image")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -366,6 +417,7 @@ namespace CMSECommerce.Migrations
                             CategoryId = 2,
                             Description = "Juicy apples",
                             Image = "apple1.jpg",
+                            IsVisible = true,
                             Name = "Apples",
                             OwnerName = "Admin",
                             Price = 1.50m,
@@ -381,6 +433,7 @@ namespace CMSECommerce.Migrations
                             CategoryId = 2,
                             Description = "Juicy grapefruit",
                             Image = "grapefruit1.jpg",
+                            IsVisible = true,
                             Name = "Grapefruit",
                             OwnerName = "Admin",
                             Price = 2m,
@@ -396,6 +449,7 @@ namespace CMSECommerce.Migrations
                             CategoryId = 2,
                             Description = "Fresh grapes",
                             Image = "grapes1.jpg",
+                            IsVisible = true,
                             Name = "Grapes",
                             OwnerName = "Admin",
                             Price = 1.80m,
@@ -411,6 +465,7 @@ namespace CMSECommerce.Migrations
                             CategoryId = 2,
                             Description = "Fresh oranges",
                             Image = "orange1.jpg",
+                            IsVisible = true,
                             Name = "Oranges",
                             OwnerName = "Admin",
                             Price = 1.50m,
@@ -426,6 +481,7 @@ namespace CMSECommerce.Migrations
                             CategoryId = 1,
                             Description = "Nice blue t-shirt",
                             Image = "blue1.jpg",
+                            IsVisible = true,
                             Name = "Blue shirt",
                             OwnerName = "Admin",
                             Price = 7.99m,
@@ -441,6 +497,7 @@ namespace CMSECommerce.Migrations
                             CategoryId = 1,
                             Description = "Nice red t-shirt",
                             Image = "red1.jpg",
+                            IsVisible = true,
                             Name = "Red shirt",
                             OwnerName = "Admin",
                             Price = 8.99m,
@@ -456,6 +513,7 @@ namespace CMSECommerce.Migrations
                             CategoryId = 1,
                             Description = "Nice green t-shirt",
                             Image = "green1.png",
+                            IsVisible = true,
                             Name = "Green shirt",
                             OwnerName = "Admin",
                             Price = 9.99m,
@@ -471,6 +529,7 @@ namespace CMSECommerce.Migrations
                             CategoryId = 1,
                             Description = "Nice pink t-shirt",
                             Image = "pink1.png",
+                            IsVisible = true,
                             Name = "Pink shirt",
                             OwnerName = "Admin",
                             Price = 10.99m,
@@ -1102,13 +1161,13 @@ namespace CMSECommerce.Migrations
                         {
                             Id = "a18265d3-05b8-4766-adcc-ca43d3960199",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "505e4aa1-63e9-442b-bf3f-07f68749b6d0",
+                            ConcurrencyStamp = "3bd1dd70-e2cc-4b26-93b9-dee0134624c8",
                             Email = "admin@local.local",
                             EmailConfirmed = true,
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@LOCAL.LOCAL",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEPDrzLCDxdQwoPDf6p8wG2U60yUemc2UtK7z/g+L6CtDDEP5zzAamGsr4qGZANTJwg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEA5bEoT/jtwLsChHeyILaSlyB0c+3wH9da3coYqMZmfw5gYk0xSNDXZuG/rUrVHX2w==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "",
                             TwoFactorEnabled = false,
@@ -1202,6 +1261,16 @@ namespace CMSECommerce.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("CMSECommerce.Models.Category", b =>
+                {
+                    b.HasOne("CMSECommerce.Models.Category", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Parent");
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.OrderDetail", b =>
@@ -1355,6 +1424,11 @@ namespace CMSECommerce.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("CMSECommerce.Models.Category", b =>
+                {
+                    b.Navigation("Children");
                 });
 
             modelBuilder.Entity("CMSECommerce.Models.Order", b =>

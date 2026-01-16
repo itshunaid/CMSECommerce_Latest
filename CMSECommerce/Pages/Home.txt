@@ -1,78 +1,80 @@
-﻿<div class="container-fluid px-0 mb-5">
-    <div class="position-relative bg-dark text-white" style="min-height: 400px; background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1556740734-7f9583b7458d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'); background-size: cover; background-position: center; display: flex; align-items: center; border-radius: 8px;">
-        <div class="container py-5">
-            <div class="row">
-                <div class="col-lg-7">
-                    <h1 class="display-4 fw-bold mb-3" style="color: #febd69;">Empowering Women Entrepreneurs</h1>
-                    <p class="lead mb-4">Weypaari is the ultimate marketplace for home-grown brands. Turn your passion into a business and reach thousands of customers today.</p>
-                    <div class="d-flex gap-3">
-                        <a href="/Subscription/Index" class="btn btn-warning btn-lg fw-bold" style="background-color: #ffd814; border: none; color: #111;">Start Selling</a>
-                        <a href="/Products" class="btn btn-outline-light btn-lg">Browse Collection</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+﻿<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:20,&quot;w&quot;:679,&quot;h&quot;:541,&quot;abs_x&quot;:285,&quot;abs_y&quot;:442}" class="container-fluid mb-5 px-0">
+<div bis_label="style" bis_size="{&quot;x&quot;:20,&quot;y&quot;:20,&quot;w&quot;:679,&quot;h&quot;:541,&quot;abs_x&quot;:285,&quot;abs_y&quot;:442}" class="bg-dark position-relative text-white" style="align-items:center; background:linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://images.unsplash.com/photo-1556740734-7f9583b7458d?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=1350&amp;q=80'); border-radius:8px; display:flex; min-height:450px">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:20,&quot;w&quot;:679,&quot;h&quot;:541,&quot;abs_x&quot;:285,&quot;abs_y&quot;:442}" class="container py-5">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:37,&quot;w&quot;:679,&quot;h&quot;:523,&quot;abs_x&quot;:285,&quot;abs_y&quot;:459}" class="align-items-center row">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:37,&quot;w&quot;:679,&quot;h&quot;:123,&quot;abs_x&quot;:285,&quot;abs_y&quot;:459}" class="col-lg-7">
+<h1 bis_size="{&quot;x&quot;:20,&quot;y&quot;:37,&quot;w&quot;:679,&quot;h&quot;:31,&quot;abs_x&quot;:285,&quot;abs_y&quot;:459}">Empowering Women Entrepreneurs</h1>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:86,&quot;w&quot;:679,&quot;h&quot;:41,&quot;abs_x&quot;:285,&quot;abs_y&quot;:508}">Weypaari is the ultimate marketplace for home-grown brands. Turn your passion into a business and reach thousands of customers today.</p>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:140,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:562}" class="d-flex gap-3"><a bis_size="{&quot;x&quot;:20,&quot;y&quot;:143,&quot;w&quot;:70,&quot;h&quot;:14,&quot;abs_x&quot;:285,&quot;abs_y&quot;:565}" class="btn btn-warning btn-lg fw-bold" href="/Subscription/Index" style="background-color: #ffd814; border: none; color: #111;">Start Selling</a> <a bis_size="{&quot;x&quot;:93,&quot;y&quot;:143,&quot;w&quot;:104,&quot;h&quot;:14,&quot;abs_x&quot;:358,&quot;abs_y&quot;:565}" class="btn btn-outline-light btn-lg" href="/Products">Browse Collection</a></div>
 </div>
 
-<div class="container my-5 text-center">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <h2 class="fw-bold border-bottom pb-3 mb-4">Why WEypaari?</h2>
-            <p class="text-muted fs-5">We provide a platform specifically designed for women running home-based businesses. From handmade crafts to professional services, we help you scale your dreams.</p>
-        </div>
-    </div>
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:161,&quot;w&quot;:679,&quot;h&quot;:400,&quot;abs_x&quot;:285,&quot;abs_y&quot;:583}" class="col-lg-5 mt-4 mt-lg-0 text-center"><img alt="Weypaari Logo" bis_size="{&quot;x&quot;:159,&quot;y&quot;:161,&quot;w&quot;:400,&quot;h&quot;:400,&quot;abs_x&quot;:424,&quot;abs_y&quot;:583}" src="/images/weypaari-icon.png" style="display:block; filter:drop-shadow(0px 10px 20px rgba(0,0,0,0.5)); height:auto; margin:0 auto; max-width:400px; width:100%" /></div>
+</div>
+</div>
+</div>
 </div>
 
-<div class="container mb-5">
-    <div class="row g-4">
-        <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="card-img-top" alt="Handmade Decor" style="height: 250px; object-fit: cover;">
-                <div class="card-body text-center">
-                    <h5 class="card-title fw-bold">Handmade & Decor</h5>
-                    <p class="card-text text-muted small">Unique home-made decor pieces crafted with love.</p>
-                    <a href="/Products?category=decor" class="text-decoration-none fw-bold" style="color: #007185;">Shop Now</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="card-img-top" alt="Fashion" style="height: 250px; object-fit: cover;">
-                <div class="card-body text-center">
-                    <h5 class="card-title fw-bold">Apparel & Textiles</h5>
-                    <p class="card-text text-muted small">Custom clothing and designer textiles from home studios.</p>
-                    <a href="/Products?category=fashion" class="text-decoration-none fw-bold" style="color: #007185;">View All</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="card-img-top" alt="Catering" style="height: 250px; object-fit: cover;">
-                <div class="card-body text-center">
-                    <h5 class="card-title fw-bold">Home Kitchens</h5>
-                    <p class="card-text text-muted small">Authentic, organic, and freshly made home treats.</p>
-                    <a href="/Products?category=food" class="text-decoration-none fw-bold" style="color: #007185;">Order Fresh</a>
-                </div>
-            </div>
-        </div>
-    </div>
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:577,&quot;w&quot;:679,&quot;h&quot;:81,&quot;abs_x&quot;:285,&quot;abs_y&quot;:999}" class="container my-5 text-center">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:577,&quot;w&quot;:679,&quot;h&quot;:81,&quot;abs_x&quot;:285,&quot;abs_y&quot;:999}" class="justify-content-center row">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:577,&quot;w&quot;:679,&quot;h&quot;:81,&quot;abs_x&quot;:285,&quot;abs_y&quot;:999}" class="col-lg-8">
+<h2 bis_size="{&quot;x&quot;:20,&quot;y&quot;:577,&quot;w&quot;:679,&quot;h&quot;:23,&quot;abs_x&quot;:285,&quot;abs_y&quot;:999}">Why WEypaari?</h2>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:617,&quot;w&quot;:679,&quot;h&quot;:41,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1039}">We provide a platform specifically designed for women running home-based businesses. From handmade crafts to professional services, we help you scale your dreams.</p>
+</div>
+</div>
 </div>
 
-<div class="container-fluid py-5" style="background-color: #232f3e; color: white; border-radius: 8px;">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-6 mb-4 mb-md-0 text-center">
-                <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="img-fluid rounded-circle shadow" alt="Success Story" style="width: 250px; height: 250px; object-fit: cover; border: 5px solid #febd69;">
-            </div>
-            <div class="col-md-6">
-                <h2 class="fw-bold mb-3">Join Our Community</h2>
-                <p class="fst-italic opacity-75">"WEypaari gave me the tools to move from my dining table to a full-scale online business. The support for women entrepreneurs is unmatched."</p>
-                <p class="fw-bold">— Fatima R., Home Baker</p>
-                <hr style="border-color: #febd69;">
-                <p>Register as a seller and get your store verified in 24 hours.</p>
-                <a href="/Account/Register" class="btn btn-warning fw-bold px-4 py-2">Create Seller Account</a>
-            </div>
-        </div>
-    </div>
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:671,&quot;w&quot;:679,&quot;h&quot;:1079,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1093}" class="container mb-5">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:671,&quot;w&quot;:679,&quot;h&quot;:1079,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1093}" class="g-4 row">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:671,&quot;w&quot;:679,&quot;h&quot;:359,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1093}" class="col-md-4">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:671,&quot;w&quot;:679,&quot;h&quot;:359,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1093}" class="border-0 card h-100 overflow-hidden shadow-sm"><img alt="Handmade Decor" bis_size="{&quot;x&quot;:20,&quot;y&quot;:671,&quot;w&quot;:375,&quot;h&quot;:250,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1093}" class="card-img-top" src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=600&amp;q=80" style="height:250px; object-fit:cover" />
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:945,&quot;w&quot;:679,&quot;h&quot;:85,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1367}" class="card-body text-center">
+<h5 bis_size="{&quot;x&quot;:20,&quot;y&quot;:945,&quot;w&quot;:679,&quot;h&quot;:12,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1367}">Handmade &amp; Decor</h5>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:976,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1398}">Unique home-made decor pieces crafted with love.</p>
+<a bis_size="{&quot;x&quot;:20,&quot;y&quot;:1013,&quot;w&quot;:59,&quot;h&quot;:14,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1435}" class="text-decoration-none fw-bold" href="/Products?category=decor" style="color: #007185;">Shop Now</a></div>
+</div>
+</div>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1031,&quot;w&quot;:679,&quot;h&quot;:359,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1453}" class="col-md-4">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1031,&quot;w&quot;:679,&quot;h&quot;:359,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1453}" class="border-0 card h-100 overflow-hidden shadow-sm"><img alt="Fashion" bis_size="{&quot;x&quot;:20,&quot;y&quot;:1031,&quot;w&quot;:375,&quot;h&quot;:250,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1453}" class="card-img-top" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=600&amp;q=80" style="height:250px; object-fit:cover" />
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1305,&quot;w&quot;:679,&quot;h&quot;:85,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1727}" class="card-body text-center">
+<h5 bis_size="{&quot;x&quot;:20,&quot;y&quot;:1305,&quot;w&quot;:679,&quot;h&quot;:12,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1727}">Apparel &amp; Textiles</h5>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:1336,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1758}">Custom clothing and designer textiles from home studios.</p>
+<a bis_size="{&quot;x&quot;:20,&quot;y&quot;:1372,&quot;w&quot;:45,&quot;h&quot;:14,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1794}" class="text-decoration-none fw-bold" href="/Products?category=fashion" style="color: #007185;">View All</a></div>
+</div>
+</div>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1391,&quot;w&quot;:679,&quot;h&quot;:359,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1813}" class="col-md-4">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1391,&quot;w&quot;:679,&quot;h&quot;:359,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1813}" class="border-0 card h-100 overflow-hidden shadow-sm"><img alt="Catering" bis_size="{&quot;x&quot;:20,&quot;y&quot;:1391,&quot;w&quot;:375,&quot;h&quot;:250,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1813}" class="card-img-top" src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=600&amp;q=80" style="height:250px; object-fit:cover" />
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1665,&quot;w&quot;:679,&quot;h&quot;:85,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2087}" class="card-body text-center">
+<h5 bis_size="{&quot;x&quot;:20,&quot;y&quot;:1665,&quot;w&quot;:679,&quot;h&quot;:12,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2087}">Home Kitchens</h5>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:1696,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2118}">Authentic, organic, and freshly made home treats.</p>
+<a bis_size="{&quot;x&quot;:20,&quot;y&quot;:1732,&quot;w&quot;:70,&quot;h&quot;:14,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2154}" class="text-decoration-none fw-bold" href="/Products?category=food" style="color: #007185;">Order Fresh</a></div>
+</div>
+</div>
+</div>
+</div>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1750,&quot;w&quot;:679,&quot;h&quot;:477,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2172}" class="container-fluid py-5" style="background-color:#232f3e; border-radius:8px; color:white">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1750,&quot;w&quot;:679,&quot;h&quot;:477,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2172}" class="container">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1750,&quot;w&quot;:679,&quot;h&quot;:477,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2172}" class="align-items-center row">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1750,&quot;w&quot;:679,&quot;h&quot;:265,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2172}" class="col-md-6 mb-4 mb-md-0 text-center"><img alt="Success Story" bis_size="{&quot;x&quot;:20,&quot;y&quot;:1750,&quot;w&quot;:259,&quot;h&quot;:259,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2172}" class="img-fluid rounded-circle shadow" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=600&amp;q=80" style="border:5px solid #febd69; height:250px; object-fit:cover; width:250px" /></div>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:2032,&quot;w&quot;:679,&quot;h&quot;:196,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2454}" class="col-md-6">
+<h2 bis_size="{&quot;x&quot;:20,&quot;y&quot;:2032,&quot;w&quot;:679,&quot;h&quot;:23,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2454}">Join Our Community</h2>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:2071,&quot;w&quot;:679,&quot;h&quot;:41,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2493}">&quot;WEypaari gave me the tools to move from my dining table to a full-scale online business. The support for women entrepreneurs is unmatched.&quot;</p>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:2126,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2548}">&mdash; Fatima R., Home Baker</p>
+
+<hr bis_size="{&quot;x&quot;:20,&quot;y&quot;:2160,&quot;w&quot;:679,&quot;h&quot;:0,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2582}" />
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:2174,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2596}">Register as a seller and get your store verified in 24 hours.</p>
+<a bis_size="{&quot;x&quot;:20,&quot;y&quot;:2210,&quot;w&quot;:125,&quot;h&quot;:14,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2632}" class="btn btn-warning fw-bold px-4 py-2" href="/Subscription/Index">Create Seller Account</a></div>
+</div>
+</div>
 </div>

@@ -1,585 +1,397 @@
 ﻿@model global::System.Collections.Generic.IEnumerable<global::CMSECommerce.Areas.Admin.Models.UserViewModel>
 
 @{
-    ViewData["Title"] = "Users";
+    ViewData["Title"] = "User Management";
     var allRoles = ViewBag.AllRoles as List<string> ?? new List<string>();
-    // Filter top users for the slider (e.g., first 5)
-    var sliderUsers = Model.Take(5).ToList();
+    var totalUsers = Model.Count();
+    var lockedUsers = Model.Count(u => u.IsLockedOut);
 }
 
 <style>
     :root {
-        --amz-navy: #232f3e;
-        --amz-navy-2: #1e2a33;
-        --amz-orange: #febd69;
-        --amz-orange-2: #f3a847;
-        --amz-slate: #37475a;
-        --amz-green: #007600;
-        --amz-red: #b12704;
-        --amz-gray-100: #f8f9fa;
-        --amz-gray-200: #edf1f5;
-        --amz-gray-300: #dfe5ea;
-        --amz-gray-500: #6b7280;
-        --amz-border: #d8dadd;
+        --premier-navy: #0f172a;
+        --premier-accent: #3b82f6;
+        --premier-success: #10b981;
+        --premier-danger: #ef4444;
+        --premier-bg: #f8fafc;
+        --premier-card-bg: #ffffff;
+        --premier-border: #e2e8f0;
+        --premier-text-main: #1e293b;
+        --premier-text-muted: #64748b;
     }
 
-    /* --- NEW SLIDER STYLES --- */
-    .user-slider-container {
-        width: 100%;
-        overflow: hidden;
-        margin-bottom: 25px;
-        background: #fff;
-        border-radius: 8px;
-        border: 1px solid var(--amz-border);
-        padding: 20px;
+    body {
+        background-color: var(--premier-bg);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        color: var(--premier-text-main);
     }
 
-    .user-slider-track {
+    /* Top Control Plane */
+    .control-plane {
+        background: var(--premier-navy);
+        padding: 1.5rem 2rem;
+        margin: -1.5rem -1.5rem 2rem -1.5rem;
+        color: white;
         display: flex;
-        gap: 20px;
-        overflow-x: auto;
-        padding-bottom: 10px;
-        scrollbar-width: thin;
-        scrollbar-color: var(--amz-orange) transparent;
-    }
-
-    .slider-card {
-        min-width: 200px;
-        flex: 0 0 auto;
-        text-align: center;
-        padding: 15px;
-        border: 1px solid var(--amz-gray-200);
-        border-radius: 8px;
-        transition: transform 0.2s;
-        background: var(--amz-gray-100);
-    }
-
-        .slider-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--amz-orange);
-        }
-
-        .slider-card img {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-bottom: 10px;
-            border: 2px solid #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-    /* --- END SLIDER STYLES --- */
-
-    /* Existing Styles */
-    .amz-header {
-        background: var(--amz-navy);
-        color: #fff;
-        padding: 16px 24px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
         justify-content: space-between;
-        margin-bottom: 18px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-    }
-
-        .amz-header h1 {
-            font-size: 1.25rem;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 600;
-            letter-spacing: .2px;
-        }
-
-    .amz-subtitle {
-        font-size: .875rem;
-        color: #cbd5e1;
-        margin-top: 2px;
-    }
-
-    .btn-amz-primary {
-        background: var(--amz-orange);
-        color: #111;
-        border: 1px solid #e6a53a;
-        font-weight: 600;
-        padding: 8px 14px;
-        border-radius: 6px;
-        text-decoration: none;
-    }
-
-        .btn-amz-primary:hover {
-            background: var(--amz-orange-2);
-            color: #111;
-        }
-
-    .btn-amz-icon {
-        padding: 6px;
-        display: inline-flex;
         align-items: center;
-        justify-content: center;
-        border-radius: 4px;
-        height: 32px;
-        width: 32px;
-        border: 1px solid transparent;
-        background: none;
-        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
     }
 
-        .btn-amz-icon.edit {
-            color: var(--amz-slate);
-            background: var(--amz-gray-100);
-            border-color: var(--amz-border);
-        }
-
-        .btn-amz-icon.delete {
-            color: var(--amz-red);
-            background: #fff1f0;
-            border-color: #f4c7c4;
-        }
-
-    .btn-amz-secondary {
-        background: #fff;
-        color: var(--amz-slate);
-        border: 1px solid var(--amz-border);
-        padding: 6px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-    }
-
-    .amz-card {
-        background: #fff;
-        border: 1px solid var(--amz-border);
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .amz-card-header {
-        padding: 12px 16px;
-        background: var(--amz-gray-100);
-        border-bottom: 1px solid var(--amz-border);
+    /* Premier Stats Cards */
+    .stat-pill {
+        background: white;
+        border: 1px solid var(--premier-border);
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 10px;
+        gap: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
-    .amz-table-wrap {
-        width: 100%;
-        overflow: auto;
-    }
-
-    table.amz-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-    }
-
-        table.amz-table thead th {
-            background: var(--amz-navy-2);
-            color: #e5e7eb;
-            position: sticky;
-            top: 0;
-            z-index: 2;
-            padding: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: .75rem;
-        }
-
-        table.amz-table thead tr.filter-row th {
-            background: var(--amz-gray-200);
-            padding: 8px 12px;
-            border-bottom: 1px solid var(--amz-border);
-        }
-
-        table.amz-table tbody td {
-            padding: 10px 12px;
-            border-top: 1px solid var(--amz-border);
-            vertical-align: middle;
-            font-size: .95rem;
-        }
-
-    .badge {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 999px;
-        font-size: .75rem;
-        font-weight: 600;
-        border: 1px solid var(--amz-border);
-    }
-
-    .badge-green {
-        color: var(--amz-green);
-        border-color: #bfe3bf;
-        background: #f0fff0;
-    }
-
-    .badge-red {
-        color: var(--amz-red);
-        border-color: #f4c7c4;
-        background: #fff5f4;
-    }
-
-    .badge-warning {
-        color: #8a5800;
-        border-color: #ffd199;
-        background: #fff4e6;
-    }
-
-    .amz-filter-input, .amz-filter-select, .inline-edit-input {
-        width: 100%;
-        padding: 6px 8px;
-        border: 1px solid var(--amz-border);
-        border-radius: 4px;
-        font-size: .9rem;
-    }
-
-    .amz-switch {
-        position: relative;
-        display: inline-block;
-        width: 48px;
-        height: 24px;
-        vertical-align: middle;
-    }
-
-        .amz-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-    .amz-slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: var(--amz-red);
-        transition: .4s;
-        border-radius: 24px;
-    }
-
-        .amz-slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-    input:checked + .amz-slider {
-        background-color: var(--amz-green);
-    }
-
-        input:checked + .amz-slider:before {
-            transform: translateX(24px);
-        }
-
-    .profile-img-xs {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        object-fit: cover;
-        margin-right: 8px;
-        border: 1px solid var(--amz-border);
-    }
-
-    .profile-image-cell {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-    }
-
-    .profile-approval-status {
+    /* User Card Styling */
+    .user-card {
+        background: var(--premier-card-bg);
+        border: 1px solid var(--premier-border);
+        border-radius: 16px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 100%;
         display: flex;
         flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
+        overflow: hidden;
+        position: relative;
     }
 
-    .filter-mobile-btn {
-        display: none;
+        .user-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(0,0,0,0.1);
+            border-color: var(--premier-accent);
+        }
+
+    .card-header-banner {
+        height: 80px;
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        position: relative;
     }
 
-    @@media (max-width: 768px) {
-        .filter-mobile-btn {
-            display: inline-block;
-        }
-
-        .amz-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        table.amz-table thead tr:not(.filter-row) {
-            display: none;
-        }
-
-        table.amz-table thead tr.filter-row {
-            display: none;
-            background: #fff;
-            padding: 15px;
-            border: 1px solid var(--amz-border);
-            margin: 10px;
-            border-radius: 8px;
-        }
-
-            table.amz-table thead tr.filter-row.show-mobile {
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            table.amz-table thead tr.filter-row th {
-                display: block;
-                width: 100%;
-                padding: 0;
-                border: none;
-                background: transparent;
-            }
-
-        table.amz-table, table.amz-table tbody, table.amz-table tr, table.amz-table td {
-            display: block;
-            width: 100%;
-        }
-
-            table.amz-table tbody tr {
-                padding: 12px;
-                border-bottom: 8px solid var(--amz-gray-200);
-            }
-
-            table.amz-table tbody td {
-                border: none;
-                padding: 8px 0;
-            }
-
-                table.amz-table tbody td::before {
-                    content: attr(data-label);
-                    display: block;
-                    font-size: .7rem;
-                    color: var(--amz-gray-500);
-                    text-transform: uppercase;
-                    font-weight: bold;
-                }
+    .profile-img-wrapper {
+        position: absolute;
+        bottom: -30px;
+        left: 20px;
+        padding: 4px;
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
     }
+
+    .profile-img-premier {
+        width: 64px;
+        height: 64px;
+        border-radius: 10px;
+        object-fit: cover;
+    }
+
+    /* Content Area */
+    .card-main-content {
+        padding: 45px 1.5rem 1.5rem 1.5rem;
+        flex-grow: 1;
+    }
+
+    .user-identity-name {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--premier-navy);
+        margin-bottom: 0.25rem;
+    }
+
+    .user-identity-email {
+        font-size: 0.875rem;
+        color: var(--premier-text-muted);
+        margin-bottom: 1rem;
+    }
+
+    /* Badge Systems */
+    .premier-status {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .status-online {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-offline {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .role-pill {
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 2px 10px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* Filter Panel */
+    .filter-panel-premier {
+        background: white;
+        border: 1px solid var(--premier-border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    /* Actions */
+    .action-group-footer {
+        padding: 1rem 1.5rem;
+        background: #f8fafc;
+        border-top: 1px solid var(--premier-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .btn-action {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+        border: 1px solid var(--premier-border);
+        background: white;
+        color: var(--premier-text-muted);
+    }
+
+        .btn-action:hover {
+            background: var(--premier-navy);
+            color: white;
+            border-color: var(--premier-navy);
+        }
+
+    .btn-delete-premier:hover {
+        background: var(--premier-danger);
+        border-color: var(--premier-danger);
+        color: white;
+    }
+
+    .btn-premier-primary {
+        background: var(--premier-accent);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.25rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: 0.2s;
+    }
+
+        .btn-premier-primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
 </style>
 
-<div class="amz-header">
-    <div>
-        <h1>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M16 11c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zM8 13c-3.866 0-7 3.134-7 7v2h12v-2c0-3.866-3.134-7-8-7z" fill="#febd69" />
-            </svg>
-            Users
-        </h1>
-        <div class="amz-subtitle">Manage accounts, roles, and access</div>
+<div class="container-fluid py-0">
+    <div class="control-plane">
+        <div>
+            <h4 class="mb-0 fw-bold">Identity Directory</h4>
+            <p class="mb-0 small opacity-75">Manage organizational access and system permissions</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="ExportUsersCsv" class="btn btn-outline-light btn-sm px-3" style="border-radius: 10px;">Export Data</a>
+            <a asp-action="Create" class="btn btn-premier-primary">+ Add New User</a>
+        </div>
     </div>
-    <a asp-action="Create" class="btn-amz-primary">➕ Create User</a>
-</div>
 
-<div class="user-slider-container">
-    <h5 class="mb-3" style="font-weight: 600; color: var(--amz-navy);">Recently Joined Users</h5>
-    <div class="user-slider-track">
-        @foreach (var user in sliderUsers)
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-pill">
+                <div class="rounded-circle bg-primary-subtle p-3 text-primary">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                </div>
+                <div>
+                    <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.65rem;">Active Users</small>
+                    <h4 class="mb-0 fw-bold" id="user-count">@totalUsers</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-pill">
+                <div class="rounded-circle bg-danger-subtle p-3 text-danger">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </div>
+                <div>
+                    <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.65rem;">Locked Accounts</small>
+                    <h4 class="mb-0 fw-bold text-danger">@lockedUsers</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-panel-premier shadow-sm">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="small fw-bold text-uppercase text-muted mb-2 d-block" style="font-size: 0.7rem;">Identity Search</label>
+                <input type="text" id="filter-userinfo" class="form-control" style="border-radius: 10px;" placeholder="Search by name or username..." onkeyup="filterTable()">
+            </div>
+            <div class="col-md-3">
+                <label class="small fw-bold text-uppercase text-muted mb-2 d-block" style="font-size: 0.7rem;">Email Address</label>
+                <input type="text" id="filter-email" class="form-control" style="border-radius: 10px;" placeholder="filter@domain.com" onkeyup="filterTable()">
+            </div>
+            <div class="col-md-2">
+                <label class="small fw-bold text-uppercase text-muted mb-2 d-block" style="font-size: 0.7rem;">System Role</label>
+                <select id="filter-role" class="form-select" style="border-radius: 10px;" onchange="filterTable()">
+                    <option value="">All Roles</option>
+                    @foreach (var r in allRoles)
+                    {
+                        <option value="@r">@r</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="small fw-bold text-uppercase text-muted mb-2 d-block" style="font-size: 0.7rem;">Status</label>
+                <select id="filter-status" class="form-select" style="border-radius: 10px;" onchange="filterTable()">
+                    <option value="">All Statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Disabled">Disabled</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-light border w-100 fw-bold" style="border-radius: 10px; padding: 0.6rem;" onclick="resetFilters()">Clear Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4" id="usersTbody">
+        @foreach (var u in Model)
         {
-            <div class="slider-card">
-                <img src="@(string.IsNullOrEmpty(user.ProfileImagePath) ? "/images/default-user.png" : user.ProfileImagePath)" alt="User" />
-                <div style="font-weight: 600; font-size: 0.9rem;">@user.FirstName</div>
-                <div style="font-size: 0.75rem; color: var(--amz-gray-500);">@user.Profession</div>
+            <div class="col-12 col-md-6 col-lg-4 col-xl-3 user-item-container"
+                 data-status="@(u.IsLockedOut ? "Disabled" : "Active")"
+                 data-visibility="@(u.IsDeactivated ? "Hidden" : "Visible")">
+
+                <div class="user-card">
+                    <span class="d-none" data-label="User Info" data-search-info="@u.UserName.ToLower()"></span>
+                    <span class="d-none" data-label="Email" data-search-info="@u.Email.ToLower()"></span>
+                    <span class="d-none" data-label="Role">@string.Join(", ", u.Roles)</span>
+
+                    <div class="card-header-banner">
+                        <div id="badge-islockedout-@u.Id" class="premier-status @(u.IsLockedOut ? "status-offline" : "status-online")">
+                            @(u.IsLockedOut ? "LOCKED" : "ACTIVE")
+                        </div>
+                        <div class="profile-img-wrapper">
+                            <img src="@(string.IsNullOrEmpty(u.ProfileImagePath) ? "/images/default-user.png" : u.ProfileImagePath)" class="profile-img-premier" alt="Avatar" />
+                        </div>
+                    </div>
+
+                    <div class="card-main-content">
+                        <div class="user-identity-name text-truncate">@u.UserName</div>
+                        <div class="user-identity-email text-truncate">@u.Email</div>
+
+                        <div class="mt-3">
+                            <span class="small fw-bold text-uppercase text-muted d-block mb-2" style="font-size: 0.6rem;">Privileges</span>
+                            <div class="d-flex flex-wrap gap-1">
+                                @foreach (var role in u.Roles)
+                                {
+                                    <span class="role-pill">@role</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mt-3 pt-3 border-top small text-muted">
+                            <i class="bi bi-phone me-2"></i>@(u.PhoneNumber ?? "No Contact Linked")
+                        </div>
+                    </div>
+
+                    <div class="action-group-footer">
+                        <div class="d-flex gap-2">
+                            <a asp-area="" asp-controller="UserProfiles" asp-action="Edit" asp-route-id="@u.Id" class="btn-action" title="Edit Profile">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10z" /></svg>
+                            </a>
+
+                            <form asp-action="EnableDisable" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@u.Id" />
+                                <button type="submit" class="btn-action" title="Toggle Access">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" /></svg>
+                                </button>
+                            </form>
+
+                            @if (!u.IsDeactivated)
+                            {
+                                <form asp-action="SoftDelete" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@u.Id" />
+                                    <button type="submit" class="btn-action" title="Soft Delete">
+                                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" /></svg>
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-action="Restore" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@u.Id" />
+                                    <button type="submit" class="btn-action" title="Restore User">
+                                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" /></svg>
+                                    </button>
+                                </form>
+                            }
+                        </div>
+
+                        <form asp-action="Delete" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@u.Id" />
+                            <button type="submit" class="btn-action btn-delete-premier" title="Permanent Delete" onclick="return confirm('CRITICAL: This will permanently purge this user from the system.')">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5z" /></svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         }
     </div>
 </div>
 
-<div class="amz-card">
-    <div class="amz-card-header">
-        <div class="d-flex align-items-center" style="gap:10px;">
-            <button type="button" class="btn-amz-secondary filter-mobile-btn" onclick="toggleFilters()">
-                🔍 Filters
-            </button>
-            <button type="button" class="btn-amz-secondary" onclick="resetFilters()">Clear All</button>
-        </div>
-        <div class="text-muted small">
-            Found <span id="user-count">@Model.Count()</span> Users
-        </div>
-    </div>
-
-    <div class="amz-card-body">
-        <div class="amz-table-wrap">
-            <table class="amz-table">
-                <thead>
-                    <tr>
-                        <th style="min-width:200px;">User Info</th>
-                        <th>Email</th>
-                        <th style="min-width:150px;">Profession</th>
-                        <th style="min-width:150px;">Role</th>
-                        <th>Visibility</th>
-                        <th>Status</th>
-                        <th style="min-width:180px;">Actions</th>
-                    </tr>
-
-                    <tr class="filter-row" id="filterRow">
-                        <th><input type="text" id="filter-userinfo" class="amz-filter-input" placeholder="Name/Username..." oninput="filterTable()" /></th>
-                        <th><input type="text" id="filter-email" class="amz-filter-input" placeholder="Search Email..." oninput="filterTable()" /></th>
-                        <th><input type="text" id="filter-profession" class="amz-filter-input" placeholder="Filter Prof..." oninput="filterTable()" /></th>
-                        <th>
-                            <select id="filter-role" class="amz-filter-select" onchange="filterTable()">
-                                <option value="">All Roles</option>
-                                @foreach (var r in allRoles)
-                                {
-                                    <option value="@r">@r</option>
-                                }
-                            </select>
-                        </th>
-                        <th>
-                            <select id="filter-visibility" class="amz-filter-select" onchange="filterTable()">
-                                <option value="">All</option>
-                                <option value="Visible">Visible</option>
-                                <option value="Hidden">Hidden</option>
-                            </select>
-                        </th>
-                        <th>
-                            <select id="filter-status" class="amz-filter-select" onchange="filterTable()">
-                                <option value="">All</option>
-                                <option value="Active">Active</option>
-                                <option value="Disabled">Disabled</option>
-                            </select>
-                        </th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="usersTbody">
-                    @foreach (var u in Model)
-                    {
-                        var profileImageExists = !string.IsNullOrEmpty(u.ProfileImagePath);
-                        var imageStatus = u.IsImageApproved ? "Approved" : (profileImageExists ? "Pending" : "No Image");
-                        var accountStatus = u.IsLockedOut ? "Disabled" : "Active";
-                        var profileVisibility = u.IsProfileVisible ? "Visible" : "Hidden";
-
-                        <tr data-image-status="@imageStatus" data-role="@(u.Roles?.FirstOrDefault())" data-status="@accountStatus" data-visibility="@profileVisibility">
-                            <td data-label="User Info" data-search-info="@(u.UserName.ToLower()) @(u.FirstName?.ToLower()) @(u.LastName?.ToLower()) @imageStatus.ToLower()">
-                                <div class="profile-image-cell">
-                                    @if (profileImageExists)
-                                    {
-                                        <img src="@u.ProfileImagePath" alt="Profile" class="profile-img-xs" />
-                                    }
-                                    <div class="profile-approval-status">
-                                        <strong>@u.UserName</strong>
-                                        <small class="text-muted">@u.FirstName @u.LastName</small>
-                                        @if (profileImageExists)
-                                        {
-                                            <div class="d-flex align-items-center mt-1">
-                                                <label class="amz-switch me-2">
-                                                    <input type="checkbox" id="isimageapproved-@u.Id" checked="@u.IsImageApproved" onchange="updateField('@u.Id', 'IsImageApproved', this.checked)" />
-                                                    <span class="amz-slider"></span>
-                                                </label>
-                                                <span class="badge @(u.IsImageApproved ? "badge-green" : "badge-warning")" id="badge-isimageapproved-@u.Id">@imageStatus</span>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            </td>
-
-                            <td data-label="Email" data-search-info="@u.Email.ToLower()">
-                                <a href="mailto:@u.Email">@u.Email</a>
-                            </td>
-
-                            <td data-label="Profession">
-                                <input type="text" class="inline-edit-input" id="profession-@u.Id" value="@u.Profession" onchange="updateField('@u.Id', 'Profession', this.value)" />
-                            </td>
-
-                            <td data-label="Role">
-                                <select class="inline-edit-input" id="role-@u.Id" onchange="updateField('@u.Id', 'Role', this.value)">
-                                    <option value="">-- None --</option>
-                                    @foreach (var r in allRoles)
-                                    {
-                                        <option value="@r" selected="@(u.Roles != null && u.Roles.Contains(r))">@r</option>
-                                    }
-                                </select>
-                            </td>
-
-                            <td data-label="Visibility">
-                                <label class="amz-switch">
-                                    <input type="checkbox" id="isprofilevisible-@u.Id" checked="@u.IsProfileVisible" onchange="updateField('@u.Id', 'IsProfileVisible', this.checked)" />
-                                    <span class="amz-slider"></span>
-                                </label>
-                                <span class="badge @(u.IsProfileVisible ? "badge-green" : "badge-red")" id="badge-isprofilevisible-@u.Id">@profileVisibility</span>
-                            </td>
-
-                            <td data-label="Status">
-                                <label class="amz-switch">
-                                    <input type="checkbox" id="islockedout-@u.Id" checked="@(!u.IsLockedOut)" onchange="updateField('@u.Id', 'IsLockedOut', !this.checked)" />
-                                    <span class="amz-slider"></span>
-                                </label>
-                                <span class="badge @(!u.IsLockedOut ? "badge-green" : "badge-red")" id="badge-islockedout-@u.Id">@accountStatus</span>
-                            </td>
-
-                            <td data-label="Actions">
-                                <div class="d-flex gap-2">
-                                    <a asp-action="Edit" asp-route-id="@u.Id" class="btn-amz-icon edit">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
-                                    </a>
-                                    <form asp-action="Delete" asp-route-id="@u.Id" method="post" class="m-0" onsubmit="return confirm('Delete user @u.UserName?');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn-amz-icon delete">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" /></svg>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
 @section Scripts {
     <script>
-        // All existing functions remain untouched to preserve functionality
-        function toggleFilters() {
-            document.getElementById('filterRow').classList.toggle('show-mobile');
-        }
-
+        // BACKWARD COMPATIBLE FILTERING
         function filterTable() {
             const filters = {
                 userInfo: document.getElementById('filter-userinfo').value.toLowerCase(),
                 email: document.getElementById('filter-email').value.toLowerCase(),
-                profession: document.getElementById('filter-profession').value.toLowerCase(),
                 role: document.getElementById('filter-role').value.toLowerCase(),
-                visibility: document.getElementById('filter-visibility').value.toLowerCase(),
                 status: document.getElementById('filter-status').value.toLowerCase()
             };
 
-            const rows = document.querySelectorAll('#usersTbody tr');
+            const cards = document.querySelectorAll('.user-item-container');
             let visibleCount = 0;
 
-            rows.forEach(row => {
+            cards.forEach(card => {
                 const data = {
-                    userInfo: row.querySelector('[data-label="User Info"]').getAttribute('data-search-info'),
-                    email: row.querySelector('[data-label="Email"]').getAttribute('data-search-info'),
-                    profession: row.querySelector('[data-label="Profession"] input').value.toLowerCase(),
-                    role: row.querySelector('[data-label="Role"] select').value.toLowerCase(),
-                    visibility: row.getAttribute('data-visibility').toLowerCase(),
-                    status: row.getAttribute('data-status').toLowerCase()
+                    userInfo: card.querySelector('[data-label="User Info"]').getAttribute('data-search-info'),
+                    email: card.querySelector('[data-label="Email"]').getAttribute('data-search-info'),
+                    role: card.querySelector('[data-label="Role"]').textContent.toLowerCase(),
+                    status: card.getAttribute('data-status').toLowerCase()
                 };
 
                 const match = (!filters.userInfo || data.userInfo.includes(filters.userInfo)) &&
                               (!filters.email || data.email.includes(filters.email)) &&
-                              (!filters.profession || data.profession.includes(filters.profession)) &&
-                              (!filters.role || filters.role === data.role) &&
-                              (!filters.visibility || filters.visibility === data.visibility) &&
+                              (!filters.role || data.role.includes(filters.role)) &&
                               (!filters.status || filters.status === data.status);
 
-                row.style.display = match ? '' : 'none';
+                card.style.display = match ? '' : 'none';
                 if (match) visibleCount++;
             });
 
@@ -587,23 +399,21 @@
         }
 
         function resetFilters() {
-            ['filter-userinfo', 'filter-email', 'filter-profession', 'filter-role', 'filter-visibility', 'filter-status'].forEach(id => {
+            ['filter-userinfo', 'filter-email', 'filter-role', 'filter-status'].forEach(id => {
                 document.getElementById(id).value = '';
             });
             filterTable();
         }
 
+        // BACKWARD COMPATIBLE AJAX
         async function updateField(userId, fieldName, value) {
             const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
-            const inputElement = document.getElementById(fieldName.toLowerCase() + '-' + userId);
             const badgeElement = document.getElementById(`badge-${fieldName.toLowerCase()}-${userId}`);
-            const row = inputElement.closest('tr');
+            const cardContainer = badgeElement.closest('.user-item-container');
 
             let finalValue = (typeof value === 'boolean') ? (value ? 'true' : 'false') : value;
             const data = new URLSearchParams({
-                userId: userId,
-                fieldName: fieldName,
-                value: finalValue,
+                userId: userId, fieldName: fieldName, value: finalValue,
                 __RequestVerificationToken: antiForgeryToken
             });
 
@@ -615,32 +425,16 @@
                 });
 
                 if (response.ok) {
-                    if (fieldName === 'IsProfileVisible') {
-                        const txt = value ? 'Visible' : 'Hidden';
-                        row.setAttribute('data-visibility', txt);
-                        badgeElement.textContent = txt;
-                        badgeElement.className = `badge ${value ? 'badge-green' : 'badge-red'}`;
-                    }
                     if (fieldName === 'IsLockedOut') {
-                        const txt = value ? 'Disabled' : 'Active';
-                        row.setAttribute('data-status', txt);
-                        badgeElement.textContent = txt;
-                        badgeElement.className = `badge ${!value ? 'badge-green' : 'badge-red'}`;
-                    }
-                    if (fieldName === 'IsImageApproved') {
-                        const txt = value ? 'Approved' : 'Pending';
-                        badgeElement.textContent = txt;
-                        badgeElement.className = `badge ${value ? 'badge-green' : 'badge-warning'}`;
-                        const infoCell = row.querySelector('[data-search-info]');
-                        infoCell.setAttribute('data-search-info', infoCell.getAttribute('data-search-info').replace(/approved|pending|no image/i, txt.toLowerCase()));
+                        const statusTxt = value ? 'Disabled' : 'Active';
+                        cardContainer.setAttribute('data-status', statusTxt);
+                        badgeElement.textContent = value ? 'LOCKED' : 'ACTIVE';
+                        badgeElement.className = `premier-status ${value ? 'status-offline' : 'status-online'}`;
                     }
                     filterTable();
-                } else {
-                    alert('Update failed. Please refresh.');
                 }
             } catch (error) {
-                console.error(error);
-                alert('Network error.');
+                console.error('API Update failed', error);
             }
         }
     </script>

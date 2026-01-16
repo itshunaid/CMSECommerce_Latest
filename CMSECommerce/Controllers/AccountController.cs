@@ -1,13 +1,17 @@
-﻿
-using CMSECommerce.Areas.Admin.Models;
+﻿using CMSECommerce.Areas.Admin.Models;
 using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
 using CMSECommerce.Models.ViewModels;
 using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.WebUtilities;
+using System.Text;
+using System.Text.Encodings.Web;
 
 
 namespace CMSECommerce.Controllers
@@ -20,7 +24,9 @@ namespace CMSECommerce.Controllers
             IUserStatusService userStatusService,
             RoleManager<IdentityRole> roleManager,
             ILogger<AccountController> logger,
-            IUserService userService) : BaseController
+            IUserService userService,
+            IEmailService emailService
+           ) : BaseController
     {
         private DataContext _context = dataContext;
         private UserManager<IdentityUser> _userManager = userManager;
@@ -30,6 +36,8 @@ namespace CMSECommerce.Controllers
         private readonly RoleManager<IdentityRole> _roleManager = roleManager;
         private readonly ILogger<AccountController> _logger = logger;
         private readonly IUserService _userService = userService;
+        private readonly IEmailService _emailService = emailService;
+        
 
 
         [Authorize]
@@ -108,6 +116,111 @@ namespace CMSECommerce.Controllers
             return View(model);
         }
 
+        // --- LOGIN (GET) ---
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult Login(string username = null, string returnUrl = null)
+        {
+            var vm = new LoginViewModel
+            {
+                UserName = username,
+                ReturnUrl = returnUrl
+            };
+            return View(vm);
+        }
+
+        // --- LOGIN (POST) ---
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Login(LoginViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            IdentityUser user = null;
+            var identifier = model.UserName?.Trim();
+
+            if (string.IsNullOrEmpty(identifier))
+            {
+                ModelState.AddModelError(string.Empty, "Please enter your username, email, ITS or mobile.");
+                return View(model);
+            }
+
+            // Try email
+            if (identifier.Contains("@"))
+            {
+                user = await _userManager.FindByEmailAsync(identifier);
+            }
+
+            // Try ITS (8 digits) via UserProfile
+            if (user == null && identifier.All(char.IsDigit) && identifier.Length == 8)
+            {
+                var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.ITSNumber == identifier);
+                if (profile != null)
+                {
+                    user = await _userManager.FindByIdAsync(profile.UserId);
+                }
+            }
+
+            // Try username
+            if (user == null)
+            {
+                user = await _userManager.FindByNameAsync(identifier);
+            }
+
+            // Try phone number
+            if (user == null)
+            {
+                user = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == identifier);
+            }
+
+            if (user == null)
+            {
+                return InvalidLoginResponse(model);
+            }
+
+            // Check lockout
+            if (await _userManager.IsLockedOutAsync(user))
+            {
+                ViewBag.IsLockedOut = true;
+                return View(model);
+            }
+
+            var signInResult = await _sign_in_manager.PasswordSignInAsync(user.UserName, model.Password, model.RememberMe, lockoutOnFailure: true);
+
+            if (signInResult.Succeeded)
+            {
+                try
+                {
+                    var status = await _context.UserStatuses.FindAsync(user.Id);
+                    if (status != null)
+                    {
+                        status.IsOnline = true;
+                        status.LastActivity = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                catch { }
+
+                if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
+                {
+                    return Redirect(model.ReturnUrl);
+                }
+
+                return RedirectToAction("Index", "Home");
+            }
+
+            if (signInResult.IsLockedOut)
+            {
+                ViewBag.IsLockedOut = true;
+                return View(model);
+            }
+
+            return InvalidLoginResponse(model);
+        }
 
         [HttpGet]
         [AllowAnonymous]
@@ -150,6 +263,15 @@ namespace CMSECommerce.Controllers
                 _logger.LogError(ex, "Error validating uniqueness for identifier: {Identifier}", userName);
                 return StatusCode(500, "Internal validation error");
             }
+        }
+
+
+        [HttpGet]        
+        public async Task<IActionResult> CheckUniqueITS(string itsNumber)
+        {
+            // Replace with your actual database context logic
+            var exists = await _context.UserProfiles.AnyAsync(u => u.ITSNumber == itsNumber);
+            return Json(new { exists = exists });
         }
 
         [HttpGet]
@@ -269,8 +391,7 @@ namespace CMSECommerce.Controllers
             if (isDuplicate)
             {
                 ModelState.AddModelError("", "Username, Email, or Phone Number is already in use.");
-                //return View(model);
-                RedirectToAction("Login");
+                return View(model);
             }
 
             try
@@ -288,37 +409,37 @@ namespace CMSECommerce.Controllers
 
                 if (result.Succeeded)
                 {
-                    // Define the specific content the user just saw in the modal
-                    string agreementText = @"
-                <h6>1. Acceptance of Terms</h6><p>By accessing or using the Weypaari platform...</p>
-                <h6>2. Eligibility & Registration</h6><p>To use Weypaari, you must provide a valid 8-digit ITS...</p>
-                <h6>3. Privacy & Data Security</h6><p>Your privacy is important to us...</p>
-                <h6>4. User Conduct</h6><p>Users shall not engage in any activity...</p>
-                <h6>5. Transactions & Listings</h6><p>Weypaari provides a marketplace platform...</p>
-                <h6>6. Termination of Use</h6><p>We reserve the right to terminate...</p>
-                <h6>7. Modifications to Service</h6><p>Weypaari reserves the right to modify...</p>";
-                    var agreement = new UserAgreement
+                    // Save a pending profile (UserProfile) with IsEmailVerified/IsPhoneVerified = false
+                    var userProfile = new UserProfile
                     {
                         UserId = newUser.Id,
-                        AgreementType = "Registration_Terms_Privacy",
-                        FullContent = agreementText, // Mapping the full snapshot
-                        Version = "v1.0-2026-01",
-                        AcceptedAt = DateTime.UtcNow,
-                        IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+                        FirstName = model.FirstName,
+                        LastName = model.LastName,
+                        ITSNumber = model.ITSNumber,
+                        WhatsAppNumber = model.WhatsAppNumber,
+                        Store = null,
+                        IsProfileVisible = true,
+                        IsImageApproved = false
+                        
                     };
 
-                    _context.UserAgreements.Add(agreement);
+                    _context.UserProfiles.Add(userProfile);
                     await _context.SaveChangesAsync();
 
                     // 3. Role Assignment
-                    // We keep this to ensure your [Authorize(Roles="Customer")] attributes don't break.
                     await _userManager.AddToRoleAsync(newUser, "Customer");
 
-                    // 4. Immediate Sign-In (The Amazon Experience)
-                    await _sign_in_manager.SignInAsync(newUser, isPersistent: false);
+                   
 
-                    _logger.LogInformation("User {Username} registered successfully.", model.Username);
-                    return RedirectToAction("Index", "Home");
+
+                   
+                    _context.Update(userProfile);
+                    await _context.SaveChangesAsync();
+
+                    // Redirect to VerifyOTP view
+                    ViewBag.RegistrationId = userProfile.Id.ToString();
+                    ViewBag.OtpIdentifier = model.Email;
+                    return View("VerifyOTP", model);
                 }
 
                 // Add Identity errors (like password complexity issues) to the UI
@@ -442,6 +563,7 @@ namespace CMSECommerce.Controllers
             var detail = await _context.OrderDetails.FindAsync(orderDetailId);
             var order = await _context.Orders.FindAsync(orderId);
             
+
 
             if (detail == null || order == null)
             {
@@ -939,6 +1061,7 @@ namespace CMSECommerce.Controllers
                     PhoneNumber = user.PhoneNumber,
                     Role = roles.FirstOrDefault(),
 
+
                     // UserProfile Fields
                     FirstName = userProfile?.FirstName,
                     LastName = userProfile?.LastName,
@@ -962,14 +1085,14 @@ namespace CMSECommerce.Controllers
 
                     // Store Details (Flattened from the navigation property)
                     StoreId = userProfile?.Store?.Id,
-                    StoreName = userProfile?.Store?.StoreName,
-                    StoreStreetAddress = userProfile?.Store?.StreetAddress,
+                    StoreName = userProfile?.Store?.StoreName ?? "Independent",
                     StoreCity = userProfile?.Store?.City,
-                    StorePostCode = userProfile?.Store?.PostCode,
-                    StoreCountry = userProfile?.Store?.Country,
-                    GSTIN = userProfile?.Store?.GSTIN,
+                    StoreContact = userProfile?.Store?.Contact,
                     StoreEmail = userProfile?.Store?.Email,
-                    StoreContact = userProfile?.Store?.Contact
+                    GSTIN = userProfile?.Store?.GSTIN,
+                    StoreStreetAddress = userProfile?.Store?.StreetAddress,
+                    StorePostCode = userProfile?.Store?.PostCode,
+                    StoreCountry = userProfile?.Store?.Country
                 };
 
                 // 5. Populate Role List for Dropdowns
@@ -1041,6 +1164,7 @@ namespace CMSECommerce.Controllers
                     Email = user.Email,
                     PhoneNumber = user.PhoneNumber,
                     Role = roles.FirstOrDefault(),
+
 
                     // Personal Details
                     FirstName = userProfile?.FirstName,
@@ -1253,557 +1377,194 @@ namespace CMSECommerce.Controllers
         }
 
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateProfile(ProfileUpdateViewModel viewModel)
+        public async Task<IActionResult> UpdateUserRole(string userId, string newRole)
         {
-            if (!ModelState.IsValid)
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(newRole))
             {
-                ViewBag.ITSAvailable = !string.IsNullOrEmpty(viewModel.ITSNumber);
-                return View("ProfileDetails", viewModel);
-            }
-
-            // Start a transaction to ensure atomic updates across Identity, Profile, and Store
-            using var transaction = await _context.Database.BeginTransactionAsync();
-
-            try
-            {
-                // 1. Retrieve Existing Identity User
-                var identityUser = await _userManager.FindByIdAsync(viewModel.UserId);
-                if (identityUser == null)
-                {
-                    TempData["error"] = "Error: User not found.";
-                    return RedirectToAction("Login", "Account");
-                }
-
-                // 2. Retrieve or Create UserProfile
-                var userProfile = await _context.UserProfiles
-                                                .Include(p => p.Store)
-                                                .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);
-
-                if (userProfile == null)
-                {
-                    userProfile = new UserProfile { UserId = identityUser.Id };
-                    _context.UserProfiles.Add(userProfile);
-                }
-
-                // 3. Robust Store Management
-                // If the profile is missing a StoreId, we must resolve it before saving the profile
-                if (userProfile.StoreId == null)
-                {
-                    // Try to find any existing store first, otherwise create one
-                    var existingStore = await _context.Stores.FirstOrDefaultAsync();
-                    if (existingStore != null)
-                    {
-                        userProfile.StoreId = existingStore.Id;
-                    }
-                    else
-                    {
-                        var newStore = new Store
-                        {
-                            StoreName = $"{viewModel.FirstName}'s Store",
-                            StreetAddress = viewModel.HomeAddress ?? "Pending Update",
-                            City = "Pending",
-                            PostCode = "0000",
-                            Country = "Pending",
-                            Email = identityUser.Email,
-                            Contact = viewModel.PhoneNumber ?? identityUser.PhoneNumber
-                        };
-                        _context.Stores.Add(newStore);
-                        await _context.SaveChangesAsync(); // Required to generate the ID for FK
-                        userProfile.StoreId = newStore.Id;
-                    }
-                }
-
-                // 4. Handle File Uploads (Using a secure path logic)
-                if (viewModel.ProfileImageUpload != null)
-                {
-                    userProfile.PendingProfileImagePath = await SaveFile(viewModel.ProfileImageUpload, "profileimages/pending");
-                    userProfile.IsImagePending = true;
-                    userProfile.IsImageApproved = false;
-                    TempData["imageInfo"] = "Note: Your profile image is pending administrator approval.";
-                }
-
-                if (viewModel.GpayQRCodeUpload != null)
-                    userProfile.GpayQRCodePath = await SaveFile(viewModel.GpayQRCodeUpload, "qrcodes/gpay");
-
-                if (viewModel.PhonePeQRCodeUpload != null)
-                    userProfile.PhonePeQRCodePath = await SaveFile(viewModel.PhonePeQRCodeUpload, "qrcodes/phonepe");
-
-                // 5. Update IdentityUser Phone (If changed)
-                if (identityUser.PhoneNumber != viewModel.PhoneNumber)
-                {
-                    identityUser.PhoneNumber = viewModel.PhoneNumber;
-                    var identityResult = await _userManager.UpdateAsync(identityUser);
-                    if (!identityResult.Succeeded)
-                    {
-                        foreach (var error in identityResult.Errors)
-                            ModelState.AddModelError("", error.Description);
-
-                        await transaction.RollbackAsync();
-                        return View("ProfileDetails", viewModel);
-                    }
-                }
-
-                // 6. Map updated properties to UserProfile Entity
-                userProfile.FirstName = viewModel.FirstName;
-                userProfile.LastName = viewModel.LastName;
-                userProfile.Profession = viewModel.Profession;
-                userProfile.About = viewModel.About;
-                userProfile.ServicesProvided = viewModel.ServicesProvided;
-                userProfile.IsProfileVisible = viewModel.IsProfileVisible;
-                userProfile.LinkedInUrl = viewModel.LinkedInUrl;
-                userProfile.FacebookUrl = viewModel.FacebookUrl;
-                userProfile.InstagramUrl = viewModel.InstagramUrl;
-                userProfile.WhatsAppNumber = viewModel.WhatsappNumber;
-                userProfile.HomeAddress = viewModel.HomeAddress;
-                userProfile.HomePhoneNumber = viewModel.HomePhoneNumber;
-                userProfile.BusinessAddress = viewModel.BusinessAddress;
-                userProfile.BusinessPhoneNumber = viewModel.BusinessPhoneNumber;
-
-                // 7. Commit Database Changes
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                TempData["success"] = TempData["imageInfo"]?.ToString() ?? "Profile updated successfully!";
-                return RedirectToAction("ProfileDetails", new { userId = viewModel.UserId });
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Profile update failed for User: {UserId}", viewModel.UserId);
-                TempData["error"] = "A critical error occurred while saving your profile. Changes were not saved.";
-                ViewBag.ITSAvailable = !string.IsNullOrEmpty(viewModel.ITSNumber);
-                return View("ProfileDetails", viewModel);
-            }
-        }
-        private async Task<string> SaveFile(IFormFile file, string subFolder)
-        {
-            if (file == null || file.Length == 0) return null;
-
-            // Get the path to the wwwroot folder
-            var uploadPath = Path.Combine(_webHostEnvironment.WebRootPath, subFolder);
-
-            // Create the directory if it doesn't exist
-            if (!Directory.Exists(uploadPath))
-            {
-                Directory.CreateDirectory(uploadPath);
-            }
-
-            // Generate a unique file name to prevent collision
-            var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-            var filePath = Path.Combine(uploadPath, uniqueFileName);
-
-            // Save the file
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(fileStream);
-            }
-
-            // Return the relative path for the database (e.g., /profileimages/pending/GUID_file.jpg)
-            return $"/{subFolder}/{uniqueFileName}";
-        }
-
-
-        [HttpPost]
-        [Authorize]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Profile(ProfileUpdateViewModel model)
-        {
-            if (!ModelState.IsValid) return View(model);
-
-            _logger.LogInformation("Profile update request received. Method: {Method}, Path: {Path}", HttpContext.Request.Method, HttpContext.Request.Path);
-
-            var imageUpload = model.ProfileImageUpload;
-
-            using var transaction = await _context.Database.BeginTransactionAsync();
-
-            try
-            {
-                var identityUser = await _userManager.FindByIdAsync(model.UserId);
-                if (identityUser == null)
-                {
-                    TempData["error"] = "User session expired.";
-                    return RedirectToAction("Login");
-                }
-
-                // Update Identity - Note: UserName cannot be changed once set in ASP.NET Identity
-                // Only update Email and PhoneNumber
-                identityUser.Email = model.Email;
-                identityUser.PhoneNumber = model.PhoneNumber;
-
-                var identityResult = await _userManager.UpdateAsync(identityUser);
-                if (!identityResult.Succeeded)
-                {
-                    foreach (var error in identityResult.Errors)
-                        ModelState.AddModelError("", error.Description);
-                    return View(model);
-                }
-
-                // Fetch Profile with Store included
-                var userProfile = await _context.UserProfiles
-                    .Include(p => p.Store)
-                    .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);
-                if (userProfile == null || User.IsInRole("Customer"))
-                {
-                    // Log info: New user without profile
-                    _logger.LogInformation("No UserProfile found for user {UserId}. Initializing new profile view.", identityUser.Id);
-
-                    ViewBag.ProfileStatus = false;
-                }
-                else
-                {
-                    ViewBag.ProfileStatus = true;
-                }
-
-                bool isNewProfile = userProfile == null;
-                if (isNewProfile) userProfile = new UserProfile { UserId = identityUser.Id };
-
-              
-                // Handle Image Uploads
-                bool profileImageUpdated = false;
-                if (model.ProfileImageUpload != null)
-                {
-                    // Process file and save the returned path to PendingProfileImagePath
-                    string uploadedPath = await ProcessFileUpload(model.ProfileImageUpload, "profiles/pending");
-                    userProfile.PendingProfileImagePath = uploadedPath;
-                    userProfile.IsImageApproved = false;
-                    userProfile.IsImagePending = true;
-                    profileImageUpdated = true;
-                }
-
-                if (model.GpayQRCodeUpload != null)
-                    userProfile.GpayQRCodePath = await ProcessFileUpload(model.GpayQRCodeUpload, "qrcodes");
-
-                if (model.PhonePeQRCodeUpload != null)
-                    userProfile.PhonePeQRCodePath = await ProcessFileUpload(model.PhonePeQRCodeUpload, "qrcodes");
-
-                // Map ALL Profile Fields from ViewModel
-                userProfile.FirstName = model.FirstName;
-                userProfile.LastName = model.LastName;
-                userProfile.ITSNumber = model.ITSNumber;
-                userProfile.About = model.About;
-                userProfile.Profession = model.Profession;
-                userProfile.ServicesProvided = model.ServicesProvided; // Was missing
-                userProfile.IsProfileVisible = model.IsProfileVisible;
-                userProfile.WhatsAppNumber = model.WhatsappNumber;
-                userProfile.LinkedInUrl = model.LinkedInUrl;
-                userProfile.FacebookUrl = model.FacebookUrl; // Was missing
-                userProfile.InstagramUrl = model.InstagramUrl; // Was missing
-                userProfile.HomeAddress = model.HomeAddress;
-                userProfile.HomePhoneNumber = model.HomePhoneNumber;
-                userProfile.BusinessAddress = model.BusinessAddress; // Was missing
-                userProfile.BusinessPhoneNumber = model.BusinessPhoneNumber; // Was missing
-                userProfile.ProfileImagePath = model.PendingProfileImagePath;
-
-                // Ensure Store object exists
-                if (userProfile.Store == null)
-                {
-                    userProfile.Store = new Store();
-                }
-
-                // Map ALL Store Fields from ViewModel
-                userProfile.Store.StoreName = model.StoreName;
-                userProfile.Store.GSTIN = model.GSTIN;
-                userProfile.Store.Email = model.StoreEmail;
-                userProfile.Store.Contact = model.StoreContact;
-                userProfile.Store.StreetAddress = model.StoreStreetAddress;
-                userProfile.Store.City = model.StoreCity;
-                userProfile.Store.PostCode = model.StorePostCode;
-                userProfile.Store.Country = model.StoreCountry;
-
-                // Update the Store entity state if it's not new
-                if (userProfile.StoreId != 0)
-                {
-                    _context.Entry(userProfile.Store).State = EntityState.Modified;
-                }
-
-                // Save Logic
-                if (isNewProfile)
-                {
-                    _context.UserProfiles.Add(userProfile);
-                }
-                else
-                {
-                    _context.UserProfiles.Update(userProfile);
-                    // Ensure the Store is also marked as modified if it exists
-                    if (userProfile.Store != null)
-                    {
-                        _context.Entry(userProfile.Store).State = EntityState.Modified;
-                    }
-                }
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                TempData["success"] = profileImageUpdated
-                    ? "Changes saved. Profile image is under review."
-                    : "Profile updated successfully.";
-
-                return RedirectToAction("ProfileDetailsView", new { userId = userProfile.UserId });
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error updating profile for {UserId}", model.UserId);
-                ModelState.AddModelError("", "Database error. Changes not saved.");
-                return View(model);
-            }
-        }
-
-        private async Task<string> ProcessFileUpload(IFormFile file, string subFolder)
-        {
-            if (file == null || file.Length == 0) return null;
-
-            // Define the absolute path to the folder
-            string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", subFolder);
-
-            // Create directory if it doesn't exist
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
-
-            // Create a unique filename to prevent overwriting
-            string uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
-            string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            // Save the file to disk
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(fileStream);
-            }
-
-            // Return the relative path for database storage
-            return $"images/{subFolder}/{uniqueFileName}".Replace("\\", "/");
-        }
-
-        [HttpPost]
-        [Authorize]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteProfileData()
-        {
-            var identityUser = await _userManager.GetUserAsync(User);
-            if (identityUser == null)
-            {
-                return Unauthorized();
+                return BadRequest("Invalid user ID or role.");
             }
 
             try
             {
-                var userProfile = await _context.UserProfiles
-                    .FirstOrDefaultAsync(p => p.UserId == identityUser.Id);
-
-                if (userProfile != null)
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
                 {
-                    // Helper function for file deletion
-                    void DeleteFileIfPresent(string relativePath)
-                    {
-                        if (string.IsNullOrEmpty(relativePath)) return;
-                        try
-                        {
-                            var fullPath = Path.Combine(_webHostEnvironment.WebRootPath, relativePath.TrimStart('/'));
-                            if (System.IO.File.Exists(fullPath))
-                            {
-                                System.IO.File.Delete(fullPath);
-                            }
-                        }
-                        catch (Exception)
-                        {
-                            // Log warning but don't break the flow
-                        }
-                    }
-
-                    // --- 1. Delete associated files ---
-                    // Existing approved image
-                    DeleteFileIfPresent(userProfile.ProfileImagePath);
-
-                    // NEW: Ensure pending profile images are also wiped
-                    DeleteFileIfPresent(userProfile.PendingProfileImagePath);
-
-                    // QR Codes
-                    DeleteFileIfPresent(userProfile.GpayQRCodePath);
-                    DeleteFileIfPresent(userProfile.PhonePeQRCodePath);
-
-                    // --- 2. Remove Profile Record ---
-                    // This automatically wipes StoreName, GSTIN, StoreCity, etc.
-                    _context.UserProfiles.Remove(userProfile);
-                    await _context.SaveChangesAsync();
-
-                    TempData["success"] = "Your business and profile data has been completely removed!";
-                }
-                else
-                {
-                    TempData["info"] = "No custom profile data found to delete.";
+                    return NotFound($"User with ID {userId} not found.");
                 }
 
-                return RedirectToAction("ProfileDetails", new { userId = identityUser.Id });
-            }
-            catch (Exception ex)
-            {
-                // _logger.LogError(ex, "Error deleting profile for user {UserId}", identityUser.Id);
-                TempData["error"] = "An error occurred while deleting your profile data.";
-                return RedirectToAction("ProfileDetails");
-            }
-        }
-        public IActionResult Login(string returnUrl)
-        {
-           
-            return View(new LoginViewModel { ReturnUrl = returnUrl });
-        }
+                // Get the current roles for the user
+                var currentRoles = await _userManager.GetRolesAsync(user);
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel loginVM)
-        {
-            if (!ModelState.IsValid)
-                return View(loginVM);
+                // Remove the user from all current roles
+                await _userManager.RemoveFromRolesAsync(user, currentRoles);
 
-            string returnUrl = loginVM.ReturnUrl ?? "/";
-
-            try
-            {
-                var user = await ResolveUserAsync(loginVM.UserName);
-                if (user == null) return InvalidLoginResponse(loginVM);
-
-                ViewBag.UserId = user.Id;
-
-                var result = await _sign_in_manager.PasswordSignInAsync(
-                    user.UserName,
-                    loginVM.Password,
-                    isPersistent: false,
-                    lockoutOnFailure: true);
+                // Add the user to the new role
+                var result = await _userManager.AddToRoleAsync(user, newRole);
 
                 if (result.Succeeded)
                 {
-                    await UpdateUserStatusAsync(user.Id);
-                    return LocalRedirect(returnUrl);
+                    return Ok($"User role updated to {newRole}.");
                 }
 
-                if (result.IsLockedOut)
-                {
-                    _logger.LogWarning("User account locked out: {UserName}", loginVM.UserName);
-                    ViewBag.IsLockedOut = true;
-
-                    // Fetch the most recent request to see the Admin's decision/notes
-                    var lastRequest = await _context.UnlockRequests
-                        .Where(ur => ur.UserId == user.Id)
-                        .OrderByDescending(ur => ur.RequestDate)
-                        .FirstOrDefaultAsync();
-
-                    string statusMessage;
-
-                    if (lastRequest != null)
-                    {
-                        // If the last request was denied, show the Admin Note (the reason)
-                        if (lastRequest.Status == "Denied" && !string.IsNullOrEmpty(lastRequest.AdminNotes))
-                        {
-                            statusMessage = $"Your request was denied. Admin Note: {lastRequest.AdminNotes}";
-                        }
-                        else if (lastRequest.Status == "Pending")
-                        {
-                            statusMessage = "An unlock request is already pending with the admin team.";
-                            ViewBag.RequestSubmitted = true;
-                        }
-                        else
-                        {
-                            statusMessage = "Your account is disabled. You can submit an unlock request below.";
-                        }
-                    }
-                    else
-                    {
-                        statusMessage = "Your account is disabled. Please contact the administrator or submit a request below.";
-                    }
-
-                    ModelState.AddModelError(string.Empty, statusMessage);
-                    return View(loginVM);
-                }
-
-                return InvalidLoginResponse(loginVM);
+                return StatusCode(500, "Error updating user role.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Login error");
-                return View(loginVM);
+                // Log the error (could be DB issues, etc.)
+                // _logger.LogError(ex, "Error updating user role for user ID: {UserId}", userId);
+                return StatusCode(500, "Internal server error.");
             }
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPassword()
+        {
+            return View();
         }
 
         [HttpPost]
+        [AllowAnonymous]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RequestAccountUnlock(string userId)
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
         {
-            if (string.IsNullOrEmpty(userId)) return BadRequest();
+            if (!ModelState.IsValid) return View(model);
 
-            // Architect's Tip: Use TempData to pass feedback back to the Login view
-            var result = await _userService.CreateUnlockRequestAsync(userId);
-
-            if (result.Succeeded)
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
             {
-                TempData["success"] = "Success! Your unlock request has been sent to the admin team.";
-                ViewBag.RequestSubmitted = result.Succeeded;
-            }
-            else
-            {
-                TempData["error"] = result.Message; // e.g., "Request already pending"
+                // Don't reveal that the user does not exist
+                return RedirectToAction("ForgotPasswordConfirmation");
             }
 
-            return RedirectToAction(nameof(Login));
-        }
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            // Encode the token to make it URL-safe
+            var tokenBytes = Encoding.UTF8.GetBytes(token);
+            var encodedToken = WebEncoders.Base64UrlEncode(tokenBytes);
 
-        /// <summary>
-        /// Architect's Approach: Encapsulated logic to find user by ITS, Email, Phone, or Username
-        /// </summary>
-        private async Task<IdentityUser> ResolveUserAsync(string identifier)
-        {
-            if (string.IsNullOrWhiteSpace(identifier)) return null;
+            var resetLink = Url.Action("ResetPassword", "Account", new { token = encodedToken, email = user.Email }, Request.Scheme);
 
-            // 1. Check Profile-specific identifiers (ITS Number and WhatsApp)
-            var profile = await _context.UserProfiles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(up => up.ITSNumber == identifier || up.WhatsAppNumber == identifier);
-
-            if (profile != null)
-            {
-                return await _userManager.FindByIdAsync(profile.UserId);
-            }
-
-            // 2. Check Store-specific identifiers (Store Email, Store Contact, and GSTIN)
-            var store = await _context.Stores
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Email == identifier ||
-                                          s.Contact == identifier ||
-                                          s.GSTIN == identifier);
-
-            if (store != null)
-            {
-                return await _userManager.FindByIdAsync(store.UserId);
-            }
-
-            // 3. Fallback: Standard Identity Lookups (Username, Email, Identity Phone)
-            return await _userManager.FindByNameAsync(identifier)
-                   ?? await _userManager.FindByEmailAsync(identifier)
-                   ?? await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == identifier);
-        }
-
-        /// <summary>
-        /// Updates user online status with error resiliency
-        /// </summary>
-        private async Task UpdateUserStatusAsync(string userId)
-        {
             try
             {
-                var status = await _context.UserStatuses.FindAsync(userId)
-                             ?? new UserStatusTracker { UserId = userId };
+                var subject = "Password Reset Request";
+                var body = $@"
+                <h2>Password Reset</h2>
+                <p>You have requested to reset your password for your account.</p>
+                <p>Please click the link below to reset your password:</p>
+                <p><a href='{resetLink}'>Reset Password</a></p>
+                <p>If you did not request this password reset, please ignore this email.</p>
+                <p>This link will expire in 24 hours.</p>
+                <br>
+                <p>Best regards,<br>Weypaari Team</p>";
 
-                status.IsOnline = true;
-                status.LastActivity = DateTime.UtcNow;
+                // Use configured sender (we expect EmailSettings to be set to weypaari@gmail.com)
+                await _emailService.SendEmailAsync(user.Email, subject, body);
+                _logger.LogInformation("Password reset email sent to {Email}", model.Email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send password reset email to {Email}", model.Email);
+                TempData["error"] = "An error occurred while sending the password reset email. Please try again.";
+                return View(model);
+            }
 
-                if (_context.Entry(status).State == EntityState.Detached)
-                    _context.UserStatuses.Add(status);
+            return RedirectToAction("ForgotPasswordConfirmation");
+        }
 
-                await _context.SaveChangesAsync();
+        // --- FORGOT PASSWORD CONFIRMATION ---
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPasswordConfirmation()
+        {
+            // Renders Views/Account/ForgotPasswordConfirmation.cshtml
+            return View();
+        }
+
+        // Explicit lowercase route for /account/forgotpasswordconfirmation
+        [HttpGet("account/forgotpasswordconfirmation")]
+        [AllowAnonymous]
+        public IActionResult ForgotPasswordConfirmationRoute()
+        {
+            return View("ForgotPasswordConfirmation");
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ResetPassword(string token = null, string email = null)
+        {
+            if (token == null || email == null)
+            {
+                TempData["error"] = "Invalid password reset token.";
+                return RedirectToAction("ForgotPassword");
+            }
+
+            // Token is expected to be Base64Url encoded; pass through to view as-is
+            var model = new ResetPasswordViewModel
+            {
+                Token = token,
+                Email = email
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                // Don't reveal that the user does not exist
+                return RedirectToAction("ResetPasswordConfirmation");
+            }
+
+            // Decode the token from Base64Url back to the original token
+            string decodedToken;
+            try
+            {
+                var tokenBytes = WebEncoders.Base64UrlDecode(model.Token);
+                decodedToken = Encoding.UTF8.GetString(tokenBytes);
             }
             catch
             {
-                // Architect Note: Status tracking shouldn't break the login flow
+                ModelState.AddModelError(string.Empty, "Invalid token format.");
+                return View(model);
             }
+
+            var result = await _userManager.ResetPasswordAsync(user, decodedToken, model.Password);
+            if (result.Succeeded)
+            {
+                _logger.LogInformation("Password reset successful for user {Email}", model.Email);
+                return RedirectToAction("ResetPasswordConfirmation");
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError("", error.Description);
+            }
+
+            return View(model);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ResetPasswordConfirmation()
+        {
+            return View();
+        }
+
+        // Explicit lowercase route for reset password confirmation to match URLs like /account/resetpasswordconfirmation
+        [HttpGet("account/resetpasswordconfirmation")]
+        [AllowAnonymous]
+        public IActionResult ResetPasswordConfirmationRoute()
+        {
+            return View("ResetPasswordConfirmation");
         }
 
         private IActionResult InvalidLoginResponse(LoginViewModel vm)
@@ -2007,6 +1768,7 @@ namespace CMSECommerce.Controllers
                         };
                         _context.Add(newRequest);
                         await _context.SaveChangesAsync();
+
                         TempData["success"] = "Your request was automatically created. Please check the status below.";
                     }
                     catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
@@ -2043,6 +1805,21 @@ namespace CMSECommerce.Controllers
                 // Identity Operation
                 var currentUser = await _userManager.GetUserAsync(User);
                 if (currentUser == null) return RedirectToAction("Login");
+
+                // Database Operation: Check if user has a valid ITS Number
+                var userProfile = await _context.UserProfiles
+                    .FirstOrDefaultAsync(p => p.UserId == currentUser.Id);
+                bool ITSAvailable = false;
+                if (userProfile != null)
+                {
+                    ITSAvailable = !string.IsNullOrEmpty(userProfile.ITSNumber);
+                }
+
+                if (!ITSAvailable)
+                {
+                    TempData["error"] = "You must have a valid ITS Number in your profile to request seller access. Please update your profile and try again.";
+                    return RedirectToAction("ProfileDetails", new { ITSAvailable = ITSAvailable });
+                }
 
                 // Database Operation: Check for existing request to prevent duplicates
                 var existingRequest = await _context.SubscriberRequests
@@ -2095,12 +1872,7 @@ namespace CMSECommerce.Controllers
             {
                 // Identity Operation: Get the current authenticated user's details
                 var current = await _userManager.GetUserAsync(User);
-                if (current == null)
-                {
-                    // Identity lookup failed, possibly due to corrupted cookie or expired session
-                    TempData["error"] = "Could not retrieve user details. Please log in again.";
-                    return RedirectToAction("Login");
-                }
+                if (current == null) return RedirectToAction("Login");
 
                 // Identity Operation: Get the current roles of the user
                 // This is wrapped in the outer try-catch as well.
@@ -2279,41 +2051,29 @@ namespace CMSECommerce.Controllers
                     PhoneNumber = user.PhoneNumber,
                     Role = roles.FirstOrDefault(),
 
-                    // UserProfile Basic Fields
+
+                    // UserProfile Fields
                     FirstName = userProfile?.FirstName,
                     LastName = userProfile?.LastName,
                     ITSNumber = userProfile?.ITSNumber,
-
-                    // IMAGE HANDLING: Ensure the path is not null/empty, or provide a default
-                    ProfileImagePath = !string.IsNullOrEmpty(userProfile?.ProfileImagePath)
-                                       ? userProfile.ProfileImagePath
-                                       : "/images/default_profile.png",
-
+                    ProfileImagePath = userProfile?.ProfileImagePath,
                     IsImageApproved = userProfile?.IsImageApproved ?? false,
                     IsProfileVisible = userProfile?.IsProfileVisible ?? true,
-
-                    // Professional Details
                     About = userProfile?.About,
                     Profession = userProfile?.Profession,
                     ServicesProvided = userProfile?.ServicesProvided,
-
-                    // Social & Contact
                     LinkedInUrl = userProfile?.LinkedInUrl,
                     FacebookUrl = userProfile?.FacebookUrl,
                     InstagramUrl = userProfile?.InstagramUrl,
                     WhatsAppNumber = userProfile?.WhatsAppNumber,
-
-                    // Physical Addresses
                     HomeAddress = userProfile?.HomeAddress,
                     HomePhoneNumber = userProfile?.HomePhoneNumber,
                     BusinessAddress = userProfile?.BusinessAddress,
                     BusinessPhoneNumber = userProfile?.BusinessPhoneNumber,
-
-                    // Payment QR Codes (Mapped directly - View will handle nulls)
                     GpayQRCodePath = userProfile?.GpayQRCodePath,
                     PhonePeQRCodePath = userProfile?.PhonePeQRCodePath,
 
-                    // Store Mapping
+                    // Store Details (Flattened from the navigation property)
                     StoreId = userProfile?.Store?.Id,
                     StoreName = userProfile?.Store?.StoreName ?? "Independent",
                     StoreCity = userProfile?.Store?.City,
@@ -2425,6 +2185,7 @@ namespace CMSECommerce.Controllers
             }
         }
 
+        [HttpGet]
         [Authorize]
         public async Task<IActionResult> Invoice(int id)
         {
@@ -2594,6 +2355,40 @@ namespace CMSECommerce.Controllers
             {
                 _logger.LogError(ex, "Error fetching chat contacts for user {UserId}", _userManager.GetUserId(User));
                 return Json(new { success = false, message = "Error loading contacts" });
+            }
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> VerifyOTP(int registrationId, string otp)
+        {
+            try
+            {
+                var profile = await _context.UserProfiles.FindAsync(registrationId);
+                if (profile == null)
+                {
+                    TempData["error"] = "Invalid registration session.";
+                    return RedirectToAction("Register");
+                }
+
+                var email = (await _userManager.FindByIdAsync(profile.UserId)).Email;
+                var phone = profile.WhatsAppNumber ?? (await _userManager.FindByIdAsync(profile.UserId)).PhoneNumber;
+
+              
+                await _context.SaveChangesAsync();
+
+                // Sign-in the user now (or redirect to login)
+                var user = await _userManager.FindByIdAsync(profile.UserId);
+                await _sign_in_manager.SignInAsync(user, isPersistent: false);
+
+                return RedirectToAction("Index", "Home");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "OTP verification failed");
+                TempData["error"] = "An error occurred during verification.";
+                return View("VerifyOTP", new RegisterViewModel());
             }
         }
 

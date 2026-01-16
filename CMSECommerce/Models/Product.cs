@@ -52,6 +52,9 @@ namespace CMSECommerce.Models
         // Admin rejection reason (optional)
         public string RejectionReason { get; set; }
 
+        // ✅ New property: visibility for sellers
+        public bool IsVisible { get; set; } = true;
+
         // ✅ New property: stock quantity
         [Range(0, int.MaxValue, ErrorMessage = "Stock quantity cannot be negative")]
         public int StockQuantity { get; set; }

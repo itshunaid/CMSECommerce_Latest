@@ -1,53 +1,28 @@
 ﻿@model IEnumerable<Category>
 
-<div class="card shadow-lg mb-4 border-dark rounded-3">
+<div class="amazon-sidebar-card">
+    <div class="amazon-sidebar-title">Shop by Department</div>
 
-    @* Header is fine (dark background, gold text) *@
-    @* <div class="card-header bg-dark text-warning py-3">
-        <h5 class="mb-0 fw-bold">
-            <i class="fas fa-bars me-2"></i> Product Categories
-        </h5>
-    </div> *@
+    <ul class="amazon-list list-unstyled p-2">
 
+        <li class="category-list-item @(string.IsNullOrEmpty(ViewBag.CategorySlug) ? "active-category" : "")">
+            <a class="amazon-sidebar-link nav-link text-decoration-none d-flex justify-content-between align-items-center"
+               asp-controller="Products"
+               asp-action="Index"
+               asp-route-slug="">
+                <span>
+                    <i class="fas fa-th-large me-2"></i>
+                    All Departments
+                </span>
+            </a>
+        </li>
 
-    <div class="card-body p-0">
-        <ul class="list-group list-group-flush activeul">
+        @foreach (var root in Model)
+        {
+            <partial name="_CategoryNode" model="Tuple.Create(root, 0)" />
+        }
 
-
-            @* All Products Link *@
-            <li class="list-group-item category-list-item @(ViewBag.CategorySlug == null || ViewBag.CategorySlug == "" ? "active-category" : "")">
-                <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center"
-                   asp-controller="Products"
-                   asp-action="Index"
-                   asp-route-slug="">
-                    <span><i class="fas fa-boxes me-2"></i> All Products</span>
-                    <i class="fas fa-chevron-right small text-muted"></i>
-                </a>
-            </li>
-
-
-            @* Individual Category Links *@
-            @* --- Individual Category Links (Royal Design Applied via CSS) --- *@
-            @foreach (var item in Model)
-            {
-                <li class="list-group-item category-list-item @(ViewBag.CategorySlug == item.Slug ? "active-category" : "")">
-                    <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center"
-                       asp-controller="Products"
-                       asp-action="Index"
-                       asp-route-slug="@item.Slug">
-
-                        @* The text is visible because the default link color is dark against a light background. *@
-                        <span><i class="far fa-folder me-2"></i> @item.Name</span>
-
-                        @* The chevron remains muted unless active *@
-                        <i class="fas fa-chevron-right small text-muted"></i>
-                    </a>
-                </li>
-            }
-
-
-        </ul>
-    </div>
+    </ul>
 </div>
 
 @section Styles {
@@ -59,40 +34,26 @@
         }
 
             .category-list-item:hover {
-                background-color: #f0f0f0; /* Slightly darker light background on hover */
+                background-color: #f0f0f0;
             }
 
             .category-list-item .nav-link {
-                /* VISIBILITY FIX: Make default text color dark black/blue for contrast against white card body */
                 color: var(--bs-dark) !important;
                 padding: 0.75rem 1rem;
             }
 
-        /* Active State Styling */
         .active-category {
-            /* Border highlight remains dark for depth */
             border-left: 3px solid var(--bs-dark) !important;
-            /* Active background color is light gray */
             background-color: #e6e6e6 !important;
         }
 
             .active-category .nav-link {
-                /* VISIBILITY FIX: Use the Gold/Warning color for the active link text */
                 color: var(--bs-warning) !important;
-                font-weight: 700; /* Extra bold when active */
+                font-weight: 700;
             }
 
-            /* Hide right chevron on active link */
             .active-category .fa-chevron-right {
                 display: none;
             }
-
-       
     </style>
-}
-
-@section Scripts {
-    <script>
-        // No client-side script needed for basic active link highlight if using the server-side check.
-    </script>
 }

@@ -78,7 +78,7 @@ namespace CMSECommerce.Controllers
             if (userProfile == null)
             {
                 TempData["Error"] = "Please update your profile first.";
-                return RedirectToAction("Create", "UserProfiles", new { isNewProfile = true, tierId = tierId });
+                return RedirectToAction("Create", "UserProfiles", new { isNewProfile = true, tierId = tierId, callingFrom="Subscription" });
             }
 
             if (string.IsNullOrEmpty(userProfile.ITSNumber))
@@ -146,6 +146,7 @@ namespace CMSECommerce.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SubmitRequest(SubscriptionRequestViewModel model)
         {
+            ModelState.Remove("ITSNumber");
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Challenge();
 

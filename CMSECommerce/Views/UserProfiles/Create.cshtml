@@ -166,10 +166,13 @@
                         <hr class="my-4" />
 
                         <div class="d-flex justify-content-between align-items-center">
-                            <a asp-controller="Products" asp-action="Index" class="text-muted text-decoration-none small">Cancel</a>
+                         
+                                <a asp-controller="Products" asp-action="Index" class="text-muted text-decoration-none small">Cancel</a>
+                               
+                                
 
                             <button type="submit" id="btnSubmit" class="btn btn-amazon-yellow px-5 py-2 fw-bold rounded-pill shadow-sm">
-                                <span id="btnText">@(IsCustomer ? "Save Profile & Enable Ordering" : "Save Profile & Enable Selling")</span>
+                                <span id="btnText">@(IsCustomer ? "Save Profile" : "Save Profile")</span>
                                 <span id="btnSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                             </button>
                         </div>

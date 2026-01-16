@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CMSECommerce.Areas.Admin.Controllers
 {
@@ -189,13 +191,13 @@ namespace CMSECommerce.Areas.Admin.Controllers
         {
             try
             {
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name");
+                ViewBag.Categories = BuildCategorySelectList();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to load categories for Product Create view.");
                 TempData["Error"] = "Could not load categories for the form.";
-                ViewBag.Categories = new SelectList(new List<Category>(), "Id", "Name");
+                ViewBag.Categories = new List<SelectListItem>();
             }
 
             return View();
@@ -206,15 +208,28 @@ namespace CMSECommerce.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Product product)
         {
+            var userId = _userManager.GetUserId(User);
+
+            // 1. Validate Profile and Store (Consistent with Seller logic)
+            var profile = await _context.UserProfiles
+                .Include(p => p.Store)
+                .FirstOrDefaultAsync(p => p.UserId == userId);
+
+            if (profile?.Store == null)
+            {
+                TempData["Error"] = "You must have an active store to add products.";
+                return RedirectToAction("Index", "Dashboard"); // Redirect to admin dashboard
+            }
+
             // Ensure categories are loaded for the View in case of validation failure
             try
             {
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
+                ViewBag.Categories = BuildCategorySelectList(product.CategoryId);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to load categories for Product Create view during post back.");
-                ViewBag.Categories = new SelectList(new List<Category>(), "Id", "Name");
+                ViewBag.Categories = new List<SelectListItem>();
             }
 
             if (ModelState.IsValid)
@@ -247,7 +262,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     }
 
                     product.Image = imageName;
-                    product.OwnerName = _userManager.GetUserName(User); // Assuming OwnerId should be UserName for Admin products
+                    product.OwnerName = _userManager.GetUserName(User);
+                    product.UserId = userId;
+                    product.StoreId = (int)profile.StoreId;
                     product.Status = ProductStatus.Approved; // Admin created products are approved immediately
 
                     _context.Add(product);
@@ -291,7 +308,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     return NotFound();
                 }
 
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
+                ViewBag.Categories = BuildCategorySelectList(product.CategoryId);
 
                 string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + id.ToString());
 
@@ -304,8 +321,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading product for edit, ID: {ProductId}", id);
-                TempData["Error"] = "Failed to load product details for editing.";
-                return RedirectToAction("Index");
+                TempData["Error"] = "Failed to load categories, but you can still edit the product.";
+                ViewBag.Categories = new List<SelectListItem>();
+                return View(product);
             }
 
             return View(product);
@@ -319,12 +337,12 @@ namespace CMSECommerce.Areas.Admin.Controllers
             // Ensure categories are loaded for the View in case of validation failure
             try
             {
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
+                ViewBag.Categories = BuildCategorySelectList(product.CategoryId);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to load categories for Product Edit view during post back.");
-                ViewBag.Categories = new SelectList(new List<Category>(), "Id", "Name");
+                ViewBag.Categories = new List<SelectListItem>();
             }
 
             // Get the current product from the database for existing data preservation
@@ -684,6 +702,68 @@ namespace CMSECommerce.Areas.Admin.Controllers
             }
 
             return RedirectToAction("PendingProducts");
+        }
+
+        // Helper: build hierarchical select list of categories
+        private IEnumerable<SelectListItem> BuildCategorySelectList(int? selectedId = null)
+        {
+            try
+            {
+                var cats = _context.Categories.AsNoTracking().OrderBy(c => c.Name).ToList();
+
+                // If no categories in database, add some defaults
+                if (!cats.Any())
+                {
+                    cats = new List<Category>
+                    {
+                        new Category { Id = 1, Name = "Electronics", Slug = "electronics", ParentId = null, Level = 0 },
+                        new Category { Id = 2, Name = "Clothing", Slug = "clothing", ParentId = null, Level = 0 },
+                        new Category { Id = 3, Name = "Home & Garden", Slug = "home-garden", ParentId = null, Level = 0 },
+                        new Category { Id = 4, Name = "Books", Slug = "books", ParentId = null, Level = 0 },
+                        new Category { Id = 5, Name = "Sports", Slug = "sports", ParentId = null, Level = 0 },
+                        new Category { Id = 6, Name = "Health & Beauty", Slug = "health-beauty", ParentId = null, Level = 0 },
+                        new Category { Id = 7, Name = "Toys & Games", Slug = "toys-games", ParentId = null, Level = 0 },
+                        new Category { Id = 8, Name = "Automotive", Slug = "automotive", ParentId = null, Level = 0 }
+                    };
+                }
+
+                var byParent = cats.GroupBy(c => c.ParentId).ToDictionary(g => g.Key, g => g.OrderBy(x => x.Name).ToList());
+                var items = new List<SelectListItem>();
+
+                void AddChildren(int? parentId, string prefix)
+                {
+                    if (!byParent.ContainsKey(parentId)) return;
+                    foreach (var c in byParent[parentId])
+                    {
+                        items.Add(new SelectListItem
+                        {
+                            Value = c.Id.ToString(),
+                            Text = prefix + c.Name,
+                            Selected = selectedId.HasValue && selectedId.Value == c.Id
+                        });
+                        AddChildren(c.Id, prefix + "— ");
+                    }
+                }
+
+                AddChildren(null, "");
+                return items;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to build category select list.");
+                // Return default categories as fallback
+                return new List<SelectListItem>
+                {
+                    new SelectListItem { Value = "1", Text = "Electronics" },
+                    new SelectListItem { Value = "2", Text = "Clothing" },
+                    new SelectListItem { Value = "3", Text = "Home & Garden" },
+                    new SelectListItem { Value = "4", Text = "Books" },
+                    new SelectListItem { Value = "5", Text = "Sports" },
+                    new SelectListItem { Value = "6", Text = "Health & Beauty" },
+                    new SelectListItem { Value = "7", Text = "Toys & Games" },
+                    new SelectListItem { Value = "8", Text = "Automotive" }
+                };
+            }
         }
     }
 }

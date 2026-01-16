@@ -34,25 +34,13 @@
             <aside class="col-lg-2 d-none d-lg-block">
                 <div class="filter-sidebar sticky-top" style="top: 20px; z-index: 100;">
 
-                    @* --- CATEGORIES SECTION --- *@
-                    @* <h6 class="fw-bold mb-2 small-caps">Categories</h6> *@
-                    <ul class="list-unstyled small mb-4">
-                        <li>
-                            <a asp-action="Index" asp-route-slug="" asp-route-searchTerm="@currentSearchTerm"
-                               class="text-decoration-none text-dark filter-link @(string.IsNullOrEmpty(currentCategorySlug) ? "fw-bold" : "")">
-                                All Categories
-                            </a>
-                        </li>
-                        @foreach (var cat in categories)
-                        {
-                            <li>
-                                <a asp-action="Index" asp-route-slug="@cat.Slug" asp-route-searchTerm="@currentSearchTerm"
-                                   class="text-decoration-none text-dark filter-link @(currentCategorySlug == cat.Slug ? "fw-bold" : "")">
-                                    @cat.Name
-                                </a>
-                            </li>
-                        }
-                    </ul>
+                    @* --- AMAZON CATEGORY TREE --- *@
+                    <partial name="_AmazonCategoryTree"
+                             model="new CategoryTreeViewModel {
+                                 Categories = ViewBag.CategoryTree,
+                                 CurrentCategorySlug = currentCategorySlug,
+                                 SearchTerm = currentSearchTerm
+                             }" />
 
                     <hr class="my-3" />
 
@@ -403,6 +391,34 @@
             z-index: 5;
             transform: scale(1.01);
             border-radius: 4px;
+        }
+
+        .amazon-category-tree .amazon-cat-link {
+            font-size: 0.9rem;
+            color: #0F1111;
+            text-decoration: none;
+            display: block;
+            padding: 2px 0;
+        }
+
+        .amazon-category-tree .amazon-cat-link:hover {
+            color: #C45500;
+            text-decoration: underline;
+        }
+
+        .amazon-category-tree .active {
+            font-weight: 700;
+            color: #C45500;
+        }
+
+        .amazon-subcat-link {
+            font-size: 0.85rem;
+            color: #565959;
+            text-decoration: none;
+        }
+
+        .amazon-subcat-link:hover {
+            color: #C45500;
         }
     </style>
 }

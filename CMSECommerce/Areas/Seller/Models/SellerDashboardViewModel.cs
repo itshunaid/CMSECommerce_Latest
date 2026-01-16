@@ -13,5 +13,21 @@ namespace CMSECommerce.Areas.Seller.Models
         public int Categories { get;  set; }
         public int LowProductsCount { get;  set; }
         public int IsOrderCancelledCount { get; set; }
+
+        // Product Visibility Counts
+        public int VisibleProductsCount { get; set; }
+        public int HiddenProductsCount { get; set; }
+
+        // Sales Analytics
+        public decimal TotalRevenue { get; set; }
+        public Dictionary<string, decimal> MonthlySales { get; set; } = new Dictionary<string, decimal>();
+        public List<TopSellingProduct> TopSellingProducts { get; set; } = new List<TopSellingProduct>();
+
+        public class TopSellingProduct
+        {
+            public string ProductName { get; set; }
+            public int TotalSold { get; set; }
+            public decimal TotalRevenue { get; set; }
+        }
     }
 }
