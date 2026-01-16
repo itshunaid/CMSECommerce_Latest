@@ -1,0 +1,16 @@
+﻿Delete from SubscriptionTiers;
+
+-- Allow manual insertion of values into the Identity (Auto-increment) column
+SET IDENTITY_INSERT SubscriptionTiers ON;
+
+INSERT INTO SubscriptionTiers (Id, Name, Price, DurationMonths, ProductLimit)
+VALUES 
+(1, 'Trial', 99, 1, 5),
+(2, 'Basic', 499, 6, 25),
+(3, 'Intermediate', 899, 12, 50),
+(4, 'Premium', 1499, 12, 120);
+
+-- Disable manual insertion so the database can take over ID generation again
+SET IDENTITY_INSERT SubscriptionTiers OFF;
+
+Select * from SubscriptionTiers;
