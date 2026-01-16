@@ -1,15 +1,16 @@
 ﻿using CMSECommerce.Areas.Admin.Models;
 using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
+using CMSECommerce.Models;
 using CMSECommerce.Models.ViewModels;
 using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.AspNetCore.WebUtilities;
 using System.Text;
 using System.Text.Encodings.Web;
 
@@ -369,24 +370,11 @@ namespace CMSECommerce.Controllers
 
             if (!ModelState.IsValid) return View(model);
 
-            // Check if user already exists
-            var existingUser = await _userManager.FindByNameAsync(model.Username);
-            if (existingUser != null)
-            {
-                return RedirectToAction("Login", new { username = model.Username });
-            }
-
-
-
-
-            // 1. Simplified Uniqueness Check 
-            // We only check UserManager for existing credentials to prevent crashes.
-            bool isDuplicate = await _userManager.Users.AnyAsync(u =>
+            // 1. Uniqueness Check: Check Identity for existing credentials
+            var isDuplicate = await _userManager.Users.AnyAsync(u =>
                 u.UserName == model.Username ||
                 u.Email == model.Email ||
                 u.PhoneNumber == model.PhoneNumber);
-
-
 
             if (isDuplicate)
             {
@@ -396,53 +384,62 @@ namespace CMSECommerce.Controllers
 
             try
             {
-                // 2. Create Identity User (Core Identity functionality)
+                // 2. Create Identity User
                 var newUser = new IdentityUser
                 {
                     UserName = model.Username,
                     Email = model.Email,
                     PhoneNumber = model.PhoneNumber,
-                    EmailConfirmed = true // Mimicking Amazon's pre-verified or direct access flow
+                    EmailConfirmed = true
                 };
 
                 var result = await _userManager.CreateAsync(newUser, model.Password);
 
                 if (result.Succeeded)
                 {
-                    // Save a pending profile (UserProfile) with IsEmailVerified/IsPhoneVerified = false
+                    // 3. Generate a Unique 8-digit ITS Number
+                    Random generator = new Random();
+                    string generatedITS;
+                    bool isItsUnique = false;
+
+                    // Loop to ensure the random number doesn't collide with an existing one
+                    do
+                    {
+                        generatedITS = generator.Next(10000000, 100000000).ToString();
+                        isItsUnique = !await _context.UserProfiles.AnyAsync(u => u.ITSNumber == generatedITS);
+                    } while (!isItsUnique);
+
+                    // 4. Create and Map UserProfile
                     var userProfile = new UserProfile
                     {
                         UserId = newUser.Id,
-                        FirstName = model.FirstName,
-                        LastName = model.LastName,
-                        ITSNumber = model.ITSNumber,
-                        WhatsAppNumber = model.WhatsAppNumber,
-                        Store = null,
+                        FirstName = model.FirstName ?? "New",
+                        LastName = model.LastName ?? "User",
+                        ITSNumber = generatedITS,
+                        WhatsAppNumber = model.WhatsAppNumber ?? "0000000000",
+                        HomeAddress = "Pending Update",
+                        BusinessAddress = "Pending Update",
                         IsProfileVisible = true,
-                        IsImageApproved = false
-                        
+                        IsDeactivated = false,
+                        CurrentProductLimit = 5,
+                        Profession = "Update Profession",
+                        ServicesProvided = "Update Services"
                     };
 
+                    // 5. Save Profile & Role (One-time save is more efficient)
                     _context.UserProfiles.Add(userProfile);
                     await _context.SaveChangesAsync();
 
-                    // 3. Role Assignment
                     await _userManager.AddToRoleAsync(newUser, "Customer");
 
-                   
-
-
-                   
-                    _context.Update(userProfile);
-                    await _context.SaveChangesAsync();
-
-                    // Redirect to VerifyOTP view
+                    // 6. Setup for OTP View
                     ViewBag.RegistrationId = userProfile.Id.ToString();
                     ViewBag.OtpIdentifier = model.Email;
+
                     return View("VerifyOTP", model);
                 }
 
-                // Add Identity errors (like password complexity issues) to the UI
+                // Handle Identity password/policy errors
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError("", error.Description);
@@ -450,13 +447,14 @@ namespace CMSECommerce.Controllers
             }
             catch (Exception ex)
             {
-                // Maintain existing error logging for troubleshooting
                 _logger.LogError(ex, "Registration failed for user {Username}", model.Username);
                 ModelState.AddModelError("", "An internal error occurred. Please try again.");
             }
 
             return View(model);
         }
+
+
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> ValidateIdentifier(string value, string type)
