@@ -1,0 +1,381 @@
+﻿@using CMSECommerce.Areas.Admin.Models
+@model RegisterUserViewModel
+
+@{
+    ViewData["Title"] = "Create your CMS Merchant Account";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+<style>
+    body {
+        background-color: #fff;
+        font-family: "Amazon Ember", Arial, sans-serif;
+        color: #111;
+    }
+
+    .reg-wrapper {
+        max-width: 1100px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    :root {
+        --amzn-orange: #FF9900;
+        --amzn-orange-hover: #FF8A00;
+        --amzn-blue: #007185;
+        --amzn-border: #DDD;
+        --amzn-light-bg: #f3f3f3;
+    }
+
+    /* Stepper UI */
+    .stepper {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+        border-bottom: 1px solid var(--amzn-border);
+        padding-bottom: 15px;
+    }
+
+    .step-box {
+        text-align: center;
+        padding: 0 20px;
+        position: relative;
+        color: #565959;
+        font-size: 14px;
+    }
+
+        .step-box.active {
+            color: #111;
+            font-weight: 700;
+            border-bottom: 3px solid var(--amzn-orange);
+            padding-bottom: 12px;
+            margin-bottom: -16px;
+        }
+
+        .step-box i {
+            font-size: 18px;
+            display: block;
+            margin-bottom: 4px;
+            color: #ccc;
+        }
+
+        .step-box.active i {
+            color: var(--amzn-orange);
+        }
+
+        .step-box.completed i {
+            color: var(--amzn-blue);
+        }
+
+    /* Amazon Layout */
+    .amzn-card {
+        border: 1px solid var(--amzn-border);
+        border-radius: 8px;
+        padding: 25px;
+        margin-bottom: 20px;
+        background: #fff;
+    }
+
+    .form-label {
+        font-weight: 700;
+        font-size: 13px;
+        margin-bottom: 4px;
+        display: block;
+        color: #111;
+    }
+
+    .form-control {
+        border: 1px solid #888;
+        border-radius: 3px;
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+
+        .form-control:focus {
+            border-color: #e77600;
+            box-shadow: 0 0 3px 2px rgba(228,121,17,0.5);
+            outline: none;
+        }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #eee;
+    }
+
+    /* Buttons */
+    .btn-amzn-primary {
+        background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+        border: 1px solid #a88734;
+        border-radius: 3px;
+        color: #111;
+        font-size: 13px;
+        padding: 7px 20px;
+        box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset;
+    }
+
+        .btn-amzn-primary:hover {
+            background: linear-gradient(to bottom, #f5d78e, #eeb933);
+            border-color: #9c7e31;
+        }
+
+    .btn-amzn-secondary {
+        background: #e7e9ec;
+        border: 1px solid #adb1b8;
+        border-radius: 3px;
+        font-size: 13px;
+        padding: 7px 20px;
+    }
+
+    /* Validation */
+    .field-validation-error {
+        color: #c40000;
+        font-size: 12px;
+        display: block;
+        margin-top: 4px;
+    }
+
+    .input-validation-error {
+        border: 1px solid #c40000 !important;
+    }
+
+    .form-step {
+        display: none;
+    }
+
+    .form-step-active {
+        display: block;
+        animation: fadeIn 0.4s;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+</style>
+
+<div class="reg-wrapper">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">CMS<span style="color:var(--amzn-orange)">marketplace</span></h2>
+        <p class="text-muted small">Seller Central Registration</p>
+    </div>
+
+    <div class="stepper">
+        <div class="step-box active" data-step="1"><i class="fas fa-lock"></i>Login</div>
+        <div class="step-box" data-step="2"><i class="fas fa-user"></i>Personal</div>
+        <div class="step-box" data-step="3"><i class="fas fa-store"></i>Business</div>
+        <div class="step-box" data-step="4"><i class="fas fa-globe"></i>Social</div>
+    </div>
+
+    <form asp-action="Register" asp-area="Admin" asp-controller="Account" method="post" id="regForm">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger p-2 small"></div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <div class="amzn-card shadow-sm">
+
+                    <div class="form-step form-step-active" data-step="1">
+                        <div class="section-title">Step 1: Account Credentials</div>
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control col-md-8" placeholder="Email will be used for login" />
+                            <span asp-validation-for="Email"></span>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Password" class="form-label"></label>
+                                <input asp-for="Password" class="form-control" />
+                                <span asp-validation-for="Password"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ConfirmPassword" class="form-label">Confirm Password</label>
+                                <input asp-for="ConfirmPassword" class="form-control" />
+                                <span asp-validation-for="ConfirmPassword"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-step" data-step="2">
+                        <div class="section-title">Step 2: Profile Identity</div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="FirstName" class="form-label">First Name</label>
+                                <input asp-for="FirstName" class="form-control" />
+                                <span asp-validation-for="FirstName"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="LastName" class="form-label">Last Name</label>
+                                <input asp-for="LastName" class="form-control" />
+                                <span asp-validation-for="LastName"></span>
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="ITSNumber" class="form-label">ITS Number (8 Digits)</label>
+                                <input asp-for="ITSNumber" class="form-control" placeholder="12345678" />
+                                <span asp-validation-for="ITSNumber"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="WhatsAppNumber" class="form-label">WhatsApp Number</label>
+                                <input asp-for="WhatsAppNumber" class="form-control" placeholder="+91" />
+                                <span asp-validation-for="WhatsAppNumber"></span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Profession" class="form-label"></label>
+                            <input asp-for="Profession" class="form-control" />
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="ServicesProvided" class="form-label">Services Provided</label>
+                            <textarea asp-for="ServicesProvided" class="form-control" rows="2" placeholder="Describe your services..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="About" class="form-label">Biography / About Me</label>
+                            <textarea asp-for="About" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-step" data-step="3">
+                        <div class="section-title">Step 3: Business & Contact Details</div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-8">
+                                <label asp-for="StoreName" class="form-label">Legal Store Name</label>
+                                <input asp-for="StoreName" class="form-control" />
+                                <span asp-validation-for="StoreName"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="GSTIN" class="form-label">GSTIN (Optional)</label>
+                                <input asp-for="GSTIN" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="HomeAddress" class="form-label">Home Address</label>
+                                <textarea asp-for="HomeAddress" class="form-control" rows="2"></textarea>
+                                <span asp-validation-for="HomeAddress"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="HomePhoneNumber" class="form-label">Home Phone</label>
+                                <input asp-for="HomePhoneNumber" class="form-control" />
+                                <span asp-validation-for="HomePhoneNumber"></span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="BusinessAddress" class="form-label">Business Address</label>
+                                <textarea asp-for="BusinessAddress" class="form-control" rows="2"></textarea>
+                                <span asp-validation-for="BusinessAddress"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="BusinessPhoneNumber" class="form-label">Business Phone</label>
+                                <input asp-for="BusinessPhoneNumber" class="form-control" />
+                                <span asp-validation-for="BusinessPhoneNumber"></span>
+                            </div>
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-md-6"><label asp-for="StreetAddress" class="form-label">Street</label><input asp-for="StreetAddress" class="form-control" /></div>
+                            <div class="col-md-2"><label asp-for="City" class="form-label">City</label><input asp-for="City" class="form-control" /></div>
+                            <div class="col-md-2"><label asp-for="PostCode" class="form-label">Pin</label><input asp-for="PostCode" class="form-control" /></div>
+                            <div class="col-md-2"><label asp-for="Country" class="form-label">Country</label><input asp-for="Country" class="form-control" /></div>
+                        </div>
+                    </div>
+
+                    <div class="form-step" data-step="4">
+                        <div class="section-title">Step 4: Social Presence</div>
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fab fa-facebook text-primary me-2"></i>Facebook Profile URL</label>
+                            <input asp-for="FacebookUrl" class="form-control" placeholder="https://facebook.com/yourprofile" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fab fa-instagram text-danger me-2"></i>Instagram Profile URL</label>
+                            <input asp-for="InstagramUrl" class="form-control" placeholder="https://instagram.com/yourprofile" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><i class="fab fa-linkedin text-primary me-2"></i>LinkedIn Profile URL</label>
+                            <input asp-for="LinkedInUrl" class="form-control" placeholder="https://linkedin.com/in/yourprofile" />
+                        </div>
+
+                        <div class="mt-4 p-3 bg-light rounded small border">
+                            By clicking <strong>Create Account</strong>, you agree to our Merchant Agreement and verify that all provided data is true.
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="button" class="btn btn-amzn-secondary" id="prevBtn" style="display:none">Back</button>
+                        <button type="button" class="btn btn-amzn-primary ms-auto" id="nextBtn">Continue</button>
+                        <button type="submit" class="btn btn-amzn-primary ms-auto" id="submitBtn" style="display:none">Create your CMS account</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            let currentStep = 1;
+            const totalSteps = 4;
+
+            $("#nextBtn").click(function () {
+                let activeStep = $(`.form-step[data-step="${currentStep}"]`);
+                let isValid = true;
+
+                // Triggers jQuery and AJAX Remote validation for the specific step
+                activeStep.find('input, textarea, select').each(function() {
+                    if (!$(this).valid()) {
+                        isValid = false;
+                    }
+                });
+
+                if (isValid) {
+                    if (currentStep < totalSteps) {
+                        currentStep++;
+                        updateStepUI();
+                    }
+                }
+            });
+
+            $("#prevBtn").click(function () {
+                if (currentStep > 1) {
+                    currentStep--;
+                    updateStepUI();
+                }
+            });
+
+            function updateStepUI() {
+                $(".form-step").removeClass("form-step-active");
+                $(`.form-step[data-step="${currentStep}"]`).addClass("form-step-active");
+
+                $(".step-box").removeClass("active completed");
+                $(".step-box").each(function () {
+                    let s = $(this).data("step");
+                    if (s === currentStep) $(this).addClass("active");
+                    if (s < currentStep) $(this).addClass("completed");
+                });
+
+                $("#prevBtn").toggle(currentStep > 1);
+                if (currentStep === totalSteps) {
+                    $("#nextBtn").hide();
+                    $("#submitBtn").show();
+                } else {
+                    $("#nextBtn").show();
+                    $("#submitBtn").hide();
+                }
+                window.scrollTo(0, 0);
+            }
+        });
+    </script>
+}

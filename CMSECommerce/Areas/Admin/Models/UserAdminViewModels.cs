@@ -50,6 +50,8 @@ namespace CMSECommerce.Areas.Admin.Models
         public string GpayQRCodePath { get; set; }
         [Display(Name = "PhonePe QR Code Path")]
         public string PhonePeQRCodePath { get; set; }
+        [Display(Name = "Deactivated")]
+        public bool IsDeactivated { get; set; }
 
         // --- NEW: Store Fields for Index/Details ---
         public int? StoreId { get; set; }

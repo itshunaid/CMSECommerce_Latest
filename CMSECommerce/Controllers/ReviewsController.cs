@@ -8,7 +8,7 @@ namespace CMSECommerce.Controllers
 {
     // Inject the database context
     // It is highly recommended to also inject ILogger<ReviewsController> for production logging.
-    public class ReviewsController(DataContext context) : Controller
+    public class ReviewsController(DataContext context) : BaseController
     {
         private readonly DataContext _context = context;
 

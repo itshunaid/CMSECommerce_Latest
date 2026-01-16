@@ -1,0 +1,83 @@
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:20,&quot;w&quot;:679,&quot;h&quot;:400,&quot;abs_x&quot;:285,&quot;abs_y&quot;:442}" class="container-fluid mb-5 px-0">
+<div bis_label="style" bis_size="{&quot;x&quot;:20,&quot;y&quot;:20,&quot;w&quot;:679,&quot;h&quot;:400,&quot;abs_x&quot;:285,&quot;abs_y&quot;:442}" style="align-items:center; background:linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://images.unsplash.com/photo-1551836022-d5d88e9218df?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=1350&amp;q=80'); border-radius:12px; color:white; display:flex; height:400px; justify-content:center; text-align:center">
+<div bis_size="{&quot;x&quot;:100,&quot;y&quot;:170,&quot;w&quot;:519,&quot;h&quot;:99,&quot;abs_x&quot;:365,&quot;abs_y&quot;:592}" class="px-3">
+<h1 bis_size="{&quot;x&quot;:100,&quot;y&quot;:187,&quot;w&quot;:519,&quot;h&quot;:31,&quot;abs_x&quot;:365,&quot;abs_y&quot;:609}">Your Business, Your Way</h1>
+
+<p bis_size="{&quot;x&quot;:100,&quot;y&quot;:236,&quot;w&quot;:519,&quot;h&quot;:20,&quot;abs_x&quot;:365,&quot;abs_y&quot;:658}" style="margin-left:auto; margin-right:auto">Empowering women entrepreneurs to lead, sell, and connect directly with their community.</p>
+</div>
+</div>
+</div>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:436,&quot;w&quot;:679,&quot;h&quot;:709,&quot;abs_x&quot;:285,&quot;abs_y&quot;:858}" class="container my-5">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:436,&quot;w&quot;:679,&quot;h&quot;:709,&quot;abs_x&quot;:285,&quot;abs_y&quot;:858}" class="align-items-center g-5 row">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:436,&quot;w&quot;:679,&quot;h&quot;:156,&quot;abs_x&quot;:285,&quot;abs_y&quot;:858}" class="col-md-6">
+<h2 bis_size="{&quot;x&quot;:20,&quot;y&quot;:436,&quot;w&quot;:679,&quot;h&quot;:23,&quot;abs_x&quot;:285,&quot;abs_y&quot;:858}">A Bridge, Not a Middleman</h2>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:475,&quot;w&quot;:679,&quot;h&quot;:41,&quot;abs_x&quot;:285,&quot;abs_y&quot;:897}">Our platform is built on the foundation of <strong bis_size="{&quot;x&quot;:254,&quot;y&quot;:478,&quot;w&quot;:145,&quot;h&quot;:14,&quot;abs_x&quot;:519,&quot;abs_y&quot;:900}">direct entrepreneurship</strong>. We provide the professional digital storefront, but you retain 100% control over your brand, your pricing, and your customer relationships.</p>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:530,&quot;w&quot;:679,&quot;h&quot;:62,&quot;abs_x&quot;:285,&quot;abs_y&quot;:952}">We believe the strongest business bonds are built through direct communication. By removing logistics intermediaries, we allow sellers and buyers to coordinate delivery terms that work best for them&mdash;ensuring a personal touch in every transaction.</p>
+</div>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:605,&quot;w&quot;:679,&quot;h&quot;:540,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1027}" class="col-md-6 text-center"><img alt="Direct customer communication" bis_size="{&quot;x&quot;:20,&quot;y&quot;:605,&quot;w&quot;:800,&quot;h&quot;:534,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1027}" class="img-fluid rounded shadow-lg" src="https://images.unsplash.com/photo-1556742044-3c52d6e88c62?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=800&amp;q=80" /></div>
+</div>
+</div>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1162,&quot;w&quot;:679,&quot;h&quot;:273,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1584}" class="container-fluid py-5" style="background-color:#f8f9fa">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1162,&quot;w&quot;:679,&quot;h&quot;:273,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1584}" class="container">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1162,&quot;w&quot;:679,&quot;h&quot;:43,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1584}" class="mb-5 text-center">
+<h2 bis_size="{&quot;x&quot;:20,&quot;y&quot;:1162,&quot;w&quot;:679,&quot;h&quot;:23,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1584}">Our Core Philosophy</h2>
+
+<div bis_size="{&quot;x&quot;:329,&quot;y&quot;:1201,&quot;w&quot;:60,&quot;h&quot;:4,&quot;abs_x&quot;:594,&quot;abs_y&quot;:1623}" style="background:#febd69; height:4px; margin-bottom:15px; margin-left:auto; margin-right:auto; margin-top:15px; width:60px">&nbsp;</div>
+</div>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1223,&quot;w&quot;:679,&quot;h&quot;:212,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1645}" class="g-4 row">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1223,&quot;w&quot;:679,&quot;h&quot;:51,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1645}" class="col-md-4">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1223,&quot;w&quot;:679,&quot;h&quot;:51,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1645}" class="border-0 card h-100 p-4 shadow-sm text-center">
+<h5 bis_size="{&quot;x&quot;:20,&quot;y&quot;:1223,&quot;w&quot;:679,&quot;h&quot;:12,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1645}">Direct Communication</h5>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:1254,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1676}">Sellers and customers talk directly to finalize orders and delivery, ensuring clarity and mutual trust.</p>
+</div>
+</div>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1293,&quot;w&quot;:679,&quot;h&quot;:72,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1715}" class="col-md-4">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1293,&quot;w&quot;:679,&quot;h&quot;:72,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1715}" class="border-0 card h-100 p-4 shadow-sm text-center">
+<h5 bis_size="{&quot;x&quot;:20,&quot;y&quot;:1293,&quot;w&quot;:679,&quot;h&quot;:12,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1715}">Seller Fulfillment</h5>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:1324,&quot;w&quot;:679,&quot;h&quot;:41,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1746}">From local pickups to preferred couriers, sellers manage their own logistics, keeping the process simple and cost-effective.</p>
+</div>
+</div>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1383,&quot;w&quot;:679,&quot;h&quot;:51,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1805}" class="col-md-4">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1383,&quot;w&quot;:679,&quot;h&quot;:51,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1805}" class="border-0 card h-100 p-4 shadow-sm text-center">
+<h5 bis_size="{&quot;x&quot;:20,&quot;y&quot;:1383,&quot;w&quot;:679,&quot;h&quot;:12,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1805}">Verified Quality</h5>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:1414,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1836}">We provide a safe, verified space for home-based entrepreneurs to build professional credibility.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1451,&quot;w&quot;:679,&quot;h&quot;:1373,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1873}" class="container py-5">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1451,&quot;w&quot;:679,&quot;h&quot;:1373,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1873}" class="align-items-center flex-md-row-reverse g-5 row">
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1451,&quot;w&quot;:679,&quot;h&quot;:156,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1873}" class="col-md-6">
+<h2 bis_size="{&quot;x&quot;:20,&quot;y&quot;:1451,&quot;w&quot;:679,&quot;h&quot;:23,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1873}">Empowering Local Economies</h2>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:1491,&quot;w&quot;:679,&quot;h&quot;:41,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1913}">When you buy from a seller on our platform, you are supporting a woman&rsquo;s dream directly. Whether it&#39;s a home-baked cake or a hand-stitched dress, the absence of centralized delivery means more profit stays with the creator.</p>
+
+<ul bis_size="{&quot;x&quot;:20,&quot;y&quot;:1545,&quot;w&quot;:679,&quot;h&quot;:62,&quot;abs_x&quot;:285,&quot;abs_y&quot;:1967}">
+	<li bis_size="{&quot;x&quot;:60,&quot;y&quot;:1545,&quot;w&quot;:599,&quot;h&quot;:20,&quot;abs_x&quot;:325,&quot;abs_y&quot;:1967}">No hidden delivery commissions</li>
+	<li bis_size="{&quot;x&quot;:60,&quot;y&quot;:1566,&quot;w&quot;:599,&quot;h&quot;:20,&quot;abs_x&quot;:325,&quot;abs_y&quot;:1988}">Flexible pickup &amp; delivery options</li>
+	<li bis_size="{&quot;x&quot;:60,&quot;y&quot;:1587,&quot;w&quot;:599,&quot;h&quot;:20,&quot;abs_x&quot;:325,&quot;abs_y&quot;:2009}">Direct relationship with the artisan</li>
+</ul>
+</div>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:1621,&quot;w&quot;:679,&quot;h&quot;:1204,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2043}" class="col-md-6"><img alt="Successful woman entrepreneur" bis_size="{&quot;x&quot;:20,&quot;y&quot;:1621,&quot;w&quot;:800,&quot;h&quot;:1198,&quot;abs_x&quot;:285,&quot;abs_y&quot;:2043}" class="img-fluid rounded shadow" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=800&amp;q=80" /></div>
+</div>
+</div>
+
+<div bis_size="{&quot;x&quot;:20,&quot;y&quot;:2841,&quot;w&quot;:679,&quot;h&quot;:124,&quot;abs_x&quot;:285,&quot;abs_y&quot;:3263}" class="container my-5 py-5 text-center" style="background-color:#232f3e; border-radius:15px; color:white">
+<h2 bis_size="{&quot;x&quot;:20,&quot;y&quot;:2841,&quot;w&quot;:679,&quot;h&quot;:23,&quot;abs_x&quot;:285,&quot;abs_y&quot;:3263}">Ready to Start Your Digital Storefront?</h2>
+
+<p bis_size="{&quot;x&quot;:20,&quot;y&quot;:2881,&quot;w&quot;:679,&quot;h&quot;:20,&quot;abs_x&quot;:285,&quot;abs_y&quot;:3303}">Join the movement of women entrepreneurs taking charge of their own business success.</p>
+<a bis_size="{&quot;x&quot;:20,&quot;y&quot;:2915,&quot;w&quot;:204,&quot;h&quot;:50,&quot;abs_x&quot;:285,&quot;abs_y&quot;:3337}" href="/Account/Register" style="background-color: #febd69; color: #111; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: 700; display: inline-block;">Join the Community</a></div>

@@ -1,28 +1,95 @@
 ﻿@* /Areas/Admin/Views/Categories/BulkCreate.cshtml *@
+@{
+    ViewData["Title"] = "Bulk Category Upload";
+}
 
-<h2>Bulk Category Upload</h2>
+<h2>@ViewData["Title"]</h2>
 
-<p>
-    Upload an Excel file (.xlsx) containing category names in the first column, starting from the second row.
-    The first row (header) will be ignored.
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Warning"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <strong>Note:</strong> @TempData["Warning"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<p class="text-muted">
+    Upload an Excel file (.xlsx) containing category names in the first column.
+    The system will automatically generate URL-friendly slugs.
 </p>
 
-<div class="alert alert-info">
-    <strong>File Format Tip:</strong>
-    <pre>| Category Name | (other columns ignored) |
-|---------------|-------------------------|
-| Electronics   | ...                     |
-| Clothing      | ...                     |
-| Books         | ...                     |</pre>
+
+
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <strong>Expected File Format</strong>
+    </div>
+    <div class="card-body">
+        <table class="table table-sm table-bordered mb-0" style="max-width: 400px;">
+            <thead class="table-secondary">
+                <tr>
+                    <th>Category Name (Col A)</th>
+                    <th>... (Ignored)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Electronics</td>
+                    <td>...</td>
+                </tr>
+                <tr>
+                    <td>Home & Kitchen</td>
+                    <td>...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </div>
 
-<form method="post" enctype="multipart/form-data" asp-action="BulkCreate">
+<form asp-action="BulkCreate" method="post" enctype="multipart/form-data" id="bulkUploadForm">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-    <div class="form-group">
-        <label for="excelFile">Select Excel File (.xlsx)</label>
-        <input type="file" id="excelFile" name="excelFile" class="form-control" accept=".xlsx" required />
+
+    <div class="form-group mb-3">
+        <label for="excelFile" class="form-label font-weight-bold">Select Excel File (.xlsx)</label>
+        <input type="file" id="excelFile" name="excelFile" class="form-control"
+               accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+        <small class="form-text text-muted">Max file size: 5MB.</small>
     </div>
-    <br />
-    <button type="submit" class="btn btn-primary">Upload and Save Categories</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary" id="uploadBtn">
+            <span class="spinner-border spinner-border-sm d-none" id="loader" role="status" aria-hidden="true"></span>
+            Upload and Save Categories
+        </button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+    </div>
 </form>
+
+@section Scripts {
+    <script>
+        // Architect's Note: UI Feedback during long-running uploads
+        document.getElementById('bulkUploadForm').onsubmit = function() {
+            var fileInput = document.getElementById('excelFile');
+            if(fileInput.files.length > 0) {
+                document.getElementById('uploadBtn').disabled = true;
+                document.getElementById('loader').classList.remove('d-none');
+            }
+        };
+    </script>
+}

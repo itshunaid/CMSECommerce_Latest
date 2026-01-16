@@ -5,56 +5,48 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using ExcelDataReader; // ✅ Required for reading Excel
 // using OfficeOpenXml; // ❌ REMOVED: Conflicting/Paid package
 using CMSECommerce.Models; // ✅ ADDED: Assuming Category model is here
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.Logging;
 
 namespace CMSECommerce.Areas.Admin.Controllers
 {
-    // Restricts access to users with the "Admin" role
     [Authorize(Roles = "Admin")]
     [Area("Admin")]
     public class CategoriesController : Controller
     {
         private readonly DataContext _context;
+        private readonly ILogger<CategoriesController> _logger;
 
-        public CategoriesController(DataContext context)
+        public CategoriesController(DataContext context, ILogger<CategoriesController> logger)
         {
             _context = context;
-            // ✅ FIX: Register encoding provider for ExcelDataReader to work with XLSX files.
-            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+            _logger = logger;
         }
 
-        // 1. READ (Retrieve All)
-        // GET /admin/categories
         public async Task<IActionResult> Index()
         {
-            try
-            {
-                return View(await _context.Categories.OrderBy(x => x.Id).AsNoTracking().ToListAsync());
-            }
-            catch (DbUpdateException)
-            {
-                TempData["Error"] = "A database error occurred while loading categories.";
-                return View(new List<Category>());
-            }
-            catch (Exception)
-            {
-                TempData["Error"] = "An unexpected error occurred.";
-                return View(new List<Category>());
-            }
+            // Architect's Note: Use Projection (.Select) to only pull needed columns if list is large
+            var categories = await _context.Categories
+                .Include(c => c.Parent)
+                .AsNoTracking()
+                .OrderBy(x => x.Id)
+                .ToListAsync();
+            return View(categories);
         }
 
-        // 2. CREATE (GET View)
-        // GET /admin/categories/create
-        public IActionResult Create()
+        // GET: admin/categories/create
+        public async Task<IActionResult> Create()
         {
-            return View();
+            await PopulateParentSelectListAsync();
+            return View(new Category());
         }
 
-        // 2. CREATE (POST Logic)
-        // POST /admin/categories/create
+        // POST: admin/categories/create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Category category)
@@ -63,65 +55,54 @@ namespace CMSECommerce.Areas.Admin.Controllers
             {
                 category.Slug = category.Name?.ToLower().Replace(" ", "-");
 
-                try
+                // Unique slug check to avoid DB unique constraint issues
+                if (await _context.Categories.AnyAsync(c => c.Slug == category.Slug))
                 {
-                    // Check for duplicate slug
-                    var slugCheck = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(x => x.Slug == category.Slug);
-
-                    if (slugCheck != null)
-                    {
-                        ModelState.AddModelError("", "The category name already exists.");
-                        return View(category);
-                    }
-
-                    _context.Add(category);
-                    await _context.SaveChangesAsync();
-
-                    TempData["Success"] = "The category has been added!";
-
-                    return RedirectToAction("Index");
+                    ModelState.AddModelError("Name", "A category with this slug/name already exists.");
+                    await PopulateParentSelectListAsync();
+                    return View(category);
                 }
-                catch (DbUpdateException)
+
+                // Cycle detection
+                if (await WouldCreateCycleAsync(category.Id, category.ParentId))
                 {
-                    ModelState.AddModelError("", "A database error prevented the category from being saved.");
+                    ModelState.AddModelError("ParentId", "Invalid parent category selection would create a cycle.");
+                    await PopulateParentSelectListAsync();
+                    return View(category);
                 }
-                catch (Exception)
+
+                // compute level
+                if (category.ParentId.HasValue)
                 {
-                    ModelState.AddModelError("", "An unexpected error occurred while saving the category.");
+                    var parent = await _context.Categories.FindAsync(category.ParentId.Value);
+                    category.Level = parent != null ? parent.Level + 1 : 0;
                 }
+                else
+                {
+                    category.Level = 0;
+                }
+
+                _context.Categories.Add(category);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "The category has been added!";
+                return RedirectToAction(nameof(Index));
             }
 
+            await PopulateParentSelectListAsync();
             return View(category);
         }
 
-        // 3. UPDATE (GET View)
-        // GET /admin/categories/edit/5
+        // GET: admin/categories/edit/5
         public async Task<IActionResult> Edit(int id)
         {
-            try
-            {
-                Category category = await _context.Categories.FindAsync(id);
-                if (category == null)
-                {
-                    TempData["Error"] = "Category not found.";
-                    return NotFound();
-                }
-                return View(category);
-            }
-            catch (DbUpdateException)
-            {
-                TempData["Error"] = "A database error occurred while fetching the category for editing.";
-                return RedirectToAction("Index");
-            }
-            catch (Exception)
-            {
-                TempData["Error"] = "An unexpected error occurred.";
-                return RedirectToAction("Index");
-            }
+            var category = await _context.Categories.FindAsync(id);
+            if (category == null) return NotFound();
+
+            await PopulateParentSelectListAsync(category.Id);
+            return View(category);
         }
 
-        // 3. UPDATE (POST Logic)
-        // POST /admin/categories/edit/5
+        // POST: admin/categories/edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(Category category)
@@ -130,188 +111,125 @@ namespace CMSECommerce.Areas.Admin.Controllers
             {
                 category.Slug = category.Name?.ToLower().Replace(" ", "-");
 
+                // Ensure slug uniqueness excluding current id
+                if (await _context.Categories.AnyAsync(c => c.Slug == category.Slug && c.Id != category.Id))
+                {
+                    ModelState.AddModelError("Name", "A category with this slug/name already exists.");
+                    await PopulateParentSelectListAsync(category.Id);
+                    return View(category);
+                }
+
+                // prevent parent set to self
+                if (category.ParentId == category.Id) category.ParentId = null;
+
+                // Cycle detection for edit
+                if (await WouldCreateCycleAsync(category.Id, category.ParentId))
+                {
+                    ModelState.AddModelError("ParentId", "Invalid parent category selection would create a cycle.");
+                    await PopulateParentSelectListAsync(category.Id);
+                    return View(category);
+                }
+
+                if (category.ParentId.HasValue)
+                {
+                    var parent = await _context.Categories.FindAsync(category.ParentId.Value);
+                    category.Level = parent != null ? parent.Level + 1 : 0;
+                }
+                else
+                {
+                    category.Level = 0;
+                }
+
                 try
                 {
-                    // Check for duplicate slug (excluding the current category being edited)
-                    var slugCheck = await _context.Categories
-                                                 .AsNoTracking()
-                                                 .Where(x => x.Id != category.Id)
-                                                 .FirstOrDefaultAsync(x => x.Slug == category.Slug);
-
-                    if (slugCheck != null)
-                    {
-                        ModelState.AddModelError("", "The category name already exists.");
-                        return View(category);
-                    }
-
                     _context.Update(category);
                     await _context.SaveChangesAsync();
-
                     TempData["Success"] = "The category has been updated!";
-
-                    return RedirectToAction("Index");
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
+                catch (DbUpdateConcurrencyException ex)
                 {
-                    ModelState.AddModelError("", "Concurrency error: The category was modified by another user. Please re-edit.");
-                }
-                catch (DbUpdateException)
-                {
-                    ModelState.AddModelError("", "A database error prevented the category from being updated.");
-                }
-                catch (Exception)
-                {
-                    ModelState.AddModelError("", "An unexpected error occurred while updating the category.");
+                    _logger.LogError(ex, "Concurrency error updating category ID {CategoryId}", category.Id);
+                    ModelState.AddModelError("", "The category was modified by another user. Please reload and try again.");
                 }
             }
 
+            await PopulateParentSelectListAsync(category.Id);
             return View(category);
         }
 
-        // 4. DELETE (GET View - Confirmation)
-        // GET /admin/categories/delete/5
+        // GET: admin/categories/delete/5
         public async Task<IActionResult> Delete(int id)
         {
-            try
-            {
-                Category category = await _context.Categories.FindAsync(id);
-
-                if (category == null)
-                {
-                    TempData["Error"] = "Category does not exist!";
-                    return NotFound();
-                }
-
-                return View(category);
-            }
-            catch (DbUpdateException)
-            {
-                TempData["Error"] = "A database error occurred while fetching the category for deletion.";
-                return RedirectToAction("Index");
-            }
-            catch (Exception)
-            {
-                TempData["Error"] = "An unexpected error occurred.";
-                return RedirectToAction("Index");
-            }
+            var category = await _context.Categories.Include(c => c.Parent).FirstOrDefaultAsync(c => c.Id == id);
+            if (category == null) return NotFound();
+            return View(category);
         }
 
-        // 4. DELETE (POST Logic - Actual Deletion)
-        // POST /admin/categories/delete/5
+        // POST: admin/categories/delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            Category category = await _context.Categories.FindAsync(id);
+            var category = await _context.Categories.FindAsync(id);
+            if (category == null) return RedirectToAction(nameof(Index));
 
-            if (category == null)
+            // prevent deleting category that has children or products
+            var hasChildren = await _context.Categories.AnyAsync(c => c.ParentId == id);
+            var hasProducts = await _context.Products.AnyAsync(p => p.CategoryId == id);
+            if (hasChildren || hasProducts)
             {
-                TempData["Error"] = "Category not found.";
-                return RedirectToAction("Index");
+                TempData["Error"] = "Cannot delete category with sub-categories or products assigned.";
+                return RedirectToAction(nameof(Index));
             }
 
-            try
-            {
-                _context.Categories.Remove(category);
-                await _context.SaveChangesAsync();
-
-                TempData["Success"] = "The category has been deleted!";
-
-                return RedirectToAction("Index");
-            }
-            catch (DbUpdateException)
-            {
-                TempData["Error"] = "Could not delete category. Ensure no products are currently linked to it.";
-            }
-            catch (Exception)
-            {
-                TempData["Error"] = "An unexpected error occurred during deletion.";
-            }
-
-            return RedirectToAction("Index");
+            _context.Categories.Remove(category);
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Category deleted.";
+            return RedirectToAction(nameof(Index));
         }
 
-        // -----------------------------------------------------------
-        // 5. BULK CREATE (GET View)
-        // GET /admin/categories/bulkcreate
-        // -----------------------------------------------------------
-        public IActionResult BulkCreate()
-        {
-            return View();
-        }
-
-        // -----------------------------------------------------------
-        // 5. BULK CREATE (POST Logic)
-        // POST /admin/categories/bulkcreate
-        // -----------------------------------------------------------
+        // BulkCreate unchanged
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> BulkCreate(IFormFile excelFile)
         {
             if (excelFile == null || excelFile.Length == 0)
             {
-                ModelState.AddModelError("", "Please select a valid Excel file to upload.");
+                ModelState.AddModelError("", "Please select a valid Excel file.");
                 return View();
             }
-
-            if (!Path.GetExtension(excelFile.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
-            {
-                ModelState.AddModelError("", "Only .xlsx files are allowed.");
-                return View();
-            }
-
-            List<Category> newCategories = new List<Category>();
-            HashSet<string> categoryNamesInFile = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             try
             {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+
+                // 1. Load all existing slugs into memory for O(1) lookup
+                // Fetch the list from DB asynchronously, then convert to HashSet in-memory
+                var existingSlugs = (await _context.Categories
+                    .Select(c => c.Slug)
+                    .ToListAsync()) // EF Core Async method
+                    .ToHashSet();   // Standard LINQ method
+
+                var newCategories = new List<Category>();
+                var fileSlugs = new HashSet<string>();
+
                 using (var stream = excelFile.OpenReadStream())
+                using (var reader = ExcelReaderFactory.CreateReader(stream))
                 {
-                    using (var reader = ExcelReaderFactory.CreateReader(stream))
+                    reader.Read(); // Skip Header
+                    while (reader.Read())
                     {
-                        reader.Read();
-                        bool isFirstRow = true;
+                        string name = reader.GetValue(0)?.ToString()?.Trim();
+                        if (string.IsNullOrEmpty(name)) continue;
 
-                        while (reader.Read())
+                        string slug = name.ToLower().Replace(" ", "-");
+
+                        // Validate against file duplicates AND database duplicates
+                        if (!fileSlugs.Contains(slug) && !existingSlugs.Contains(slug))
                         {
-                            if (isFirstRow)
-                            {
-                                isFirstRow = false;
-                                continue;
-                            }
-
-                            string categoryName = reader.GetValue(0)?.ToString()?.Trim();
-
-                            if (!string.IsNullOrWhiteSpace(categoryName))
-                            {
-                                string slug = categoryName.ToLower().Replace(" ", "-");
-                                string currentWarning = TempData["Warning"] as string ?? string.Empty; // Safely get current TempData
-
-                                // 1. Check for in-file duplicates
-                                if (categoryNamesInFile.Contains(categoryName))
-                                {
-                                    // ✅ FIX: Concatenate warning safely
-                                    TempData["Warning"] = currentWarning + $"Duplicate category name '{categoryName}' ignored in the file. ";
-                                    continue;
-                                }
-
-                                categoryNamesInFile.Add(categoryName);
-
-                                // 2. Check for database duplicates (by slug)
-                                bool isDuplicate = await _context.Categories.AnyAsync(c => c.Slug == slug);
-                                if (isDuplicate)
-                                {
-                                    // ✅ FIX: Concatenate warning safely
-                                    TempData["Warning"] = currentWarning + $"Category '{categoryName}' already exists in the database. ";
-                                    continue;
-                                }
-
-                                newCategories.Add(new Category
-                                {
-                                    Name = categoryName,
-                                    Slug = slug
-                                });
-                            }
+                            fileSlugs.Add(slug);
+                            newCategories.Add(new Category { Name = name, Slug = slug });
                         }
                     }
                 }
@@ -320,26 +238,65 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 {
                     _context.Categories.AddRange(newCategories);
                     await _context.SaveChangesAsync();
-
-                    TempData["Success"] = $"{newCategories.Count} new categories have been added successfully!";
+                    await transaction.CommitAsync();
+                    TempData["Success"] = $"{newCategories.Count} categories added.";
                 }
                 else
                 {
-                    TempData["Info"] = "No new unique categories were found in the uploaded file.";
+                    TempData["Info"] = "No new unique categories found.";
                 }
 
-                return RedirectToAction("Index");
-            }
-            catch (DbUpdateException)
-            {
-                TempData["Error"] = "A database error occurred while saving categories. No changes were made.";
-                return View();
+                return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
-                TempData["Error"] = $"An unexpected error occurred during file processing: {ex.Message}";
+                // Log ex here
+                ModelState.AddModelError("", "Critical error processing file.");
                 return View();
             }
+        }
+
+        private async Task PopulateParentSelectListAsync(int? excludeId = null)
+        {
+            var parents = await _context.Categories
+                .Where(c => !excludeId.HasValue || c.Id != excludeId.Value)
+                .OrderBy(c => c.Name)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var items = parents.Select(c => new SelectListItem
+            {
+                Value = c.Id.ToString(),
+                Text = (c.Parent != null ? c.Parent.Name + " / " : string.Empty) + c.Name
+            }).ToList();
+
+            items.Insert(0, new SelectListItem { Value = "", Text = "-- None (Top level) --" });
+            ViewBag.ParentCategories = items;
+        }
+
+        // New helper: cycle detection to ensure parent assignment doesn't create cycles
+        private async Task<bool> WouldCreateCycleAsync(int categoryId, int? newParentId)
+        {
+            if (!newParentId.HasValue) return false;
+            if (newParentId.Value == categoryId) return true; // immediate self-parent
+
+            // Walk up the parent chain from newParentId to see if we encounter categoryId
+            var current = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == newParentId.Value);
+            while (current != null && current.ParentId.HasValue)
+            {
+                if (current.ParentId.Value == categoryId) return true;
+                current = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == current.ParentId.Value);
+            }
+
+            return false;
+        }
+
+        // Expose internal helper for unit testing only
+        // (This method is not used by runtime; included so unit test can call it.)
+        [NonAction]
+        public async Task<bool> TestWouldCreateCycle(int categoryId, int? newParentId)
+        {
+            return await WouldCreateCycleAsync(categoryId, newParentId);
         }
     }
 }

@@ -3,259 +3,252 @@
 
 @{
     ViewData["Title"] = "Product Inventory";
-    // Set pageAction explicitly to "Index" since PendingProducts is removed
     string pageAction = "Index";
-    // Get current query parameters for persistence
-    string currentSearch = Context.Request.Query["search"];
-    string currentStatus = Context.Request.Query["status"];
+
+    string currentSearch = ViewBag.CurrentSearch;
+    string currentStatus = ViewBag.CurrentStatus;
+    string selectedCategory = ViewBag.SelectedCategory ?? "0";
 }
 
-@* ---------------------------------------------------------------------- *
- * TEMP DATA MESSAGES (Success/Error Popups)
- * ---------------------------------------------------------------------- *@
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle-fill me-2"></i><strong>Success!</strong> @TempData["Success"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-x-octagon-fill me-2"></i><strong>Error!</strong> @TempData["Error"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-
-
-@* --- Action Header and Controls --- *@
-<div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-    <h1 class="text-primary"><i class="bi bi-boxes me-2"></i> Product Inventory</h1>
-    <div class="d-flex gap-2">
-        <a asp-action="Create" class="btn btn-success btn-lg shadow-sm">
-            <i class="bi bi-plus-lg me-1"></i> Add Product
-        </a>
-    </div>
+@* ------------------ NOTIFICATIONS ------------------ *@
+<div class="container-fluid px-0">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-4">
+            <i class="bi bi-x-octagon-fill me-2"></i> @TempData["Error"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
 </div>
 
-@* --- Filter and Search Bar (UPDATED) --- *@
-<div class="row mb-4 align-items-end">
-    @* Category Filter *@
-    <div class="col-md-3">
-        <label for="selectCategory" class="form-label text-muted fw-bold"><i class="bi bi-funnel me-1"></i> Filter by Category</label>
-        <select id="selectCategory" class="form-select" asp-items="ViewBag.Categories">
-            <option value="0">--- All Categories ---</option>
-        </select>
+@* ------------------ HEADER ------------------ *@
+<div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+    <div>
+        <h1 class="fw-bold mb-1">
+            <i class="bi bi-box-seam me-2 text-warning"></i>Product Inventory
+        </h1>
+       
     </div>
+    <a asp-action="Create" class="btn btn-warning btn-lg rounded-pill shadow-sm">
+        <i class="bi bi-plus-lg me-2"></i>Add Product
+    </a>
+</div>
 
-    @* Status Filter (NEW) *@
-    <div class="col-md-3">
-        <label for="selectStatus" class="form-label text-muted fw-bold"><i class="bi bi-activity me-1"></i> Filter by Status</label>
-        <select id="selectStatus" class="form-select">
-            <option value="">--- All Statuses ---</option>
-            <option value="Approved" selected="@(currentStatus == "Approved")">Approved</option>
-            <option value="Pending" selected="@(currentStatus == "Pending")">Pending</option>
-            <option value="Rejected" selected="@(currentStatus == "Rejected")">Rejected</option>
-        </select>
-    </div>
-
-    @* Search Query *@
-    <div class="col-md-4">
-        <label for="searchQuery" class="form-label text-muted fw-bold"><i class="bi bi-search me-1"></i> Search Products</label>
-        <div class="input-group">
-            <input type="text" id="searchQuery" class="form-control" placeholder="Search by name or keyword..." value="@currentSearch" />
-            <button class="btn btn-primary" type="button" id="searchButton"><i class="bi bi-search me-1"></i> Search</button>
+@* ------------------ FILTER BAR ------------------ *@
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Category</label>
+                <select id="selectCategory" class="form-select" asp-items="ViewBag.Categories">
+                    <option value="0">All Categories</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Status</label>
+                <select id="selectStatus" class="form-select">
+                    <option value="">All</option>
+                    <option value="Approved" selected="@(currentStatus == "Approved")">Approved</option>
+                    <option value="Pending" selected="@(currentStatus == "Pending")">Pending</option>
+                    <option value="Rejected" selected="@(currentStatus == "Rejected")">Rejected</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold">Search</label>
+                <div class="input-group">
+                    <input id="searchQuery" class="form-control" value="@currentSearch" placeholder="Search products..." />
+                    <button id="searchButton" class="btn btn-dark">Search</button>
+                </div>
+            </div>
+            <div class="col-md-3 text-end">
+                <span class="badge bg-light text-dark px-3 py-2 border">
+                    @ViewBag.TotalItems Results
+                </span>
+            </div>
         </div>
     </div>
-
-    <div class="col-md-2 text-end d-flex align-items-end justify-content-end">
-        <span class="text-muted">Total Products: @(Model.Count())</span>
-    </div>
 </div>
 
-<hr />
+@* ------------------ AMAZON STYLE PRODUCT GRID ------------------ *@
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4">
+    @foreach (var item in Model)
+    {
+        <div class="col">
+            <div class="amazon-card h-100">
 
-@* --- Product Listing Table (UNCHANGED) --- *@
-<div class="table-responsive shadow-sm rounded-3">
-    <table class="table table-striped table-hover align-middle border" id="productTable">
-        <thead class="table-dark">
-            <tr>
-                <th style="width: 80px;">Image</th>
-                <th>Name</th>
-                <th style="width: 100px;"><i class="bi bi-currency-dollar me-1"></i> Price</th>
-                <th style="width: 170px;"><i class="bi bi-box me-1"></i> Stock / Status</th>
-                <th style="width: 120px;"><i class="bi bi-tags me-1"></i> Category</th>
-                <th style="width: 100px;"><i class="bi bi-shield-check me-1"></i> Status</th>
-                <th style="width: 250px;"><i class="bi bi-exclamation-triangle me-1"></i> Reject Reason</th>
-                <th style="width: 160px;" class="text-center"><i class="bi bi-lightning-fill me-1"></i> Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in Model)
-            {
-                <tr>
-                    <td>
-                        <img src="/media/products/@item.Image" class="img-thumbnail rounded" style="width: 60px; height: 60px; object-fit: cover;" alt="@item.Name" />
-                    </td>
-                    <td class="fw-bold">
-                        @item.Name
-                    </td>
-                    <td>
-                        <span class="text-success fw-bold">@item.Price.ToString("C2")</span>
-                    </td>
+                @* Status *@
+                <div class="position-absolute m-2 z-2">
+                    @Html.Raw(GetStatusBadge(item.Status.ToString()))
+                </div>
 
-                    <td>
-                        <strong class="d-block mb-1">@item.StockQuantity</strong>
-                        @if (item.StockQuantity > 0)
-                        {
-                            <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> In Stock</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-danger"><i class="bi bi-x-circle-fill"></i> Out of Stock</span>
-                        }
-                    </td>
+                @* Visibility *@
+                <div class="position-absolute top-0 end-0 m-2 z-2">
+                    <input type="checkbox"
+                           class="form-check-input visibility-checkbox"
+                           data-product-id="@item.Id"
+                           @(item.IsVisible ? "checked" : "") />
+                </div>
 
-                    <td>
-                        <span class="text-muted small">@item.Category?.Name</span>
-                    </td>
-                    <td>
-                        @* Status displayed using the simplified helper function *@
-                        @Html.Raw(GetStatusBadge(item.Status.ToString()))
-                    </td>
+                @* Image *@
+                <div class="amazon-img">
+                    <img src="/media/products/@item.Image" alt="@item.Name" />
+                </div>
 
+                @* Body *@
+                <div class="amazon-body">
+                    <div class="small text-muted fw-bold">@item.Category?.Name</div>
+                    <div class="amazon-title">@item.Name</div>
 
-                    <td>
-                        @if (item.Status.ToString() == "Rejected" && !string.IsNullOrEmpty(item.RejectionReason))
-                        {
-                            <span class="text-danger small fw-semibold" data-bs-toggle="tooltip" data-bs-placement="top" title="@item.RejectionReason">
-                                @(item.RejectionReason.Length > 30 ? item.RejectionReason.Substring(0, 30) + "..." : item.RejectionReason)
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="text-muted fst-italic">N/A</span>
-                        }
-                    </td>
+                    <div class="amazon-price">@item.Price.ToString("C2")</div>
 
+                    <div class="small fw-bold @(item.StockQuantity > 0 ? "text-success" : "text-danger")">
+                        Stock: @item.StockQuantity
+                    </div>
 
-                    <td class="d-flex gap-1 justify-content-center">
-                        @* UPDATED: Edit Button with Icon and Text *@
+                    @if (item.Status.ToString() == "Rejected" && !string.IsNullOrEmpty(item.RejectionReason))
+                    {
+                        <div class="alert alert-danger py-2 small mt-2">
+                            <strong>Reason:</strong> @item.RejectionReason
+                        </div>
+                    }
+
+                    <div class="d-flex gap-2 mt-auto">
                         <a asp-action="Edit" asp-route-id="@item.Id"
-                           class="btn btn-sm btn-info" title="Edit Product">
-                            <i class="bi bi-pencil me-1"></i> Edit
-                        </a>
+                           class="btn btn-outline-secondary w-100">Edit</a>
 
-                        @* UPDATED: Delete Button with Icon and Text *@
-                        <a asp-action="Delete" class="btn btn-sm btn-danger confirm"
-                           asp-route-id="@item.Id" title="Delete Product"
-                           data-confirm-title="Delete Confirmation"
-                           data-confirm-message="Are you sure you want to permanently delete this product?">
-                            <i class="bi bi-trash me-1"></i> Delete
+                        <a asp-action="Delete" asp-route-id="@item.Id"
+                           class="btn btn-outline-danger w-100 confirm"
+                           data-confirm-title="Delete Product"
+                           data-confirm-message="Delete '@item.Name'?">
+                            Delete
                         </a>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    }
 </div>
 
-<hr />
+@* ------------------ PAGINATION ------------------ *@
+@if (ViewBag.TotalPages > 1)
+{
+    <div class="mt-5">
+        <pagination page-count="@ViewBag.TotalPages"
+                    page-target="@pageAction"
+                    category-id="@selectedCategory"
+                    page-number="@ViewBag.PageNumber"
+                    page-range="@ViewBag.PageRange"
+                    search-query="@currentSearch"
+                    status-filter="@currentStatus">
+        </pagination>
+    </div>
+}
 
-@* --- Pagination Area (UPDATED to include new parameters) --- *@
-<div class="d-flex w-100 justify-content-center mt-4">
-    <pagination page-count="@ViewBag.TotalPages"
-                page-target="@pageAction"
-                category-id="@ViewBag.SelectedCategory"
-                page-number="@ViewBag.PageNumber"
-                page-range="@ViewBag.PageRange"
-                search-query="@currentSearch"
-                status-filter="@currentStatus">
-    </pagination>
-</div>
+@* ------------------ AMAZON STYLE CSS ------------------ *@
+<style>
+    .amazon-card {
+        border: 1px solid #e3e6e6;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 2px 5px rgba(0,0,0,.08);
+        transition: transform .2s, box-shadow .2s;
+        position: relative;
+    }
 
-@* --- HELPER FUNCTION FOR STATUS BADGE (UNCHANGED) --- *@
+        .amazon-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0,0,0,.15);
+        }
+
+    .amazon-img {
+        height: 220px;
+        background: #f7f8f8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .amazon-img img {
+            max-height: 180px;
+            max-width: 100%;
+            object-fit: contain;
+        }
+
+    .amazon-body {
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: .35rem;
+    }
+
+    .amazon-title {
+        font-size: .95rem;
+        font-weight: 600;
+        min-height: 40px;
+    }
+
+    .amazon-price {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #B12704;
+    }
+</style>
+
 @functions {
     string GetStatusBadge(string status)
     {
-        string colorClass;
-        string icon;
-
-        switch (status)
+        string css = status switch
         {
-            case "Approved":
-                colorClass = "bg-success";
-                icon = "bi bi-check-circle-fill";
-                break;
-            case "Rejected":
-                colorClass = "bg-danger";
-                icon = "bi bi-ban-fill";
-                break;
-            case "Pending":
-            default:
-                colorClass = "bg-warning text-dark";
-                icon = "bi bi-clock-fill";
-                break;
-        }
-
-        return $"<span class=\"badge {colorClass}\"><i class=\"{icon} me-1\"></i> {status}</span>";
+            "Approved" => "bg-success",
+            "Rejected" => "bg-danger",
+            _ => "bg-warning text-dark"
+        };
+        return $"<span class='badge {css} px-3 py-2 shadow-sm'>{status}</span>";
     }
 }
 
-
 @section Scripts {
+    @Html.AntiForgeryToken()
     <script>
         $(function () {
-            // Initialize tooltips (important for displaying full reject reason)
-            $('[data-bs-toggle="tooltip"]').tooltip();
 
-            // --- 1. Category, Status, and Search Logic ---
             const baseUrl = "@Url.Action(pageAction)";
 
             function applyFilters() {
-                const categoryId = $("#selectCategory").val();
-                const status = $("#selectStatus").val(); // NEW: Get status value
-                const searchQuery = $("#searchQuery").val().trim();
-                let url = baseUrl;
-                const params = [];
-
-                if (categoryId !== "0") {
-                    params.push("categoryId=" + categoryId);
-                }
-                // NEW: Add status parameter if selected
-                if (status) {
-                    params.push("status=" + status);
-                }
-                if (searchQuery) {
-                    params.push("search=" + encodeURIComponent(searchQuery));
-                }
-
-                if (params.length > 0) {
-                    url += "?" + params.join("&");
-                }
-                window.location = url;
+                const p = new URLSearchParams();
+                if ($("#selectCategory").val() !== "0") p.append("categoryId", $("#selectCategory").val());
+                if ($("#selectStatus").val()) p.append("status", $("#selectStatus").val());
+                if ($("#searchQuery").val()) p.append("search", $("#searchQuery").val());
+                window.location.href = baseUrl + "?" + p.toString();
             }
 
-            $("#selectCategory").on("change", applyFilters);
-            $("#selectStatus").on("change", applyFilters); // NEW: Trigger filter on status change
-            $("#searchButton").on("click", applyFilters);
-            $("#searchQuery").on("keypress", function (e) {
-                if (e.which === 13) {
-                    applyFilters();
-                }
+            $("#selectCategory,#selectStatus").change(applyFilters);
+            $("#searchButton").click(applyFilters);
+            $("#searchQuery").keypress(e => e.which === 13 && applyFilters());
+
+            $('.confirm').click(function (e) {
+                if (!confirm($(this).data('confirm-title') + ": " + $(this).data('confirm-message')))
+                    e.preventDefault();
             });
 
-            // --- 2. Confirmation Dialog for Delete Only (UNCHANGED) ---
-            $('.confirm').on('click', function(e) {
-                const btn = $(this);
-                const title = btn.data('confirm-title') || 'Confirmation';
-                const message = btn.data('confirm-message') || 'Are you sure you want to proceed?';
-
-                if (!confirm(title + ": " + message)) {
-                    e.preventDefault();
-                }
+            $('.visibility-checkbox').change(function () {
+                const cb = $(this);
+                $.post('@Url.Action("ToggleVisibility", "Products")', {
+                    id: cb.data('product-id'),
+                    isVisible: cb.is(':checked'),
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                }).fail(() => {
+                    cb.prop('checked', !cb.is(':checked'));
+                    alert('Visibility update failed');
+                });
             });
         });
     </script>

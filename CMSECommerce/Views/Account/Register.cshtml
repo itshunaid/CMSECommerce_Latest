@@ -2,289 +2,179 @@
 
 @{
     ViewData["Title"] = "Create Account";
+    ViewData["HideLayoutSidebar"] = true;
 }
 
-<div class="amazon-login-page py-4">
+@section Styles {
+    <link rel="stylesheet" href="~/css/register.css" />
+    <style>
+        /* Ensures the scroll detection is accurate */
+        #TermsScrollBox {
+            height: 300px;
+            overflow-y: auto;
+            padding-right: 10px;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .terms-accepted {
+            border: 1px solid var(--amazon-orange) !important;
+            background-color: #fffaf3;
+        }
+
+        /* Red Asterisk Styling */
+        .required-label::after {
+            content: " *";
+            color: #d00;
+            font-weight: bold;
+            font-size: 14px;
+        }
+    </style>
+}
+
+<div class="amazon-login-page py-5">
     <div class="container d-flex justify-content-center">
-        <div class="col-lg-6 col-md-8 col-sm-10">
+        <div style="width: 100%; max-width: 350px;">
+            <div class="text-center mb-3">
+                <h2 class="fw-bold" style="letter-spacing: -1px;">
+                    Wey<span style="color:var(--amazon-orange)">paari</span>
+                </h2>
+            </div>
 
-            <div class="amazon-form-box p-4 border rounded shadow-sm bg-white">
-                <h1 class="h3 fw-bold mb-4 text-amazon-dark">Create account</h1>
+            <div class="amazon-form-box p-4 bg-white">
+                <h1 id="formHeader" class="h3 fw-normal mb-3 text-amazon-dark">Create account</h1>
 
-                <form asp-action="Register" method="post" id="registrationForm" novalidate>
+                <form asp-action="Register" method="post" id="registrationForm" novalidate autocomplete="off">
+                    @Html.AntiForgeryToken()
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger small p-2" role="alert"></div>
 
-                    @* --- Section 1: Account Identity --- *@
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label asp-for="Username" class="form-label fw-bold small text-amazon-dark mb-1">User Name</label>
-                                <input asp-for="Username" id="UserInput" class="form-control amazon-input-field" placeholder="Unique username" />
-                                <span asp-validation-for="Username" id="UserError" class="text-danger small mt-1 d-block"></span>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label asp-for="Email" class="form-label fw-bold small text-amazon-dark mb-1">Email</label>
-                                <input asp-for="Email" id="EmailInput" class="form-control amazon-input-field" type="email" placeholder="example@domain.com" />
-                                <span asp-validation-for="Email" id="EmailError" class="text-danger small mt-1 d-block"></span>
-                            </div>
-                        </div>
-                    </div>
-
+                    @* Identifier *@
                     <div class="form-group mb-3">
-                        <label asp-for="Password" class="form-label fw-bold small text-amazon-dark mb-1">Password</label>
-                        <input asp-for="Password" type="password" class="form-control amazon-input-field" placeholder="At least 6 characters" />
-                        <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
+                        <label asp-for="Username" class="form-label fw-bold label-small text-amazon-dark mb-1 required-label">Email, Mobile, or ITS Number</label>
+                        <input asp-for="Username" id="UserInput" class="form-control amazon-input-field" placeholder="Email, Mobile, or 8-digit ITS" autocomplete="off" />
+                        <span asp-validation-for="Username" id="UserError" class="text-danger small mt-1 d-block"></span>
                     </div>
 
-                    @* --- Section 2: Personal Info --- *@
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label asp-for="FirstName" class="form-label fw-bold small text-amazon-dark mb-1">First Name</label>
-                                <input asp-for="FirstName" class="form-control amazon-input-field" placeholder="First name" />
-                                <span asp-validation-for="FirstName" class="text-danger small mt-1 d-block"></span>
-                            </div>
+                    <div id="registrationFields">
+                        <div class="form-group mb-3" id="BackupEmailContainer">
+                            <label asp-for="Email" class="form-label fw-bold label-small text-amazon-dark mb-1 required-label">Email</label>
+                            <input asp-for="Email" id="EmailInput" class="form-control amazon-input-field" type="email" autocomplete="off" />
+                            <span asp-validation-for="Email" id="EmailError" class="text-danger small mt-1 d-block"></span>
                         </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label asp-for="LastName" class="form-label fw-bold small text-amazon-dark mb-1">Last Name</label>
-                                <input asp-for="LastName" class="form-control amazon-input-field" placeholder="Last name" />
-                                <span asp-validation-for="LastName" class="text-danger small mt-1 d-block"></span>
-                            </div>
+
+                        <div class="form-group mb-3" id="BackupMobileContainer">
+                            <label asp-for="PhoneNumber" class="form-label fw-bold label-small text-amazon-dark mb-1 required-label">Mobile number</label>
+                            <input asp-for="PhoneNumber" id="PhoneInput" class="form-control amazon-input-field" placeholder="10-digit mobile" maxlength="10" inputmode="numeric" autocomplete="off" />
+                            <span asp-validation-for="PhoneNumber" id="PhoneError" class="text-danger small mt-1 d-block"></span>
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label asp-for="PhoneNumber" class="form-label fw-bold small text-amazon-dark mb-1">Mobile Number</label>
-                                <input asp-for="PhoneNumber" id="PhoneInput" class="form-control amazon-input-field" placeholder="10-digit mobile" maxlength="10" inputmode="numeric" />
-                                <span asp-validation-for="PhoneNumber" id="PhoneError" class="text-danger small mt-1 d-block"></span>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label asp-for="WhatsAppNumber" class="form-label fw-bold small text-amazon-dark mb-1">WhatsApp Number</label>
-                                <input asp-for="WhatsAppNumber" id="WhatsAppInput" class="form-control amazon-input-field" placeholder="Optional" maxlength="10" inputmode="numeric" />
-                                <span asp-validation-for="WhatsAppNumber" id="WhatsAppError" class="text-danger small mt-1 d-block"></span>
-                            </div>
+                    <div class="form-group mb-2">
+                        <label asp-for="Password" class="form-label fw-bold label-small text-amazon-dark mb-1 required-label">Password</label>
+                        <input asp-for="Password" id="PassInput" type="password" class="form-control amazon-input-field" placeholder="At least 6 characters" autocomplete="new-password" />
+                        <span asp-validation-for="Password" id="PassError" class="text-danger small mt-1 d-block"></span>
+                        <div id="passwordHint" class="info-box mt-1">
+                            <i class="fas fa-info text-info me-1"></i> Passwords must be at least 6 characters.
                         </div>
                     </div>
 
-                    @* --- Section 3: Business Details --- *@
-                    <hr class="my-4" />
-                    <h4 class="h6 fw-bold mb-3 text-amazon-dark"><i class="fas fa-briefcase me-2 text-muted"></i>Business Details</h4>
-
-                    <div class="form-group mb-3">
-                        <label asp-for="StoreName" class="form-label fw-bold small text-amazon-dark mb-1">Store Name</label>
-                        <input asp-for="StoreName" class="form-control amazon-input-field" placeholder="Business name" />
-                        <span asp-validation-for="StoreName" class="text-danger small mt-1 d-block"></span>
+                    <div id="confirmPasswordGroup" class="form-group mb-3">
+                        <label asp-for="ConfirmPassword" class="form-label fw-bold label-small text-amazon-dark mb-1 required-label">Re-enter password</label>
+                        <input asp-for="ConfirmPassword" id="ConfirmPassInput" type="password" class="form-control amazon-input-field" autocomplete="new-password" />
+                        <span asp-validation-for="ConfirmPassword" id="ConfirmPassError" class="text-danger small mt-1 d-block"></span>
                     </div>
 
-                    <div class="form-group mb-3">
-                        <label asp-for="ITSNumber" class="form-label fw-bold small text-amazon-dark mb-1">ITS Number (8-Digits)</label>
-                        <input asp-for="ITSNumber" id="ITSInput" class="form-control amazon-input-field" placeholder="8-digit ID" maxlength="8" inputmode="numeric" />
-                        <span asp-validation-for="ITSNumber" id="ITSError" class="text-danger small mt-1 d-block"></span>
-                    </div>
+                    @* THE FIX: Updated Terms Agreement Section *@
+                    <div id="TermsSection" class="form-group mb-3 p-2 rounded border border-transparent">
+                        @* Hidden input that maps to the C# Model *@
+                        <input type="hidden" asp-for="HasAcceptedTerms" id="TermsCheckbox" value="false" />
 
-                    @* --- Section 4: Address --- *@
-                    <hr class="my-4" />
-                    <h4 class="h6 fw-bold mb-3 text-amazon-dark"><i class="fas fa-map-marker-alt me-2 text-muted"></i>Address Details</h4>
-
-                    <div class="form-group mb-3">
-                        <label asp-for="StreetAddress" class="form-label fw-bold small text-amazon-dark mb-1">Street Address</label>
-                        <input asp-for="StreetAddress" class="form-control amazon-input-field" placeholder="House no, Building, Street" />
-                        <span asp-validation-for="StreetAddress" class="text-danger small mt-1 d-block"></span>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group mb-3">
-                                <label asp-for="City" class="form-label fw-bold small text-amazon-dark mb-1">City</label>
-                                <input asp-for="City" class="form-control amazon-input-field" />
-                                <span asp-validation-for="City" class="text-danger small mt-1 d-block"></span>
-                            </div>
+                        <div class="amazon-checkbox-wrapper d-flex align-items-start">
+                            @* Visual only checkbox - not bound to Model *@
+                            <input type="checkbox" id="VisualCheckbox" class="form-check-input me-2" disabled />
+                            <label class="info-box text-amazon-dark small required-label">
+                                I agree to Weypaari's <a href="javascript:void(0)" id="OpenTerms" class="text-amazon-link fw-bold">Conditions of Use</a>.
+                            </label>
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-group mb-3">
-                                <label asp-for="PostalCode" class="form-label fw-bold small text-amazon-dark mb-1">Postal Code</label>
-                                <input asp-for="PostalCode" class="form-control amazon-input-field" maxlength="10" inputmode="numeric" />
-                                <span asp-validation-for="PostalCode" class="text-danger small mt-1 d-block"></span>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group mb-3">
-                                <label asp-for="Country" class="form-label fw-bold small text-amazon-dark mb-1">Country</label>
-                                <input asp-for="Country" class="form-control amazon-input-field" />
-                                <span asp-validation-for="Country" class="text-danger small mt-1 d-block"></span>
-                            </div>
-                        </div>
+                        @* Use a standard span for the error to avoid library hijacking *@
+                        <span id="TermsError" class="text-danger small d-block mt-1"></span>
                     </div>
 
-                    <div class="d-grid mt-4 mb-3">
-                        <button type="submit" id="submitBtn" class="btn btn-amazon-checkout w-100 fw-bold">
-                            Create your account
-                        </button>
+                    <div class="d-grid mt-3 mb-3">
+                        <button type="submit" id="submitBtn" class="btn btn-amazon-checkout w-100">Continue</button>
                     </div>
 
-                    <p class="small text-muted mb-4 text-center">
-                        By creating an account, you agree to CMSECommerce's <a href="#" class="text-amazon-link">Conditions of Use</a>.
+                    <p id="legalNotice" class="info-box mb-4">
+                        By creating an account, you agree to Weypaari's <a href="javascript:void(0)" id="OpenTermsLegal" class="text-amazon-link">Conditions of Use</a> and <a href="javascript:void(0)" onclick="openPrivacyPopup()" class="text-amazon-link">Privacy Notice</a>.
                     </p>
+
+                    <hr />
+                    <div id="footerLink" class="text-start info-box">
+                        Already have an account? <a asp-action="Login" class="text-amazon-link">Sign in <i class="fas fa-caret-right" style="font-size:10px"></i></a>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
-@section Styles {
-    <style>
-        :root {
-            --amazon-dark-text: #0F1111;
-            --amazon-yellow: #FFD814;
-            --amazon-yellow-hover: #F7CA00;
-            --amazon-error: #c40000;
-        }
+@* Modal HTML *@
+<div class="modal fade" id="termsModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">Weypaari Conditions of Use</h5>
+            </div>
+            <div class="modal-body">
+                <div id="TermsScrollBox">
+                    <p class="small text-muted">Last Updated: January 2026</p>
 
-        .amazon-login-page {
-            background-color: #f7f7f7;
-            min-height: 100vh;
-        }
+                    <h6>1. Acceptance of Terms</h6>
+                    <p>By accessing or using the Weypaari platform, you agree to be bound by these Conditions of Use. If you do not agree to these terms, please do not register for an account.</p>
 
-        .text-amazon-dark {
-            color: var(--amazon-dark-text);
-        }
+                    <h6>2. Eligibility & Registration</h6>
+                    <p>To use Weypaari, you must provide a valid 8-digit ITS number, Email, or Mobile number. You agree to provide accurate, current, and complete information during the registration process. Weypaari reserves the right to suspend accounts that provide false data.</p>
 
-        .amazon-form-box {
-            max-width: 550px;
-            background-color: #fff;
-            border-color: #ddd !important;
-            margin-top: 20px;
-        }
+                    <h6>3. Privacy & Data Security</h6>
+                    <p>Your privacy is important to us. Information provided during registration is used solely for identity verification and platform functionality. We do not sell your personal data to third parties. You are responsible for maintaining the confidentiality of your account password.</p>
 
-        .amazon-input-field {
-            height: 35px;
-            font-size: 14px;
-            border-radius: 3px;
-            border: 1px solid #a6a6a6;
-            padding: 3px 7px;
-            width: 100%;
-        }
+                    <h6>4. User Conduct</h6>
+                    <p>Users shall not engage in any activity that interferes with or disrupts Weypaari services. Prohibited actions include, but are not limited to, fraudulent transactions, posting offensive content, or attempting to bypass security protocols.</p>
 
-            .amazon-input-field:focus {
-                border-color: #e77600;
-                box-shadow: 0 0 3px 2px rgba(228,121,17,.5);
-                outline: none;
-            }
+                    <h6>5. Transactions & Listings</h6>
+                    <p>Weypaari provides a marketplace platform. While we facilitate community commerce, Weypaari is not a party to the actual transactions between buyers and sellers and is not responsible for the quality, safety, or legality of the items advertised.</p>
 
-        .input-error-border {
-            border-color: var(--amazon-error) !important;
-            box-shadow: 0 0 3px rgba(196, 0, 0, 0.5) !important;
-        }
+                    <h6>6. Termination of Use</h6>
+                    <p>We reserve the right to terminate or suspend your access to Weypaari at our sole discretion, without notice, for conduct that we believe violates these Terms or is harmful to other users of the community.</p>
 
-        .btn-amazon-checkout {
-            background-color: var(--amazon-yellow) !important;
-            border: 1px solid #FCD200 !important;
-            color: #0F1111 !important;
-            border-radius: 7px !important;
-            height: 38px;
-        }
+                    <h6>7. Modifications to Service</h6>
+                    <p>Weypaari reserves the right to modify or discontinue, temporarily or permanently, the service with or without notice at any time.</p>
 
-            .btn-amazon-checkout:hover {
-                background-color: var(--amazon-yellow-hover) !important;
-            }
-
-            .btn-amazon-checkout:disabled {
-                background-color: #f0f2f2 !important;
-                border-color: #d5d9d9 !important;
-                color: #a6a6a6 !important;
-                cursor: not-allowed;
-            }
-    </style>
-}
+                    <div style="height: 50px;"></div>
+                    <p class="text-center text-muted small"><em>You have reached the end of the document.</em></p>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="ModalAgreeBtn" class="btn btn-amazon-checkout" disabled>I have read and agree</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-
     <script>
-        $(document).ready(function () {
-            // 1. Real-time Sanitization
-            $('#PhoneInput, #WhatsAppInput, #ITSInput, #PostalCode').on('input', function () {
-                this.value = this.value.replace(/\D/g, '');
-            });
+        const validateUrl = '@Url.Action("ValidateIdentifier", "Account")';
+        const loginUrl = '@Url.Action("Login", "Account")';
+        const registerUrl = '@Url.Action("Register", "Account")';
 
-            // 2. Validation Map
-            const fields = [
-                { id: $('#UserInput'), err: $('#UserError'), type: 'Username' },
-                { id: $('#EmailInput'), err: $('#EmailError'), type: 'Email' },
-                { id: $('#PhoneInput'), err: $('#PhoneError'), type: 'Mobile Number' },
-                { id: $('#ITSInput'), err: $('#ITSError'), type: 'ITS Number' }
-            ];
-
-            // 3. Logic to check Uniqueness & Formats
-            function validateField(field) {
-                const val = field.id.val().trim();
-                if (val === "") {
-                    clearError(field.id, field.err);
-                    return;
-                }
-
-                // Format Checks
-                if (field.type === 'ITS Number' && val.length !== 8) {
-                    setError(field.id, field.err, "ITS must be exactly 8 digits.");
-                    return;
-                }
-                if (field.type === 'Mobile Number' && !/^[6-9]\d{9}$/.test(val)) {
-                    setError(field.id, field.err, "Enter a valid 10-digit mobile number.");
-                    return;
-                }
-                if (field.type === 'GSTIN') {
-                    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-                    if (!gstRegex.test(val)) {
-                        setError(field.id, field.err, "Invalid GSTIN format.");
-                        return;
-                    }
-                }
-
-                // AJAX Uniqueness Check
-                $.ajax({
-                    url: '@Url.Action("ValidateIdentifier", "Account")',
-                    type: 'GET',
-                    data: { value: val, type: field.type },
-                    success: function (res) {
-                        if (!res.isAvailable) {
-                            setError(field.id, field.err, res.message);
-                        } else {
-                            clearError(field.id, field.err);
-                        }
-                    }
-                });
-            }
-
-            // 4. Listeners
-            fields.forEach(f => {
-                f.id.on('blur', () => validateField(f));
-            });
-
-            function setError(input, span, msg) {
-                span.text(msg);
-                input.addClass("input-error-border");
-                $('#submitBtn').prop("disabled", true);
-            }
-
-            function clearError(input, span) {
-                span.text("");
-                input.removeClass("input-error-border");
-                $('#submitBtn').prop("disabled", $(".input-error-border").length > 0);
-            }
-
-            $('#registrationForm').on("submit", function (e) {
-                if ($(".input-error-border").length > 0) {
-                    e.preventDefault();
-                    alert("Please resolve highlighted errors first.");
-                }
-            });
-        });
+        function openPrivacyPopup() {
+            const w = 600, h = 700;
+            const left = (screen.width/2)-(w/2), top = (screen.height/2)-(h/2);
+            window.open('@Url.Action("Privacy", "Home")', 'PrivacyNotice', `width=${w},height=${h},top=${top},left=${left},scrollbars=yes`);
+        }
     </script>
+    <script src="~/js/register.js"></script>
 }

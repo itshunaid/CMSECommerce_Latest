@@ -1,23 +1,35 @@
-﻿using CMSECommerce.Infrastructure;
+﻿using CMSECommerce.Areas.Seller.Models;
+using CMSECommerce.Infrastructure;
+using CMSECommerce.Models.ViewModels; // FIX: Added this to resolve OrderDetailsViewModel errors
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using CMSECommerce.Models.ViewModels; // FIX: Added this to resolve OrderDetailsViewModel errors
 
 namespace CMSECommerce.Areas.Seller.Controllers
 {
     [Area("Seller")]
     // Using standard Roles authorization, assuming "Subscriber" is a role name
     [Authorize(Roles = "Subscriber")]
-    public class OrdersController(
-        DataContext context,
-        UserManager<IdentityUser> userManager,
-        ILogger<OrdersController> logger) : Controller
+    public class OrdersController : Controller
     {
-        private readonly DataContext _context = context;
-        private readonly UserManager<IdentityUser> _userManager = userManager;
-        private readonly ILogger<OrdersController> _logger = logger;
+        private readonly DataContext _context;
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly ILogger<OrdersController> _logger;
+        private readonly IWebHostEnvironment _webHostEnvironment;
+
+        public OrdersController(
+            DataContext context,
+            IWebHostEnvironment webHostEnvironment,
+            UserManager<IdentityUser> userManager,
+            ILogger<OrdersController> logger)
+        {
+            _context = context;
+            _webHostEnvironment = webHostEnvironment;
+            _userManager = userManager;
+            _logger = logger;
+        }
 
         // GET /seller/orders/index (Unprocessed Orders)
         [HttpGet]
@@ -69,6 +81,122 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 return View(new List<OrderDetail>());
             }
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AcceptOrder(int id, string note)
+        {
+            var item = await _context.OrderDetails.FindAsync(id);
+            if (item == null || item.ProductOwner != _userManager.GetUserName(User)) return NotFound();
+
+            item.Status = OrderStatus.Accepted; // Enum: Pending, Accepted, Shipped, Cancelled
+            item.SellerNote = string.IsNullOrEmpty(note) ? "Seller has Accepted your Order" : note;
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Order Accepted.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ProcessOrder(OrderActionViewModel model)
+        {
+            var item = await _context.OrderDetails.FindAsync(model.OrderDetailId);
+            if (item == null) return NotFound();
+
+            if (model.DeliveryImage != null)
+            {
+                string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads/delivery");
+                string uniqueFileName = Guid.NewGuid().ToString() + "_" + model.DeliveryImage.FileName;
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                Directory.CreateDirectory(uploadsFolder);
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await model.DeliveryImage.CopyToAsync(fileStream);
+                }
+                item.DeliveryImageUrl = "/uploads/delivery/" + uniqueFileName;
+            }
+
+            item.Status = OrderStatus.Shipped;
+            item.SellerNote = model.Note ?? "Order has been shipped.";
+            item.IsProcessed = true;
+            item.ShippedDate = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Details), new { id = item.OrderId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelOrder(OrderActionViewModel model)
+        {
+            var item = await _context.OrderDetails.FindAsync(model.OrderDetailId);
+            if (item == null) return NotFound();
+
+            item.Status = OrderStatus.Cancelled;
+            item.IsCancelled = true;
+            item.CancelledByRole = "Seller";
+            item.CancellationReason = model.SelectedReason == "Other" ? model.CustomReason : model.SelectedReason;
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Details), new { id = item.OrderId });
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Seller,Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> FulfillItem(FulfillmentViewModel model)
+        {
+            if (model.DeliveryImage == null || model.DeliveryImage.Length == 0)
+            {
+                TempData["error"] = "A Proof of Delivery image is required.";
+                return RedirectToAction("ManageOrders");
+            }
+
+            var item = await _context.OrderDetails.FindAsync(model.OrderDetailId);
+            if (item == null) return NotFound();
+
+            // 1. Handle File Upload (Securely)
+            string fileName = $"POD_{item.Id}_{Guid.NewGuid()}{Path.GetExtension(model.DeliveryImage.FileName)}";
+            string uploadDir = Path.Combine(_webHostEnvironment.ContentRootPath, "PrivateUploads", "DeliveryProof");
+
+            if (!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
+
+            string fullPath = Path.Combine(uploadDir, fileName);
+            using (var stream = new FileStream(fullPath, FileMode.Create))
+            {
+                await model.DeliveryImage.CopyToAsync(stream);
+            }
+
+            // 2. Update Item Status
+            item.IsProcessed = true;
+            item.Status = OrderStatus.Shipped;
+            item.ShippedDate = DateTime.Now;
+            item.SellerNote = model.SellerNote;
+            item.DeliveryImageUrl = fileName;
+
+            // 3. Optional: Check if all items in order are processed to mark entire Order as Shipped
+            var orderDetails = await _context.OrderDetails
+                .Where(od => od.OrderId == item.OrderId)
+                .ToListAsync();
+
+            var allProcessed = orderDetails.All(od => od.IsProcessed || od.IsCancelled);
+
+            if (allProcessed)
+            {
+                var parentOrder = await _context.Orders.FindAsync(item.OrderId);
+                parentOrder.Shipped = true;
+                parentOrder.ShippedDate = DateTime.Now;
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["success"] = "Item marked as Shipped and tracking updated.";
+
+            return RedirectToAction("Index");
+        }
+
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]

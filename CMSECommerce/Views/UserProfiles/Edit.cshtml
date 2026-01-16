@@ -1,0 +1,473 @@
+﻿@using CMSECommerce.Infrastructure
+@using Microsoft.AspNetCore.Identity
+@model CMSECommerce.Models.UserProfile
+@inject DataContext _context
+@inject UserManager<IdentityUser> UserManager
+
+@{
+    ViewData["Title"] = "Account Settings";
+    ViewData["HideLayoutSidebar"] = true;
+    bool isCustomer = ViewBag.IsCustomer ?? false;
+
+    string userId = ViewBag.UserId;
+    var profile = _context.UserProfiles.FirstOrDefault(u => u.UserId == userId);
+
+    string displayName = "";
+    if (profile != null && !string.IsNullOrEmpty(profile.FirstName) && !string.IsNullOrEmpty(profile.LastName))
+    {
+        displayName = $"{profile.FirstName} {profile.LastName}";
+    }
+    else
+    {
+        displayName = User.Identity?.Name ?? "User";
+    }
+}
+
+<style>
+    :root {
+        --premier-navy: #0f172a;
+        --premier-accent: #3b82f6;
+        --premier-bg: #f8fafc;
+        --premier-border: #e2e8f0;
+        --premier-text: #1e293b;
+    }
+
+    body {
+        background-color: var(--premier-bg);
+        color: var(--premier-text);
+    }
+
+    /* Control Plane Header */
+    .premier-header-plane {
+        background: var(--premier-navy);
+        padding: 2.5rem 2rem;
+        margin: -1.5rem -1.5rem 2rem -1.5rem;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .header-content h2 {
+        font-size: 1.75rem;
+        letter-spacing: -0.02em;
+    }
+
+    .header-subtext {
+        color: #94a3b8;
+        font-size: 0.95rem;
+    }
+
+    /* Card & Form Styling */
+    .premier-card {
+        background: white;
+        border: 1px solid var(--premier-border);
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        margin-bottom: 1.5rem;
+    }
+
+    .section-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--premier-accent);
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 1px solid var(--premier-border);
+        padding: 0.6rem 0.9rem;
+        transition: all 0.2s;
+    }
+
+        .form-control:focus {
+            border-color: var(--premier-accent);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+    /* Verification Badge */
+    .badge-verification {
+        font-size: 0.75rem;
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-weight: 600;
+    }
+
+    /* Profile Image Container */
+    .profile-upload-zone {
+        background: #f1f5f9;
+        border-radius: 12px;
+        padding: 2rem;
+        border: 2px dashed var(--premier-border);
+        transition: 0.2s;
+    }
+
+    .btn-premier-submit {
+        background: var(--premier-accent);
+        border: none;
+        padding: 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: 0.2s;
+    }
+
+        .btn-premier-submit:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+</style>
+
+<div class="premier-header-plane">
+    <div class="header-content">
+        <h2 class="fw-bold mb-1">@(isCustomer ? "My Account" : "Store Management")</h2>
+        <p class="header-subtext mb-0">@(isCustomer ? "Profile settings for " + displayName : "Configure store identity and professional bio for " + displayName)</p>
+    </div>
+
+    @if (!isCustomer)
+    {
+        <div>
+            <span class="badge-verification @(Model.IsImageApproved ? "bg-success" : "bg-warning text-dark")">
+                <i class="bi @(Model.IsImageApproved ? "bi-patch-check-fill" : "bi-hourglass-split") me-2"></i>
+                @(Model.IsImageApproved ? "Verified Partner" : "Verification in Progress")
+            </span>
+        </div>
+    }
+</div>
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-xl-11 col-xxl-10">
+
+            <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editProfileForm">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger shadow-sm mb-4"></div>
+
+                @* --- CORE LOGIC DATA (Hidden) --- *@
+                <input type="hidden" asp-for="Id" id="ProfileId" />
+                <input type="hidden" asp-for="UserId" />
+                <input type="hidden" asp-for="StoreId" />
+                <input type="hidden" asp-for="ProfileImagePath" />
+                <input type="hidden" asp-for="PendingProfileImagePath" />
+                <input type="hidden" asp-for="GpayQRCodePath" />
+                <input type="hidden" asp-for="PhonePeQRCodePath" />
+                <input type="hidden" asp-for="IsImageApproved" />
+                <input type="hidden" asp-for="IsImagePending" />
+                <input type="hidden" asp-for="CurrentProductLimit" />
+                <input type="hidden" asp-for="SubscriptionStartDate" />
+                <input type="hidden" asp-for="SubscriptionEndDate" />
+                <input type="hidden" name="callingFrom" value="@ViewBag.CallingFrom" />
+                <input type="hidden" name="userId" value="@ViewBag.UserId" />
+                @if (isCustomer)
+                {
+                    <input type="hidden" asp-for="ITSNumber" />
+                }
+
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        @* Section 1: Personal *@
+                        <div class="premier-card">
+                            <div class="card-body p-4">
+                                <h5 class="section-title"><i class="bi bi-person-circle me-2"></i>Personal Identity</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="FirstName" class="form-label small fw-bold">First Name</label>
+                                        <input asp-for="FirstName" class="form-control req-field" placeholder="First Name" required />
+                                        <span asp-validation-for="FirstName" class="text-danger x-small"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="LastName" class="form-label small fw-bold">Last Name</label>
+                                        <input asp-for="LastName" class="form-control req-field" placeholder="Last Name" required />
+                                        <span asp-validation-for="LastName" class="text-danger x-small"></span>
+                                    </div>
+                                    @if (!isCustomer)
+                                    {
+                                        <div class="col-md-6">
+                                            <label asp-for="ITSNumber" class="form-label small fw-bold text-muted">ITS Identification (Read-only)</label>
+                                            <input asp-for="ITSNumber" class="form-control bg-light" readonly />
+                                        </div>
+                                    }
+                                    <div class="col-md-@(isCustomer ? "12" : "6")">
+                                        <label asp-for="WhatsAppNumber" class="form-label small fw-bold">WhatsApp Connection</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white"><i class="bi bi-whatsapp text-success"></i></span>
+                                            <input asp-for="WhatsAppNumber" id="WhatsAppNumber" class="form-control unique-check req-field" data-field="WhatsAppNumber" required />
+                                        </div>
+                                        <div class="spinner-border spinner-border-sm text-primary d-none loader-icon mt-2"></div>
+                                        <span class="text-danger x-small err-msg"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @* Section 2: Business (Conditionally Rendered) *@
+                        @if (!isCustomer)
+                        {
+                            <div class="premier-card">
+                                <div class="card-body p-4">
+                                    <h5 class="section-title"><i class="bi bi-shop me-2"></i>Professional Info</h5>
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <label asp-for="Store.StoreName" class="form-label small fw-bold">Global Store Name</label>
+                                            <input asp-for="Store.StoreName" id="StoreName" class="form-control unique-check req-field" data-field="StoreName" required />
+                                            <span class="text-danger x-small err-msg"></span>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label asp-for="Profession" class="form-label small fw-bold">Profession Title</label>
+                                            <input asp-for="Profession" class="form-control" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label asp-for="ServicesProvided" class="form-label small fw-bold">Core Services</label>
+                                            <input asp-for="ServicesProvided" class="form-control" />
+                                        </div>
+                                        <div class="col-12">
+                                            <label asp-for="About" class="form-label small fw-bold">Professional Bio</label>
+                                            <textarea asp-for="About" class="form-control" rows="4" placeholder="Tell your customers about your journey..."></textarea>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label asp-for="Store.Email" class="form-label small fw-bold">Public Store Email</label>
+                                            <input asp-for="Store.Email" id="StoreEmail" class="form-control unique-check req-field" data-field="StoreEmail" required />
+                                            <span class="text-danger x-small err-msg"></span>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label asp-for="Store.Contact" class="form-label small fw-bold">Store Helpline</label>
+                                            <input asp-for="Store.Contact" id="StoreContact" class="form-control unique-check req-field" data-field="StoreContact" required />
+                                            <span class="text-danger x-small err-msg"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="Store.StoreName" id="StoreName" />
+                            <input type="hidden" asp-for="Store.Email" id="StoreEmail" />
+                            <input type="hidden" asp-for="Store.Contact" id="StoreContact" />
+                        }
+
+                        @* Section 3: Location *@
+                        <div class="premier-card">
+                            <div class="card-body p-4">
+                                <h5 class="section-title"><i class="bi bi-geo-alt me-2"></i>Geography & Logistics</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-@(isCustomer ? "12" : "6")">
+                                        <label asp-for="HomeAddress" class="form-label small fw-bold">Residential Address</label>
+                                        <textarea asp-for="HomeAddress" class="form-control" rows="2"></textarea>
+                                    </div>
+                                    @if (!isCustomer)
+                                    {
+                                        <div class="col-md-6">
+                                            <label asp-for="BusinessAddress" class="form-label small fw-bold">Operating Headquarters</label>
+                                            <textarea asp-for="BusinessAddress" class="form-control" rows="2"></textarea>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <input type="hidden" asp-for="BusinessAddress" id="BusinessAddress" />
+                                    }
+                                    <div class="col-md-4">
+                                        <label asp-for="Store.City" class="form-label small fw-bold">City</label>
+                                        <input asp-for="Store.City" class="form-control" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="Store.PostCode" class="form-label small fw-bold">Post Code</label>
+                                        <input asp-for="Store.PostCode" class="form-control" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="Store.Country" class="form-label small fw-bold">Country</label>
+                                        <input asp-for="Store.Country" class="form-control" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Side Sidebar *@
+                    <div class="col-lg-4">
+                        <div class="premier-card sticky-top" style="top: 20px;">
+                            <div class="card-body p-4">
+                                <h5 class="section-title"><i class="bi bi-camera me-2"></i>Asset Management</h5>
+
+                                <div class="profile-upload-zone text-center mb-4">
+                                    <img src="@Model.ProfileImagePath" id="profilePreview" class="rounded-circle border shadow-sm mb-3" style="width: 120px; height: 120px; object-fit: cover;" />
+                                    <label class="btn btn-sm btn-outline-primary d-block">
+                                        Change Photo
+                                        <input type="file" name="profileImg" hidden accept="image/*" onchange="previewImage(this, 'profilePreview')" />
+                                    </label>
+                                </div>
+
+                                @if (!isCustomer)
+                                {
+                                    <div class="payment-qrs p-3 bg-light rounded-3 mb-4">
+                                        <label class="small fw-bold text-muted text-uppercase mb-3 d-block">Payment Gateways</label>
+
+                                        <div class="mb-3 text-center">
+                                            <div class="d-flex justify-content-between mb-1"><span class="x-small fw-bold">Google Pay</span></div>
+                                            @if (!string.IsNullOrEmpty(Model.GpayQRCodePath))
+                                            {
+                                                <img src="@Model.GpayQRCodePath" id="gpayPrev" class="img-thumbnail mb-2" style="max-height: 80px;" />
+                                            }
+                                            <input type="file" name="gpayQR" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'gpayPrev')" />
+                                        </div>
+
+                                        <div class="text-center">
+                                            <div class="d-flex justify-content-between mb-1"><span class="x-small fw-bold">PhonePe</span></div>
+                                            @if (!string.IsNullOrEmpty(Model.PhonePeQRCodePath))
+                                            {
+                                                <img src="@Model.PhonePeQRCodePath" id="phonepePrev" class="img-thumbnail mb-2" style="max-height: 80px;" />
+                                            }
+                                            <input type="file" name="phonepeQR" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this, 'phonepePrev')" />
+                                        </div>
+                                    </div>
+                                }
+
+                                <button type="submit" id="btnSubmit" class="btn btn-primary w-100 btn-premier-submit text-white mb-3">
+                                    <span id="btnText"><i class="bi bi-shield-check me-2"></i>Save Changes</span>
+                                    <span id="btnSpinner" class="spinner-border spinner-border-sm d-none ms-2"></span>
+                                </button>
+
+                                <a asp-action="Index" asp-controller="Products" class="btn btn-link w-100 text-muted small text-decoration-none">Discard Edits</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        :root {
+            --merchant-teal: #007185;
+        }
+
+        .section-title {
+            color: var(--merchant-teal);
+            font-weight: 700;
+            border-left: 4px solid var(--merchant-teal);
+            padding-left: 12px;
+        }
+
+        .x-small {
+            font-size: 0.75rem;
+        }
+
+        .form-control:focus {
+            border-color: var(--merchant-teal);
+            box-shadow: 0 0 0 0.25rem rgba(0, 113, 133, 0.1);
+        }
+
+        .btn-primary {
+            background-color: var(--merchant-teal);
+            border: none;
+        }
+
+        .btn-primary:disabled {
+            background-color: #66aab6;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+    </style>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        function previewImage(input, previewId) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) { 
+                    $(`#${previewId}`).attr('src', e.target.result).removeClass('d-none'); 
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        $(document).ready(function () {
+            let uniqueness = { WhatsAppNumber: true, StoreName: true, StoreEmail: true, StoreContact: true };
+
+            function validateForm() {
+                let allFilled = true;
+                $('.req-field:visible').each(function() {
+                    if ($(this).val().trim() === "") {
+                        allFilled = false;
+                        return false;
+                    }
+                });
+
+                let allUnique = Object.values(uniqueness).every(v => v === true);
+                let isValidated = $('#editProfileForm').valid();
+
+                $('#btnSubmit').prop('disabled', !(allFilled && allUnique && isValidated));
+            }
+
+            $('#editProfileForm input').on('keyup change blur', function() {
+                validateForm();
+            });
+
+            $('.unique-check').on('blur', function () {
+                const input = $(this);
+                const fieldName = input.data('field');
+                const val = input.val();
+                if (!val) return;
+
+                const container = input.closest('.position-relative');
+                const loader = container.find('.loader-icon');
+                const errorSpan = container.next('.err-msg');
+
+                loader.removeClass('d-none');
+
+                $.ajax({
+                    url: '@Url.Action("CheckUniqueness", "UserProfiles")',
+                    type: 'GET',
+                    data: { field: fieldName, value: val, currentId: $('#ProfileId').val() },
+                    success: function (res) {
+                        loader.addClass('d-none');
+                        if (res.isDuplicate) {
+                            errorSpan.text(`This is already in use.`);
+                            input.addClass('is-invalid');
+                            uniqueness[fieldName] = false;
+                        } else {
+                            errorSpan.text('');
+                            input.removeClass('is-invalid');
+                            uniqueness[fieldName] = true;
+                        }
+                        validateForm();
+                    }
+                });
+            });
+
+            $('#editProfileForm').on('submit', function (e) {
+                @if (isCustomer)
+                {
+                    <text>
+                    if ($('#StoreName').val() === "") $('#StoreName').val($('#FirstName').val() + "'s Profile");
+                    if ($('#StoreEmail').val() === "") $('#StoreEmail').val("customer@placeholder.com");
+                    if ($('#StoreContact').val() === "") $('#StoreContact').val($('#WhatsAppNumber').val());
+                    if ($('#BusinessAddress').val() === "") $('#BusinessAddress').val($('#HomeAddress').val());
+                    </text>
+                }
+
+                if ($(this).valid()) {
+                    $('#btnSubmit').prop('disabled', true);
+                    $('#btnText').text('Processing...');
+                    $('#btnSpinner').removeClass('d-none');
+                } else {
+                    e.preventDefault();
+                }
+            });
+
+            validateForm();
+        });
+    </script>
+}

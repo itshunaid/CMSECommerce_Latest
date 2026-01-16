@@ -100,9 +100,15 @@
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold" for="CategoryId">Category</label>
-                            <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.Categories" disabled="@(!canCreate)">
+
+                            @* Hidden bound input for CategoryId (model binding) *@
+                            <input asp-for="CategoryId" type="hidden" id="CategoryId" name="CategoryId" />
+
+                            @* Hierarchical category dropdown *@
+                            <select id="categoryDropdown" class="form-select" disabled="@(!canCreate)">
                                 <option value="">-- Choose a category --</option>
                             </select>
+
                             <span asp-validation-for="CategoryId" class="text-danger"></span>
                         </div>
 
@@ -153,6 +159,7 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script src="https://cdn.ckeditor.com/ckeditor5/40.1.0/classic/ckeditor.js"></script>
+    <script src="/js/category-tree-selector.js"></script>
 
     <script>
         const canCreate = @canCreate.ToString().ToLower();
@@ -175,5 +182,16 @@
                 imgElement.style.display = 'block';
             }
         }
+
+        // Initialize category tree dropdown
+        document.addEventListener('DOMContentLoaded', function () {
+            (async function() {
+                try {
+                    await CategoryTreeSelector.init('#categoryDropdown', '#CategoryId');
+                } catch (e) {
+                    console.warn('Category tree init failed', e);
+                }
+            })();
+        });
     </script>
 }

@@ -1,4 +1,5 @@
-﻿using CMSECommerce.Infrastructure;
+﻿using CMSECommerce.Controllers;
+using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -16,7 +17,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
         IWebHostEnvironment webHostEnvironment,
         IEmailSender emailSender,
         UserManager<IdentityUser> userManager,
-        ILogger<ProductsController> logger) : Controller
+        ILogger<ProductsController> logger) : BaseController
     {
         private readonly DataContext _context = context;
         private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
@@ -27,23 +28,19 @@ namespace CMSECommerce.Areas.Seller.Controllers
         // GET /seller/products/index
         public async Task<IActionResult> Index(int categoryId = 0, string search = "", string status = "", int p = 1)
         {
-            int pageSize = 3;
+            int pageSize = 8; // Set to 3 as per your requirement
             try
             {
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
-
+                ViewBag.Categories = BuildCategorySelectList(categoryId);
                 ViewBag.SelectedCategory = categoryId.ToString();
                 ViewBag.CurrentSearch = search;
                 ViewBag.CurrentStatus = status;
 
-                ViewBag.PageNumber = p;
-                ViewBag.PageRange = pageSize;
-
-                // Filter products by OwnerId (the current logged-in seller)
+                // Filter products by OwnerId
                 var currentUserId = _userManager.GetUserName(User);
                 var productsQuery = _context.Products
-    .Where(x => x.OwnerName == currentUserId && x.StockQuantity > 0)
-    .AsQueryable();
+                    .Where(x => x.OwnerName == currentUserId && x.StockQuantity > 0)
+                    .AsQueryable();
 
                 // 1. Apply category filter
                 if (categoryId != 0)
@@ -70,9 +67,20 @@ namespace CMSECommerce.Areas.Seller.Controllers
                     }
                 }
 
-                ViewBag.TotalPages = (int)Math.Ceiling((decimal)await productsQuery.CountAsync() / pageSize);
+                // --- PAGINATION CALCULATIONS ---
+                int totalItems = await productsQuery.CountAsync();
+                int totalPages = (int)Math.Ceiling((decimal)totalItems / pageSize);
 
-                List<Product> products = await productsQuery
+                // Safety check: ensure 'p' is within valid range
+                p = p < 1 ? 1 : p;
+                if (totalPages > 0 && p > totalPages) p = totalPages;
+
+                ViewBag.TotalPages = totalPages;
+                ViewBag.PageNumber = p;
+                ViewBag.PageRange = pageSize;
+                ViewBag.TotalItems = totalItems; // Useful for "Showing 1-3 of 10 items"
+
+                List<Product> products = await productsQuery                    
                     .Include(x => x.Category)
                     .OrderByDescending(x => x.Id)
                     .Skip((p - 1) * pageSize)
@@ -85,19 +93,18 @@ namespace CMSECommerce.Areas.Seller.Controllers
             {
                 _logger.LogError(ex, "Error loading Products Index for seller {User}.", _userManager.GetUserName(User));
                 TempData["Error"] = "Failed to load products due to a system error.";
-                // Return empty list and initialize view bag values to prevent runtime errors in the view
                 ViewBag.TotalPages = 1;
+                ViewBag.PageNumber = 1;
                 ViewBag.Categories = new SelectList(new List<Category>());
                 return View(new List<Product>());
             }
         }
-
         public async Task<IActionResult> OutOfStock(int categoryId = 0, string search = "", string status = "", int p = 1)
         {
             int pageSize = 3;
             try
             {
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
+                ViewBag.Categories = BuildCategorySelectList(categoryId);
 
                 ViewBag.SelectedCategory = categoryId.ToString();
                 ViewBag.CurrentSearch = search;
@@ -165,7 +172,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
             int pageSize = 3;
             try
             {
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", categoryId.ToString());
+                ViewBag.Categories = BuildCategorySelectList(categoryId);
 
                 ViewBag.SelectedCategory = categoryId.ToString();
                 ViewBag.CurrentSearch = search;
@@ -226,19 +233,19 @@ namespace CMSECommerce.Areas.Seller.Controllers
         }
 
         // GET /seller/products/create
+        // GET /seller/products/create
         public IActionResult Create()
         {
             try
             {
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name");
+                ViewBag.Categories = BuildCategorySelectList();
                 return View();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error preparing Create View for seller {User}.", _userManager.GetUserName(User));
-                TempData["Error"] = "Failed to load categories for product creation.";
-                ViewBag.Categories = new SelectList(new List<Category>());
-                return View();
+                _logger.LogError(ex, "Error loading Category list for Create View.");
+                TempData["Error"] = "System error: Could not load categories.";
+                return RedirectToAction("Index");
             }
         }
 
@@ -247,114 +254,101 @@ namespace CMSECommerce.Areas.Seller.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Product product)
         {
-            // Retrieve user information early
             var userId = _userManager.GetUserId(User);
-            var userName = _userManager.GetUserName(User);
 
-            // Check if the seller has a valid profile
+            // 1. Validate Profile and Subscription
             var profile = await _context.UserProfiles
+                .Include(p => p.Store)
                 .FirstOrDefaultAsync(p => p.UserId == userId);
 
-            if (profile == null)
+            if (profile?.Store == null)
             {
-                return RedirectToAction("Status", "Subscription");
+                TempData["Error"] = "You must have an active store to add products.";
+                return RedirectToAction("Index", "UserProfiles");
             }
 
-            // 1. Check if Subscription has expired
             if (!profile.SubscriptionEndDate.HasValue || profile.SubscriptionEndDate.Value < DateTime.Now)
             {
-                ModelState.AddModelError("", "Your subscription has expired. Please renew to continue adding products.");
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
-                return View(product);
+                ModelState.AddModelError("", "Subscription expired. Please renew to continue.");
             }
 
-            // 2. Check Product Limit
+            // 2. Check Product Limits
             var currentProductCount = await _context.Products.CountAsync(p => p.UserId == userId);
-
             if (currentProductCount >= profile.CurrentProductLimit)
             {
-                ModelState.AddModelError("", $"You have reached your limit of {profile.CurrentProductLimit} products. Upgrade your plan to add more.");
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
-                return View(product);
+                ModelState.AddModelError("", $"Limit reached ({profile.CurrentProductLimit} products).");
             }
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    // Generate Slug
-                    product.Slug = product.Name.ToLower().Replace(" ", "-");
+                    // 3. Generate Unique Slug (Allows duplicate Names)
+                    string baseSlug = product.Name.ToLower().Trim().Replace(" ", "-");
+                    string uniqueSlug = baseSlug;
+                    int suffix = 1;
 
-                    // Check for slug duplication
-                    var slugExists = await _context.Products.AnyAsync(x => x.Slug == product.Slug);
-                    if (slugExists)
+                    // Loop to find a truly unique slug in the DB
+                    while (await _context.Products.AnyAsync(p => p.Slug == uniqueSlug))
                     {
-                        ModelState.AddModelError("Name", "That product name already exists!");
-                        ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
-                        return View(product);
+                        uniqueSlug = $"{baseSlug}-{suffix}";
+                        suffix++;
                     }
+                    product.Slug = uniqueSlug;
 
-                    // Handle Image Upload
-                    string imageName = "noimage.png";
-
+                    // 4. Handle Image Upload Safely
                     if (product.ImageUpload != null)
                     {
                         string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/products");
-                        // Ensure directory exists
                         if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
 
-                        imageName = Guid.NewGuid().ToString() + "_" + product.ImageUpload.FileName;
-                        string filePath = Path.Combine(uploadsDir, imageName);
+                        string fileName = $"{Guid.NewGuid()}_{Path.GetFileName(product.ImageUpload.FileName)}";
+                        string filePath = Path.Combine(uploadsDir, fileName);
 
-                        await using (FileStream fs = new FileStream(filePath, FileMode.Create))
+                        using (var fs = new FileStream(filePath, FileMode.Create))
                         {
                             await product.ImageUpload.CopyToAsync(fs);
                         }
+                        product.Image = fileName;
+                    }
+                    else
+                    {
+                        product.Image = "noimage.png";
                     }
 
-                    // Assign System-set properties
-                    product.Image = imageName;
-                    product.Status = ProductStatus.Pending; // Products require admin approval
+                    // 5. Assign Ownership and Metadata
                     product.UserId = userId;
-                    product.OwnerName = userName;
-
-                    // Note: StockQuantity is automatically bound from the form via Model Binding
+                    product.OwnerName = _userManager.GetUserName(User);
+                    product.StoreId = (int)profile.StoreId;
+                    product.Status = ProductStatus.Pending;
 
                     _context.Add(product);
                     await _context.SaveChangesAsync();
 
-                    TempData["Success"] = "The product has been added and is pending admin approval!";
+                    TempData["Success"] = "Product created successfully and is awaiting approval.";
                     return RedirectToAction("Index");
-                }
-                catch (DbUpdateException dbEx)
-                {
-                    _logger.LogError(dbEx, "Database error during product creation by seller {User}.", userName);
-                    ModelState.AddModelError("", "A database error occurred while saving the product.");
-                }
-                catch (IOException ioEx)
-                {
-                    _logger.LogError(ioEx, "File system error during image upload for product creation by seller {User}.", userName);
-                    ModelState.AddModelError("", "An error occurred while saving the product image.");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Unexpected error during product creation by seller {User}.", userName);
-                    ModelState.AddModelError("", "An unexpected error occurred.");
+                    _logger.LogError(ex, "Critical error creating product for user {UserId}", userId);
+                    ModelState.AddModelError("", "A server error occurred. Please try again.");
                 }
             }
 
-            // If we got this far, something failed, redisplay form
-            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
+            // Repopulate Categories if validation fails
+            ViewBag.Categories = BuildCategorySelectList(product.CategoryId);
             return View(product);
         }
 
         // GET /seller/products/edit/5
         public async Task<IActionResult> Edit(int id)
         {
+            // 1. Declare the variable here so it's accessible in both try and catch
+            Product product = null;
+
             try
             {
-                Product product = await _context.Products.FindAsync(id);
-               
+                product = await _context.Products.FindAsync(id);
 
                 if (product == null) { return NotFound(); }
 
@@ -365,23 +359,33 @@ namespace CMSECommerce.Areas.Seller.Controllers
                     return RedirectToAction("Index");
                 }
 
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
+                ViewBag.Categories = BuildCategorySelectList(product.CategoryId);
 
-                // File operation: Loading gallery images
+                // File operation
                 string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/gallery/" + id.ToString());
 
                 if (Directory.Exists(uploadsDir))
                 {
                     product.GalleryImages = Directory.EnumerateFiles(uploadsDir).Select(x => Path.GetFileName(x));
                 }
-               
+
                 return View(product);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading Edit View for product ID {ProductId} by seller {User}.", id, _userManager.GetUserName(User));
-                TempData["Error"] = "Failed to load product details for editing.";
-                return RedirectToAction("Index");
+
+                TempData["Error"] = "Failed to load categories, but you can still edit the product.";
+                ViewBag.Categories = new SelectList(new List<Category>());
+
+                // 2. Now 'product' is accessible here. 
+                // Note: If FindAsync failed, product might still be null.
+                if (product == null)
+                {
+                    return RedirectToAction("Index");
+                }
+
+                return View(product);
             }
         }
 
@@ -390,12 +394,13 @@ namespace CMSECommerce.Areas.Seller.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(Product product)
         {
-            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
+            ViewBag.Categories = BuildCategorySelectList(product.CategoryId);
 
             // Fetch the existing product from the database
             Product dbProduct = null;
             try
             {
+                // We use AsNoTracking because we will update the 'product' object later
                 dbProduct = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == product.Id);
                 if (dbProduct == null) return NotFound();
             }
@@ -406,7 +411,6 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 return RedirectToAction("Index");
             }
 
-
             // Authorization check
             if (dbProduct.OwnerName != _userManager.GetUserName(User))
             {
@@ -414,11 +418,12 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 return RedirectToAction("Index");
             }
 
-            // Preserve workflow properties and force to pending status
-            product.Status = ProductStatus.Pending;
+            // --- PRESERVE EXISTING DATA & WORKFLOW ---
+            product.Status = ProductStatus.Pending; // Force re-approval on edit
             product.OwnerName = dbProduct.OwnerName;
+            product.UserId = dbProduct.UserId;       // Preserve the original owner ID
+            product.StoreId = dbProduct.StoreId;     // Preserve the Store association
             product.RejectionReason = dbProduct.RejectionReason;
-
 
             if (ModelState.IsValid)
             {
@@ -434,14 +439,14 @@ namespace CMSECommerce.Areas.Seller.Controllers
                     if (slug != null)
                     {
                         ModelState.AddModelError("", "That product name already exists (slug conflict)!");
-                        goto ReloadViewOnFail; // Use goto for clean error handling flow
+                        goto ReloadViewOnFail;
                     }
 
                     if (product.ImageUpload != null)
                     {
                         string uploadsDir = Path.Combine(_webHostEnvironment.WebRootPath, "media/products");
 
-                        // File operation: Delete old image
+                        // Delete old image if it's not the default
                         if (!string.Equals(dbProduct.Image, "noimage.png"))
                         {
                             string oldImagePath = Path.Combine(uploadsDir, dbProduct.Image);
@@ -451,7 +456,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
                             }
                         }
 
-                        // File operation: Save new image
+                        // Save new image
                         string imageName = Guid.NewGuid().ToString() + "_" + product.ImageUpload.FileName;
                         string filePath = Path.Combine(uploadsDir, imageName);
                         await using (FileStream fs = new(filePath, FileMode.Create))
@@ -463,12 +468,12 @@ namespace CMSECommerce.Areas.Seller.Controllers
                     }
                     else
                     {
-                        // No new image uploaded, keep the existing one
+                        // No new image uploaded, keep the existing one from DB
                         product.Image = dbProduct.Image;
                     }
 
                     _context.Update(product);
-                    await _context.SaveChangesAsync(); // Database operation
+                    await _context.SaveChangesAsync();
 
                     TempData["Success"] = "The product has been updated and is pending admin approval!";
                     return RedirectToAction("Edit", new { product.Id });
@@ -500,7 +505,6 @@ namespace CMSECommerce.Areas.Seller.Controllers
 
             return View(product);
         }
-
         // GET /seller/products/delete/5
         public async Task<IActionResult> Delete(int id)
         {
@@ -797,6 +801,61 @@ namespace CMSECommerce.Areas.Seller.Controllers
             }
 
             return RedirectToAction("Index");
+        }
+
+        // POST: /Seller/Products/ToggleVisibility
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleVisibility(int id, bool isVisible)
+        {
+            try
+            {
+                var product = await _context.Products.FindAsync(id);
+                if (product == null)
+                {
+                    return Json(new { success = false, message = "Product not found." });
+                }
+
+                // Authorization check
+                if (product.OwnerName != _userManager.GetUserName(User))
+                {
+                    return Json(new { success = false, message = "You are not authorized to modify this product." });
+                }
+
+                product.IsVisible = isVisible;
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = $"Product visibility set to {(isVisible ? "visible" : "hidden")}." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling visibility for product ID {ProductId} by seller {User}.", id, _userManager.GetUserName(User));
+                return Json(new { success = false, message = "An error occurred while updating product visibility." });
+            }
+        }
+
+        // Helper method to build hierarchical category select list
+        private SelectList BuildCategorySelectList(int selectedCategoryId = 0)
+        {
+            var categories = _context.Categories
+                .OrderBy(c => c.Level)
+                .ThenBy(c => c.Name)
+                .ToList();
+
+            var selectListItems = new List<SelectListItem>();
+
+            foreach (var category in categories)
+            {
+                var indent = new string('—', category.Level);
+                selectListItems.Add(new SelectListItem
+                {
+                    Value = category.Id.ToString(),
+                    Text = $"{indent} {category.Name}",
+                    Selected = category.Id == selectedCategoryId
+                });
+            }
+
+            return new SelectList(selectListItems, "Value", "Text");
         }
     }
 }

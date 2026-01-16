@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -6,18 +7,23 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CMSECommerce.Models
 {
+    [Index(nameof(ITSNumber), IsUnique = true)]
     public class UserProfile
     {
         [Key]
         public int Id { get; set; }
         public string UserId { get; set; }
-        public int StoreId { get; set; }
+       
         public string Profession { get; set; }
         public string ServicesProvided { get; set; }
 
         public string FirstName { get; set; }
         public string LastName { get; set; }
+        [Required(ErrorMessage = "ITS Number is required")]
         public string ITSNumber { get; set; }
+        
+        [Required(ErrorMessage = "WhatsApp Number is required")]
+        [Phone(ErrorMessage = "Invalid Phone Number")]
         public string WhatsAppNumber { get; set; }
 
         // Missing Fields Fix
@@ -36,13 +42,17 @@ namespace CMSECommerce.Models
         public string PhonePeQRCodePath { get; set; }
 
         // Address Fields
+        [Required(ErrorMessage = "Home Address is required")]
         public string HomeAddress { get; set; }
         public string HomePhoneNumber { get; set; }
+        [Required(ErrorMessage = "Business Address is required")]
         public string BusinessAddress { get; set; }
         public string BusinessPhoneNumber { get; set; }
 
         [ForeignKey("UserId")]
         public virtual IdentityUser User { get; set; }
+        public int? StoreId { get; set; } // The '?' is essential
+
         [ForeignKey("StoreId")]
         public virtual Store Store { get; set; }
 
@@ -50,6 +60,17 @@ namespace CMSECommerce.Models
         public DateTime? SubscriptionEndDate { get; set; }
 
         public int CurrentProductLimit { get; set; }
+
+        /// <summary>
+        /// Stores the ID of the current active subscription tier.
+        /// Used to validate upgrades vs downgrades.
+        /// </summary>
+        public int? CurrentTierId { get; set; }
+
+        // Optional: Navigation property if you want to access Tier details directly from the profile
+        [ForeignKey("CurrentTierId")]
+        public virtual SubscriptionTier? CurrentTier { get; set; }
+        public bool IsDeactivated { get; set; } = false;
     }
 
     public class Store
@@ -70,5 +91,8 @@ namespace CMSECommerce.Models
 
         [ForeignKey("UserId")]
         public virtual IdentityUser User { get; set; }
+
+        public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+        public bool IsActive { get; set; } = true; // Default to active
     }
 }

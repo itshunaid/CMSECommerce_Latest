@@ -1,4 +1,4 @@
-﻿@model global::CMSECommerce.Areas.Admin.Models.EditUserModel
+﻿@model CMSECommerce.Areas.Admin.Models.EditUserModel
 
 @{
     ViewData["Title"] = "Edit User";
@@ -88,6 +88,7 @@
                 <input type="hidden" asp-for="ProfileImagePath" />
                 <input type="hidden" asp-for="GpayQRCodePath" />
                 <input type="hidden" asp-for="PhonePeQRCodePath" />
+               
 
                 @* 1. Profile Identity Header *@
                 <div class="amazon-card">
@@ -142,11 +143,14 @@
                             <label asp-for="Role" class="form-label"></label>
                             <select asp-for="Role" class="form-select">
                                 <option value="">-- Assign Role --</option>
-                                @if (ViewBag.Roles is List<string> roles)
-                                {
-                                    @foreach (var r in roles)
+                                @{
+                                    var roles = ViewBag.Roles as List<string>;
+                                    if (roles != null)
                                     {
-                                        <option value="@r">@r</option>
+                                        foreach (var r in roles)
+                                        {
+                                            <option value="@r">@r</option>
+                                        }
                                     }
                                 }
                             </select>

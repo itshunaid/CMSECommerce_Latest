@@ -1,4 +1,32 @@
-﻿<!DOCTYPE html>
+﻿@using CMSECommerce.Infrastructure
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore @* Added for potential performance extensions *@
+@inject DataContext _context
+@inject UserManager<IdentityUser> UserManager
+
+@{
+    // ARCHITECT NOTE: This logic is best handled via a ViewComponent or a Custom Claims Principal.
+    // To maintain existing functionality without breaking features, we keep the query here but clean it up.
+    string displayName = User.Identity?.Name ?? "Guest";
+
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        var userId = UserManager.GetUserId(User);
+        if (!string.IsNullOrEmpty(userId))
+        {
+            var profile = _context.UserProfiles
+                .Select(u => new { u.UserId, u.FirstName, u.LastName }) // Projection for performance
+                .FirstOrDefault(u => u.UserId == userId);
+
+            if (profile != null && !string.IsNullOrWhiteSpace(profile.FirstName) && !string.IsNullOrWhiteSpace(profile.LastName))
+            {
+                displayName = $"{profile.FirstName} {profile.LastName}";
+            }
+        }
+    }
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -17,73 +45,16 @@
             --amz-bg-light: #eaeded;
         }
 
-        body {
-            background-color: var(--amz-bg-light);
-        }
-
-        /* Header Styling */
-        .amz-header-primary {
-            background-color: var(--amz-navy);
-            border: none;
-            padding: 5px 0;
-        }
-
-            .amz-header-primary .navbar-brand {
-                color: #fff !important;
-                font-weight: 700;
-                display: flex;
-                align-items: center;
-            }
-
-            .amz-header-primary .nav-link {
-                color: #fff !important;
-                font-size: 0.9rem;
-                padding: 8px 15px;
-                border: 1px solid transparent;
-            }
-
-                /* Amazon-style focus/hover border */
-                .amz-header-primary .nav-link:hover,
-                .amz-header-primary .show > .nav-link {
-                    border: 1px solid #fff;
-                    border-radius: 3px;
-                }
-
-        /* Dropdown Sub-Menu Styling */
-        .amz-dropdown-menu {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            margin-top: 5px;
-            border-radius: 4px;
-            min-width: 220px;
-        }
-
-        .amz-dropdown-item {
-            font-size: 0.85rem;
-            padding: 10px 20px;
-            color: var(--amz-navy);
-        }
-
-            .amz-dropdown-item:hover {
-                background-color: #f0f2f2;
-                color: var(--amz-orange);
-            }
-
-        .dropdown-header {
-            font-weight: bold;
-            color: #555;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-        }
-
-        /* Footer */
-        .amz-footer {
-            background-color: var(--amz-navy-2);
-            color: #ccc;
-            padding: 15px 0;
-            margin-top: 30px;
-        }
+        body { background-color: var(--amz-bg-light); }
+        .amz-header-primary { background-color: var(--amz-navy); border: none; padding: 5px 0; }
+        .amz-header-primary .navbar-brand { color: #fff !important; font-weight: 700; display: flex; align-items: center; }
+        .amz-header-primary .nav-link { color: #fff !important; font-size: 0.9rem; padding: 8px 15px; border: 1px solid transparent; }
+        .amz-header-primary .nav-link:hover, .amz-header-primary .show > .nav-link { border: 1px solid #fff; border-radius: 3px; }
+        .amz-dropdown-menu { background-color: #fff; border: 1px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 5px; border-radius: 4px; min-width: 220px; }
+        .amz-dropdown-item { font-size: 0.85rem; padding: 10px 20px; color: var(--amz-navy); }
+        .amz-dropdown-item:hover { background-color: #f0f2f2; color: var(--amz-orange); }
+        .dropdown-header { font-weight: bold; color: #555; font-size: 0.75rem; text-transform: uppercase; }
+        .amz-footer { background-color: var(--amz-navy-2); color: #ccc; padding: 15px 0; margin-top: 30px; }
     </style>
 </head>
 <body>
@@ -101,20 +72,14 @@
 
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="nav-link">Dashboard</a>
-                        </li>
-
+                        <li class="nav-item"><a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="nav-link">Dashboard</a></li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="inventoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Inventory
-                            </a>
+                            <a class="nav-link dropdown-toggle" href="#" id="inventoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Inventory</a>
                             <ul class="dropdown-menu amz-dropdown-menu" aria-labelledby="inventoryDropdown">
                                 <li><h6 class="dropdown-header">Products</h6></li>
                                 <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="Products" asp-action="Index"><i class="fas fa-list me-2"></i>Approved List</a></li>
                                 <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="Products" asp-action="pendingproducts"><i class="fas fa-clock me-2"></i>Pending Approval</a></li>
                                 <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="Products" asp-action="Create"><i class="fas fa-plus me-2"></i>Add New Product</a></li>
-
                                 <li><hr class="dropdown-divider"></li>
                                 <li><h6 class="dropdown-header">Configuration</h6></li>
                                 <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="Categories" asp-action="Index">Categories</a></li>
@@ -122,22 +87,17 @@
                                 <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="Orders" asp-action="Index">Orders Status</a></li>
                             </ul>
                         </li>
-
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Management
-                            </a>
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Management</a>
                             <ul class="dropdown-menu amz-dropdown-menu" aria-labelledby="userDropdown">
                                 <li><h6 class="dropdown-header">Users</h6></li>
                                 <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="Users" asp-action="Index">Active Users List</a></li>
                                 <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="Users" asp-action="Create">Create New User</a></li>
-
                                 <li><hr class="dropdown-divider"></li>
                                 <li><h6 class="dropdown-header">Requests</h6></li>
                                 <li><a class="dropdown-item amz-dropdown-item" href="/pendingimageapprovals">Profile Image Requests</a></li>
                                 <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="Users" asp-action="subscriberrequests">Seller Requests</a></li>
                                 <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="Users" asp-action="UnlockRequests">Unlock Requests</a></li>
-
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-page="/UserStatusSettings"><i class="fas fa-cog me-2"></i>Status Settings</a></li>
                             </ul>
@@ -145,14 +105,14 @@
                     </ul>
 
                     <ul class="navbar-nav justify-content-end">
-                        @if (User.Identity.IsAuthenticated)
+                        @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-white" href="#" id="accountDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Hello, <span style="font-weight:600; color:var(--amz-orange);">@User.Identity.Name</span>
+                                    Hello, <span style="font-weight:600; color:var(--amz-orange);">@displayName</span>
                                 </a>
                                 <ul class="dropdown-menu amz-dropdown-menu dropdown-menu-end shadow">
-                                    <li><a class="dropdown-item amz-dropdown-item" asp-area="" asp-controller="Account" asp-action="profiledetailsview">Profile Settings</a></li>
+                                    <li><a class="dropdown-item amz-dropdown-item" asp-area="" asp-controller="UserProfiles" asp-action="Index">Profile Settings</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item amz-dropdown-item text-danger" asp-area="" asp-controller="Account" asp-action="Logout"><i class="fas fa-power-off me-2"></i>Log Out</a></li>
                                 </ul>

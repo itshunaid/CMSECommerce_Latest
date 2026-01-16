@@ -1,0 +1,55 @@
+@model CategoryTreeViewModel
+
+<ul class="amazon-category-tree list-unstyled">
+
+    <li class="mb-1">
+        <a asp-action="Index"
+           asp-route-slug=""
+           asp-route-searchTerm="@Model.SearchTerm"
+           class="amazon-cat-link @(string.IsNullOrEmpty(Model.CurrentCategorySlug) ? "active" : "")">
+            All Departments
+        </a>
+    </li>
+
+    @foreach (var parent in Model.Categories.Where(c => c.Level == 0))
+    {
+        <li class="mt-2">
+            <div class="fw-bold small">@parent.Name</div>
+
+            <ul class="list-unstyled ms-2">
+                @foreach (var child in Model.Categories.Where(c => c.ParentId == parent.Id))
+                {
+                    <li>
+                        <a asp-action="Index"
+                           asp-route-slug="@child.Slug"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           class="amazon-cat-link @(Model.CurrentCategorySlug == child.Slug ? "active" : "")">
+                            @child.Name
+                        </a>
+
+                        @if (Model.CurrentCategorySlug == child.Slug)
+                        {
+                            var subCats = Model.Categories.Where(x => x.ParentId == child.Id);
+                            if (subCats.Any())
+                            {
+                                <ul class="list-unstyled ms-3">
+                                    @foreach (var sub in subCats)
+                                    {
+                                        <li>
+                                            <a asp-action="Index"
+                                               asp-route-slug="@sub.Slug"
+                                               asp-route-searchTerm="@Model.SearchTerm"
+                                               class="amazon-subcat-link">
+                                                @sub.Name
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        }
+                    </li>
+                }
+            </ul>
+        </li>
+    }
+</ul>

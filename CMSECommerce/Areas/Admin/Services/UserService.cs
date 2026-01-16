@@ -25,7 +25,7 @@ namespace CMSECommerce.Areas.Admin.Services
             {
                 "Role" => await HandleRoleUpdate(userId, value),
                 "IsLockedOut" => await HandleLockoutUpdate(userId, value),
-                "Profession" or "IsProfileVisible" or "IsImageApproved" => await HandleProfileUpdate(userId, fieldName, value),
+                "Profession" or "IsProfileVisible" or "IsImageApproved" or "IsDeactivated" => await HandleProfileUpdate(userId, fieldName, value),
                 _ => ServiceResponse.Failure($"Field '{fieldName}' is not supported.")
             };
         }
@@ -216,6 +216,7 @@ namespace CMSECommerce.Areas.Admin.Services
                     case "Profession": profile.Profession = value; break;
                     case "IsProfileVisible": profile.IsProfileVisible = bool.Parse(value); break;
                     case "IsImageApproved": profile.IsImageApproved = bool.Parse(value); break;
+                    case "IsDeactivated": profile.IsDeactivated = bool.Parse(value); break;
                 }
                 await _context.SaveChangesAsync();
                 return ServiceResponse.Success($"{field} updated successfully");

@@ -2,9 +2,13 @@
 
 @{
     ViewData["Title"] = "Edit Profile";
+    // If ProfileStatus is false, we treat the form as restricted/hidden
+    bool isReadOnly = ViewBag.ProfileStatus == false;
+    ViewData["HideLayoutSidebar"] = true;
 }
 
 <style>
+    /* ... Keep existing styles ... */
     .amazon-header {
         background: linear-gradient(135deg, #FF9900 0%, #FF6600 100%);
         color: white;
@@ -12,38 +16,48 @@
         margin: -1rem -1rem 2rem -1rem;
         border-radius: 8px 8px 0 0;
     }
+
     .amazon-card {
         border: none;
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         margin-bottom: 2rem;
     }
+
     .amazon-section {
         background: #f8f9fa;
         border-radius: 6px;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
     }
-    .amazon-section h5 {
-        color: #232F3E;
-        font-weight: 600;
-        margin-bottom: 1.5rem;
-        border-bottom: 2px solid #FF9900;
-        padding-bottom: 0.5rem;
-    }
+
+        .amazon-section h5 {
+            color: #232F3E;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #FF9900;
+            padding-bottom: 0.5rem;
+        }
+
     .amazon-btn-primary {
         background: linear-gradient(135deg, #FF9900 0%, #FF6600 100%);
         border: none;
         border-radius: 6px;
         padding: 0.75rem 2rem;
         font-weight: 500;
+        color: white;
         transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
     }
-    .amazon-btn-primary:hover {
-        background: linear-gradient(135deg, #FF6600 0%, #FF3300 100%);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
-    }
+
+        .amazon-btn-primary:hover {
+            background: linear-gradient(135deg, #FF6600 0%, #FF3300 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
+            color: white;
+        }
+
     .amazon-btn-secondary {
         background: #f8f9fa;
         border: 1px solid #ddd;
@@ -52,21 +66,28 @@
         padding: 0.75rem 2rem;
         font-weight: 500;
         transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
     }
-    .amazon-btn-secondary:hover {
-        background: #e9ecef;
-        transform: translateY(-1px);
-    }
+
+        .amazon-btn-secondary:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+            color: #232F3E;
+        }
+
     .form-control {
         border-radius: 6px;
         border: 1px solid #ddd;
         padding: 0.75rem;
         transition: border-color 0.3s ease;
     }
-    .form-control:focus {
-        border-color: #FF9900;
-        box-shadow: 0 0 0 0.2rem rgba(255, 153, 0, 0.25);
-    }
+
+        .form-control:focus {
+            border-color: #FF9900;
+            box-shadow: 0 0 0 0.2rem rgba(255, 153, 0, 0.25);
+        }
+
     .form-label {
         font-weight: 600;
         color: #232F3E;
@@ -77,16 +98,22 @@
 <div class="container-fluid px-4 py-5" style="background: #EAEDED; min-height: 100vh;">
     <div class="row justify-content-center">
         <div class="col-lg-10">
+            @if (isReadOnly)
+            {
+                <div class="alert alert-warning shadow-sm mb-4 border-0" style="border-left: 5px solid #FF9900 !important;">
+                    <i class="fas fa-info-circle me-2"></i> Some profile fields are hidden and locked for editing.
+                </div>
+            }
+
             <div class="amazon-card bg-white">
                 <div class="amazon-header">
                     <div class="container">
                         <div class="row align-items-center">
                             <div class="col-md-8">
-                                <h1 class="h2 mb-0 fw-bold"><i class="fas fa-user-edit me-3"></i>Edit Your Profile</h1>
-                                <p class="mb-0 mt-2 opacity-75">Update your personal and professional information</p>
-                            </div>
-                            <div class="col-md-4 text-end">
-                                <i class="fas fa-user-circle fa-3x opacity-75"></i>
+                                <h1 class="h2 mb-0 fw-bold">
+                                    <i class="fas fa-user-edit me-3"></i>
+                                    Edit Your Profile
+                                </h1>
                             </div>
                         </div>
                     </div>
@@ -95,9 +122,32 @@
                     <form asp-action="Profile" method="post" enctype="multipart/form-data">
                         @Html.AntiForgeryToken()
 
+                        @* Hidden Fields to preserve data for fields that are hidden from UI *@
                         <input type="hidden" asp-for="UserId" />
+                        <input type="hidden" asp-for="ExistingProfileImagePath" />
+                        <input type="hidden" asp-for="ExistingGpayQRCodePath" />
+                        <input type="hidden" asp-for="ExistingPhonePeQRCodePath" />
+                        <input type="hidden" asp-for="PendingProfileImagePath" />
 
-                        <!-- Basic Information -->
+                        @if (isReadOnly)
+                        {
+                            @* Maintain data integrity for hidden fields during submission *@
+                            <input type="hidden" asp-for="Email" />
+                            <input type="hidden" asp-for="PhoneNumber" />
+                            <input type="hidden" asp-for="ITSNumber" />
+                            <input type="hidden" asp-for="StoreName" />
+                            <input type="hidden" asp-for="GSTIN" />
+                            <input type="hidden" asp-for="StoreEmail" />
+                            <input type="hidden" asp-for="StoreContact" />
+                            <input type="hidden" asp-for="StoreStreetAddress" />
+                            <input type="hidden" asp-for="StoreCity" />
+                            <input type="hidden" asp-for="StorePostCode" />
+                            <input type="hidden" asp-for="StoreCountry" />
+                        }
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        @* BASIC INFORMATION SECTION - Always Visible, but internal fields filtered *@
                         <div class="amazon-section">
                             <h5><i class="fas fa-user me-2"></i>Basic Information</h5>
                             <div class="row g-3">
@@ -113,35 +163,41 @@
                                 </div>
                             </div>
 
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <label asp-for="Email" class="form-label"></label>
-                                    <input asp-for="Email" class="form-control" type="email" />
-                                    <span asp-validation-for="Email" class="text-danger"></span>
+                            @if (!isReadOnly)
+                            {
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-6">
+                                        <label asp-for="Email" class="form-label"></label>
+                                        <input asp-for="Email" class="form-control" type="email" />
+                                        <span asp-validation-for="Email" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="PhoneNumber" class="form-label"></label>
+                                        <input asp-for="PhoneNumber" class="form-control" />
+                                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                                    </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <label asp-for="PhoneNumber" class="form-label"></label>
-                                    <input asp-for="PhoneNumber" class="form-control" />
-                                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
-                                </div>
-                            </div>
+                            }
 
                             <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <label asp-for="ITSNumber" class="form-label"></label>
-                                    <input asp-for="ITSNumber" class="form-control" />
-                                    <span asp-validation-for="ITSNumber" class="text-danger"></span>
-                                </div>
+                                @if (!isReadOnly)
+                                {
+                                    <div class="col-md-6">
+                                        <label asp-for="ITSNumber" class="form-label"></label>
+                                        <input asp-for="ITSNumber" class="form-control" />
+                                        <span asp-validation-for="ITSNumber" class="text-danger"></span>
+                                    </div>
+                                }
                                 <div class="col-md-6 d-flex align-items-end">
-                                    <div class="form-check">
+                                    <div class="form-check mb-2">
                                         <input asp-for="IsProfileVisible" class="form-check-input" />
-                                        <label asp-for="IsProfileVisible" class="form-check-label fw-bold"></label>
+                                        <label asp-for="IsProfileVisible" class="form-check-label fw-bold">Make Profile Publicly Visible</label>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Professional Information -->
+                        @* PROFESSIONAL INFORMATION SECTION - Always Visible *@
                         <div class="amazon-section">
                             <h5><i class="fas fa-briefcase me-2"></i>Professional Information</h5>
                             <div class="mb-3">
@@ -149,13 +205,11 @@
                                 <input asp-for="Profession" class="form-control" />
                                 <span asp-validation-for="Profession" class="text-danger"></span>
                             </div>
-
                             <div class="mb-3">
                                 <label asp-for="About" class="form-label"></label>
                                 <textarea asp-for="About" class="form-control" rows="4"></textarea>
                                 <span asp-validation-for="About" class="text-danger"></span>
                             </div>
-
                             <div class="mb-3">
                                 <label asp-for="ServicesProvided" class="form-label"></label>
                                 <input asp-for="ServicesProvided" class="form-control" placeholder="Separate services with commas" />
@@ -163,7 +217,7 @@
                             </div>
                         </div>
 
-                        <!-- Addresses -->
+                        @* ADDRESSES SECTION - Always Visible *@
                         <div class="amazon-section">
                             <h5><i class="fas fa-map-marker-alt me-2"></i>Addresses</h5>
                             <div class="row g-3">
@@ -178,7 +232,6 @@
                                     <span asp-validation-for="BusinessAddress" class="text-danger"></span>
                                 </div>
                             </div>
-
                             <div class="row g-3 mt-2">
                                 <div class="col-md-6">
                                     <label asp-for="HomePhoneNumber" class="form-label"></label>
@@ -193,7 +246,7 @@
                             </div>
                         </div>
 
-                        <!-- Social Media -->
+                        @* SOCIAL MEDIA SECTION - Always Visible *@
                         <div class="amazon-section">
                             <h5><i class="fas fa-share-alt me-2"></i>Social Media</h5>
                             <div class="row g-3">
@@ -213,7 +266,6 @@
                                     <span asp-validation-for="InstagramUrl" class="text-danger"></span>
                                 </div>
                             </div>
-
                             <div class="mt-3">
                                 <label asp-for="WhatsappNumber" class="form-label"></label>
                                 <input asp-for="WhatsappNumber" class="form-control" />
@@ -221,120 +273,111 @@
                             </div>
                         </div>
 
-                        <!-- Store Information -->
-                        <div class="amazon-section">
-                            <h5><i class="fas fa-store me-2"></i>Store Information</h5>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label asp-for="StoreName" class="form-label"></label>
-                                    <input asp-for="StoreName" class="form-control" />
-                                    <span asp-validation-for="StoreName" class="text-danger"></span>
+                        @* STORE INFORMATION SECTION - Hidden if ProfileStatus is false *@
+                        @if (!isReadOnly)
+                        {
+                            <div class="amazon-section">
+                                <h5><i class="fas fa-store me-2"></i>Store Information</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="StoreName" class="form-label"></label>
+                                        <input asp-for="StoreName" class="form-control" />
+                                        <span asp-validation-for="StoreName" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="GSTIN" class="form-label"></label>
+                                        <input asp-for="GSTIN" class="form-control" />
+                                        <span asp-validation-for="GSTIN" class="text-danger"></span>
+                                    </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <label asp-for="GSTIN" class="form-label"></label>
-                                    <input asp-for="GSTIN" class="form-control" />
-                                    <span asp-validation-for="GSTIN" class="text-danger"></span>
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-6">
+                                        <label asp-for="StoreEmail" class="form-label"></label>
+                                        <input asp-for="StoreEmail" class="form-control" type="email" />
+                                        <span asp-validation-for="StoreEmail" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="StoreContact" class="form-label"></label>
+                                        <input asp-for="StoreContact" class="form-control" />
+                                        <span asp-validation-for="StoreContact" class="text-danger"></span>
+                                    </div>
+                                </div>
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-4">
+                                        <label asp-for="StoreStreetAddress" class="form-label"></label>
+                                        <input asp-for="StoreStreetAddress" class="form-control" />
+                                        <span asp-validation-for="StoreStreetAddress" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="StoreCity" class="form-label"></label>
+                                        <input asp-for="StoreCity" class="form-control" />
+                                        <span asp-validation-for="StoreCity" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="StorePostCode" class="form-label"></label>
+                                        <input asp-for="StorePostCode" class="form-control" />
+                                        <span asp-validation-for="StorePostCode" class="text-danger"></span>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <label asp-for="StoreCountry" class="form-label"></label>
+                                    <input asp-for="StoreCountry" class="form-control" />
+                                    <span asp-validation-for="StoreCountry" class="text-danger"></span>
                                 </div>
                             </div>
+                        }
 
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <label asp-for="StoreEmail" class="form-label"></label>
-                                    <input asp-for="StoreEmail" class="form-control" type="email" />
-                                    <span asp-validation-for="StoreEmail" class="text-danger"></span>
-                                </div>
-                                <div class="col-md-6">
-                                    <label asp-for="StoreContact" class="form-label"></label>
-                                    <input asp-for="StoreContact" class="form-control" />
-                                    <span asp-validation-for="StoreContact" class="text-danger"></span>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-4">
-                                    <label asp-for="StoreStreetAddress" class="form-label"></label>
-                                    <input asp-for="StoreStreetAddress" class="form-control" />
-                                    <span asp-validation-for="StoreStreetAddress" class="text-danger"></span>
-                                </div>
-                                <div class="col-md-4">
-                                    <label asp-for="StoreCity" class="form-label"></label>
-                                    <input asp-for="StoreCity" class="form-control" />
-                                    <span asp-validation-for="StoreCity" class="text-danger"></span>
-                                </div>
-                                <div class="col-md-4">
-                                    <label asp-for="StorePostCode" class="form-label"></label>
-                                    <input asp-for="StorePostCode" class="form-control" />
-                                    <span asp-validation-for="StorePostCode" class="text-danger"></span>
-                                </div>
-                            </div>
-
-                            <div class="mt-3">
-                                <label asp-for="StoreCountry" class="form-label"></label>
-                                <input asp-for="StoreCountry" class="form-control" />
-                                <span asp-validation-for="StoreCountry" class="text-danger"></span>
-                            </div>
-                        </div>
-
-                        <!-- File Uploads -->
+                        @* FILE UPLOADS SECTION - Always Visible *@
                         <div class="amazon-section">
                             <h5><i class="fas fa-upload me-2"></i>File Uploads</h5>
-
-                            <!-- Profile Image -->
                             <div class="mb-4">
-                                <label asp-for="ProfileImageUpload" class="form-label"></label>
+                                <label asp-for="ProfileImageUpload" class="form-label">Profile Image</label>
                                 @if (!string.IsNullOrEmpty(Model.ExistingProfileImagePath))
                                 {
                                     <div class="mb-3 d-flex align-items-center">
-                                        <img src="/@Model.ExistingProfileImagePath" alt="Current Profile Image" class="rounded-circle border me-3" style="width: 80px; height: 80px; object-fit: cover;" />
+                                        <img src="/@Model.ExistingProfileImagePath" alt="Current Profile" class="rounded-circle border me-3" style="width: 80px; height: 80px; object-fit: cover;" />
                                         <div>
                                             <small class="text-muted d-block">Current profile image</small>
-                                            <small class="text-warning">Upload a new image to replace it</small>
+                                            <small class="text-warning fw-bold">Uploading a new one will replace this after approval.</small>
                                         </div>
                                     </div>
                                 }
                                 <input asp-for="ProfileImageUpload" class="form-control" type="file" accept="image/*" />
-                                <small class="text-muted">Upload a new profile image. It will be pending approval.</small>
+                                <span asp-validation-for="ProfileImageUpload" class="text-danger"></span>
                             </div>
 
-                            <!-- GPay QR Code -->
                             <div class="mb-4">
-                                <label asp-for="GpayQRCodeUpload" class="form-label"></label>
+                                <label asp-for="GpayQRCodeUpload" class="form-label">GPay QR Code</label>
                                 @if (!string.IsNullOrEmpty(Model.ExistingGpayQRCodePath))
                                 {
                                     <div class="mb-3 d-flex align-items-center">
-                                        <img src="/@Model.ExistingGpayQRCodePath" alt="Current GPay QR" class="border rounded me-3" style="width: 80px; height: 80px; object-fit: cover;" />
-                                        <div>
-                                            <small class="text-muted d-block">Current GPay QR code</small>
-                                            <small class="text-warning">Upload a new QR code to replace it</small>
-                                        </div>
+                                        <img src="/@Model.ExistingGpayQRCodePath" alt="Current GPay" class="border rounded me-3" style="width: 80px; height: 80px; object-fit: contain;" />
+                                        <div><small class="text-muted d-block">Current GPay QR code</small></div>
                                     </div>
                                 }
                                 <input asp-for="GpayQRCodeUpload" class="form-control" type="file" accept="image/*" />
+                                <span asp-validation-for="GpayQRCodeUpload" class="text-danger"></span>
                             </div>
 
-                            <!-- PhonePe QR Code -->
                             <div class="mb-4">
-                                <label asp-for="PhonePeQRCodeUpload" class="form-label"></label>
+                                <label asp-for="PhonePeQRCodeUpload" class="form-label">PhonePe QR Code</label>
                                 @if (!string.IsNullOrEmpty(Model.ExistingPhonePeQRCodePath))
                                 {
                                     <div class="mb-3 d-flex align-items-center">
-                                        <img src="/@Model.ExistingPhonePeQRCodePath" alt="Current PhonePe QR" class="border rounded me-3" style="width: 80px; height: 80px; object-fit: cover;" />
-                                        <div>
-                                            <small class="text-muted d-block">Current PhonePe QR code</small>
-                                            <small class="text-warning">Upload a new QR code to replace it</small>
-                                        </div>
+                                        <img src="/@Model.ExistingPhonePeQRCodePath" alt="Current PhonePe" class="border rounded me-3" style="width: 80px; height: 80px; object-fit: contain;" />
+                                        <div><small class="text-muted d-block">Current PhonePe QR code</small></div>
                                     </div>
                                 }
                                 <input asp-for="PhonePeQRCodeUpload" class="form-control" type="file" accept="image/*" />
+                                <span asp-validation-for="PhonePeQRCodeUpload" class="text-danger"></span>
                             </div>
                         </div>
 
-                        <!-- Submit Buttons -->
-                        <div class="d-flex justify-content-between">
-                            <a asp-action="ProfileDetails" asp-route-userId="@Model.UserId" class="btn btn-secondary">
+                        <div class="d-flex justify-content-between mt-4">
+                            <a asp-action="ProfileDetailsView" asp-route-userId="@Model.UserId" class="amazon-btn-secondary">
                                 <i class="fas fa-arrow-left me-2"></i>Back to Profile
                             </a>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="amazon-btn-primary">
                                 <i class="fas fa-save me-2"></i>Save Changes
                             </button>
                         </div>
