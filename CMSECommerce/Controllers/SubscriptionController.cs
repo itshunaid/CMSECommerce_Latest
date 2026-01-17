@@ -157,10 +157,10 @@ namespace CMSECommerce.Controllers
 
             if (userProfile == null) return NotFound();
 
-            if (!string.IsNullOrEmpty(model.ITSNumber) && userProfile.ITSNumber != model.ITSNumber)
+            if (!string.IsNullOrEmpty(model.ITSNumber))
             {
                 userProfile.ITSNumber = model.ITSNumber;
-                
+
                 _context.UserProfiles.Update(userProfile);
 
             }

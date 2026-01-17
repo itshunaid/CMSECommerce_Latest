@@ -1,5 +1,6 @@
 ﻿using CMSECommerce.Infrastructure;
 using CMSECommerce.Models.ViewModels;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,12 +13,14 @@ namespace CMSECommerce.Controllers
     public class OrdersController(
                                  DataContext context,
                                  UserManager<IdentityUser> userManager,
-                                 SignInManager<IdentityUser> signInManager
+                                 SignInManager<IdentityUser> signInManager,
+                                 IEmailService emailService
                                  /*, ILogger<OrdersController> logger */) : BaseController
     {
         private readonly DataContext _context = context;
         private readonly SignInManager<IdentityUser> _signInManager = signInManager;
         private readonly UserManager<IdentityUser> _userManager = userManager;
+        private readonly IEmailService _emailService = emailService;
         // private readonly ILogger<OrdersController> _logger = logger; // Uncomment if logging is enabled
 
         public IActionResult Index()
@@ -323,7 +326,85 @@ namespace CMSECommerce.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                //5. Success
+                //5. Send notification emails
+                try
+                {
+                    // Get the complete order with details for email
+                    var completeOrder = await _context.Orders
+                        .Include(o => o.OrderDetails)
+                        .FirstOrDefaultAsync(o => o.Id == order.Id);
+
+                    if (completeOrder != null)
+                    {
+                        // Send email to product owners
+                        var productOwners = completeOrder.OrderDetails
+                            .Select(od => od.ProductOwner)
+                            .Distinct()
+                            .Where(po => !string.IsNullOrEmpty(po))
+                            .ToList();
+
+                        foreach (var ownerId in productOwners)
+                        {
+                            var ownerProfile = await _context.UserProfiles
+                                .Include(p => p.Store)
+                                .FirstOrDefaultAsync(p => p.UserId == ownerId);
+
+                            if (ownerProfile != null && !string.IsNullOrEmpty(ownerProfile.User.Email))
+                            {
+                                var ownerItems = completeOrder.OrderDetails
+                                    .Where(od => od.ProductOwner == ownerId)
+                                    .ToList();
+
+                                var itemsList = string.Join("\n", ownerItems.Select(item =>
+                                    $"- {item.ProductName} (Qty: {item.Quantity}) - ${item.Price * item.Quantity:F2}"));
+
+                                var subject = $"New Order #{completeOrder.Id} - Products Sold";
+                                var body = $@"
+<h2>New Order Notification</h2>
+<p>Dear {ownerProfile.FirstName} {ownerProfile.LastName},</p>
+<p>A new order has been placed containing your products.</p>
+<p><strong>Order Details:</strong></p>
+<p>Order ID: #{completeOrder.Id}</p>
+<p>Customer: {completeOrder.UserName}</p>
+<p>Order Date: {completeOrder.OrderDate:yyyy-MM-dd HH:mm}</p>
+<p><strong>Items Sold:</strong></p>
+<pre>{itemsList}</pre>
+<p><strong>Total for your items: ${ownerItems.Sum(item => item.Price * item.Quantity):F2}</strong></p>
+<p>Please process this order promptly.</p>
+<br>
+<p>Best regards,<br>Weypaari Team</p>";
+
+                                await _emailService.SendEmailAsync(ownerProfile.User.Email, subject, body);
+                            }
+                        }
+
+                        // Send order confirmation email to customer
+                        var customerSubject = $"Order Confirmation - Order #{completeOrder.Id}";
+                        var customerBody = $@"
+<h2>Order Confirmation</h2>
+<p>Dear {completeOrder.UserName},</p>
+<p>Thank you for your order! Your order has been successfully placed.</p>
+<p><strong>Order Details:</strong></p>
+<p>Order ID: #{completeOrder.Id}</p>
+<p>Order Date: {completeOrder.OrderDate:yyyy-MM-dd HH:mm}</p>
+<p>Total Amount: ${completeOrder.GrandTotal:F2}</p>
+<p><strong>Items Ordered:</strong></p>
+{string.Join("", completeOrder.OrderDetails.Select(item => $"<p>- {item.ProductName} (Qty: {item.Quantity}) - ${item.Price * item.Quantity:F2}</p>"))}
+<p>You can track your order status in your account under 'My Orders'.</p>
+<p>If you have any questions, please contact our support team.</p>
+<br>
+<p>Best regards,<br>Weypaari Team</p>";
+
+                        await _emailService.SendEmailAsync(user.Email, customerSubject, customerBody);
+                    }
+                }
+                catch (Exception emailEx)
+                {
+                    // Log email failure but don't fail the order
+                    // _logger.LogError(emailEx, "Failed to send order notification emails for order {OrderId}", order.Id);
+                }
+
+                //6. Success
                 HttpContext.Session.Remove("Cart");
                 TempData["Success"] = $"Order #{order.Id} placed successfully!";
 

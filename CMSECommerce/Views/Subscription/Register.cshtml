@@ -8,17 +8,8 @@
 }
 
 <style>
-    /* Small Text UI refinements */
     .reg-container {
         font-size: 0.85rem;
-    }
-
-    /* ITS Number Highlighting */
-    .its-highlight {
-        font-weight: 800 !important;
-        border: 2px solid #21409a !important;
-        background-color: #fffbeb !important;
-        color: #1a202c !important;
     }
 
     :root {
@@ -31,6 +22,7 @@
         border-radius: 12px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         display: flex;
+        flex-direction: column;
         align-items: center;
         gap: 1rem;
         border: 1px solid #e2e8f0;
@@ -40,13 +32,11 @@
     .card-header h5 {
         font-size: 1rem;
         font-weight: 700;
-        letter-spacing: 0.5px;
     }
 
     .form-label {
         font-size: 0.75rem;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
         color: #4a5568;
     }
 
@@ -127,72 +117,54 @@
                     <form id="subscriptionForm" asp-action="SubmitRequest" method="post" enctype="multipart/form-data">
                         <div asp-validation-summary="ModelOnly" class="text-danger text-xs mb-3"></div>
 
+                        @* Hidden Fields for Model Binding *@
                         <input type="hidden" asp-for="TierId" />
                         <input type="hidden" asp-for="IsUpgrade" />
                         <input type="hidden" asp-for="TierName" />
                         <input type="hidden" asp-for="Price" />
                         <input type="hidden" asp-for="FinalAmount" />
                         <input type="hidden" asp-for="CreditApplied" />
-                        <input type="hidden" asp-for="ITSNumber" />
+                        @* This is the hidden field the controller will read *@
+                        <input type="hidden" asp-for="ITSNumber" id="hiddenITS" />
 
-                        <div class="mb-3 d-none">
-                            <label asp-for="ITSNumber" class="form-label fw-bold"></label>
-                            <input asp-for="ITSNumber" class="form-control" id="itsInput" value="" />
+                        @* Display-only ITS field (optional visual feedback) *@
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">ITS Number</label>
+                            <input class="form-control form-control-sm-custom bg-light" id="itsDisplay" readonly placeholder="Not Set" />
                             <span asp-validation-for="ITSNumber" class="text-danger text-xs"></span>
                         </div>
 
                         <div class="mb-3">
                             <label asp-for="FullName" class="form-label fw-bold"></label>
                             <input asp-for="FullName" class="form-control form-control-sm-custom bg-light" readonly />
-                            <span asp-validation-for="FullName" class="text-danger text-xs"></span>
                         </div>
 
                         <div class="price-summary-box mb-4">
                             <label class="form-label fw-bold mb-2 d-block">Price Breakdown</label>
                             <div class="summary-item">
-                                <span>New Plan Fee (@Model.TierName):</span>
+                                <span>New Plan Fee:</span>
                                 <span>₹@Model.Price.ToString("N0")</span>
                             </div>
 
                             @if (Model.IsUpgrade && Model.CreditApplied > 0)
                             {
                                 <div class="summary-item credit-text">
-                                    <span>Credit (Unused Previous Plan):</span>
+                                    <span>Credit (Unused):</span>
                                     <span>- ₹@Model.CreditApplied.ToString("N0")</span>
                                 </div>
                             }
 
                             <div class="summary-total">
-                                <span>Total Amount to Pay:</span>
+                                <span>Total to Pay:</span>
                                 <span>₹@Model.FinalAmount.ToString("N0")</span>
                             </div>
                         </div>
 
-                        <div class="qr-badge d-flex flex-column align-items-center text-center">
+                        <div class="qr-badge">
                             <img src="~/images/gpay/abbas_gpay_qrcode.jpeg" style="width: 153px; height: 153px;" alt="QR Code" class="mb-2">
-
-                            <div class="qr-details mb-3">
+                            <div class="qr-details text-center">
                                 <div class="fw-bold text-dark" style="font-size: 0.8rem;">Instant Activation</div>
-                                <div class="text-muted" style="font-size: 0.7rem;">
-                                    Scan or tap an app to pay <strong>₹@Model.FinalAmount.ToString("N0")</strong>
-                                </div>
-                            </div>
-
-                            <div class="d-lg-none w-100">
-                                <p class="text-uppercase fw-bold text-muted mb-2" style="font-size: 0.6rem; letter-spacing: 1px;">Select App to Pay</p>
-                                <a href="upi://pay?pa=abbas99631848@barodampay&pn=Abbas Kanchwala&am=@Model.FinalAmount&cu=INR"
-                                   class="btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center shadow-sm"
-                                   style="border-radius: 12px; padding: 12px; background-color: #1976D2; border: none;">
-                                    <div class="d-flex align-items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-wallet2 me-2" viewBox="0 0 16 16">
-                                            <path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.432-1.499L12.136.326zM5.562 3H13V1.78a.5.5 0 0 0-.621-.484L5.562 3zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-13z" />
-                                        </svg>
-                                        <span style="font-weight: 600; font-size: 1rem;">Pay ₹@Model.FinalAmount.ToString("N0") via UPI</span>
-                                    </div>
-                                </a>
-                                <p class="text-muted text-center mt-2" style="font-size: 0.7rem;">
-                                    Clicking will open GPay, PhonePe, Paytm, or your bank app
-                                </p>
+                                <div class="text-muted" style="font-size: 0.7rem;">Scan to pay <strong>₹@Model.FinalAmount.ToString("N0")</strong></div>
                             </div>
                         </div>
 
@@ -200,40 +172,22 @@
                             <label class="form-label fw-bold mb-1">Payment Receipt</label>
                             <input type="file" asp-for="Receipt" class="form-control form-control-sm-custom" accept="image/*" required />
                             <div class="helper-text mt-2">
-                                <i class="fas fa-info-circle me-1"></i>Please upload a screenshot of your payment of <strong>₹@Model.FinalAmount.ToString("N0")</strong>.
+                                <i class="fas fa-info-circle me-1"></i>Upload payment screenshot.
                             </div>
                             <span asp-validation-for="Receipt" class="text-danger text-xs"></span>
                         </div>
 
-                        @if (Model.IsUpgrade)
-                        {
-                            <div class="upgrade-alert p-3 mb-4 d-flex align-items-start gap-2">
-                                <i class="fas fa-magic mt-1"></i>
-                                <div>
-                                    <strong class="d-block mb-1" style="font-size: 0.8rem;">Fair Value Credit Applied</strong>
-                                    <span class="helper-text" style="color: inherit;">
-                                        We have adjusted the cost by crediting the remaining value of your current plan. Your new <strong>@Model.TierName Subscription Plan</strong> will start immediately upon approval.
-                                    </span>
-                                </div>
-                            </div>
-                        }
-
-                        <hr class="opacity-10 mb-4" />
-
                         <div class="d-flex justify-content-between align-items-center">
                             <a asp-action="Index" class="text-decoration-none text-muted fw-bold" style="font-size: 0.75rem;">
-                                <i class="fas fa-arrow-left me-1"></i> Back to Plans
+                                <i class="fas fa-arrow-left me-1"></i> Back
                             </a>
-                            <button type="submit" class="btn @(Model.IsUpgrade ? "btn-primary" : "btn-success") btn-action px-4 py-2 shadow-sm">
+                            <button type="submit" class="btn @(Model.IsUpgrade ? "btn-primary" : "btn-success") btn-action px-4 py-2">
                                 @(Model.IsUpgrade ? "Pay & Confirm" : "Submit Request")
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
-            <p class="text-center text-muted mt-3 helper-text">
-                All requests are typically reviewed within 24 hours.
-            </p>
         </div>
     </div>
 </div>
@@ -247,32 +201,19 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const form = document.getElementById('subscriptionForm');
-            const itsInput = document.getElementById('itsInput');
+            const hiddenITS = document.getElementById('hiddenITS');
+            const itsDisplay = document.getElementById('itsDisplay');
             const isCustomer = @isCustomer.ToString().ToLower();
+            const isUpgrade = @Model.IsUpgrade.ToString().ToLower();
 
-            // Ensure ITS field is strictly empty on load
-            if (itsInput) {
-                itsInput.value = "";
+            // Function to sync ITS value across hidden and display field
+            function setITSValue(val) {
+                if (hiddenITS) hiddenITS.value = val;
+                if (itsDisplay) itsDisplay.value = val;
             }
 
-
-            // 1. Handling Server Side Messages
-            var errorMessage = '@TempData["Error"]';
-            var successMessage = '@TempData["Success"]';
-            var infoMessage = '@TempData["Info"]';
-
-            if (errorMessage) {
-                Swal.fire({ icon: 'error', title: 'Action Restricted', html: errorMessage, confirmButtonColor: '#dc3545' });
-            }
-            if (infoMessage) {
-                Swal.fire({ icon: 'info', title: 'Notice', html: infoMessage, confirmButtonColor: '#21409a' });
-            }
-            if (successMessage) {
-                Swal.fire({ icon: 'success', title: 'Success', html: successMessage, confirmButtonColor: '#198754' });
-            }
-
-            // 2. Customer Popup Logic: Triggered on Page Load
-            if (isCustomer) {
+            // 1. Initial Popup for Registration
+            if (!isUpgrade) {
                 promptITSNumber();
             }
 
@@ -286,81 +227,51 @@
                     allowEscapeKey: false,
                     confirmButtonColor: '#21409a',
                     confirmButtonText: 'Verify & Proceed',
-                    showLoaderOnConfirm: true, // Show loading spinner while AJAX runs
+                    showLoaderOnConfirm: true,
                     inputValidator: (value) => {
-                        if (!value) {
-                            return 'ITS Number cannot be empty!';
-                        }
-                        if (!/^\d{8}$/.test(value)) {
-                            return 'Please enter exactly 8 numeric digits.';
-                        }
+                        if (!value) return 'ITS Number cannot be empty!';
+                        if (!/^\d{8}$/.test(value)) return 'Please enter exactly 8 numeric digits.';
 
-                        // AJAX Check for Uniqueness
-                        // Replace '/User/CheckUniqueITS' with your actual Controller/Action path
                         return fetch(`/Account/CheckUniqueITS?itsNumber=${encodeURIComponent(value)}`)
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error('Network response was not ok');
-                                }
-                                return response.json();
-                            })
+                            .then(response => response.json())
                             .then(data => {
-                                if (data.exists) {
-                                    return 'This ITS Number is already registered in our system.';
-                                }
+                                if (data.exists) return 'This ITS Number is already registered.';
                             })
-                            .catch(error => {
-                                Swal.showValidationMessage(`Request failed: ${error}`);
-                            });
+                            .catch(error => Swal.showValidationMessage(`Validation failed: ${error}`));
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        itsInput.value = result.value;
-
-                        const Toast = Swal.mixin({
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 2000
-                        });
-                        Toast.fire({
-                            icon: 'success',
-                            title: 'ITS Number Verified'
-                        });
+                        setITSValue(result.value);
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Verified', showConfirmButton: false, timer: 2000 });
                     }
                 });
             }
 
-            // 3. Form Submission Handling
+            // 2. Form Submission
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
 
                 if (!$(form).valid()) return false;
 
-                // Re-verify ITS presence for Customer before final confirm
-                if (isCustomer && (!itsInput.value || itsInput.value.trim().length !== 8)) {
+                // Final check to ensure ITS is filled before confirming
+                if (isCustomer && (!hiddenITS.value || hiddenITS.value.length !== 8)) {
                     promptITSNumber();
                     return false;
                 }
 
-                showFinalConfirmation();
-            });
-
-            function showFinalConfirmation() {
                 Swal.fire({
                     title: 'Confirm Submission',
-                    text: "Are you sure you want to submit this request? Please ensure the payment receipt is correct.",
+                    text: "Submit this request with the uploaded receipt?",
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonColor: '#198754',
-                    cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Confirm & Submit'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        form.submit();
+                        form.submit(); // This sends the data to the controller
                     }
                 });
-            }
+            });
         });
     </script>
 }

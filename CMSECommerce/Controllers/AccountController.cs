@@ -267,11 +267,17 @@ namespace CMSECommerce.Controllers
         }
 
 
-        [HttpGet]        
+        [HttpGet]
+        [Authorize]
         public async Task<IActionResult> CheckUniqueITS(string itsNumber)
         {
-            // Replace with your actual database context logic
-            var exists = await _context.UserProfiles.AnyAsync(u => u.ITSNumber == itsNumber);
+            // Check if any OTHER user is already using this ITS Number
+            // (Optional: ignore the current user's own ITS if they are just re-entering it)
+            var userId = _userManager.GetUserId(User);
+
+            var exists = await _context.UserProfiles
+                .AnyAsync(u => u.ITSNumber == itsNumber && u.UserId != userId);
+
             return Json(new { exists = exists });
         }
 
