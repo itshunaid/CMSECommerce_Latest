@@ -369,7 +369,7 @@ namespace CMSECommerce.Controllers
 <p>Order Date: {completeOrder.OrderDate:yyyy-MM-dd HH:mm}</p>
 <p><strong>Items Sold:</strong></p>
 <pre>{itemsList}</pre>
-<p><strong>Total for your items: ${ownerItems.Sum(item => item.Price * item.Quantity):F2}</strong></p>
+<p><strong>Total for your items: ₹{ownerItems.Sum(item => item.Price * item.Quantity):F2}</strong></p>
 <p>Please process this order promptly.</p>
 <br>
 <p>Best regards,<br>Weypaari Team</p>";
@@ -387,7 +387,7 @@ namespace CMSECommerce.Controllers
 <p><strong>Order Details:</strong></p>
 <p>Order ID: #{completeOrder.Id}</p>
 <p>Order Date: {completeOrder.OrderDate:yyyy-MM-dd HH:mm}</p>
-<p>Total Amount: ${completeOrder.GrandTotal:F2}</p>
+<p>Total Amount: ₹{completeOrder.GrandTotal:F2}</p>
 <p><strong>Items Ordered:</strong></p>
 {string.Join("", completeOrder.OrderDetails.Select(item => $"<p>- {item.ProductName} (Qty: {item.Quantity}) - ${item.Price * item.Quantity:F2}</p>"))}
 <p>You can track your order status in your account under 'My Orders'.</p>
