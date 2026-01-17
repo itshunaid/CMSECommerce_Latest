@@ -132,14 +132,29 @@
                             </div>
                         </div>
 
-                        <div class="qr-badge">
-                            <img src="~/images/gpay/abbas_gpay_qrcode.jpeg"
-                                 alt="QR Code"
-                                 style="width:150px;height:150px" />
-                            <div class="text-muted mt-2" style="font-size:.75rem">
-                                Scan & pay ₹@Model.FinalAmount.ToString("N0")
-                            </div>
-                        </div>
+                        <div class="qr-badge text-center">
+
+    <!-- QR Code for Scan -->
+    <img src="~/images/gpay/abbas_gpay_qrcode.jpeg"
+         alt="UPI QR Code"
+         style="width:150px;height:150px;" />
+
+    <div class="text-muted mt-2 mb-3" style="font-size:.75rem;">
+        Scan & pay ₹@Model.FinalAmount.ToString("N0")
+    </div>
+
+    <!-- Pay with UPI Button (Mobile Only) -->
+    <button type="button"
+            class="btn btn-success fw-bold d-md-none w-100"
+            style="font-size:0.85rem;border-radius:8px;"
+            onclick="payViaUPI()">
+        <i class="fas fa-wallet me-2"></i> Pay with any UPI
+    </button>
+
+</div>
+
+
+
 
                         <div class="mb-4">
                             <label class="form-label">Payment Receipt</label>
@@ -231,4 +246,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 </script>
+
+
+<script>
+    function payViaUPI() {
+
+        const upiUrl =
+            "upi://pay" +
+            "?pa=abbas99631848@barodampay" +        // UPI ID
+            "&pn=ABBAS%20KANCHWALA" +               // Payee Name
+            "&am=@Model.FinalAmount" +              // Amount
+            "&cu=INR" +
+            "&tn=Weypaari%20Subscription";          // Transaction Note
+
+        // Redirect to installed UPI app
+        window.location.href = upiUrl;
+    }
+</script>
+
+
 }
