@@ -57,6 +57,11 @@ namespace CMSECommerce.Areas.Admin.Models
         public int? StoreId { get; set; }
         [Display(Name = "Store Name")]
         public string StoreName { get; set; }
+
+        // --- NEW: Tier Fields ---
+        public int? CurrentTierId { get; set; }
+        [Display(Name = "Current Tier")]
+        public string CurrentTierName { get; set; }
     }
 
     public class CreateUserModel

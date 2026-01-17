@@ -312,6 +312,14 @@
                             </div>
                         </div>
 
+                        @if (!string.IsNullOrEmpty(u.CurrentTierName))
+                        {
+                            <div class="mt-3">
+                                <span class="small fw-bold text-uppercase text-muted d-block mb-2" style="font-size: 0.6rem;">Subscription Tier</span>
+                                <span class="badge bg-info text-dark">@u.CurrentTierName</span>
+                            </div>
+                        }
+
                         <div class="mt-3 pt-3 border-top small text-muted">
                             <i class="bi bi-phone me-2"></i>@(u.PhoneNumber ?? "No Contact Linked")
                         </div>

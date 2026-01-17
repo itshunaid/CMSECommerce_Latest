@@ -36,7 +36,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 // This ensures ALL IdentityUsers are returned, with 'Profile' being null if no matching UserProfile exists.
                 var usersAndProfiles = await _userManager.Users.AsNoTracking()
                     .GroupJoin(
-                        _context.UserProfiles.AsNoTracking(), // Inner sequence (UserProfiles)
+                        _context.UserProfiles.AsNoTracking().Include(p => p.CurrentTier), // Inner sequence (UserProfiles) with CurrentTier included
                         user => user.Id,                       // Outer key (IdentityUser Id)
                         profile => profile.UserId,             // Inner key (UserProfile UserId)
                         (user, profiles) => new { User = user, Profiles = profiles } // Intermediate result
@@ -96,7 +96,11 @@ namespace CMSECommerce.Areas.Admin.Controllers
                         BusinessPhoneNumber = p?.BusinessPhoneNumber,
                         GpayQRCodePath = p?.GpayQRCodePath,
                         PhonePeQRCodePath = p?.PhonePeQRCodePath,
-                        IsDeactivated = p?.IsDeactivated ?? false
+                        IsDeactivated = p?.IsDeactivated ?? false,
+
+                        // Tier fields
+                        CurrentTierId = p?.CurrentTierId,
+                        CurrentTierName = p?.CurrentTier?.Name
                     });
                 }
 
