@@ -62,6 +62,12 @@ namespace CMSECommerce.Areas.Admin.Models
         public int? CurrentTierId { get; set; }
         [Display(Name = "Current Tier")]
         public string CurrentTierName { get; set; }
+        [Display(Name = "Subscription Start Date")]
+        public DateTime? SubscriptionStartDate { get; set; }
+        [Display(Name = "Subscription End Date")]
+        public DateTime? SubscriptionEndDate { get; set; }
+        [Display(Name = "Current Product Limit")]
+        public int CurrentProductLimit { get; set; }
     }
 
     public class CreateUserModel

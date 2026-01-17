@@ -315,8 +315,19 @@
                         @if (!string.IsNullOrEmpty(u.CurrentTierName))
                         {
                             <div class="mt-3">
-                                <span class="small fw-bold text-uppercase text-muted d-block mb-2" style="font-size: 0.6rem;">Subscription Tier</span>
-                                <span class="badge bg-info text-dark">@u.CurrentTierName</span>
+                                <span class="small fw-bold text-uppercase text-muted d-block mb-2" style="font-size: 0.6rem;">Subscription Details</span>
+                                <div class="d-flex flex-column gap-1">
+                                    <span class="badge bg-info text-dark">@u.CurrentTierName</span>
+                                    @if (u.SubscriptionStartDate.HasValue)
+                                    {
+                                        <small class="text-muted">Start: @u.SubscriptionStartDate.Value.ToString("MMM dd, yyyy")</small>
+                                    }
+                                    @if (u.SubscriptionEndDate.HasValue)
+                                    {
+                                        <small class="text-muted">End: @u.SubscriptionEndDate.Value.ToString("MMM dd, yyyy")</small>
+                                    }
+                                    <small class="text-muted">Product Limit: @u.CurrentProductLimit</small>
+                                </div>
                             </div>
                         }
 

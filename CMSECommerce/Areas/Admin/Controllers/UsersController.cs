@@ -100,7 +100,10 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                         // Tier fields
                         CurrentTierId = p?.CurrentTierId,
-                        CurrentTierName = p?.CurrentTier?.Name
+                        CurrentTierName = p?.CurrentTier?.Name,
+                        SubscriptionStartDate = p?.SubscriptionStartDate,
+                        SubscriptionEndDate = p?.SubscriptionEndDate,
+                        CurrentProductLimit = p?.CurrentProductLimit ?? 0
                     });
                 }
 
