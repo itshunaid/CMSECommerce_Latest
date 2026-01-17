@@ -376,76 +376,81 @@ namespace CMSECommerce.Controllers
 
             if (!ModelState.IsValid) return View(model);
 
-            // 1. Uniqueness Check: Check Identity for existing credentials
-            var isDuplicate = await _userManager.Users.AnyAsync(u =>
+            // Check if user already exists
+            var existingUser = await _userManager.FindByNameAsync(model.Username);
+            if (existingUser != null)
+            {
+                return RedirectToAction("Login", new { username = model.Username });
+            }
+
+
+
+
+            // 1. Simplified Uniqueness Check 
+            // We only check UserManager for existing credentials to prevent crashes.
+            bool isDuplicate = await _userManager.Users.AnyAsync(u =>
                 u.UserName == model.Username ||
                 u.Email == model.Email ||
                 u.PhoneNumber == model.PhoneNumber);
 
+
+
             if (isDuplicate)
             {
                 ModelState.AddModelError("", "Username, Email, or Phone Number is already in use.");
-                return View(model);
+                //return View(model);
+                RedirectToAction("Login");
             }
 
             try
             {
-                // 2. Create Identity User
+                // 2. Create Identity User (Core Identity functionality)
                 var newUser = new IdentityUser
                 {
                     UserName = model.Username,
                     Email = model.Email,
                     PhoneNumber = model.PhoneNumber,
-                    EmailConfirmed = true
+                    EmailConfirmed = true // Mimicking Amazon's pre-verified or direct access flow
                 };
 
                 var result = await _userManager.CreateAsync(newUser, model.Password);
 
                 if (result.Succeeded)
                 {
-                    // 3. Generate a Unique 8-digit ITS Number
-                    Random generator = new Random();
-                    string generatedITS;
-                    bool isItsUnique = false;
-
-                    // Loop to ensure the random number doesn't collide with an existing one
-                    do
-                    {
-                        generatedITS = generator.Next(10000000, 100000000).ToString();
-                        isItsUnique = !await _context.UserProfiles.AnyAsync(u => u.ITSNumber == generatedITS);
-                    } while (!isItsUnique);
-
-                    // 4. Create and Map UserProfile
-                    var userProfile = new UserProfile
+                    // Define the specific content the user just saw in the modal
+                    string agreementText = @"
+                <h6>1. Acceptance of Terms</h6><p>By accessing or using the Weypaari platform...</p>
+                <h6>2. Eligibility & Registration</h6><p>To use Weypaari, you must provide a valid 8-digit ITS...</p>
+                <h6>3. Privacy & Data Security</h6><p>Your privacy is important to us...</p>
+                <h6>4. User Conduct</h6><p>Users shall not engage in any activity...</p>
+                <h6>5. Transactions & Listings</h6><p>Weypaari provides a marketplace platform...</p>
+                <h6>6. Termination of Use</h6><p>We reserve the right to terminate...</p>
+                <h6>7. Modifications to Service</h6><p>Weypaari reserves the right to modify...</p>";
+                    var agreement = new UserAgreement
                     {
                         UserId = newUser.Id,
-                        FirstName = model.FirstName ?? "New",
-                        LastName = model.LastName ?? "User",
-                        ITSNumber = generatedITS,
-                        WhatsAppNumber = model.WhatsAppNumber ?? "0000000000",
-                        HomeAddress = "Pending Update",
-                        BusinessAddress = "Pending Update",
-                        IsProfileVisible = true,
-                        IsDeactivated = false,
-                        CurrentProductLimit = 5,
-                        Profession = "Update Profession",
-                        ServicesProvided = "Update Services"
+                        AgreementType = "Registration_Terms_Privacy",
+                        FullContent = agreementText, // Mapping the full snapshot
+                        Version = "v1.0-2026-01",
+                        AcceptedAt = DateTime.UtcNow,
+                        IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
                     };
 
-                    // 5. Save Profile & Role (One-time save is more efficient)
-                    _context.UserProfiles.Add(userProfile);
+                    _context.UserAgreements.Add(agreement);
                     await _context.SaveChangesAsync();
 
+                    // 3. Role Assignment
+                    // We keep this to ensure your [Authorize(Roles="Customer")] attributes don't break.
                     await _userManager.AddToRoleAsync(newUser, "Customer");
 
-                    // 6. Setup for OTP View
-                    ViewBag.RegistrationId = userProfile.Id.ToString();
-                    ViewBag.OtpIdentifier = model.Email;
+                    // 4. Immediate Sign-In (The Amazon Experience)
+                    await _sign_in_manager.SignInAsync(newUser, isPersistent: false);
 
-                    return View("VerifyOTP", model);
+                    _logger.LogInformation("User {Username} registered successfully.", model.Username);
+                    return RedirectToAction("Index", "Home");
                 }
 
-                // Handle Identity password/policy errors
+                // Add Identity errors (like password complexity issues) to the UI
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError("", error.Description);
@@ -453,13 +458,13 @@ namespace CMSECommerce.Controllers
             }
             catch (Exception ex)
             {
+                // Maintain existing error logging for troubleshooting
                 _logger.LogError(ex, "Registration failed for user {Username}", model.Username);
                 ModelState.AddModelError("", "An internal error occurred. Please try again.");
             }
 
             return View(model);
         }
-
 
         [HttpGet]
         [AllowAnonymous]
