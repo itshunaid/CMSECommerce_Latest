@@ -40,7 +40,8 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 Categories = 0,
                 RecentOrders = new List<Order>(),
                 UserProfilesCount = 0,
-                DeactivatedStoresCount = 0 // New property initialized
+                DeactivatedStoresCount = 0, // New property initialized
+                PendingUnlockRequests = 0
             };
 
             try
@@ -82,7 +83,11 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     .Take(5)
                     .ToListAsync();
 
-                // 10. Sellers with Declined Orders
+                // 11. Pending Unlock Requests
+                model.PendingUnlockRequests = await _context.UnlockRequests
+                    .CountAsync(r => r.Status == "Pending");
+
+                // 12. Sellers with Declined Orders
                 model.SellersWithDeclines = await _context.OrderDetails
                     .Where(od => od.IsCancelled == true)
                     .GroupBy(od => od.ProductOwner)

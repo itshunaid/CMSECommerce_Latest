@@ -2373,7 +2373,7 @@ namespace CMSECommerce.Controllers
                 var email = (await _userManager.FindByIdAsync(profile.UserId)).Email;
                 var phone = profile.WhatsAppNumber ?? (await _userManager.FindByIdAsync(profile.UserId)).PhoneNumber;
 
-              
+
                 await _context.SaveChangesAsync();
 
                 // Sign-in the user now (or redirect to login)
@@ -2387,6 +2387,102 @@ namespace CMSECommerce.Controllers
                 _logger.LogError(ex, "OTP verification failed");
                 TempData["error"] = "An error occurred during verification.";
                 return View("VerifyOTP", new RegisterViewModel());
+            }
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult RequestUnlock()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RequestUnlock(string identifier)
+        {
+            if (string.IsNullOrWhiteSpace(identifier))
+            {
+                ModelState.AddModelError("", "Please enter your username, email, ITS or mobile.");
+                return View();
+            }
+
+            IdentityUser user = null;
+
+            // Try email
+            if (identifier.Contains("@"))
+            {
+                user = await _userManager.FindByEmailAsync(identifier);
+            }
+
+            // Try ITS (8 digits) via UserProfile
+            if (user == null && identifier.All(char.IsDigit) && identifier.Length == 8)
+            {
+                var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.ITSNumber == identifier);
+                if (profile != null)
+                {
+                    user = await _userManager.FindByIdAsync(profile.UserId);
+                }
+            }
+
+            // Try username
+            if (user == null)
+            {
+                user = await _userManager.FindByNameAsync(identifier);
+            }
+
+            // Try phone number
+            if (user == null)
+            {
+                user = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == identifier);
+            }
+
+            if (user == null)
+            {
+                ModelState.AddModelError("", "Account not found.");
+                return View();
+            }
+
+            // Check if user is actually locked out
+            if (!await _userManager.IsLockedOutAsync(user))
+            {
+                ModelState.AddModelError("", "This account is not locked.");
+                return View();
+            }
+
+            // Check if unlock request already exists and is pending
+            var existingRequest = await _context.UnlockRequests
+                .FirstOrDefaultAsync(r => r.UserId == user.Id && r.Status == "Pending");
+
+            if (existingRequest != null)
+            {
+                TempData["info"] = "You already have a pending unlock request. Please wait for admin approval.";
+                return RedirectToAction("RequestUnlock");
+            }
+
+            try
+            {
+                var unlockRequest = new UnlockRequest
+                {
+                    UserId = user.Id,
+                    UserName = user.UserName,
+                    Email = user.Email,
+                    RequestDate = DateTime.UtcNow,
+                    Status = "Pending"
+                };
+
+                _context.UnlockRequests.Add(unlockRequest);
+                await _context.SaveChangesAsync();
+
+                TempData["success"] = "Your unlock request has been submitted. An administrator will review it shortly.";
+                return RedirectToAction("Login");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating unlock request for user {UserId}", user.Id);
+                ModelState.AddModelError("", "An error occurred while submitting your request. Please try again.");
+                return View();
             }
         }
 

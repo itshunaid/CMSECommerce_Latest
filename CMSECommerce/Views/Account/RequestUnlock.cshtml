@@ -1,0 +1,235 @@
+@model string
+
+@{
+    ViewData["Title"] = "Request Account Unlock";
+    ViewData["HideLayoutSidebar"] = true;
+}
+
+<div class="amazon-login-wrapper py-3 py-md-5 d-flex align-items-center">
+    <div class="container">
+        <div class="row g-0 justify-content-center align-items-stretch">
+
+            @* --- LEFT PANEL: BRANDING (Hidden on Mobile) --- *@
+            <div class="col-lg-5 d-none d-lg-flex flex-column justify-content-center p-5 bg-white border-end rounded-start-2 shadow-sm">
+                <div class="brand-logo mb-4">
+                    <div class="d-flex align-items-center h2 fw-bold text-amazon-dark m-0">
+                        <i class="fas fa-box text-amazon-orange me-2"></i>
+                        <span style="font-weight: 300;">WE</span><span class="text-amazon-orange">y</span>paari
+                    </div>
+                </div>
+                <h1 class="display-6 fw-bold mb-3 text-amazon-dark">Account Support</h1>
+                <p class="text-secondary mb-5">
+                    If your account has been locked due to multiple failed login attempts, you can request an unlock here.
+                    An administrator will review your request shortly.
+                </p>
+
+                <div class="features-list">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="feature-icon-circle me-3">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold">Secure Process</h6>
+                            <p class="small text-muted mb-0">Your request is handled securely and confidentially.</p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="feature-icon-circle me-3">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold">Quick Response</h6>
+                            <p class="small text-muted mb-0">Most requests are processed within 24 hours.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* --- RIGHT PANEL: FORM --- *@
+            <div class="col-12 col-sm-10 col-md-8 col-lg-4 p-4 p-lg-5 bg-white shadow-sm border rounded-2 rounded-lg-start-0">
+
+                @* Mobile Logo *@ 
+                <div class="text-center mb-4 d-lg-none">
+                    <div class="d-flex align-items-center justify-content-center h3 fw-bold text-amazon-dark">
+                        <i class="fas fa-box text-amazon-orange me-2"></i>
+                        <span style="font-weight: 300;">WE</span><span class="text-amazon-orange">y</span>paari
+                    </div>
+                </div>
+
+                <div class="signin-header mb-4">
+                    <h2 class="fw-normal text-amazon-dark h4">Request Account Unlock</h2>
+                    <p class="text-muted small">Enter your account identifier to request an unlock.</p>
+                </div>
+
+                <form method="post" role="form">
+                    @Html.AntiForgeryToken()
+
+                    @* IDENTIFIER FIELD *@
+                    <div class="mb-3 position-relative">
+                        <label for="identifier" class="form-label fw-bold mb-1 small required-label">Email / Mobile / ITS</label>
+                        <input type="text" id="identifier" name="identifier"
+                               class="form-control amazon-modern-input"
+                               autofocus
+                               autocomplete="username"
+                               spellcheck="false"
+                               autocorrect="off"
+                               autocapitalize="none"
+                               placeholder="Enter your email, mobile, or ITS number"
+                               value="@Model" />
+                        <div id="checkLoader" class="spinner-border spinner-border-sm text-amazon-orange position-absolute d-none" style="right: 12px; top: 43px; z-index: 5;"></div>
+                        <span id="identifierError" class="text-danger x-small mt-1 d-block" style="min-height: 1.2rem;"></span>
+                    </div>
+
+                    @* Submit Button *@
+                    <div class="d-grid mt-4">
+                        <button type="submit" id="submitBtn" class="btn btn-amazon-primary py-2 shadow-sm">
+                            <span id="btnText">Submit Request</span> <i class="fas fa-paper-plane ms-2" id="btnIcon"></i>
+                        </button>
+                    </div>
+
+                    @* Back to Login Link *@
+                    <div class="text-center mt-3">
+                        <a asp-action="Login" asp-controller="Account" class="small text-amazon-link text-decoration-none">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Sign In
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        :root {
+            --amazon-dark: #111111;
+            --amazon-orange: #e47911;
+            --amazon-yellow: #f0c14b;
+            --amazon-link: #0066c0;
+        }
+
+        body {
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            background-color: #fcfcfc;
+        }
+
+        /* Responsive UI Improvements */
+        .amazon-modern-input {
+            border: 1px solid #a6a6a6;
+            border-radius: 4px;
+            height: 44px; /* Mobile standard touch target */
+            font-size: 16px !important; /* Prevents iOS auto-zoom on focus */
+            padding: 10px 12px;
+            transition: all 0.2s;
+        }
+
+            .amazon-modern-input:focus {
+                border-color: var(--amazon-orange);
+                box-shadow: 0 0 0 3px rgba(228, 121, 17, .15);
+                outline: 0;
+            }
+
+        .btn-amazon-primary {
+            background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+            border: 1px solid #a88734;
+            color: #111;
+            height: 44px;
+            font-weight: 500;
+        }
+
+            .btn-amazon-primary:active {
+                background: #f0c14b;
+            }
+
+        .feature-icon-circle {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 153, 0, 0.1);
+            color: var(--amazon-orange);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .required-label::after {
+            content: " *";
+            color: #d00;
+            font-weight: bold;
+        }
+
+        .x-small {
+            font-size: 0.8rem;
+        }
+
+        .text-amazon-orange {
+            color: var(--amazon-orange);
+        }
+
+        .text-amazon-dark {
+            color: var(--amazon-dark);
+        }
+
+        .text-amazon-link {
+            color: var(--amazon-link);
+        }
+
+        .accent-amazon:checked {
+            background-color: var(--amazon-orange);
+            border-color: var(--amazon-orange);
+        }
+    </style>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            const $identifierInput = $('#identifier');
+            const $errorSpan = $('#identifierError');
+            const $loader = $('#checkLoader');
+            const $btnText = $('#btnText');
+            const $btnIcon = $('#btnIcon');
+
+            let currentXHR = null;
+
+            // Validation RegEx
+            const itsRegex = /^\d{8}$/;
+            const indianMobileRegex = /^(?:\+91|0)?[6-9]\d{9}$/;
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+            // 1. DYNAMIC KEYBOARD SWITCHING (Mobile Ergonomics)
+            $identifierInput.on('input', function() {
+                const val = $(this).val();
+                if (/^\d/.test(val)) {
+                    $(this).attr('inputmode', 'numeric');
+                } else {
+                    $(this).attr('inputmode', 'email');
+                }
+            });
+
+            // 2. BASIC VALIDATION
+            $identifierInput.on('blur', function () {
+                const val = $identifierInput.val().trim();
+                if (val === "") {
+                    $errorSpan.text("Please enter your identifier.").addClass('text-danger');
+                    return;
+                }
+
+                if (!itsRegex.test(val) && !indianMobileRegex.test(val) && !emailRegex.test(val)) {
+                    $errorSpan.text("Invalid format. Use Email, 8-digit ITS or Mobile.").addClass('text-danger');
+                } else {
+                    $errorSpan.text("").removeClass('text-danger');
+                }
+            });
+
+            // Handle mobile keyboard "Go/Enter"
+            $identifierInput.on('keypress', function(e) {
+                if(e.which === 13) {
+                    e.preventDefault();
+                    $(this).blur();
+                }
+            });
+        });
+    </script>
+}
