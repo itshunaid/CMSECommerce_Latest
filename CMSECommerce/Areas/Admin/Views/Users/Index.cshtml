@@ -285,7 +285,7 @@
                  data-visibility="@(u.IsDeactivated ? "Hidden" : "Visible")">
 
                 <div class="user-card">
-                    <span class="d-none" data-label="User Info" data-search-info="@u.UserName.ToLower()"></span>
+                    <span class="d-none" data-label="User Info" data-search-info="@($"{u.FirstName} {u.LastName} {u.UserName}".ToLower())"></span>
                     <span class="d-none" data-label="Email" data-search-info="@u.Email.ToLower()"></span>
                     <span class="d-none" data-label="Role">@string.Join(", ", u.Roles)</span>
 
@@ -299,7 +299,7 @@
                     </div>
 
                     <div class="card-main-content">
-                        <div class="user-identity-name text-truncate">@u.UserName</div>
+                        <div class="user-identity-name text-truncate">@(string.IsNullOrEmpty(u.FirstName) || string.IsNullOrEmpty(u.LastName) ? u.UserName : $"{u.FirstName} {u.LastName}")</div>
                         <div class="user-identity-email text-truncate">@u.Email</div>
 
                         <div class="mt-3">
