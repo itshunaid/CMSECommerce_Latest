@@ -1,0 +1,229 @@
+@model CMSECommerce.Models.UserProfile
+
+@{
+    ViewData["Title"] = "Store Settings";
+}
+
+<h1 class="mb-4 text-primary"><i class="fas fa-cog me-2"></i> Store Settings</h1>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<form asp-action="Index" method="post" enctype="multipart/form-data">
+    <div class="row">
+        <!-- Personal Information -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i> Personal Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="FirstName" class="form-label">First Name</label>
+                            <input asp-for="FirstName" class="form-control" />
+                            <span asp-validation-for="FirstName" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="LastName" class="form-label">Last Name</label>
+                            <input asp-for="LastName" class="form-control" />
+                            <span asp-validation-for="LastName" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Profession" class="form-label">Profession</label>
+                        <input asp-for="Profession" class="form-control" />
+                        <span asp-validation-for="Profession" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="ServicesProvided" class="form-label">Services Provided</label>
+                        <textarea asp-for="ServicesProvided" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="ServicesProvided" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="About" class="form-label">About</label>
+                        <textarea asp-for="About" class="form-control" rows="4"></textarea>
+                        <span asp-validation-for="About" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="WhatsAppNumber" class="form-label">WhatsApp Number</label>
+                        <input asp-for="WhatsAppNumber" class="form-control" />
+                        <span asp-validation-for="WhatsAppNumber" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input asp-for="IsProfileVisible" class="form-check-input" />
+                            <label asp-for="IsProfileVisible" class="form-check-label">Profile Visible to Public</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Profile Image</label>
+                        <div class="d-flex align-items-center">
+                            <img src="@(string.IsNullOrEmpty(Model.ProfileImagePath) ? "/images/default-avatar.png" : Model.ProfileImagePath)"
+                                 alt="Profile Image" class="rounded-circle me-3" style="width: 80px; height: 80px; object-fit: cover;" />
+                            <input type="file" name="ProfileImageFile" class="form-control" accept="image/*" />
+                        </div>
+                        <small class="form-text text-muted">Upload a new profile image (optional). Supported formats: JPG, PNG, GIF.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Store Information -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-store me-2"></i> Store Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Store.StoreName" class="form-label">Store Name</label>
+                        <input asp-for="Store.StoreName" class="form-control" />
+                        <span asp-validation-for="Store.StoreName" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Store.Email" class="form-label">Store Email</label>
+                        <input asp-for="Store.Email" type="email" class="form-control" />
+                        <span asp-validation-for="Store.Email" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Store.Contact" class="form-label">Contact Number</label>
+                        <input asp-for="Store.Contact" class="form-control" />
+                        <span asp-validation-for="Store.Contact" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Store.GSTIN" class="form-label">GSTIN</label>
+                        <input asp-for="Store.GSTIN" class="form-control" />
+                        <span asp-validation-for="Store.GSTIN" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Store.StreetAddress" class="form-label">Street Address</label>
+                        <input asp-for="Store.StreetAddress" class="form-control" />
+                        <span asp-validation-for="Store.StreetAddress" class="text-danger"></span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Store.City" class="form-label">City</label>
+                            <input asp-for="Store.City" class="form-control" />
+                            <span asp-validation-for="Store.City" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Store.PostCode" class="form-label">Post Code</label>
+                            <input asp-for="Store.PostCode" class="form-control" />
+                            <span asp-validation-for="Store.PostCode" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Store.Country" class="form-label">Country</label>
+                            <input asp-for="Store.Country" class="form-control" />
+                            <span asp-validation-for="Store.Country" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Address Information -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-home me-2"></i> Home Address</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="HomeAddress" class="form-label">Address</label>
+                        <textarea asp-for="HomeAddress" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="HomeAddress" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="HomePhoneNumber" class="form-label">Phone Number</label>
+                        <input asp-for="HomePhoneNumber" class="form-control" />
+                        <span asp-validation-for="HomePhoneNumber" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-building me-2"></i> Business Address</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="BusinessAddress" class="form-label">Address</label>
+                        <textarea asp-for="BusinessAddress" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="BusinessAddress" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="BusinessPhoneNumber" class="form-label">Phone Number</label>
+                        <input asp-for="BusinessPhoneNumber" class="form-control" />
+                        <span asp-validation-for="BusinessPhoneNumber" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Social Media Links -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-share-alt me-2"></i> Social Media Links</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="FacebookUrl" class="form-label">Facebook URL</label>
+                            <input asp-for="FacebookUrl" type="url" class="form-control" placeholder="https://facebook.com/yourpage" />
+                            <span asp-validation-for="FacebookUrl" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="LinkedInUrl" class="form-label">LinkedIn URL</label>
+                            <input asp-for="LinkedInUrl" type="url" class="form-control" placeholder="https://linkedin.com/in/yourprofile" />
+                            <span asp-validation-for="LinkedInUrl" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="InstagramUrl" class="form-label">Instagram URL</label>
+                            <input asp-for="InstagramUrl" type="url" class="form-control" placeholder="https://instagram.com/yourhandle" />
+                            <span asp-validation-for="InstagramUrl" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Button -->
+    <div class="row">
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-save me-2"></i> Save Settings
+            </button>
+            <a asp-area="Seller" asp-controller="Dashboard" asp-action="Index" class="btn btn-secondary btn-lg ms-2">
+                <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        // Add any client-side validation or enhancements here
+    </script>
+}

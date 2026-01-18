@@ -89,18 +89,7 @@
 <!-- Sales & Financials Section -->
 <h2 class="mt-5 mb-4 text-primary"><i class="fas fa-chart-line me-2"></i> Sales & Financials</h2>
 <div class="row g-4">
-    <div class="col-xl-4 col-md-6">
-        <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background: linear-gradient(135deg,#28a745,#20c997);">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-uppercase fw-bold mb-1 fs-6">Net Profit</div>
-                    <div class="h3 fw-bolder mb-0">@Model.NetProfit.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-IN"))</div>
-                </div>
-                <i class="fas fa-dollar-sign fa-3x opacity-75"></i>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-4 col-md-6">
+    <div class="col-xl-6 col-md-6">
         <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background: linear-gradient(135deg,#ffc107,#fd7e14);">
             <div class="card-body d-flex justify-content-between align-items-center">
                 <div>
@@ -111,7 +100,7 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-4 col-md-6">
+    <div class="col-xl-6 col-md-6">
         <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background: linear-gradient(135deg,#6f42c1,#e83e8c);">
             <div class="card-body d-flex justify-content-between align-items-center">
                 <div>
@@ -290,24 +279,7 @@
 <!-- Customer Engagement Section -->
 <h2 class="mt-5 mb-4 text-info"><i class="fas fa-users me-2"></i> Customer Engagement</h2>
 <div class="row g-4">
-    <div class="col-xl-4 col-md-6">
-        <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background: linear-gradient(135deg,#17a2b8,#138496);">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-uppercase fw-bold mb-1 fs-6">Unread Messages</div>
-                    <div class="h3 fw-bolder mb-0">@Model.UnreadMessages</div>
-                </div>
-                <i class="fas fa-envelope fa-3x opacity-75"></i>
-            </div>
-            <div class="card-footer d-flex justify-content-between align-items-center bg-white bg-opacity-10 p-3">
-                <a asp-area="Seller" asp-controller="Messages" asp-action="Index" class="small text-white text-decoration-none fw-bold stretched-link">
-                    View Messages
-                </a>
-                <i class="fas fa-arrow-circle-right"></i>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-8 col-md-12">
+    <div class="col-12">
         <div class="card shadow-lg border-0 rounded-3">
             <div class="card-header bg-info text-white">
                 <h5 class="mb-0"><i class="fas fa-star me-2"></i> Recent Reviews</h5>
