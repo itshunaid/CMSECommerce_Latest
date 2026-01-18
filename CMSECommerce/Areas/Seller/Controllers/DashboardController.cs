@@ -153,6 +153,118 @@ namespace CMSECommerce.Areas.Seller.Controllers
                     TotalSold = p.TotalSold,
                     TotalRevenue = p.TotalRevenue
                 }).ToList();
+
+                // Sales & Financials
+                model.NetProfit = model.TotalRevenue * 0.9m; // Assuming 10% platform fee
+                model.PendingPayouts = model.TotalRevenue; // Assuming all revenue is pending payout
+
+                var orderCount = await _context.OrderDetails
+                    .Where(od => od.ProductOwner == currentUserName && !od.IsCancelled)
+                    .Select(od => od.OrderId)
+                    .Distinct()
+                    .CountAsync();
+                model.AverageOrderValue = orderCount > 0 ? model.TotalRevenue / orderCount : 0;
+
+                model.SalesTrendsData = monthlySales.Select(kvp => new SellerDashboardViewModel.SalesTrendData
+                {
+                    Period = kvp.Key,
+                    Revenue = kvp.Value
+                }).ToList();
+
+                // Operational Tools
+                var lowStockProducts = await _context.Products
+                    .Where(p => p.OwnerName == currentUserName && p.StockQuantity <= 5)
+                    .Select(p => new SellerDashboardViewModel.LowStockAlert
+                    {
+                        ProductName = p.Name,
+                        CurrentStock = p.StockQuantity,
+                        MinimumStock = 5
+                    })
+                    .ToListAsync();
+                model.LowStockAlerts = lowStockProducts;
+
+                var orderStatuses = await _context.OrderDetails
+                    .Where(od => od.ProductOwner == currentUserName)
+                    .Include(od => od.Order)
+                    .GroupBy(od => 1) // Dummy group to aggregate
+                    .Select(g => new
+                    {
+                        New = g.Count(od => !od.Order.Shipped && !od.IsCancelled),
+                        InProgress = g.Count(od => od.Order.Shipped && !od.Order.ShippedDate.HasValue && !od.IsCancelled),
+                        Shipped = g.Count(od => od.Order.ShippedDate.HasValue && !od.IsCancelled),
+                        Returned = g.Count(od => od.IsCancelled)
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (orderStatuses != null)
+                {
+                    model.OrderStatuses = new SellerDashboardViewModel.OrderStatusCounts
+                    {
+                        New = orderStatuses.New,
+                        InProgress = orderStatuses.InProgress,
+                        Shipped = orderStatuses.Shipped,
+                        Returned = orderStatuses.Returned
+                    };
+                }
+
+                model.TopSellers = model.TopSellingProducts; // Reuse existing
+
+                var thirtyDaysAgo = DateTime.Now.AddDays(-30);
+                var soldProductIds = await _context.OrderDetails
+                    .Where(od => od.ProductOwner == currentUserName && od.Order.OrderDate >= thirtyDaysAgo)
+                    .Select(od => od.ProductId)
+                    .Distinct()
+                    .ToListAsync();
+
+                var slowMovers = await _context.Products
+                    .Where(p => p.OwnerName == currentUserName && !soldProductIds.Contains(p.Id))
+                    .Select(p => new SellerDashboardViewModel.SlowMovingProduct
+                    {
+                        ProductName = p.Name,
+                        DaysSinceLastSale = 30, // Approximate since LastModified not available
+                        StockQuantity = p.StockQuantity
+                    })
+                    .Take(5)
+                    .ToListAsync();
+                model.SlowMovers = slowMovers;
+
+                // Customer Engagement
+                var recentReviews = await _context.Reviews
+                    .Where(r => _context.Products.Any(p => p.Id == r.ProductId && p.OwnerName == currentUserName))
+                    .Include(r => r.Product)
+                    .OrderByDescending(r => r.DateCreated)
+                    .Take(10)
+                    .Select(r => new SellerDashboardViewModel.RecentReview
+                    {
+                        ReviewId = r.Id,
+                        ProductName = r.Product.Name,
+                        CustomerName = r.UserName,
+                        Comment = r.Comment,
+                        Rating = r.Rating,
+                        ReviewDate = r.DateCreated,
+                        HasResponse = false // Assuming no response tracking yet
+                    })
+                    .ToListAsync();
+                model.RecentReviews = recentReviews;
+
+                model.UnreadMessages = await _context.ChatMessages
+                    .CountAsync(cm => cm.RecipientId == userId && !cm.IsRead);
+
+                // Storefront Settings
+                var userProfile = await _context.UserProfiles
+                    .Include(up => up.Store)
+                    .FirstOrDefaultAsync(up => up.UserId == userId);
+                if (userProfile != null)
+                {
+                    model.StoreInfo = new SellerDashboardViewModel.StorefrontInfo
+                    {
+                        StoreName = userProfile.Store?.StoreName ?? "My Store",
+                        LogoUrl = userProfile.ProfileImagePath ?? "/images/default-logo.png",
+                        Bio = userProfile.About ?? "",
+                        ShippingPolicy = "", // Placeholder
+                        ReturnPolicy = "" // Placeholder
+                    };
+                }
             }
             catch (Exception ex)
             {

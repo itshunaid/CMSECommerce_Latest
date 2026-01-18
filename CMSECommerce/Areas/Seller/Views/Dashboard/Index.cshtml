@@ -86,6 +86,311 @@
 
 </div>
 
+<!-- Sales & Financials Section -->
+<h2 class="mt-5 mb-4 text-primary"><i class="fas fa-chart-line me-2"></i> Sales & Financials</h2>
+<div class="row g-4">
+    <div class="col-xl-4 col-md-6">
+        <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background: linear-gradient(135deg,#28a745,#20c997);">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-uppercase fw-bold mb-1 fs-6">Net Profit</div>
+                    <div class="h3 fw-bolder mb-0">@Model.NetProfit.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-IN"))</div>
+                </div>
+                <i class="fas fa-dollar-sign fa-3x opacity-75"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background: linear-gradient(135deg,#ffc107,#fd7e14);">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-uppercase fw-bold mb-1 fs-6">Pending Payouts</div>
+                    <div class="h3 fw-bolder mb-0">@Model.PendingPayouts.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-IN"))</div>
+                </div>
+                <i class="fas fa-clock fa-3x opacity-75"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background: linear-gradient(135deg,#6f42c1,#e83e8c);">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-uppercase fw-bold mb-1 fs-6">Average Order Value</div>
+                    <div class="h3 fw-bolder mb-0">@Model.AverageOrderValue.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-IN"))</div>
+                </div>
+                <i class="fas fa-calculator fa-3x opacity-75"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-3">
+    <div class="col-12">
+        <div class="card shadow-lg border-0 rounded-3">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> Sales Trends</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Period</th>
+                            <th>Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var trend in Model.SalesTrendsData)
+                        {
+                            <tr>
+                                <td>@trend.Period</td>
+                                <td>@trend.Revenue.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-IN"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Operational Tools Section -->
+<h2 class="mt-5 mb-4 text-warning"><i class="fas fa-tools me-2"></i> Operational Tools</h2>
+<div class="row g-4">
+    <div class="col-xl-6 col-md-12">
+        <div class="card shadow-lg border-0 rounded-3">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i> Low Stock Alerts</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.LowStockAlerts.Any())
+                {
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Current Stock</th>
+                                <th>Minimum Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var alert in Model.LowStockAlerts)
+                            {
+                                <tr>
+                                    <td>@alert.ProductName</td>
+                                    <td>@alert.CurrentStock</td>
+                                    <td>@alert.MinimumStock</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <p class="text-muted">No low stock alerts.</p>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6 col-md-12">
+        <div class="card shadow-lg border-0 rounded-3">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-tasks me-2"></i> Order Status Counts</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h4 text-primary">@Model.OrderStatuses.New</div>
+                            <small class="text-muted">New</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h4 text-warning">@Model.OrderStatuses.InProgress</div>
+                            <small class="text-muted">In Progress</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h4 text-success">@Model.OrderStatuses.Shipped</div>
+                            <small class="text-muted">Shipped</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <div class="h4 text-danger">@Model.OrderStatuses.Returned</div>
+                            <small class="text-muted">Returned</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-3">
+    <div class="col-xl-6 col-md-12">
+        <div class="card shadow-lg border-0 rounded-3">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-trophy me-2"></i> Top Sellers</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Total Sold</th>
+                            <th>Total Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var product in Model.TopSellers)
+                        {
+                            <tr>
+                                <td>@product.ProductName</td>
+                                <td>@product.TotalSold</td>
+                                <td>@product.TotalRevenue.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-IN"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6 col-md-12">
+        <div class="card shadow-lg border-0 rounded-3">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-clock me-2"></i> Slow Moving Products</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Days Since Last Sale</th>
+                            <th>Stock Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var product in Model.SlowMovers)
+                        {
+                            <tr>
+                                <td>@product.ProductName</td>
+                                <td>@product.DaysSinceLastSale</td>
+                                <td>@product.StockQuantity</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Engagement Section -->
+<h2 class="mt-5 mb-4 text-info"><i class="fas fa-users me-2"></i> Customer Engagement</h2>
+<div class="row g-4">
+    <div class="col-xl-4 col-md-6">
+        <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background: linear-gradient(135deg,#17a2b8,#138496);">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-uppercase fw-bold mb-1 fs-6">Unread Messages</div>
+                    <div class="h3 fw-bolder mb-0">@Model.UnreadMessages</div>
+                </div>
+                <i class="fas fa-envelope fa-3x opacity-75"></i>
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center bg-white bg-opacity-10 p-3">
+                <a asp-area="Seller" asp-controller="Messages" asp-action="Index" class="small text-white text-decoration-none fw-bold stretched-link">
+                    View Messages
+                </a>
+                <i class="fas fa-arrow-circle-right"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-8 col-md-12">
+        <div class="card shadow-lg border-0 rounded-3">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-star me-2"></i> Recent Reviews</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Customer</th>
+                            <th>Rating</th>
+                            <th>Comment</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var review in Model.RecentReviews)
+                        {
+                            <tr>
+                                <td>@review.ProductName</td>
+                                <td>@review.CustomerName</td>
+                                <td>
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <i class="fas fa-star @(i <= review.Rating ? "text-warning" : "text-muted")"></i>
+                                    }
+                                </td>
+                                <td>@review.Comment</td>
+                                <td>@review.ReviewDate.ToString("dd/MM/yyyy")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Storefront Settings Section -->
+<h2 class="mt-5 mb-4 text-secondary"><i class="fas fa-store me-2"></i> Storefront Settings</h2>
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card shadow-lg border-0 rounded-3">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-cog me-2"></i> Store Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Store Name</label>
+                            <p class="form-control-plaintext">@Model.StoreInfo.StoreName</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Bio</label>
+                            <p class="form-control-plaintext">@Model.StoreInfo.Bio</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Logo</label>
+                            <img src="@Model.StoreInfo.LogoUrl" alt="Store Logo" class="img-fluid rounded" style="max-width: 100px;">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Shipping Policy</label>
+                            <p class="form-control-plaintext">@Model.StoreInfo.ShippingPolicy</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Return Policy</label>
+                            <p class="form-control-plaintext">@Model.StoreInfo.ReturnPolicy</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a asp-area="Seller" asp-controller="Settings" asp-action="Index" class="btn btn-primary">
+                        <i class="fas fa-edit me-2"></i> Edit Store Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4 mt-2">
 
     @* Total Revenue *@
