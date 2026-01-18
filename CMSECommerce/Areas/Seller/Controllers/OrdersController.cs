@@ -11,7 +11,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
 {
     [Area("Seller")]
     // Using standard Roles authorization, assuming "Subscriber" is a role name
-    [Authorize(Roles = "Subscriber")]
+    [Authorize(Roles = "Subscriber,Admin,SuperAdmin")]
     public class OrdersController : Controller
     {
         private readonly DataContext _context;

@@ -10,7 +10,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
     // NOTE: If using role-based security, the Authorize attribute should be [Authorize(Roles = "Admin")]
     // Based on the original code, I will use [Authorize(Roles = "Admin")] which is the standard, 
     // assuming "Admin" is a role, otherwise keep it as [Authorize("Admin")] if it's a policy name.
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public class OrdersController(DataContext context) : Controller
     {
         private readonly DataContext _context = context;

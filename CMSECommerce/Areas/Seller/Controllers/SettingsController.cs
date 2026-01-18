@@ -11,7 +11,7 @@ using System.CodeDom;
 namespace CMSECommerce.Areas.Seller.Controllers
 {
     [Area("Seller")]
-    [Authorize(Roles = "Subscriber")]
+    [Authorize(Roles = "Subscriber,Admin,SuperAdmin")]
     public class SettingsController : Controller
     {
         private readonly DataContext _context;

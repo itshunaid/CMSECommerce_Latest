@@ -12,7 +12,7 @@ using System.Linq;
 namespace CMSECommerce.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = "Admin")] // Using standard Authorize attribute for roles
+    [Authorize(Roles = "Admin,SuperAdmin")] // Using standard Authorize attribute for roles
     public class ProductsController(
         DataContext context,
         IWebHostEnvironment webHostEnvironment,

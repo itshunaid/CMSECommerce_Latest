@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CMSECommerce.Areas.Seller.Controllers
 {
     [Area("Seller")]
-    [Authorize(Roles = "Subscriber")]
+    [Authorize(Roles = "Subscriber,Admin,SuperAdmin")]
     public class SalesController : Controller
     {
         private readonly DataContext _context;

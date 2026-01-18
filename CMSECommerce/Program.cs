@@ -66,6 +66,7 @@ builder.Services.Configure<IdentityOptions>(options =>
 
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy("SuperAdmin", policy => policy.RequireRole("SuperAdmin"));
     options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
     options.AddPolicy("Subscriber", policy => policy.RequireRole("Subscriber"));
     options.AddPolicy("Customer", policy => policy.RequireRole("Customer"));
@@ -131,6 +132,23 @@ app.UseAuthorization();
 // --- 4. ROUTE MAPPING ---
 app.MapHub<CMSECommerce.Hubs.ChatHub>("/chatHub");
 app.MapRazorPages();
+
+// Specific route for SuperAdmin to map /SuperAdmin to Dashboard/Index
+app.MapControllerRoute(
+    name: "SuperAdmin_default",
+    pattern: "SuperAdmin",
+    defaults: new { area = "SuperAdmin", controller = "Dashboard", action = "Index" });
+
+// Area Registration
+app.MapAreaControllerRoute(
+    name: "SuperAdmin",
+    areaName: "SuperAdmin",
+    pattern: "SuperAdmin/{controller=Dashboard}/{action=Index}/{id?}");
+
+app.MapAreaControllerRoute(
+    name: "Admin",
+    areaName: "Admin",
+    pattern: "Admin/{controller=Dashboard}/{action=Index}/{id?}");
 
 // Specific Area Route
 app.MapControllerRoute(

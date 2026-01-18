@@ -1,0 +1,378 @@
+@model CMSECommerce.Areas.SuperAdmin.Models.SuperAdminDashboardViewModel
+
+@{
+    ViewData["Title"] = "SuperAdmin Dashboard";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-crown"></i> SuperAdmin Dashboard</h4>
+                    <small class="text-white-50">Complete system overview and management</small>
+                </div>
+                <div class="card-body">
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger">
+                            @TempData["Error"]
+                        </div>
+                    }
+
+                    <!-- System Health Overview -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning">
+                                    <h5 class="mb-0"><i class="fas fa-heartbeat"></i> System Health</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <h6>Last Migration</h6>
+                                                <p class="text-muted">@Model.LastMigrationDate.ToString("yyyy-MM-dd HH:mm")</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <h6>Database Size</h6>
+                                                <p class="text-muted">@Model.DatabaseSize</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <h6>Active Users (24h)</h6>
+                                                <p class="text-muted">@Model.ActiveUsersLast24Hours</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="text-center">
+                                                <h6>Failed Logins</h6>
+                                                <p class="text-muted">@Model.FailedLoginAttempts</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Role Statistics -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-users"></i> User Role Distribution</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center">
+                                                    <h3 class="text-primary">@Model.TotalAdmins</h3>
+                                                    <p class="mb-0">Admins</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center">
+                                                    <h3 class="text-success">@Model.TotalSubscribers</h3>
+                                                    <p class="mb-0">Subscribers</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center">
+                                                    <h3 class="text-info">@Model.TotalCustomers</h3>
+                                                    <p class="mb-0">Customers</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center">
+                                                    <h3 class="text-secondary">@Model.UsersCount</h3>
+                                                    <p class="mb-0">Total Users</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Core System Metrics -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Core System Metrics</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-2">
+                                            <div class="card bg-primary text-white">
+                                                <div class="card-body text-center">
+                                                    <h4>@Model.OrdersCount</h4>
+                                                    <p class="mb-0">Orders</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="card bg-success text-white">
+                                                <div class="card-body text-center">
+                                                    <h4>@Model.ProductsCount</h4>
+                                                    <p class="mb-0">Products</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="card bg-warning text-white">
+                                                <div class="card-body text-center">
+                                                    <h4>@Model.TotalStores</h4>
+                                                    <p class="mb-0">Stores</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="card bg-info text-white">
+                                                <div class="card-body text-center">
+                                                    <h4>@Model.Categories</h4>
+                                                    <p class="mb-0">Categories</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="card bg-secondary text-white">
+                                                <div class="card-body text-center">
+                                                    <h4>@Model.TotalReviews</h4>
+                                                    <p class="mb-0">Reviews</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="card bg-dark text-white">
+                                                <div class="card-body text-center">
+                                                    <h4>@Model.TotalChatMessages</h4>
+                                                    <p class="mb-0">Messages</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Items & Moderation Queue -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-clock"></i> Pending Items & Moderation</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="card border-danger">
+                                                <div class="card-body text-center">
+                                                    <h4 class="text-danger">@Model.ProductsRequestCount</h4>
+                                                    <p class="mb-0">Product Requests</p>
+                                                    <a href="@Url.Action("Index", "Products", new { area = "Admin" })" class="btn btn-sm btn-outline-danger mt-2">Review</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="card border-warning">
+                                                <div class="card-body text-center">
+                                                    <h4 class="text-warning">@Model.PendingSubscriberRequests</h4>
+                                                    <p class="mb-0">Subscriber Requests</p>
+                                                    <a href="@Url.Action("Index", "SubscriberRequests", new { area = "Admin" })" class="btn btn-sm btn-outline-warning mt-2">Review</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="card border-info">
+                                                <div class="card-body text-center">
+                                                    <h4 class="text-info">@Model.UserProfilesCount</h4>
+                                                    <p class="mb-0">Profile Images Pending</p>
+                                                    <a href="@Url.Action("Index", "PendingImageApprovals", new { area = "" })"
+                                                       class="btn btn-sm btn-outline-info mt-2">
+                                                        Review
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="card border-secondary">
+                                                <div class="card-body text-center">
+                                                    <h4 class="text-secondary">@Model.PendingUnlockRequests</h4>
+                                                    <p class="mb-0">Unlock Requests</p>
+                                                    <a href="@Url.Action("Index", "UnlockRequests", new { area = "Admin" })" class="btn btn-sm btn-outline-secondary mt-2">Review</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Orders -->
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-shopping-cart"></i> Recent Orders</h5>
+                                </div>
+                                <div class="card-body">
+                                    @if (Model.RecentOrders.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Order ID</th>
+                                                        <th>User</th>
+                                                        <th>Total</th>
+                                                        <th>Date</th>
+                                                        <th>Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var order in Model.RecentOrders)
+                                                    {
+                                                        <tr>
+                                                            <td>@order.Id</td>
+                                                            <td>@order.UserName</td>
+                                                            <td>₹@order.GrandTotal.ToString("N2")</td>
+                                                            <td>@order.OrderDate?.ToString("dd/MM/yyyy")</td>
+                                                            <td>
+                                                                @if (order.Shipped)
+                                                                {
+                                                                    <span class="badge badge-success">Shipped</span>
+                                                                }
+                                                                else if (order.IsCancelled)
+                                                                {
+                                                                    <span class="badge badge-danger">Cancelled</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge badge-warning">Pending</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No recent orders found.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Actions -->
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-tools"></i> System Actions</h5>
+                                </div>
+                                <div class="card-body">
+                                    <button id="testSmtpBtn" class="btn btn-primary btn-block mb-2">
+                                        <i class="fas fa-envelope"></i> Test SMTP
+                                    </button>
+                                    <div id="smtpResult" class="mt-2" style="display: none;"></div>
+
+                                    <hr>
+                                    <h6>Quick Links</h6>
+                                    <a href="@Url.Action("Index", "Users", new { area = "Admin" })" class="btn btn-outline-primary btn-sm btn-block mb-1">
+                                        <i class="fas fa-users"></i> Manage Users
+                                    </a>
+                                    <a href="@Url.Action("Index", "Products", new { area = "Admin" })" class="btn btn-outline-success btn-sm btn-block mb-1">
+                                        <i class="fas fa-box"></i> Manage Products
+                                    </a>
+                                    <a href="@Url.Action("Index", "Orders", new { area = "Admin" })" class="btn btn-outline-info btn-sm btn-block mb-1">
+                                        <i class="fas fa-shopping-cart"></i> Manage Orders
+                                    </a>
+                                    <a href="@Url.Action("Index", "Stores", new { area = "Admin" })" class="btn btn-sm btn-outline-warning btn-block mb-1">
+                                        <i class="fas fa-store"></i> Manage Stores
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sellers with Most Declines -->
+                    @if (Model.SellersWithDeclines.Any())
+                    {
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Sellers with Order Declines</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Seller</th>
+                                                        <th>Manual Declines</th>
+                                                        <th>Auto Declines</th>
+                                                        <th>Total Declines</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var seller in Model.SellersWithDeclines)
+                                                    {
+                                                        <tr>
+                                                            <td>@seller.SellerName</td>
+                                                            <td><span class="badge badge-warning">@seller.ManualDeclines</span></td>
+                                                            <td><span class="badge badge-danger">@seller.AutoDeclines</span></td>
+                                                            <td><span class="badge badge-dark">@seller.TotalDeclines</span></td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#testSmtpBtn').click(function () {
+                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Testing...');
+
+                $.post('@Url.Action("TestSmtpConnection", "Dashboard")', function (data) {
+                    $('#smtpResult').show().html(
+                        data.success ?
+                        '<div class="alert alert-success">' + data.message + '</div>' :
+                        '<div class="alert alert-danger">' + data.message + '</div>'
+                    );
+                }).fail(function () {
+                    $('#smtpResult').show().html('<div class="alert alert-danger">Request failed. Please try again.</div>');
+                }).always(function () {
+                    $('#testSmtpBtn').prop('disabled', false).html('<i class="fas fa-envelope"></i> Test SMTP');
+                });
+            });
+        });
+    </script>
+}

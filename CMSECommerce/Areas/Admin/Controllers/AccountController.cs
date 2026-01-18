@@ -10,7 +10,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
 {
 
     [Area("Admin")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public class AccountController : Controller
     {
         private readonly UserManager<IdentityUser> _userManager;

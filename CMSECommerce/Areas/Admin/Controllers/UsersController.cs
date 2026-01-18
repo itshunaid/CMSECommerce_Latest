@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CMSECommerce.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public class UsersController(
         UserManager<IdentityUser> userManager,
         RoleManager<IdentityRole> roleManager,

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CMSECommerce.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize("Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public class PagesController(DataContext context) : Controller
     {
         private readonly DataContext _context = context;

@@ -17,7 +17,7 @@ namespace CMSECommerce.Infrastructure
             context.Database.Migrate();
 
             // 2. Seed Roles
-            var roles = new[] { "Admin", "Customer", "Subscriber" };
+            var roles = new[] { "SuperAdmin", "Admin", "Customer", "Subscriber" };
             foreach (var role in roles)
             {
                 if (!roleManager.RoleExistsAsync(role).GetAwaiter().GetResult())
@@ -26,7 +26,35 @@ namespace CMSECommerce.Infrastructure
                 }
             }
 
-            // 3. Seed Admin User
+            // 3. Seed SuperAdmin User
+            var superAdminEmail = "superadmin@local.local";
+            var superAdminUser = userManager.FindByEmailAsync(superAdminEmail).GetAwaiter().GetResult();
+
+            if (superAdminUser == null)
+            {
+                superAdminUser = new IdentityUser
+                {
+                    UserName = "superadmin",
+                    Email = superAdminEmail,
+                    EmailConfirmed = true
+                };
+                var result = userManager.CreateAsync(superAdminUser, "Super@local110").GetAwaiter().GetResult();
+                if (result.Succeeded)
+                {
+                    userManager.AddToRoleAsync(superAdminUser, "SuperAdmin").GetAwaiter().GetResult();
+                }
+            }
+            else
+            {
+                // ✅ ENSURE EXISTING SUPERADMIN IS IN ROLE
+                var isInRole = userManager.IsInRoleAsync(superAdminUser, "SuperAdmin").GetAwaiter().GetResult();
+                if (!isInRole)
+                {
+                    userManager.AddToRoleAsync(superAdminUser, "SuperAdmin").GetAwaiter().GetResult();
+                }
+            }
+
+            // 4. Seed Admin User
             var adminEmail = "admin@local.local";
             var adminUser = userManager.FindByEmailAsync(adminEmail).GetAwaiter().GetResult();
 

@@ -1,0 +1,83 @@
+BEGIN
+    -- 1. Setup variables within a single execution block
+    DECLARE @MyUserId NVARCHAR(450);
+    DECLARE @MyRoleId NVARCHAR(450);
+    DECLARE @TargetEmail NVARCHAR(256) = 'superadmin@local.local';
+
+    -- 2. Ensure the Role exists and capture its ID
+    IF NOT EXISTS (SELECT 1 FROM AspNetRoles WHERE NormalizedName = 'SUPERADMIN')
+    BEGIN
+        SET @MyRoleId = CAST(NEWID() AS NVARCHAR(450));
+        INSERT INTO AspNetRoles (Id, Name, NormalizedName, ConcurrencyStamp)
+        VALUES (@MyRoleId, 'SuperAdmin', 'SUPERADMIN', NEWID());
+    END
+    ELSE
+    BEGIN
+        SELECT @MyRoleId = Id FROM AspNetRoles WHERE NormalizedName = 'SUPERADMIN';
+    END
+
+    -- 3. Capture the User ID
+    SELECT @MyUserId = Id FROM AspNetUsers WHERE Email = @TargetEmail;
+
+    -- 4. Final Validation and Mapping
+    IF @MyUserId IS NULL
+    BEGIN
+        PRINT 'ERROR: User ' + @TargetEmail + ' not found in AspNetUsers table.';
+    END
+    ELSE IF @MyRoleId IS NULL
+    BEGIN
+        PRINT 'ERROR: Role SuperAdmin could not be created or found.';
+    END
+    ELSE
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM AspNetUserRoles WHERE UserId = @MyUserId AND RoleId = @MyRoleId)
+        BEGIN
+            INSERT INTO AspNetUserRoles (UserId, RoleId)
+            VALUES (@MyUserId, @MyRoleId);
+            PRINT 'SUCCESS: User promoted to SuperAdmin.';
+        END
+        ELSE
+        BEGIN
+            PRINT 'NOTICE: User is already in the SuperAdmin role.';
+        END
+    END
+END
+
+
+SELECT u.UserName, u.Email, r.Name AS RoleName
+FROM AspNetUsers u
+JOIN AspNetUserRoles ur ON u.Id = ur.UserId
+JOIN AspNetRoles r ON ur.RoleId = r.Id
+WHERE u.Email = 'superadmin@local.local';
+
+
+-- 1. Check if SuperAdmin role exists
+SELECT * FROM AspNetRoles WHERE Name = 'SuperAdmin';
+
+-- 2. If not exists, create the SuperAdmin role
+INSERT INTO AspNetRoles (Id, Name, NormalizedName, ConcurrencyStamp)
+VALUES (NEWID(), 'SuperAdmin', 'SUPERADMIN', NEWID());
+
+-- 3. Find the SuperAdmin user
+SELECT Id, UserName, Email FROM AspNetUsers WHERE Email = 'superadmin@local.local';
+
+-- 4. Check if user is already in SuperAdmin role
+SELECT ur.* FROM AspNetUserRoles ur 
+INNER JOIN AspNetUsers u ON ur.UserId = u.Id 
+INNER JOIN AspNetRoles r ON ur.RoleId = r.Id 
+WHERE u.Email = 'superadmin@local.local' AND r.Name = 'SuperAdmin';
+
+-- 5. If not in role, add the user to SuperAdmin role
+-- (Replace USER_ID_HERE with the actual UserId from step 3)
+-- (Replace ROLE_ID_HERE with the actual RoleId from step 1)
+INSERT INTO AspNetUserRoles (UserId, RoleId)
+VALUES ('USER_ID_HERE', 'ROLE_ID_HERE');
+
+
+
+-- Verify SuperAdmin user and role
+SELECT u.UserName, u.Email, r.Name as RoleName
+FROM AspNetUsers u
+INNER JOIN AspNetUserRoles ur ON u.Id = ur.UserId
+INNER JOIN AspNetRoles r ON ur.RoleId = r.Id
+WHERE u.Email = 'superadmin@local.local';

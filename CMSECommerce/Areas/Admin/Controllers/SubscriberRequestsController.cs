@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 // Ensure this controller is protected and only accessible by Admins
 [Area("Admin")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,SuperAdmin")]
 public class SubscriberRequestsController(
     DataContext context,
     UserManager<IdentityUser> userManager,

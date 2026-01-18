@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CMSECommerce.Areas.Seller.Controllers
 {
     [Area("Seller")]
-    [Authorize(Roles = "Subscriber")] // Using Roles for standard Identity
+    [Authorize(Roles = "Subscriber,Admin,SuperAdmin")] // Using Roles for standard Identity
     public class ProductsController(
         DataContext context,
         IWebHostEnvironment webHostEnvironment,

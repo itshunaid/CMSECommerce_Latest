@@ -30,6 +30,7 @@ namespace CMSECommerce.Infrastructure
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<UnlockRequest>().ToTable("UnlockRequests");
 
             // ARCHITECTURE: Automatically filter out deactivated stores globally
             modelBuilder.Entity<Store>()

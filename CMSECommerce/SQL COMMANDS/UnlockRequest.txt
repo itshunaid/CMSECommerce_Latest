@@ -1,0 +1,14 @@
+CREATE TABLE [dbo].[UnlockRequests] (
+    [Id]          INT            IDENTITY (1, 1) NOT NULL,
+    [UserId]      NVARCHAR (450) NOT NULL,
+    [UserName]    NVARCHAR (MAX) NOT NULL,
+    [Email]       NVARCHAR (MAX) NULL,
+    [RequestDate] DATETIME2 (7)  NOT NULL DEFAULT (GETUTCDATE()),
+    [Status]      NVARCHAR (50)  NOT NULL DEFAULT ('Pending'),
+    [AdminNotes]  NVARCHAR (MAX) NULL,
+    
+    CONSTRAINT [PK_UnlockRequests] PRIMARY KEY CLUSTERED ([Id] ASC)
+);
+
+-- Optional: Add an index for faster lookups in the SuperAdmin Dashboard
+CREATE INDEX [IX_UnlockRequests_UserId] ON [dbo].[UnlockRequests] ([UserId]);

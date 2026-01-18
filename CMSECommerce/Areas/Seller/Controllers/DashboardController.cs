@@ -11,7 +11,8 @@ namespace CMSECommerce.Areas.Seller.Controllers
     // NOTE: Authorization attribute must be used with Roles or Policies if not the default scheme name
     // Assuming 'Subscriber' is a policy name, if it's a role, it should be [Authorize(Roles = "Subscriber")]
     // I will use [Authorize(Roles = "Subscriber")] as per standard practice, but keep the original logic.
-    [Authorize(Roles = "Subscriber")]
+    [Authorize(Roles = "Subscriber,Admin,SuperAdmin")]
+    
     public class DashboardController : Controller
     {
         private readonly DataContext _context;

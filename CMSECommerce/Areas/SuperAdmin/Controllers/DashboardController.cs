@@ -1,16 +1,15 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CMSECommerce.Infrastructure;
 using Microsoft.AspNetCore.Identity;
-using CMSECommerce.Areas.Admin.Models;
+using CMSECommerce.Areas.SuperAdmin.Models;
 using Microsoft.EntityFrameworkCore;
 using CMSECommerce.Services;
 
-namespace CMSECommerce.Areas.Admin.Controllers
+namespace CMSECommerce.Areas.SuperAdmin.Controllers
 {
-    [Area("Admin")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
-    // It is highly recommended to also inject ILogger<DashboardController> for production logging.
+    [Area("SuperAdmin")]
+    [Authorize(Roles = "SuperAdmin")]
     public class DashboardController : Controller
     {
         private readonly DataContext _context;
@@ -27,10 +26,29 @@ namespace CMSECommerce.Areas.Admin.Controllers
             _configuration = configuration;
         }
 
+        private string GetDatabaseSize()
+        {
+            try
+            {
+                var dbPath = _context.Database.GetDbConnection().DataSource;
+                if (string.IsNullOrEmpty(dbPath) || !System.IO.File.Exists(dbPath))
+                {
+                    return "Unknown";
+                }
+                var fileInfo = new System.IO.FileInfo(dbPath);
+                double sizeInMB = fileInfo.Length / (1024.0 * 1024.0);
+                return $"{sizeInMB:F2} MB";
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
         public async Task<IActionResult> Index()
         {
             // Initialize the model with default (zero) values
-            var model = new AdminDashboardViewModel
+            var model = new SuperAdminDashboardViewModel
             {
                 UsersCount = 0,
                 ProductsRequestCount = 0,
@@ -40,60 +58,57 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 Categories = 0,
                 RecentOrders = new List<Order>(),
                 UserProfilesCount = 0,
-                DeactivatedStoresCount = 0, // New property initialized
-                PendingUnlockRequests = 0
+                DeactivatedStoresCount = 0,
+                PendingUnlockRequests = 0,
+                TotalAdmins = 0,
+                TotalSubscribers = 0,
+                TotalCustomers = 0,
+                TotalStores = 0,
+                TotalSubscriptionTiers = 0,
+                TotalReviews = 0,
+                TotalChatMessages = 0,
+                TotalUnlockRequests = 0,
+                TotalUserAgreements = 0,
+                TotalUserStatuses = 0,
+                TotalUserStatusSettings = 0,
+                LastMigrationDate = DateTime.Now, // Placeholder, ideally query from migrations
+                DatabaseSize = GetDatabaseSize(), // Get database file size
+                ActiveUsersLast24Hours = 0, // Placeholder, no login tracking
+                FailedLoginAttempts = 0, // Placeholder, no tracking
+                RecentAdminActivities = new List<AdminActivity>() // Placeholder, no audit table
             };
 
             try
             {
-                // 1. Identity User Count
+                // Base metrics from AdminDashboardViewModel
                 model.UsersCount = await _userManager.Users.CountAsync();
-
-                // 2. Total Products
                 model.ProductsCount = await _context.Products.CountAsync();
-
-                // 3. Pending/Rejected Product Requests
                 model.ProductsRequestCount = await _context.Products
                     .Where(p => p.Status == ProductStatus.Pending || p.Status == ProductStatus.Rejected)
                     .CountAsync();
-
-                // 4. Global Order Metrics
                 model.OrdersCount = await _context.Orders.CountAsync();
-
-                // 5. Taxonomy Metrics
                 model.Categories = await _context.Categories.CountAsync();
-
-                // 6. Profile Image Moderation Queue
                 model.UserProfilesCount = await _context.UserProfiles
                     .Where(p => !p.IsImageApproved && p.ProfileImagePath != null)
                     .CountAsync();
-
-                // 7. Seller Onboarding Queue
                 model.PendingSubscriberRequests = await _context.SubscriberRequests
                     .CountAsync(r => r.Approved == false);
-
-                // 8. NEW: Deactivated Stores Metric (Architecture Churn Metric)
-                // We count stores where IsActive is explicitly false
                 model.DeactivatedStoresCount = await _context.Stores
                     .CountAsync(s => !s.IsActive);
-
-                // 9. Recent Activity Feed
                 model.RecentOrders = await _context.Orders
                     .OrderByDescending(o => o.Id)
                     .Take(5)
                     .ToListAsync();
-
-                // 11. Pending Unlock Requests
                 model.PendingUnlockRequests = await _context.UnlockRequests
                     .CountAsync(r => r.Status == "Pending");
 
-                // 12. Sellers with Declined Orders
+                // Sellers with declines - assign to model property
                 model.SellersWithDeclines = await _context.OrderDetails
                     .Where(od => od.IsCancelled == true)
                     .GroupBy(od => od.ProductOwner)
                     .Select(g => new CMSECommerce.Areas.Admin.Models.SellerDeclineSummary
                     {
-                        SellerName = g.Key,
+                        SellerName = g.Key ?? "Unknown Seller",
                         ManualDeclines = g.Count(od => od.CancelledByRole == "Seller"),
                         AutoDeclines = g.Count(od => od.CancelledByRole == "System"),
                         TotalDeclines = g.Count()
@@ -101,12 +116,56 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     .OrderByDescending(s => s.TotalDeclines)
                     .Take(10)
                     .ToListAsync();
+
+                // Additional SuperAdmin metrics
+                // Assuming roles: Admin, Subscriber, etc. TotalCustomers = total users - admins - subscribers
+                var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
+                model.TotalAdmins = adminUsers.Count;
+                var subscriberUsers = await _userManager.GetUsersInRoleAsync("Subscriber");
+                model.TotalSubscribers = subscriberUsers.Count;
+                model.TotalCustomers = model.UsersCount - model.TotalAdmins - model.TotalSubscribers;
+
+                model.TotalStores = await _context.Stores.CountAsync();
+                model.TotalSubscriptionTiers = await _context.SubscriptionTiers.CountAsync();
+                model.TotalReviews = await _context.Reviews.CountAsync();
+                model.TotalChatMessages = await _context.ChatMessages.CountAsync();
+                model.TotalUnlockRequests = await _context.UnlockRequests.CountAsync();
+                model.TotalUserAgreements = await _context.UserAgreements.CountAsync();
+                model.TotalUserStatuses = await _context.UserStatuses.CountAsync();
+                model.TotalUserStatusSettings = await _context.UserStatusSettings.CountAsync();
+
+                // LastMigrationDate: Query from __EFMigrationsHistory if possible
+                var lastMigration = await _context.Database.SqlQueryRaw<string>("SELECT TOP 1 MigrationId AS Value FROM __EFMigrationsHistory ORDER BY MigrationId DESC").FirstOrDefaultAsync();
+                if (!string.IsNullOrEmpty(lastMigration))
+                {
+                    // Try to parse the migration ID (format: YYYYMMDDHHMMSS_Name)
+                    if (lastMigration.Length >= 14)
+                    {
+                        var datePart = lastMigration.Substring(0, 14);
+                        if (DateTime.TryParseExact(datePart, "yyyyMMddHHmmss", null, System.Globalization.DateTimeStyles.None, out var migrationDate))
+                        {
+                            model.LastMigrationDate = migrationDate;
+                        }
+                        else
+                        {
+                            model.LastMigrationDate = DateTime.Now;
+                        }
+                    }
+                    else
+                    {
+                        model.LastMigrationDate = DateTime.Now;
+                    }
+                }
+
+                // ActiveUsersLast24Hours: Approximate with recent orders (handle null OrderDate)
+                model.ActiveUsersLast24Hours = await _context.Orders
+                    .Where(o => o.OrderDate.HasValue && o.OrderDate >= DateTime.Now.AddHours(-24))
+                    .Select(o => o.UserId)
+                    .Distinct()
+                    .CountAsync();
             }
             catch (Exception ex)
             {
-                // ARCHITECT NOTE: Ensure you have an ILogger injected to capture 'ex' details
-                // _logger.LogError(ex, "Error fetching Admin Dashboard stats");
-
                 TempData["Error"] = "An error occurred while loading dashboard statistics. Data displayed may be incomplete.";
             }
 

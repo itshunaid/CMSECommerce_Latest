@@ -238,7 +238,7 @@ namespace CMSECommerce.Controllers
 
             return RedirectToAction("Status");
         }
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> AdminDashboard()
         {
             // 1. Fetch requests
@@ -264,7 +264,7 @@ namespace CMSECommerce.Controllers
 
             return View(requests);
         }
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> Approve(int requestId)
         {
             // 1. Fetch Request with Tier details
@@ -351,7 +351,7 @@ namespace CMSECommerce.Controllers
             return RedirectToAction("AdminDashboard", "Subscription");
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> Revert(int requestId)
         {
             var request = await _context.SubscriptionRequests
@@ -436,7 +436,7 @@ namespace CMSECommerce.Controllers
 
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> Reject(int requestId, string reason)
         {
             // Find the request and the user profile to check existing status
@@ -667,7 +667,7 @@ namespace CMSECommerce.Controllers
             return Ok("PDF Generated - logic depends on your installed PDF library");
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [HttpPost]
         public async Task<IActionResult> ForceExpiryCheck()
         {

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CMSECommerce.Areas.Seller.Controllers
 {
     [Area("Seller")]
-    [Authorize(Roles = "Subscriber")]
+    [Authorize(Roles = "Subscriber,Admin,SuperAdmin")]
     public class IndexController : Controller
     {
         public IActionResult Index(int categoryId = 0, string search = "", string status = "", int p = 1)

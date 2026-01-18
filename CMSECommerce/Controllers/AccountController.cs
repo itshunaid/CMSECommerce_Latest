@@ -929,7 +929,7 @@ namespace CMSECommerce.Controllers
             {
                 // 1. ADMIN AUTHORIZATION CHECK
                 var currentUser = await _userManager.GetUserAsync(User);
-                if (currentUser == null || !await _userManager.IsInRoleAsync(currentUser, "Admin"))
+                if (currentUser == null || (!await _userManager.IsInRoleAsync(currentUser, "Admin") && !await _userManager.IsInRoleAsync(currentUser, "SuperAdmin")))
                 {
                     TempData["error"] = "You are not authorized to edit other user profiles.";
                     return RedirectToAction("Profile");
@@ -2106,7 +2106,7 @@ namespace CMSECommerce.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteUser(string userId)
         {

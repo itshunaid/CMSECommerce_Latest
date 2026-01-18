@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CMSECommerce.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = "Admin")] // Architect Tip: Secure the whole controller, not just one method
+    [Authorize(Roles = "Admin,SuperAdmin")] // Architect Tip: Secure the whole controller, not just one method
     public class StoresController(DataContext context) : Controller
     {
         private readonly DataContext _context = context;

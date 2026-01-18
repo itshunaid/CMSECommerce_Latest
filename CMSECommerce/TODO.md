@@ -1,7 +1,6 @@
-# TODO: Add Profile Image Upload to Seller Settings
+# TODO: Change SuperAdmin URL from /SuperAdmin/Dashboard/Index to /SuperAdmin
 
-## Tasks
-- [x] Update SettingsController to inject IWebHostEnvironment
-- [x] Modify POST Index action to handle IFormFile ProfileImageFile upload
-- [x] Update Index.cshtml view to include profile image display and file input
-- [x] Test the functionality to ensure no existing features are broken
+## Steps to Complete:
+- [x] Add a specific route in Program.cs to map "/SuperAdmin" directly to the Dashboard/Index action in the SuperAdmin area.
+- [x] Update navigation links in Areas/SuperAdmin/Views/Shared/_Layout.cshtml to point to "/SuperAdmin" instead of generating "/SuperAdmin/Dashboard/Index".
+- [x] Test the changes to ensure the URL works as expected.
