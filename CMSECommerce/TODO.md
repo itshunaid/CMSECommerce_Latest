@@ -1,6 +1,6 @@
-# TODO: Change SuperAdmin URL from /SuperAdmin/Dashboard/Index to /SuperAdmin
+# Fix Admin Categories Page Issue
 
 ## Steps to Complete:
-- [x] Add a specific route in Program.cs to map "/SuperAdmin" directly to the Dashboard/Index action in the SuperAdmin area.
-- [x] Update navigation links in Areas/SuperAdmin/Views/Shared/_Layout.cshtml to point to "/SuperAdmin" instead of generating "/SuperAdmin/Dashboard/Index".
-- [x] Test the changes to ensure the URL works as expected.
+- [x] Fix Area attribute in CategoriesController from "Admin,SuperAdmin" to "Admin"
+- [x] Update Authorize roles to include "SuperAdmin"
+- [x] Test that /admin/categories loads correctly

@@ -15,8 +15,8 @@ using Microsoft.Extensions.Logging;
 
 namespace CMSECommerce.Areas.Admin.Controllers
 {
-    [Authorize(Roles = "Admin")]
-    [Area("Admin,SuperAdmin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Area("Admin")]
     public class CategoriesController : Controller
     {
         private readonly DataContext _context;
