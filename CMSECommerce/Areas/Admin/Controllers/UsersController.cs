@@ -31,6 +31,11 @@ namespace CMSECommerce.Areas.Admin.Controllers
         {
             try
             {
+                // Check if current user is SuperAdmin
+                var currentUser = await _userManager.GetUserAsync(User);
+                var currentUserRoles = await _userManager.GetRolesAsync(currentUser);
+                bool isCurrentSuperAdmin = currentUserRoles.Contains("SuperAdmin");
+
                 // 1. Efficient Data Retrieval (Single Query with LEFT JOIN)
                 // Use GroupJoin and SelectMany (DefaultIfEmpty) to perform a SQL LEFT JOIN.
                 // This ensures ALL IdentityUsers are returned, with 'Profile' being null if no matching UserProfile exists.
@@ -46,6 +51,13 @@ namespace CMSECommerce.Areas.Admin.Controllers
                         (temp, profile) => new { User = temp.User, Profile = profile } // Final projection
                     )
                     .ToListAsync();
+
+                // If current user is not SuperAdmin, filter out SuperAdmin users
+                if (!isCurrentSuperAdmin)
+                {
+                    var superAdminUserIds = (await _userManager.GetUsersInRoleAsync("SuperAdmin")).Select(u => u.Id).ToList();
+                    usersAndProfiles = usersAndProfiles.Where(up => !superAdminUserIds.Contains(up.User.Id)).ToList();
+                }
 
                 var model = new List<UserViewModel>();
 

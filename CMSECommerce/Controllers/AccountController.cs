@@ -210,7 +210,18 @@ namespace CMSECommerce.Controllers
                 {
                     return Redirect(model.ReturnUrl);
                 }
-
+                if (User.IsInRole("Admin"))
+                {
+                    return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+                }
+                if (User.IsInRole("SuperAdmin"))
+                {
+                    return RedirectToAction("Index", "Dashboard", new { area = "SuperAdmin" });
+                }
+                if (User.IsInRole("Subscriber"))
+                {
+                    return RedirectToAction("Index", "Dashboard", new { area = "Seller" });
+                }
                 return RedirectToAction("Index", "Home");
             }
 
@@ -447,6 +458,19 @@ namespace CMSECommerce.Controllers
                     await _sign_in_manager.SignInAsync(newUser, isPersistent: false);
 
                     _logger.LogInformation("User {Username} registered successfully.", model.Username);
+
+                    if(User.IsInRole("Admin"))
+                    {
+                        return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+                    }
+                    if (User.IsInRole("SuperAdmin"))
+                    {
+                        return RedirectToAction("Index", "Dashboard", new { area = "SuperAdmin" });
+                    }
+                    if (User.IsInRole("Subscriber"))
+                    {
+                        return RedirectToAction("Index", "Dashboard", new { area = "Seller" });
+                    }
                     return RedirectToAction("Index", "Home");
                 }
 
