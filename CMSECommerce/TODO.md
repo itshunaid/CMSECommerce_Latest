@@ -3,8 +3,8 @@
 ## Completed Tasks
 - [x] Configure external authentication services in Program.cs for Google, Facebook, Microsoft, and LinkedIn
 - [x] Add ExternalLogin and ExternalLoginCallback methods to AccountController
-- [x] Update Login.cshtml to include social login buttons
-- [x] Ensure external users are assigned "Customer" role and have UserProfile created
+- [x] Update Login.cshtml to include Google social login button
+- [x] Ensure external users are assigned "Customer" role and have UserProfile/UserAgreement created automatically
 - [x] Preserve existing login functionality
 
 ## Implementation Details

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
 
@@ -1604,6 +1605,168 @@ namespace CMSECommerce.Controllers
         {
             ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             return View(vm);
+        }
+
+        // --- EXTERNAL LOGIN METHODS ---
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public IActionResult ExternalLogin(string provider, string returnUrl = null)
+        {
+            // Request a redirect to the external login provider
+            var redirectUrl = Url.Action("ExternalLoginCallback", "Account", new { ReturnUrl = returnUrl });
+            var properties = _sign_in_manager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
+            return new ChallengeResult(provider, properties);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> ExternalLoginCallback(string returnUrl = null, string remoteError = null)
+        {
+            returnUrl = returnUrl ?? Url.Content("~/");
+
+            if (remoteError != null)
+            {
+                ModelState.AddModelError(string.Empty, $"Error from external provider: {remoteError}");
+                return View("Login", new LoginViewModel { ReturnUrl = returnUrl });
+            }
+
+            var info = await _sign_in_manager.GetExternalLoginInfoAsync();
+            if (info == null)
+            {
+                ModelState.AddModelError(string.Empty, "Error loading external login information.");
+                return View("Login", new LoginViewModel { ReturnUrl = returnUrl });
+            }
+
+            // Sign in the user with this external login provider if the user already has a login
+            var result = await _sign_in_manager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
+
+            if (result.Succeeded)
+            {
+                // Update user status
+                var user = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
+                if (user != null)
+                {
+                    var status = await _context.UserStatuses.FindAsync(user.Id);
+                    if (status != null)
+                    {
+                        status.IsOnline = true;
+                        status.LastActivity = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                _logger.LogInformation("{Name} logged in with {LoginProvider} provider.", info.Principal.Identity.Name, info.LoginProvider);
+                return LocalRedirect(returnUrl);
+            }
+
+            if (result.IsLockedOut)
+            {
+                return RedirectToAction("RequestUnlock");
+            }
+            else
+            {
+                // If the user does not have an account, then ask the user to create an account
+                ViewData["ReturnUrl"] = returnUrl;
+                ViewData["LoginProvider"] = info.LoginProvider;
+
+                var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+                var name = info.Principal.FindFirstValue(ClaimTypes.Name);
+
+                // Check if user already exists with this email
+                var existingUser = await _userManager.FindByEmailAsync(email);
+                if (existingUser != null)
+                {
+                    // Link the external login to the existing account
+                    var linkResult = await _userManager.AddLoginAsync(existingUser, info);
+                    if (linkResult.Succeeded)
+                    {
+                        await _sign_in_manager.SignInAsync(existingUser, isPersistent: false);
+                        _logger.LogInformation("External login linked to existing account for {Email}", email);
+                        return LocalRedirect(returnUrl);
+                    }
+                    else
+                    {
+                        ModelState.AddModelError(string.Empty, "Unable to link external login to existing account.");
+                        return View("Login", new LoginViewModel { ReturnUrl = returnUrl });
+                    }
+                }
+
+                // Create new user account
+                var userName = email; // Use email as username for external users
+                var newUser = new IdentityUser
+                {
+                    UserName = userName,
+                    Email = email,
+                    EmailConfirmed = true // External providers verify email
+                };
+
+                var createResult = await _userManager.CreateAsync(newUser);
+                if (createResult.Succeeded)
+                {
+                    createResult = await _userManager.AddLoginAsync(newUser, info);
+                    if (createResult.Succeeded)
+                    {
+                        // Assign Customer role
+                        await _userManager.AddToRoleAsync(newUser, "Customer");
+
+                        // Create UserProfile
+                        var userProfile = new UserProfile
+                        {
+                            UserId = newUser.Id,
+                            FirstName = name?.Split(' ').FirstOrDefault() ?? "External",
+                            LastName = name?.Split(' ').LastOrDefault() ?? "User",
+                            IsProfileVisible = true
+                        };
+                        _context.UserProfiles.Add(userProfile);
+
+                        // Create UserAgreement
+                        var agreementText = @"
+                        <h6>1. Acceptance of Terms</h6><p>By accessing or using the Weypaari platform...</p>
+                        <h6>2. Eligibility & Registration</h6><p>To use Weypaari, you must provide a valid 8-digit ITS...</p>
+                        <h6>3. Privacy & Data Security</h6><p>Your privacy is important to us...</p>
+                        <h6>4. User Conduct</h6><p>Users shall not engage in any activity...</p>
+                        <h6>5. Transactions & Listings</h6><p>Weypaari provides a marketplace platform...</p>
+                        <h6>6. Termination of Use</h6><p>We reserve the right to terminate...</p>
+                        <h6>7. Modifications to Service</h6><p>Weypaari reserves the right to modify...</p>";
+                        var agreement = new UserAgreement
+                        {
+                            UserId = newUser.Id,
+                            AgreementType = "Registration_Terms_Privacy",
+                            FullContent = agreementText,
+                            Version = "v1.0-2026-01",
+                            AcceptedAt = DateTime.UtcNow,
+                            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+                        };
+                        _context.UserAgreements.Add(agreement);
+
+                        // Create UserStatus
+                        var userStatus = new UserStatusTracker
+                        {
+                            UserId = newUser.Id,
+                            IsOnline = true,
+                            LastActivity = DateTime.UtcNow
+                        };
+                        _context.UserStatuses.Add(userStatus);
+
+                        await _context.SaveChangesAsync();
+
+                        // Sign in the user
+                        await _sign_in_manager.SignInAsync(newUser, isPersistent: false);
+
+                        _logger.LogInformation("User created an account using {Name} provider.", info.LoginProvider);
+                        return LocalRedirect(returnUrl);
+                    }
+                }
+
+                // If we got here, something failed
+                foreach (var error in createResult.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+            }
+
+            return View("Login", new LoginViewModel { ReturnUrl = returnUrl });
         }
         public async Task<IActionResult> Logout()
         {

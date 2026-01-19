@@ -130,6 +130,22 @@
 
                     <input type="hidden" asp-for="ReturnUrl" />
                 </form>
+
+                @* Social Login Section *@
+                <div class="mt-4">
+                    <div class="text-center mb-3">
+                        <span class="text-muted small">or continue with</span>
+                    </div>
+                    <div class="d-grid">
+                        <form asp-action="ExternalLogin" asp-route-provider="Google" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="returnUrl" value="@Model?.ReturnUrl" />
+                            <button type="submit" class="btn btn-outline-secondary w-100 py-2 shadow-sm">
+                                <i class="fab fa-google me-2"></i>Continue with Google
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
