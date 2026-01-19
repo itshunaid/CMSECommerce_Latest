@@ -140,8 +140,15 @@
                         <form asp-action="ExternalLogin" asp-route-provider="Google" method="post" class="d-inline">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="returnUrl" value="@Model?.ReturnUrl" />
-                            <button type="submit" class="btn btn-outline-secondary w-100 py-2 shadow-sm">
-                                <i class="fab fa-google me-2"></i>Continue with Google
+                            <button type="submit"
+                                    name="provider"
+                                    value="Google"
+                                    class="btn btn-outline-dark w-100 py-2 shadow-sm d-flex align-items-center justify-content-center"
+                                    style="text-transform: none; font-weight: 500;">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
+                                     alt="Google logo"
+                                     style="width: 20px; margin-right: 10px;">
+                                Continue with Google
                             </button>
                         </form>
                     </div>
