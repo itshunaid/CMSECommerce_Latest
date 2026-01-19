@@ -36,6 +36,12 @@
 
     <!-- MailKit for robust SMTP (preferred over System.Net.Mail.SmtpClient) -->
     <PackageReference Include="MailKit" Version="4.0.2" />
+
+    <!-- External Authentication Providers -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="8.0.0" />
+    <PackageReference Include="AspNet.Security.OAuth.LinkedIn" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
