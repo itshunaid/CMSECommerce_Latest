@@ -1,0 +1,78 @@
+<p>WEypaari - Help Center</p>
+
+<div class="bg-light help-header py-4 text-center">
+<div class="container">
+<h1>How can we help you today?</h1>
+
+<p>Watch our step-by-step video guides to master your WEypaari store.</p>
+</div>
+</div>
+
+<div class="container py-5">
+<div class="justify-content-center mb-5 row">
+<div class="col-lg-10">
+<div class="border-0 card p-4 shadow-sm">
+<h3>Getting Started Playlist</h3>
+
+<div class="ratio ratio-16x9"><iframe sandbox="" src="https://www.youtube.com/embed/videoseries?list=PLXwTOG3-tRwidGCIA_eNKIY7Uv6ktNPLN" title="WEypaari Masterclass"></iframe></div>
+
+<div class="mt-4 text-center">
+<h5>New to WEypaari?</h5>
+
+<p>This playlist covers everything from account setup to your first sale.</p>
+</div>
+</div>
+</div>
+</div>
+
+<hr />
+<h3>Browse Quick Tutorials</h3>
+
+<div class="g-4 row">
+<div class="col-lg-4 col-md-6">
+<div class="border-0 card h-100 shadow-sm video-card">
+<div class="ratio ratio-16x9"><iframe sandbox="" src="https://www.youtube.com/embed/videoseries?list=PLXwTOG3-tRwidGCIA_eNKIY7Uv6ktNPLN" title="How to List Products"></iframe></div>
+
+<div class="card-body">
+<h5>How to List Products</h5>
+
+<p>Learn how to take great photos and write descriptions that sell.</p>
+</div>
+</div>
+</div>
+
+<div class="col-lg-4 col-md-6">
+<div class="border-0 card h-100 shadow-sm video-card">
+<div class="ratio ratio-16x9"><iframe sandbox="" src="https://www.youtube.com/embed/videoseries?list=PLXwTOG3-tRwidGCIA_eNKIY7Uv6ktNPLN" title="Managing Orders"></iframe></div>
+
+<div class="card-body">
+<h5>Managing Orders</h5>
+
+<p>Step-by-step guide on processing and shipping your orders.</p>
+</div>
+</div>
+</div>
+
+<div class="col-lg-4 col-md-6">
+<div class="border-0 card h-100 shadow-sm video-card">
+<div class="ratio ratio-16x9"><iframe sandbox="" src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Payments"></iframe></div>
+
+<div class="card-body">
+<h5>Payment &amp; Payouts</h5>
+
+<p>Understanding the billing cycle and how you receive money.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="container pb-5">
+<div class="bg-white border p-5 rounded shadow-sm text-center">
+<h4>Still have questions?</h4>
+
+<p>Our support team is available Monday - Saturday, 10 AM to 6 PM.</p>
+
+<div class="d-flex gap-3 justify-content-center mt-3"><a class="btn btn-success px-4 fw-bold" href="https://wa.me/919603302152">WhatsApp Us</a> <a class="btn btn-dark px-4 fw-bold" href="mailto:support@weypaari.in">Email Support</a></div>
+</div>
+</div>
