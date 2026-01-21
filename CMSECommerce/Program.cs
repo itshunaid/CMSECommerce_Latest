@@ -105,6 +105,7 @@ builder.Services.Configure<CMSECommerce.Services.UserStatusOptions>(builder.Conf
 builder.Services.AddScoped<CMSECommerce.Services.IUserStatusService, CMSECommerce.Services.UserStatusService>();
 builder.Services.AddHostedService<CMSECommerce.Services.UserStatusCleanupService>();
 builder.Services.AddHostedService<CMSECommerce.Services.OrderAutoDeclineService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 
 builder.Services.Configure<RouteOptions>(options => { options.LowercaseUrls = true; });
 

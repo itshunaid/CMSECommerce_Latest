@@ -2,6 +2,7 @@
 using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +18,8 @@ namespace CMSECommerce.Areas.Admin.Controllers
         DataContext context,
         IWebHostEnvironment webHostEnvironment,
         ILogger<UsersController> logger,
-        IUserService userService) : Controller
+        IUserService userService,
+        IAuditService auditService) : Controller
     {
         private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly RoleManager<IdentityRole> _roleManager = roleManager;
@@ -25,6 +27,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
         private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
         private readonly ILogger<UsersController> _logger = logger;
         private readonly IUserService _userService = userService;
+        private readonly IAuditService _auditService = auditService;
 
         [HttpGet]
         public async Task<IActionResult> Index()
@@ -271,6 +274,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 await transaction.CommitAsync();
 
                 TempData["success"] = $"User '{user.UserName}' has been {actionVerb}.";
+
+                // Audit logging
+                await _auditService.LogActionAsync("Enable/Disable User", "User", user.Id, $"User {actionVerb}", HttpContext);
             }
             catch (Exception ex)
             {
@@ -326,6 +332,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 await transaction.CommitAsync();
 
                 TempData["success"] = $"User '{user.UserName}' has been soft deleted. Profile is hidden and products are pending.";
+
+                // Audit logging
+                await _auditService.LogActionAsync("Soft Delete User", "User", user.Id, "User soft deleted", HttpContext);
             }
             catch (Exception ex)
             {
@@ -381,6 +390,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 await transaction.CommitAsync();
 
                 TempData["success"] = $"User '{user.UserName}' has been restored. Profile is visible and products are approved.";
+
+                // Audit logging
+                await _auditService.LogActionAsync("Restore User", "User", user.Id, "User restored", HttpContext);
             }
             catch (Exception ex)
             {
@@ -679,6 +691,10 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                         // --- 5. Success ---
                         TempData["success"] = $"User '{model.UserName}' and Profile created successfully.";
+
+                        // Audit logging
+                        await _auditService.LogEntityCreationAsync(user, user.Id, HttpContext);
+
                         return RedirectToAction(nameof(Index));
                     }
 
@@ -761,6 +777,16 @@ namespace CMSECommerce.Areas.Admin.Controllers
             var user = await _userManager.FindByIdAsync(model.Id);
             if (user == null) return NotFound();
 
+            // Capture old values for audit logging
+            var oldUser = new IdentityUser
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber
+            };
+            var oldProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+
             // 1. Update IdentityUser Basic Info
             user.UserName = model.UserName;
             user.Email = model.Email;
@@ -824,7 +850,14 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                 await _context.SaveChangesAsync();
                 TempData["success"] = "User and Profile updated successfully!";
-                // To this:
+
+                // Audit logging
+                await _auditService.LogEntityUpdateAsync(oldUser, user, user.Id, HttpContext);
+                if (oldProfile != null)
+                {
+                    await _auditService.LogEntityUpdateAsync(oldProfile, profile, user.Id, HttpContext);
+                }
+
                 return RedirectToAction("Index", "Users", new { area = "Admin" });
             }
 
@@ -964,6 +997,10 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 {
                     await transaction.CommitAsync();
                     TempData["success"] = $"User '{userName}' and all associated data deleted successfully.";
+
+                    // Audit logging
+                    await _auditService.LogEntityDeletionAsync(user, user.Id, HttpContext);
+
                     return RedirectToAction(nameof(Index));
                 }
 

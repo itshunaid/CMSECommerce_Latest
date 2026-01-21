@@ -25,6 +25,9 @@ namespace CMSECommerce.Areas.SuperAdmin.Models
 
         // Recent admin activities
         public IEnumerable<AdminActivity> RecentAdminActivities { get; set; }
+
+        // Recent audit logs
+        public List<AuditLog> RecentAuditLogs { get; set; }
     }
 
     public class AdminActivity

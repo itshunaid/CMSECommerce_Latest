@@ -1,0 +1,243 @@
+@model CMSECommerce.Areas.SuperAdmin.Models.AuditLogsViewModel
+
+@{
+    ViewData["Title"] = "Audit Logs";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-history"></i> Audit Logs</h4>
+                    <small class="text-white-50">System activity and change tracking</small>
+                </div>
+                <div class="card-body">
+                    <!-- Filters -->
+                    <form method="get" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="searchString">Search</label>
+                                    <input type="text" class="form-control" id="searchString" name="searchString"
+                                           value="@Model.SearchString" placeholder="Username, Entity, Action...">
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="entityType">Entity Type</label>
+                                    <select class="form-control" id="entityType" name="entityType">
+                                        <option value="">All Types</option>
+                                        @foreach (var type in Model.EntityTypes)
+                                        {
+                                            <option value="@type" selected="@(Model.EntityType == type)">@type</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="action">Action</label>
+                                    <select class="form-control" id="action" name="action">
+                                        <option value="">All Actions</option>
+                                        @foreach (var act in Model.Actions)
+                                        {
+                                            <option value="@act" selected="@(Model.Action == act)">@act</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="startDate">Start Date</label>
+                                    <input type="date" class="form-control" id="startDate" name="startDate"
+                                           value="@(Model.StartDate?.ToString("yyyy-MM-dd"))">
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="endDate">End Date</label>
+                                    <input type="date" class="form-control" id="endDate" name="endDate"
+                                           value="@(Model.EndDate?.ToString("yyyy-MM-dd"))">
+                                </div>
+                            </div>
+                            <div class="col-md-1">
+                                <div class="form-group">
+                                    <label>&nbsp;</label>
+                                    <div>
+                                        <button type="submit" class="btn btn-primary btn-block">
+                                            <i class="fas fa-search"></i> Filter
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Results Info -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>@Model.TotalRecords</strong> audit log entries found
+                                    @if (!string.IsNullOrEmpty(Model.SearchString) || !string.IsNullOrEmpty(Model.EntityType) ||
+                                         !string.IsNullOrEmpty(Model.Action) || Model.StartDate.HasValue || Model.EndDate.HasValue)
+                                    {
+                                        <span class="text-muted">(filtered)</span>
+                                    }
+                                </div>
+                                <div>
+                                    Page @Model.CurrentPage of @Model.TotalPages
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audit Logs Table -->
+                    @if (Model.AuditLogs.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>User</th>
+                                        <th>Action</th>
+                                        <th>Entity</th>
+                                        <th>Entity ID</th>
+                                        <th>IP Address</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var log in Model.AuditLogs)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <small class="text-muted">
+                                                    @log.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")
+                                                </small>
+                                            </td>
+                                            <td>
+                                                @if (log.User != null)
+                                                {
+                                                    <span>@log.User.UserName</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">System</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-@(GetActionBadgeClass(log.Action))">@log.Action</span>
+                                            </td>
+                                            <td>@log.EntityType</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(log.EntityId))
+                                                {
+                                                    <code>@log.EntityId</code>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">@log.IpAddress</small>
+                                            </td>
+                                            <td>
+                                                <a href="@Url.Action("Details", "AuditLogs", new { id = log.Id })"
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i> View
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        @if (Model.TotalPages > 1)
+                        {
+                            <nav aria-label="Audit logs pagination" class="mt-4">
+                                <ul class="pagination justify-content-center">
+                                    @if (Model.CurrentPage > 1)
+                                    {
+                                        <li class="page-item">
+                                            <a class="page-link" href="@GetPageUrl(Model.CurrentPage - 1)">
+                                                <i class="fas fa-chevron-left"></i> Previous
+                                            </a>
+                                        </li>
+                                    }
+
+                                    @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                                    {
+                                        <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                            <a class="page-link" href="@GetPageUrl(i)">@i</a>
+                                        </li>
+                                    }
+
+                                    @if (Model.CurrentPage < Model.TotalPages)
+                                    {
+                                        <li class="page-item">
+                                            <a class="page-link" href="@GetPageUrl(Model.CurrentPage + 1)">
+                                                Next <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </nav>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No audit logs found</h5>
+                            <p class="text-muted">
+                                @if (!string.IsNullOrEmpty(Model.SearchString) || !string.IsNullOrEmpty(Model.EntityType) ||
+                                     !string.IsNullOrEmpty(Model.Action) || Model.StartDate.HasValue || Model.EndDate.HasValue)
+                                {
+                                    <text>Try adjusting your filters to see more results.</text>
+                                }
+                                else
+                                {
+                                    <text>No audit logs have been recorded yet.</text>
+                                }
+                            </p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@{
+    string GetActionBadgeClass(string action)
+    {
+        return action switch
+        {
+            "Created" => "success",
+            "Updated" => "primary",
+            "Deleted" => "danger",
+            "StatusChanged" => "warning",
+            _ => "secondary"
+        };
+    }
+
+    string GetPageUrl(int page)
+    {
+        var query = new System.Collections.Generic.Dictionary<string, string>();
+        if (!string.IsNullOrEmpty(Model.SearchString)) query["searchString"] = Model.SearchString;
+        if (!string.IsNullOrEmpty(Model.EntityType)) query["entityType"] = Model.EntityType;
+        if (!string.IsNullOrEmpty(Model.Action)) query["action"] = Model.Action;
+        if (Model.StartDate.HasValue) query["startDate"] = Model.StartDate.Value.ToString("yyyy-MM-dd");
+        if (Model.EndDate.HasValue) query["endDate"] = Model.EndDate.Value.ToString("yyyy-MM-dd");
+        query["page"] = page.ToString();
+
+        var queryString = string.Join("&", query.Select(kv => $"{kv.Key}={System.Web.HttpUtility.UrlEncode(kv.Value)}"));
+        return $"?{queryString}";
+    }
+}

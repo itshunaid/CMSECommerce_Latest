@@ -75,7 +75,8 @@ namespace CMSECommerce.Areas.SuperAdmin.Controllers
                 DatabaseSize = GetDatabaseSize(), // Get database file size
                 ActiveUsersLast24Hours = 0, // Placeholder, no login tracking
                 FailedLoginAttempts = 0, // Placeholder, no tracking
-                RecentAdminActivities = new List<AdminActivity>() // Placeholder, no audit table
+                RecentAdminActivities = new List<AdminActivity>(), // Placeholder, no audit table
+                RecentAuditLogs = new List<AuditLog>() // Recent audit activities
             };
 
             try
@@ -163,6 +164,13 @@ namespace CMSECommerce.Areas.SuperAdmin.Controllers
                     .Select(o => o.UserId)
                     .Distinct()
                     .CountAsync();
+
+                // Recent audit logs
+                model.RecentAuditLogs = await _context.AuditLogs
+                    .Include(a => a.User)
+                    .OrderByDescending(a => a.Timestamp)
+                    .Take(10)
+                    .ToListAsync();
             }
             catch (Exception ex)
             {

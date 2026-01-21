@@ -18,17 +18,18 @@ using System.Text.Encodings.Web;
 
 namespace CMSECommerce.Controllers
 {
-    public class AccountController(
-            DataContext dataContext,
-            UserManager<IdentityUser> userManager,
-            SignInManager<IdentityUser> signInManager,
-            IWebHostEnvironment webHostEnvironment,
-            IUserStatusService userStatusService,
-            RoleManager<IdentityRole> roleManager,
-            ILogger<AccountController> logger,
-            IUserService userService,
-            IEmailService emailService
-           ) : BaseController
+public class AccountController(
+        DataContext dataContext,
+        UserManager<IdentityUser> userManager,
+        SignInManager<IdentityUser> signInManager,
+        IWebHostEnvironment webHostEnvironment,
+        IUserStatusService userStatusService,
+        RoleManager<IdentityRole> roleManager,
+        ILogger<AccountController> logger,
+        IUserService userService,
+        IEmailService emailService,
+        IAuditService auditService
+       ) : BaseController
     {
         private DataContext _context = dataContext;
         private UserManager<IdentityUser> _userManager = userManager;
@@ -39,7 +40,8 @@ namespace CMSECommerce.Controllers
         private readonly ILogger<AccountController> _logger = logger;
         private readonly IUserService _userService = userService;
         private readonly IEmailService _emailService = emailService;
-        
+        private readonly IAuditService _auditService = auditService;
+
 
 
         [Authorize]
@@ -459,6 +461,9 @@ namespace CMSECommerce.Controllers
                     await _sign_in_manager.SignInAsync(newUser, isPersistent: false);
 
                     _logger.LogInformation("User {Username} registered successfully.", model.Username);
+
+                    // Audit log for user registration
+                    await _auditService.LogEntityCreationAsync(newUser, newUser.Id, HttpContext);
 
                     if(User.IsInRole("Admin"))
                     {
