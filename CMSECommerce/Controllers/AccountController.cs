@@ -209,6 +209,9 @@ public class AccountController(
                 }
                 catch { }
 
+                // Audit log for login
+                await _auditService.LogActionAsync("Login", "AdminDashboard", user.Id, "User logged in", HttpContext);
+
                 if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                 {
                     return Redirect(model.ReturnUrl);
@@ -463,7 +466,7 @@ public class AccountController(
                     _logger.LogInformation("User {Username} registered successfully.", model.Username);
 
                     // Audit log for user registration
-                    await _auditService.LogEntityCreationAsync(newUser, newUser.Id, HttpContext);
+                    await _auditService.LogActionAsync("Created", "User", newUser.Id, "New user registered", HttpContext);
 
                     if(User.IsInRole("Admin"))
                     {
@@ -1807,7 +1810,6 @@ public class AccountController(
                 {
                     // 3. Find the status tracker using the captured ID
                     var status = await _context.UserStatuses.FindAsync(userId);
-
                     // 4. Update status to offline and save
                     if (status != null)
                     {
@@ -1822,6 +1824,9 @@ public class AccountController(
                     // Log the error during status update but allow redirect to proceed
                     // _logger.LogError(statusEx, "Failed to update UserStatusTracker for user {UserId} during logout.", userId);
                 }
+
+                // Audit log for logout
+                await _auditService.LogActionAsync("Logout", "AdminDashboard", userId, "User logged out", HttpContext);
             }
 
             return Redirect("/");

@@ -852,10 +852,10 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 TempData["success"] = "User and Profile updated successfully!";
 
                 // Audit logging
-                await _auditService.LogEntityUpdateAsync(oldUser, user, user.Id, HttpContext);
+                await _auditService.LogActionAsync("Updated", "User", user.Id, "User updated", HttpContext);
                 if (oldProfile != null)
                 {
-                    await _auditService.LogEntityUpdateAsync(oldProfile, profile, user.Id, HttpContext);
+                    await _auditService.LogActionAsync("Updated", "UserProfile", user.Id, "User profile updated", HttpContext);
                 }
 
                 return RedirectToAction("Index", "Users", new { area = "Admin" });
@@ -999,7 +999,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     TempData["success"] = $"User '{userName}' and all associated data deleted successfully.";
 
                     // Audit logging
-                    await _auditService.LogEntityDeletionAsync(user, user.Id, HttpContext);
+                    await _auditService.LogActionAsync("Deleted", "User", user.Id, "User deleted by admin", HttpContext);
 
                     return RedirectToAction(nameof(Index));
                 }
