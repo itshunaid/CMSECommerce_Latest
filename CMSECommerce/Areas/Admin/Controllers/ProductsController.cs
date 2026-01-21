@@ -27,6 +27,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
         private readonly IEmailSender _emailSender = emailSender;
         private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly ILogger<ProductsController> _logger = logger;
+        private readonly IAuditService _auditService = auditService;
 
         // 1. Index Action (Approved Products View with Filtering/Sorting/Pagination)
         public async Task<IActionResult> Index(
@@ -272,6 +273,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     _context.Add(product);
                     await _context.SaveChangesAsync();
 
+                    // Audit logging
+                    await _auditService.LogEntityCreationAsync(product, product.Id.ToString(), HttpContext);
+
                     TempData["Success"] = "The product has been added!";
                     return RedirectToAction("Index");
                 }
@@ -485,6 +489,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 _context.Products.Remove(product);
                 await _context.SaveChangesAsync();
 
+                // Audit logging
+                await _auditService.LogEntityDeletionAsync(product, product.Id.ToString(), HttpContext);
+
                 TempData["Success"] = "The product has been deleted!";
             }
             catch (DbUpdateException dbEx)
@@ -598,6 +605,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 _context.Update(product);
                 await _context.SaveChangesAsync();
 
+                // Audit logging
+                await _auditService.LogStatusChangeAsync("Product", product.Id.ToString(), product.Status.ToString(), ProductStatus.Approved.ToString(), HttpContext);
+
                 // Notification (Email exceptions are caught internally in the utility)
                 if (!string.IsNullOrEmpty(product.OwnerName))
                 {
@@ -672,6 +682,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 product.RejectionReason = reason;
                 _context.Update(product);
                 await _context.SaveChangesAsync();
+
+                // Audit logging
+                await _auditService.LogStatusChangeAsync("Product", product.Id.ToString(), product.Status.ToString(), ProductStatus.Rejected.ToString(), HttpContext);
 
                 // Notification (Email exceptions are caught internally in the utility)
                 if (!string.IsNullOrEmpty(product.OwnerName))

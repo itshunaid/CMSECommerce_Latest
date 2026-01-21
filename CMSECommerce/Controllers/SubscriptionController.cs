@@ -1,6 +1,7 @@
 ﻿using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
 using CMSECommerce.Models.ViewModels;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,10 +19,12 @@ namespace CMSECommerce.Controllers
     {
         private readonly DataContext _context;
         private readonly UserManager<IdentityUser> _userManager;
-        public SubscriptionController(DataContext context, UserManager<IdentityUser> userManager)
+        private readonly IAuditService _auditService;
+        public SubscriptionController(DataContext context, UserManager<IdentityUser> userManager, IAuditService auditService)
         {
             _context = context;
             _userManager = userManager;
+            _auditService = auditService;
         }
 
         // 1. Tier Selection Page
@@ -338,6 +341,9 @@ namespace CMSECommerce.Controllers
 
             await _context.SaveChangesAsync();
 
+            // Audit logging
+            await _auditService.LogActionAsync("Approve Subscription Request", "SubscriptionRequest", requestId.ToString(), $"Approved subscription for user {user.UserName} to tier {request.Tier.Name}", HttpContext);
+
             // Refresh security stamp so the user's "Subscriber" role takes effect immediately
             await _userManager.UpdateSecurityStampAsync(user);
 
@@ -427,6 +433,9 @@ namespace CMSECommerce.Controllers
             _context.SubscriptionRequests.Update(request);
             await _context.SaveChangesAsync();
 
+            // Audit logging
+            await _auditService.LogActionAsync("Revert Subscription Request", "SubscriptionRequest", requestId.ToString(), $"Reverted approval for user {user.UserName} from tier {request.Tier.Name}", HttpContext);
+
             // Invalidate security stamp to force-refresh user's claims/roles in their session
             await _userManager.UpdateSecurityStampAsync(user);
 
@@ -496,6 +505,9 @@ namespace CMSECommerce.Controllers
             // 4. Final Persistence
             _context.SubscriptionRequests.Update(request);
             await _context.SaveChangesAsync();
+
+            // Audit logging
+            await _auditService.LogActionAsync("Reject Subscription Request", "SubscriptionRequest", requestId.ToString(), $"Rejected subscription request. Reason: {reason}", HttpContext);
 
             TempData["Error"] = $"Request for {request.Tier?.Name ?? "Subscription"} Rejected. Reason: {reason}";
             return RedirectToAction(nameof(AdminDashboard));

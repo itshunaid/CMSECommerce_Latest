@@ -372,6 +372,24 @@
                                 </a>
                             </li>
                         }
+
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="auditDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Audit Logs</a>
+                                <ul class="dropdown-menu amz-dropdown-menu" aria-labelledby="auditDropdown">
+                                    <li><h6 class="dropdown-header">General</h6></li>
+                                    <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="AuditLogs" asp-action="Index"><i class="fas fa-list me-2"></i>All Logs</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><h6 class="dropdown-header">Segregated Sections</h6></li>
+                                    <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="AuditLogs" asp-action="UserManagement"><i class="fas fa-users me-2"></i>User Management</a></li>
+                                    <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="AuditLogs" asp-action="ProductApprovals"><i class="fas fa-check-circle me-2"></i>Product Approvals</a></li>
+                                    <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="AuditLogs" asp-action="OrderProcessing"><i class="fas fa-shopping-cart me-2"></i>Order Processing</a></li>
+                                    <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="AuditLogs" asp-action="SubscriptionManagement"><i class="fas fa-file-signature me-2"></i>Subscription Management</a></li>
+                                    <li><a class="dropdown-item amz-dropdown-item" asp-area="Admin" asp-controller="AuditLogs" asp-action="AdminDashboardActions"><i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard Actions</a></li>
+                                </ul>
+                            </li>
+                        }
                     </ul>
 
                     @if (User.IsInRole("Admin"))

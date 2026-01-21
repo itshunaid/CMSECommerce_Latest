@@ -1,5 +1,6 @@
 ﻿using CMSECommerce.Infrastructure;
 using CMSECommerce.Models.ViewModels;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,9 +12,10 @@ namespace CMSECommerce.Areas.Admin.Controllers
     // Based on the original code, I will use [Authorize(Roles = "Admin")] which is the standard, 
     // assuming "Admin" is a role, otherwise keep it as [Authorize("Admin")] if it's a policy name.
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public class OrdersController(DataContext context) : Controller
+    public class OrdersController(DataContext context, IAuditService auditService) : Controller
     {
         private readonly DataContext _context = context;
+        private readonly IAuditService _auditService = auditService;
 
         // Index action now accepts all filter parameters and the current page
         public async Task<IActionResult> Index(
@@ -201,6 +203,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 // 4. Save the main Order changes (Status and ShippedDate)
                 _context.Update(order);
                 await _context.SaveChangesAsync();
+
+                // Audit logging
+                await _auditService.LogActionAsync("Update Order Shipped Status", "Order", id.ToString(), $"Order status updated to {(shipped ? "Shipped" : "Pending")}", HttpContext);
 
                 TempData["Success"] = $"Order ID {id} status has been updated to {(shipped ? "Shipped" : "Pending")}!";
             }

@@ -14,13 +14,15 @@ namespace CMSECommerce.Controllers
                                  DataContext context,
                                  UserManager<IdentityUser> userManager,
                                  SignInManager<IdentityUser> signInManager,
-                                 IEmailService emailService
+                                 IEmailService emailService,
+                                 IAuditService auditService
                                  /*, ILogger<OrdersController> logger */) : BaseController
     {
         private readonly DataContext _context = context;
         private readonly SignInManager<IdentityUser> _signInManager = signInManager;
         private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly IEmailService _emailService = emailService;
+        private readonly IAuditService _auditService = auditService;
         // private readonly ILogger<OrdersController> _logger = logger; // Uncomment if logging is enabled
 
         public IActionResult Index()
@@ -197,6 +199,10 @@ namespace CMSECommerce.Controllers
 
                 _context.Update(order);
                 await _context.SaveChangesAsync();
+
+                // Audit logging
+                await _auditService.LogActionAsync("Cancel Order", "Order", orderId.ToString(), $"Order cancelled by customer. Reason: {reason}", HttpContext);
+
                 TempData["Success"] = $"Order #{orderId} cancelled successfully.";
             }
             catch (Exception)
