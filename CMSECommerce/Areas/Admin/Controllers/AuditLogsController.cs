@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CMSECommerce.Areas.Admin.Models;
 using CMSECommerce.Infrastructure;
+using CMSECommerce.Models;
 
 namespace CMSECommerce.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin, SuperAdmin")]
     public class AuditLogsController : Controller
     {
         private readonly DataContext _context;
@@ -15,6 +16,87 @@ namespace CMSECommerce.Areas.Admin.Controllers
         public AuditLogsController(DataContext context)
         {
             _context = context;
+        }
+
+        // GET: Admin/AuditLogs
+        public async Task<IActionResult> Index(
+            string searchUser,
+            string searchAction,
+            string searchEntityType,
+            DateTime? startDate,
+            DateTime? endDate,
+            int? pageNumber,
+            int pageSize = 20)
+        {
+            int currentPage = pageNumber ?? 1;
+
+            var query = _context.AuditLogs
+                .Include(a => a.User)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchUser))
+            {
+                query = query.Where(a => a.User.UserName.Contains(searchUser) ||
+                                        a.User.Email.Contains(searchUser));
+            }
+
+            if (!string.IsNullOrEmpty(searchAction))
+            {
+                query = query.Where(a => a.Action.Contains(searchAction));
+            }
+
+            if (!string.IsNullOrEmpty(searchEntityType))
+            {
+                query = query.Where(a => a.EntityType.Contains(searchEntityType));
+            }
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(a => a.Timestamp >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(a => a.Timestamp <= endDate.Value);
+            }
+
+            query = query.OrderByDescending(a => a.Timestamp);
+
+            var totalCount = await query.CountAsync();
+            var auditLogs = await query
+                .Skip((currentPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var viewModel = new AuditLogsViewModel
+            {
+                AuditLogs = auditLogs,
+                CurrentPage = currentPage,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+                PageSize = pageSize,
+                SearchUser = searchUser,
+                SearchAction = searchAction,
+                SearchEntityType = searchEntityType,
+                StartDate = startDate,
+                EndDate = endDate
+            };
+
+            return View(viewModel);
+        }
+
+        // GET: Admin/AuditLogs/Details/5
+        public async Task<IActionResult> Details(int id)
+        {
+            var auditLog = await _context.AuditLogs
+                .Include(a => a.User)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (auditLog == null)
+            {
+                return NotFound();
+            }
+
+            return View(auditLog);
         }
 
         // GET: Admin/AuditLogs/GetActions

@@ -1,0 +1,96 @@
+@model CMSECommerce.Models.AuditLog
+
+@{
+    ViewData["Title"] = "Audit Log Details";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Audit Log Details</h3>
+                    <a href="@Url.Action("Index")" class="btn btn-secondary float-right">Back to List</a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Basic Information</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>ID:</strong></td>
+                                    <td>@Model.Id</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Timestamp:</strong></td>
+                                    <td>@Model.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>User:</strong></td>
+                                    <td>@(Model.User?.UserName ?? "System")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Action:</strong></td>
+                                    <td>@Model.Action</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Entity Type:</strong></td>
+                                    <td>@Model.EntityType</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Entity ID:</strong></td>
+                                    <td>@Model.EntityId</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Technical Details</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>IP Address:</strong></td>
+                                    <td>@Model.IpAddress</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>User Agent:</strong></td>
+                                    <td><small>@Model.UserAgent</small></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Session ID:</strong></td>
+                                    <td>@Model.SessionId</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Controller:</strong></td>
+                                    <td>@Model.Controller</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Action Method:</strong></td>
+                                    <td>@Model.ActionMethod</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.OldValues))
+                    {
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>Old Values</h6>
+                                <pre class="bg-light p-2 rounded"><code>@Model.OldValues</code></pre>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.NewValues))
+                    {
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>New Values</h6>
+                                <pre class="bg-light p-2 rounded"><code>@Model.NewValues</code></pre>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
