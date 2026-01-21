@@ -1,4 +1,5 @@
 ﻿using CMSECommerce.Infrastructure;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,11 +11,13 @@ using Microsoft.EntityFrameworkCore;
 public class SubscriberRequestsController(
     DataContext context,
     UserManager<IdentityUser> userManager,
-    ILogger<SubscriberRequestsController> logger) : Controller // ADDED ILogger
+    ILogger<SubscriberRequestsController> logger,
+    IAuditService auditService) : Controller // ADDED ILogger
 {
     private readonly DataContext _context = context;
     private readonly UserManager<IdentityUser> _userManager = userManager;
     private readonly ILogger<SubscriberRequestsController> _logger = logger; // ADDED logger field
+    private readonly IAuditService _auditService = auditService;
 
     // -----------------------------------------------------------------
     // R - READ (Index & Details)
@@ -162,6 +165,9 @@ public class SubscriberRequestsController(
                 _context.Update(request);
                 await _context.SaveChangesAsync();
                 TempData["success"] = message;
+
+                // Audit logging
+                await _auditService.LogActionAsync(adminAction == "Approve" ? "Approve Subscriber Request" : "Reject Subscriber Request", "SubscriberRequest", request.Id.ToString(), adminAction == "Approve" ? $"Approved subscriber request for user {request.UserName}" : $"Rejected subscriber request for user {request.UserName}. Notes: {adminNotes}", HttpContext);
             }
         }
         catch (DbUpdateException dbEx)
@@ -203,6 +209,9 @@ public class SubscriberRequestsController(
             await _context.SaveChangesAsync();
 
             TempData["success"] = $"Request for {request.UserName} has been permanently deleted.";
+
+            // Audit logging
+            await _auditService.LogEntityDeletionAsync(request, request.Id.ToString(), HttpContext);
         }
         catch (DbUpdateException dbEx)
         {

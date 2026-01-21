@@ -1,4 +1,5 @@
 ﻿using CMSECommerce.Infrastructure;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,11 +22,13 @@ namespace CMSECommerce.Areas.Admin.Controllers
     {
         private readonly DataContext _context;
         private readonly ILogger<CategoriesController> _logger;
+        private readonly IAuditService _auditService;
 
-        public CategoriesController(DataContext context, ILogger<CategoriesController> logger)
+        public CategoriesController(DataContext context, ILogger<CategoriesController> logger, IAuditService auditService)
         {
             _context = context;
             _logger = logger;
+            _auditService = auditService;
         }
 
         public async Task<IActionResult> Index()
@@ -85,6 +88,10 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 _context.Categories.Add(category);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "The category has been added!";
+
+                // Audit logging
+                await _auditService.LogEntityCreationAsync(category, category.Id.ToString(), HttpContext);
+
                 return RedirectToAction(nameof(Index));
             }
 
@@ -142,9 +149,16 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                 try
                 {
+                    // Get the old category for audit logging
+                    var oldCategory = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == category.Id);
+
                     _context.Update(category);
                     await _context.SaveChangesAsync();
                     TempData["Success"] = "The category has been updated!";
+
+                    // Audit logging
+                    await _auditService.LogEntityUpdateAsync(oldCategory, category, category.Id.ToString(), HttpContext);
+
                     return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException ex)
@@ -186,6 +200,10 @@ namespace CMSECommerce.Areas.Admin.Controllers
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
             TempData["Success"] = "Category deleted.";
+
+            // Audit logging
+            await _auditService.LogEntityDeletionAsync(category, category.Id.ToString(), HttpContext);
+
             return RedirectToAction(nameof(Index));
         }
 
@@ -240,6 +258,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     TempData["Success"] = $"{newCategories.Count} categories added.";
+
+                    // Audit logging
+                    await _auditService.LogActionAsync("Bulk Create Categories", "Category", string.Join(",", newCategories.Select(c => c.Id)), $"{newCategories.Count} categories created via bulk upload", HttpContext);
                 }
                 else
                 {

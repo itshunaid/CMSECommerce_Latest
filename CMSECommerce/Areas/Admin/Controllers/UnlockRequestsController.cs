@@ -23,13 +23,17 @@ namespace CMSECommerce.Areas.Admin.Controllers
             DataContext context,
             UserManager<IdentityUser> userManager,
             ILogger<UnlockRequestsController> logger,
-            IEmailService emailService)
+            IEmailService emailService,
+            IAuditService auditService)
         {
             _context = context;
             _userManager = userManager;
             _logger = logger;
             _emailService = emailService;
+            _auditService = auditService;
         }
+
+        private readonly IAuditService _auditService;
 
         // GET: Admin/UnlockRequests
         public async Task<IActionResult> Index()
@@ -119,6 +123,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     }
 
                     TempData["success"] = $"Unlock request for {unlockRequest.UserName} has been approved.";
+
+                    // Audit logging
+                    await _auditService.LogActionAsync("Approve Unlock Request", "UnlockRequest", unlockRequest.Id.ToString(), $"Approved unlock request for user {unlockRequest.UserName}", HttpContext);
                 }
                 else
                 {

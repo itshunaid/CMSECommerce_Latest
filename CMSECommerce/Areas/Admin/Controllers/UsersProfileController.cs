@@ -1,4 +1,5 @@
 ﻿using CMSECommerce.Infrastructure;
+using CMSECommerce.Services;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -17,7 +18,8 @@ namespace CMSECommerce.Areas.Admin.Controllers
         RoleManager<IdentityRole> roleManager,
         DataContext context,
         IWebHostEnvironment webHostEnvironment,
-        ILogger<UsersProfileController> logger) : Controller
+        ILogger<UsersProfileController> logger,
+        IAuditService auditService) : Controller
     {
         // Fields are automatically initialized by the primary constructor in modern C# (>= 12).
         // While defining the fields explicitly below is redundant, it is kept here for clarity
@@ -27,6 +29,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
         private readonly DataContext _context = context;
         private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
         private readonly ILogger<UsersProfileController> _logger = logger;
+        private readonly IAuditService _auditService = auditService;
 
         // GET: /admin/user/pendingimageapprovals
         [HttpGet("pendingimageapprovals")]
@@ -153,6 +156,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 }
 
                 TempData["SuccessMessage"] = $"Profile image for user ID {userId} has been **rejected** and removed. The user must upload a new image.";
+
+                // Audit logging
+                await _auditService.LogStatusChangeAsync("UserProfile", userProfile.Id.ToString(), "Pending", "Rejected", HttpContext);
             }
             catch (DbUpdateConcurrencyException dbEx)
             {

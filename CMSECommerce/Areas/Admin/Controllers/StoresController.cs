@@ -1,4 +1,5 @@
 ﻿using CMSECommerce.Infrastructure;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -7,9 +8,10 @@ namespace CMSECommerce.Areas.Admin.Controllers
 {
     [Area("Admin")]
     [Authorize(Roles = "Admin,SuperAdmin")] // Architect Tip: Secure the whole controller, not just one method
-    public class StoresController(DataContext context) : Controller
+    public class StoresController(DataContext context, IAuditService auditService) : Controller
     {
         private readonly DataContext _context = context;
+        private readonly IAuditService _auditService = auditService;
 
         // GET: Admin/Stores
         public async Task<IActionResult> Index(bool? activeOnly)
@@ -60,6 +62,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                // Audit logging
+                await _auditService.LogStatusChangeAsync("Store", store.UserId, !store.IsActive ? "Active" : "Inactive", store.IsActive ? "Active" : "Inactive", HttpContext);
 
                 // 4. Return JSON instead of Redirect for AJAX compatibility
                 return Json(new
