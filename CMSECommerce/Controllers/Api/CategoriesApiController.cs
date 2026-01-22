@@ -1,5 +1,6 @@
 using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,10 +11,12 @@ namespace CMSECommerce.Controllers.Api
     public class CategoriesApiController : ControllerBase
     {
         private readonly DataContext _context;
+        private readonly IAuditService _auditService;
 
-        public CategoriesApiController(DataContext context)
+        public CategoriesApiController(DataContext context, IAuditService auditService)
         {
             _context = context;
+            _auditService = auditService;
         }
 
         [HttpGet("tree")]

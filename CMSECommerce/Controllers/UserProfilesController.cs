@@ -1,6 +1,7 @@
 ﻿using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
 using CMSECommerce.Models.ViewModels;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -15,12 +16,14 @@ namespace CMSECommerce.Controllers
         private readonly DataContext _context;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IAuditService _auditService;
 
-        public UserProfilesController(DataContext context, UserManager<IdentityUser> userManager, IWebHostEnvironment webHostEnvironment)
+        public UserProfilesController(DataContext context, UserManager<IdentityUser> userManager, IWebHostEnvironment webHostEnvironment, IAuditService auditService)
         {
             _context = context;
             _userManager = userManager;
             _webHostEnvironment = webHostEnvironment;
+            _auditService = auditService;
         }
 
         // GET: UserProfiles/Index

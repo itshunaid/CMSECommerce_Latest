@@ -1,4 +1,5 @@
 using CMSECommerce.Infrastructure;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Playwright;
@@ -10,10 +11,12 @@ namespace CMSECommerce.Controllers
  public class PlaywrightPdfController : BaseController
     {
  private readonly DataContext _context;
+ private readonly IAuditService _auditService;
 
- public PlaywrightPdfController(DataContext context)
+ public PlaywrightPdfController(DataContext context, IAuditService auditService)
  {
  _context = context;
+ _auditService = auditService;
  }
 
  [HttpGet]

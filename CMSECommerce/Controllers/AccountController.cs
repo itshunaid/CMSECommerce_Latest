@@ -2683,6 +2683,28 @@ public class AccountController(
                 _context.UnlockRequests.Add(unlockRequest);
                 await _context.SaveChangesAsync();
 
+                // Send confirmation email to the user
+                try
+                {
+                    var subject = "Account Unlock Request Submitted";
+                    var body = $@"
+                    <h2>Account Unlock Request</h2>
+                    <p>Dear {user.UserName},</p>
+                    <p>Your account unlock request has been successfully submitted.</p>
+                    <p>An administrator will review your request shortly. You will receive another email once the request is approved or rejected.</p>
+                    <p>If you have any questions, please contact support.</p>
+                    <br>
+                    <p>Best regards,<br>Weypaari Team</p>";
+
+                    await _emailService.SendEmailAsync(user.Email, subject, body);
+                    _logger.LogInformation("Unlock request confirmation email sent to {Email}", user.Email);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send unlock request confirmation email to {Email}", user.Email);
+                    // Don't fail the request if email fails
+                }
+
                 TempData["success"] = "Your unlock request has been submitted. An administrator will review it shortly.";
                 return RedirectToAction("Login");
             }

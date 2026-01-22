@@ -18,13 +18,15 @@ namespace CMSECommerce.Controllers
         DataContext context,
         IWebHostEnvironment webHostEnvironment,
         UserManager<IdentityUser> userManager,
-        IUserStatusService userStatusService
+        IUserStatusService userStatusService,
+        IAuditService auditService
     ) : BaseController
     {
         private readonly DataContext _context = context;
         private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
         private readonly UserManager<IdentityUser> _userManager = userManager;
         private readonly IUserStatusService _userStatusService = userStatusService;
+        private readonly IAuditService _auditService = auditService;
 
         [HttpGet("mystore")]
         public async Task<IActionResult> StoreFront(int? id, int p = 1, string search = "", string category = "", string sort = "")

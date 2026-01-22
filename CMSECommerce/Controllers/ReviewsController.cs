@@ -1,4 +1,5 @@
 ﻿using CMSECommerce.Infrastructure;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,9 +9,10 @@ namespace CMSECommerce.Controllers
 {
     // Inject the database context
     // It is highly recommended to also inject ILogger<ReviewsController> for production logging.
-    public class ReviewsController(DataContext context) : BaseController
+    public class ReviewsController(DataContext context, IAuditService auditService) : BaseController
     {
         private readonly DataContext _context = context;
+        private readonly IAuditService _auditService = auditService;
 
         // This action handles the POST request from the review form on the Product page
         [HttpPost]
@@ -61,6 +63,9 @@ namespace CMSECommerce.Controllers
                     // 3. Save the new review
                     _context.Reviews.Add(review);
                     await _context.SaveChangesAsync();
+
+                    // Audit logging
+                    await _auditService.LogEntityCreationAsync(review, review.Id.ToString(), HttpContext);
 
                     TempData["Success"] = "Your review was submitted successfully and is awaiting approval.";
 

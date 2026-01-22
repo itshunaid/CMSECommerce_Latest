@@ -1,15 +1,17 @@
 ﻿using CMSECommerce.Infrastructure;
 using CMSECommerce.Models.ViewModels;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 
 namespace CMSECommerce.Controllers
 {
-    public class CartController(DataContext context, ILogger<CartController> logger) : BaseController
+    public class CartController(DataContext context, ILogger<CartController> logger, IAuditService auditService) : BaseController
     {
         private readonly DataContext _context = context;
         private readonly ILogger<CartController> _logger= logger; // 1. Add this field
+        private readonly IAuditService _auditService = auditService;
 
         // Note: ILogger<CartController> logger is often injected here for real-world logging
 
@@ -120,6 +122,9 @@ namespace CMSECommerce.Controllers
 
                 HttpContext.Session.SetJson("Cart", cart);
                 TempData["success"] = "The product has been added!";
+
+                // Audit log for adding to cart
+                await _auditService.LogActionAsync("AddToCart", "Cart", id.ToString(), $"Added product {product.Name} to cart", HttpContext);
             }
             catch (Exception sessionEx)
             {
@@ -139,7 +144,7 @@ namespace CMSECommerce.Controllers
             // 1. If quantity is 0 or less, remove the item entirely
             if (quantity <= 0)
             {
-                return Remove(id);
+                return await Remove(id);
             }
 
             try
@@ -174,14 +179,17 @@ namespace CMSECommerce.Controllers
                     {
                         cartItem.Quantity = quantity;
                         cartItem.IsOutOfStock = false;
-                        TempData["success"] = $"Updated '{cartItem.ProductName}' quantity to {quantity}.";
+                TempData["success"] = $"Updated '{cartItem.ProductName}' quantity to {quantity}.";
+
+                // Audit log for updating quantity
+                await _auditService.LogActionAsync("UpdateQuantity", "Cart", id.ToString(), $"Updated quantity to {quantity}", HttpContext);
                     }
                 }
                 else
                 {
                     // Product no longer exists in Database
                     TempData["error"] = "This product is no longer available.";
-                    return Remove(id);
+                    return await Remove(id);
                 }
 
                 // 4. Save the updated cart to session
@@ -243,7 +251,7 @@ namespace CMSECommerce.Controllers
             return RedirectToAction("Index");
         }
 
-        public IActionResult Remove(int id)
+        public async Task<IActionResult> Remove(int id)
         {
             try
             {
@@ -267,6 +275,9 @@ namespace CMSECommerce.Controllers
                 }
 
                 TempData["success"] = "The product has been removed!";
+
+                // Audit log for removing from cart
+                await _auditService.LogActionAsync("RemoveFromCart", "Cart", id.ToString(), "Removed product from cart", HttpContext);
             }
             catch (Exception ex)
             {
@@ -277,12 +288,15 @@ namespace CMSECommerce.Controllers
             return RedirectToAction("Index");
         }
 
-        public IActionResult Clear()
+        public async Task<IActionResult> Clear()
         {
             try
             {
                 HttpContext.Session.Remove("Cart");
                 TempData["success"] = "Your cart has been cleared!";
+
+                // Audit log for clearing cart
+                await _auditService.LogActionAsync("ClearCart", "Cart", null, "Cleared entire cart", HttpContext);
             }
             catch (Exception ex)
             {

@@ -1,12 +1,14 @@
 ﻿using CMSECommerce.Infrastructure;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CMSECommerce.Controllers
 {
-    public class PagesController(DataContext context) : BaseController
+    public class PagesController(DataContext context, IAuditService auditService) : BaseController
     {
         private readonly DataContext _context = context;
+        private readonly IAuditService _auditService = auditService;
 
         public async Task<IActionResult> Index(string slug = "")
         {
