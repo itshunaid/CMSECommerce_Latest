@@ -719,65 +719,68 @@ namespace CMSECommerce.Areas.Admin.Controllers
             return RedirectToAction("PendingProducts");
         }
 
-        // Helper: build hierarchical select list of categories
-        private IEnumerable<SelectListItem> BuildCategorySelectList(int? selectedId = null)
+        // Helper method to build hierarchical category select list (adapted from Seller logic)
+        private SelectList BuildCategorySelectList(int selectedCategoryId = 0)
         {
             try
             {
-                var cats = _context.Categories.AsNoTracking().OrderBy(c => c.Name).ToList();
+                var categories = _context.Categories
+                    .OrderBy(c => c.Level)
+                    .ThenBy(c => c.Name)
+                    .ToList();
 
-                // If no categories in database, add some defaults
-                if (!cats.Any())
+                // If no categories in database, use defaults for immediate functionality
+                if (!categories.Any())
                 {
-                    cats = new List<Category>
+                    _logger.LogWarning("No categories found in database. Using default categories for immediate functionality.");
+                    categories = new List<Category>
                     {
-                        new Category { Id = 1, Name = "Electronics", Slug = "electronics", ParentId = null, Level = 0 },
-                        new Category { Id = 2, Name = "Clothing", Slug = "clothing", ParentId = null, Level = 0 },
-                        new Category { Id = 3, Name = "Home & Garden", Slug = "home-garden", ParentId = null, Level = 0 },
-                        new Category { Id = 4, Name = "Books", Slug = "books", ParentId = null, Level = 0 },
-                        new Category { Id = 5, Name = "Sports", Slug = "sports", ParentId = null, Level = 0 },
-                        new Category { Id = 6, Name = "Health & Beauty", Slug = "health-beauty", ParentId = null, Level = 0 },
-                        new Category { Id = 7, Name = "Toys & Games", Slug = "toys-games", ParentId = null, Level = 0 },
-                        new Category { Id = 8, Name = "Automotive", Slug = "automotive", ParentId = null, Level = 0 }
+                        new Category { Id = 1, Name = "Apparel & Fashion", Slug = "apparel-fashion", ParentId = null, Level = 0 },
+                        new Category { Id = 2, Name = "Food & Refreshments", Slug = "food-refreshments", ParentId = null, Level = 0 },
+                        new Category { Id = 3, Name = "Home & Industry", Slug = "home-industry", ParentId = null, Level = 0 },
+                        new Category { Id = 4, Name = "Health & Care", Slug = "health-care", ParentId = null, Level = 0 },
+                        new Category { Id = 5, Name = "Professional Services", Slug = "professional-services", ParentId = null, Level = 0 },
+                        new Category { Id = 6, Name = "Gems & Jewelry", Slug = "gems-jewelry", ParentId = null, Level = 0 },
+                        new Category { Id = 7, Name = "Gifts & Stationery", Slug = "gifts-stationery", ParentId = null, Level = 0 },
+                        new Category { Id = 8, Name = "Electronics", Slug = "electronics", ParentId = null, Level = 0 },
+                        new Category { Id = 9, Name = "Books", Slug = "books", ParentId = null, Level = 0 },
+                        new Category { Id = 10, Name = "Sports", Slug = "sports", ParentId = null, Level = 0 }
                     };
                 }
 
-                var byParent = cats.GroupBy(c => c.ParentId).ToDictionary(g => g.Key, g => g.OrderBy(x => x.Name).ToList());
-                var items = new List<SelectListItem>();
+                var selectListItems = new List<SelectListItem>();
 
-                void AddChildren(int? parentId, string prefix)
+                foreach (var category in categories)
                 {
-                    if (!byParent.ContainsKey(parentId)) return;
-                    foreach (var c in byParent[parentId])
+                    var indent = new string('—', category.Level);
+                    selectListItems.Add(new SelectListItem
                     {
-                        items.Add(new SelectListItem
-                        {
-                            Value = c.Id.ToString(),
-                            Text = prefix + c.Name,
-                            Selected = selectedId.HasValue && selectedId.Value == c.Id
-                        });
-                        AddChildren(c.Id, prefix + "— ");
-                    }
+                        Value = category.Id.ToString(),
+                        Text = $"{indent} {category.Name}",
+                        Selected = category.Id == selectedCategoryId
+                    });
                 }
 
-                AddChildren(null, "");
-                return items;
+                return new SelectList(selectListItems, "Value", "Text");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to build category select list.");
+                _logger.LogError(ex, "Failed to build category select list. Returning default categories.");
                 // Return default categories as fallback
-                return new List<SelectListItem>
+                var defaultItems = new List<SelectListItem>
                 {
-                    new SelectListItem { Value = "1", Text = "Electronics" },
-                    new SelectListItem { Value = "2", Text = "Clothing" },
-                    new SelectListItem { Value = "3", Text = "Home & Garden" },
-                    new SelectListItem { Value = "4", Text = "Books" },
-                    new SelectListItem { Value = "5", Text = "Sports" },
-                    new SelectListItem { Value = "6", Text = "Health & Beauty" },
-                    new SelectListItem { Value = "7", Text = "Toys & Games" },
-                    new SelectListItem { Value = "8", Text = "Automotive" }
+                    new SelectListItem { Value = "1", Text = "Apparel & Fashion" },
+                    new SelectListItem { Value = "2", Text = "Food & Refreshments" },
+                    new SelectListItem { Value = "3", Text = "Home & Industry" },
+                    new SelectListItem { Value = "4", Text = "Health & Care" },
+                    new SelectListItem { Value = "5", Text = "Professional Services" },
+                    new SelectListItem { Value = "6", Text = "Gems & Jewelry" },
+                    new SelectListItem { Value = "7", Text = "Gifts & Stationery" },
+                    new SelectListItem { Value = "8", Text = "Electronics" },
+                    new SelectListItem { Value = "9", Text = "Books" },
+                    new SelectListItem { Value = "10", Text = "Sports" }
                 };
+                return new SelectList(defaultItems, "Value", "Text");
             }
         }
     }

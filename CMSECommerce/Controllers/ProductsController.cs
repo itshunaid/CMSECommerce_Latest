@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
 using System.Reflection.Metadata;
 using System.Security.Claims;
 
@@ -308,13 +309,15 @@ namespace CMSECommerce.Controllers
                 TempData["Error"] = "Invalid product identifier.";
                 return RedirectToAction("Index");
             }
+            // FIX: Decode the slug (e.g., convert %2F back to /)
+            string decodedSlug = WebUtility.UrlDecode(slug);
 
             Product product = null;
 
             try
             {
                 product = await _context.Products
-                    .Where(x => x.Slug == slug)
+                    .Where(x => x.Slug == decodedSlug)
                     .Include(x => x.Category)
                     .Include(x => x.Reviews)
                     .AsNoTracking()
@@ -322,7 +325,7 @@ namespace CMSECommerce.Controllers
 
                 if (product == null)
                 {
-                    TempData["Warning"] = $"The product with slug '{slug}' was not found.";
+                    TempData["Warning"] = $"The product with slug '{decodedSlug}' was not found.";
                     return RedirectToAction("Index");
                 }
 

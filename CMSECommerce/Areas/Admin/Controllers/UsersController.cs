@@ -990,6 +990,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 // Save changes to delete custom records from your DataContext
                 await _context.SaveChangesAsync(); // Database operation
 
+                // Force logout by updating security stamp to invalidate any active sessions
+                await _userManager.UpdateSecurityStampAsync(user);
+
                 // --- 2. Delete the IdentityUser ---
                 IdentityResult result = await _userManager.DeleteAsync(user); // Identity operation
 
