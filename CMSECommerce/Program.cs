@@ -32,9 +32,26 @@ var connectionString = builder.Configuration.GetConnectionString("DbConnection")
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlServer(connectionString)
 );
+
+// Identity Configuration
+builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+    .AddEntityFrameworkStores<DataContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+{
+    // This tells Identity to validate the user against the database 
+    // on every single request. Use a small value like 1 second if 
+    // you want "immediate" effect.
+    options.ValidationInterval = TimeSpan.FromSeconds(0);
+});
+
+
+
 builder.Services.AddHostedService<SubscriptionExpiryService>();
 
 builder.Services.AddDistributedMemoryCache();
+
 
 
 builder.Services.AddSession(options =>
@@ -43,10 +60,7 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-// Identity Configuration
-builder.Services.AddIdentity<IdentityUser, IdentityRole>()
-    .AddEntityFrameworkStores<DataContext>()
-    .AddDefaultTokenProviders();
+
 
 builder.Services.ConfigureApplicationCookie(options =>
 {

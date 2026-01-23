@@ -1,4 +1,4 @@
-﻿using CMSECommerce.Areas.Admin.Models; // Assumed namespace for ViewModels
+﻿﻿﻿using CMSECommerce.Areas.Admin.Models; // Assumed namespace for ViewModels
 using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
@@ -886,6 +886,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
+            // 1. Initial Check
             var user = await _userManager.FindByIdAsync(id);
             if (user == null)
             {
@@ -894,43 +895,39 @@ namespace CMSECommerce.Areas.Admin.Controllers
             }
 
             string userName = user.UserName;
+            // Check if the person performing the delete is deleting their own account
+            bool isCurrentUser = _userManager.GetUserId(User) == id;
 
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
-                // --- 1. Find and Delete Dependent Records (CRITICAL STEP) ---
+                // --- 2. Delete Dependent Records (Cleanup) ---
 
-                // a. Delete UserStatusTracker
+                // a. Status Tracker
                 var userStatus = await _context.UserStatuses.FirstOrDefaultAsync(us => us.UserId == id);
-                if (userStatus != null)
-                {
-                    _context.UserStatuses.Remove(userStatus);
-                }
+                if (userStatus != null) _context.UserStatuses.Remove(userStatus);
 
-                // b. Delete ChatMessages (both as sender and recipient)
+                // b. Chat Messages
                 var chatMessages = await _context.ChatMessages
-                    .Where(cm => cm.SenderId == id || cm.RecipientId == id)
-                    .ToListAsync();
+                    .Where(cm => cm.SenderId == id || cm.RecipientId == id).ToListAsync();
                 _context.ChatMessages.RemoveRange(chatMessages);
 
-                // c. Delete UnlockRequests
+                // c, d, e. Requests
                 var unlockRequests = await _context.UnlockRequests.Where(ur => ur.UserId == id).ToListAsync();
                 _context.UnlockRequests.RemoveRange(unlockRequests);
 
-                // d. Delete SubscriptionRequests
                 var subscriptionRequests = await _context.SubscriptionRequests.Where(sr => sr.UserId == id).ToListAsync();
                 _context.SubscriptionRequests.RemoveRange(subscriptionRequests);
 
-                // e. Delete SubscriberRequests
                 var subscriberRequests = await _context.SubscriberRequests.Where(r => r.UserId == id).ToListAsync();
                 _context.SubscriberRequests.RemoveRange(subscriberRequests);
 
-                // f. Delete Reviews
+                // f. Reviews
                 var reviews = await _context.Reviews.Where(r => r.UserId == id).ToListAsync();
                 _context.Reviews.RemoveRange(reviews);
 
-                // g. Delete Orders and OrderDetails (historical data, but delete if user is being removed)
+                // g. Orders & Details
                 var orders = await _context.Orders.Where(o => o.UserId == id).ToListAsync();
                 if (orders.Any())
                 {
@@ -940,100 +937,93 @@ namespace CMSECommerce.Areas.Admin.Controllers
                     _context.Orders.RemoveRange(orders);
                 }
 
-                // h. Delete Stores (and their products will be deleted via cascade)
+                // h. Stores
                 var stores = await _context.Stores.Where(s => s.UserId == id).ToListAsync();
                 _context.Stores.RemoveRange(stores);
 
-                // i. Delete Products (both by OwnerName and UserId)
+                // i. Products
                 var userProducts = await _context.Products
-                    .Where(p => p.OwnerName == user.UserName || p.OwnerName == user.Id || p.UserId == id)
-                    .ToListAsync();
+                    .Where(p => p.OwnerName == user.UserName || p.OwnerName == user.Id || p.UserId == id).ToListAsync();
                 _context.Products.RemoveRange(userProducts);
 
-                // j. Delete UserProfile and associated files
+                // j. UserProfile & Physical Files
                 var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == id);
                 if (userProfile != null)
                 {
-                    // Delete associated physical files (Image/QRCode)
-                    if (!string.IsNullOrEmpty(userProfile.ProfileImagePath))
-                    {
-                        string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, userProfile.ProfileImagePath.TrimStart('/'));
-                        if (System.IO.File.Exists(fullPath))
-                        {
-                            System.IO.File.Delete(fullPath); // File System Operation
-                        }
-                    }
-                    if (!string.IsNullOrEmpty(userProfile.GpayQRCodePath))
-                    {
-                        string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, userProfile.GpayQRCodePath.TrimStart('/'));
-                        if (System.IO.File.Exists(fullPath))
-                        {
-                            System.IO.File.Delete(fullPath);
-                        }
-                    }
-                    if (!string.IsNullOrEmpty(userProfile.PhonePeQRCodePath))
-                    {
-                        string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, userProfile.PhonePeQRCodePath.TrimStart('/'));
-                        if (System.IO.File.Exists(fullPath))
-                        {
-                            System.IO.File.Delete(fullPath);
-                        }
-                    }
-
+                    DeletePhysicalFile(userProfile.ProfileImagePath);
+                    DeletePhysicalFile(userProfile.GpayQRCodePath);
+                    DeletePhysicalFile(userProfile.PhonePeQRCodePath);
                     _context.UserProfiles.Remove(userProfile);
                 }
 
-                // k. Delete Address records
+                // k. Addresses
                 var userAddresses = await _context.Addresses.Where(a => a.UserId == id).ToListAsync();
                 _context.Addresses.RemoveRange(userAddresses);
 
-                // Save changes to delete custom records from your DataContext
-                await _context.SaveChangesAsync(); // Database operation
+                // Save custom entity changes first
+                await _context.SaveChangesAsync();
 
-                // Force logout by updating security stamp to invalidate any active sessions
+                // --- 3. THE KILL SWITCH: Global Logout & Identity Deletion ---
+
+                // UpdateSecurityStamp invalidates the cookie on every other device.
+                // On the next request, the cookie won't match the DB, forcing logout.
                 await _userManager.UpdateSecurityStampAsync(user);
 
-                // --- 2. Delete the IdentityUser ---
-                IdentityResult result = await _userManager.DeleteAsync(user); // Identity operation
+                // Delete the core Identity User
+                IdentityResult result = await _userManager.DeleteAsync(user);
 
                 if (result.Succeeded)
                 {
                     await transaction.CommitAsync();
-                    TempData["success"] = $"User '{userName}' and all associated data deleted successfully.";
 
                     // Audit logging
-                    await _auditService.LogActionAsync("Deleted", "User", user.Id, "User deleted by admin", HttpContext);
+                    await _auditService.LogActionAsync("Deleted", "User", id, $"User {userName} and all data removed.", HttpContext);
 
+                    // 4. Handle Local Session
+                    if (isCurrentUser)
+                    {
+                        // If I am deleting myself, clear my current session cookie immediately
+                        await _signInManager.SignOutAsync();
+                        return RedirectToAction("Login", "Account");
+                    }
+
+                    TempData["success"] = $"User '{userName}' and all associated data deleted successfully.";
                     return RedirectToAction(nameof(Index));
                 }
 
-                // Handle Identity Manager errors (e.g., if roles/claims removal failed)
-                string errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                _logger.LogError("Identity error deleting user {UserName}. Errors: {Errors}", userName, errors);
-                TempData["error"] = $"Error deleting core user record: {errors}";
-            }
-            catch (DbUpdateException dbEx)
-            {
+                // Handle Errors
                 await transaction.RollbackAsync();
-                _logger.LogError(dbEx, "Database error deleting user ID: {UserId} and associated records.", id);
-                TempData["error"] = "A database error occurred while deleting the user. Ensure all foreign key constraints are handled.";
-            }
-            catch (IOException ioEx)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ioEx, "File system error during user deletion for ID: {UserId}", id);
-                TempData["error"] = "File error occurred while deleting user profile data. The user was not deleted from the database.";
+                AddIdentityErrors(result);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "Unexpected error deleting user ID: {UserId}", id);
-                TempData["error"] = "An unexpected error occurred during user deletion.";
+                _logger.LogError(ex, "Error deleting user ID: {UserId}", id);
+                TempData["error"] = "A technical error occurred. The user was not deleted.";
             }
 
             return RedirectToAction(nameof(Index));
         }
 
+        // --- Helper Methods to keep logic DRY ---
+
+        private void DeletePhysicalFile(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return;
+
+            string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, path.TrimStart('/'));
+            if (System.IO.File.Exists(fullPath))
+            {
+                try { System.IO.File.Delete(fullPath); }
+                catch (Exception ex) { _logger.LogWarning(ex, "Could not delete file at {Path}", fullPath); }
+            }
+        }
+
+        private void AddIdentityErrors(IdentityResult result)
+        {
+            string errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            TempData["error"] = $"Identity Error: {errors}";
+        }
         [HttpGet]
         public async Task<IActionResult> ExportUsersCsv()
         {
