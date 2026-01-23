@@ -114,6 +114,71 @@
             align-items: center;
             white-space: nowrap;
         }
+
+    /* Card Styling */
+    .product-card {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
+    }
+
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+    .card-img-top {
+        height: 200px;
+        object-fit: cover;
+    }
+
+    .card-body {
+        padding: 15px;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: @amazonDarkBlue;
+        margin-bottom: 5px;
+    }
+
+    .card-category {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+
+    .card-price {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: @amazonRed;
+        margin-bottom: 10px;
+    }
+
+    .card-status {
+        margin-bottom: 15px;
+    }
+
+    .card-footer {
+        background: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+        padding: 10px 15px;
+    }
+
+        .card-footer .action-group {
+            justify-content: space-between;
+            gap: 4px;
+        }
+
+            .card-footer .action-group .btn {
+                flex: 1;
+                font-size: 0.8rem;
+                padding: 6px 8px;
+            }
 </style>
 
 <div class="container-fluid py-4">
@@ -174,34 +239,26 @@
         </div>
     </form>
 
-    @* --- Main Inventory Table --- *@
-    <div class="table-responsive shadow-sm rounded">
-        <table class="table table-hover align-middle bg-white border" id="productTable">
-            <thead class="table-dark">
-                <tr>
-                    <th style="width: 100px;">Thumbnail</th>
-                    <th>Product & Category</th>
-                    <th>Price</th>
-                    <th>Status</th>
-                    <th class="text-center" style="min-width: 320px;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.Products)
-                {
-                    <tr>
-                        <td><img src="/media/products/@item.Image" class="product-img rounded border" /></td>
-                        <td>
-                            <div class="fw-bold text-dark">@item.Name</div>
-                            <div class="text-muted small">@item.Category.Name</div>
-                        </td>
-                        <td class="fw-bold" style="color: @amazonPrimaryActionGreen;">@item.Price.ToString("C2")</td>
-                        <td>
-                            <span class="badge @(item.Status == ProductStatus.Approved ? "bg-success" : (item.Status == ProductStatus.Rejected ? "bg-danger" : "bg-warning text-dark"))">
-                                @item.Status
-                            </span>
-                        </td>
-                        <td>
+    @* --- Main Inventory Cards --- *@
+    @if (Model.Products != null && Model.Products.Any())
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+            @foreach (var item in Model.Products)
+            {
+                <div class="col">
+                    <div class="product-card">
+                        <img src="/media/products/@item.Image" class="card-img-top" alt="@item.Name">
+                        <div class="card-body">
+                            <h5 class="card-title">@item.Name</h5>
+                            <div class="card-category">@item.Category.Name</div>
+                            <div class="card-price">@item.Price.ToString("C2")</div>
+                            <div class="card-status">
+                                <span class="badge @(item.Status == ProductStatus.Approved ? "bg-success" : (item.Status == ProductStatus.Rejected ? "bg-danger" : "bg-warning text-dark"))">
+                                    @item.Status
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
                             <div class="action-group">
                                 @* Edit Button *@
                                 <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-info">
@@ -234,12 +291,79 @@
                                     <i class="bi bi-trash me-1"></i> Delete
                                 </a>
                             </div>
-                        </td>
-                    </tr>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-inbox-fill text-muted" style="font-size: 3rem;"></i>
+            <h4 class="text-muted mt-3">No products found</h4>
+            <p class="text-muted">Try adjusting your filters or add a new product.</p>
+        </div>
+    }
+
+    @* --- Pagination --- *@
+    @if (Model.Products != null && Model.Products.TotalPages > 1)
+    {
+        <nav aria-label="Product pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                @if (Model.Products.HasPreviousPage)
+                {
+                    <li class="page-item">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-pageNumber="@(Model.Products.PageIndex - 1)"
+                           asp-route-SearchName="@Model.CurrentSearchName"
+                           asp-route-SearchCategory="@Model.CurrentSearchCategory"
+                           asp-route-sortOrder="@Model.CurrentSortOrder">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </a>
+                    </li>
                 }
-            </tbody>
-        </table>
-    </div>
+                else
+                {
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-left"></i> Previous</span>
+                    </li>
+                }
+
+                @for (int i = Math.Max(1, Model.Products.PageIndex - 2); i <= Math.Min(Model.Products.TotalPages, Model.Products.PageIndex + 2); i++)
+                {
+                    <li class="page-item @(i == Model.Products.PageIndex ? "active" : "")">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-pageNumber="@i"
+                           asp-route-SearchName="@Model.CurrentSearchName"
+                           asp-route-SearchCategory="@Model.CurrentSearchCategory"
+                           asp-route-sortOrder="@Model.CurrentSortOrder">
+                            @i
+                        </a>
+                    </li>
+                }
+
+                @if (Model.Products.HasNextPage)
+                {
+                    <li class="page-item">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-pageNumber="@(Model.Products.PageIndex + 1)"
+                           asp-route-SearchName="@Model.CurrentSearchName"
+                           asp-route-SearchCategory="@Model.CurrentSearchCategory"
+                           asp-route-sortOrder="@Model.CurrentSortOrder">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                }
+                else
+                {
+                    <li class="page-item disabled">
+                        <span class="page-link">Next <i class="bi bi-chevron-right"></i></span>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
 </div>
 
 @* --- Rejection Modal --- *@
