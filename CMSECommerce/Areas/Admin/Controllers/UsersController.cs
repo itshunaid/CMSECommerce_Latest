@@ -19,6 +19,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
         IWebHostEnvironment webHostEnvironment,
         ILogger<UsersController> logger,
         IUserService userService,
+        SignInManager<IdentityUser> signInManager, // ADD THIS
         IAuditService auditService) : Controller
     {
         private readonly UserManager<IdentityUser> _userManager = userManager;
@@ -28,6 +29,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
         private readonly ILogger<UsersController> _logger = logger;
         private readonly IUserService _userService = userService;
         private readonly IAuditService _auditService = auditService;
+        private readonly SignInManager<IdentityUser> _signInManager; // ADD THIS
 
         [HttpGet]
         public async Task<IActionResult> Index()
