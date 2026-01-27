@@ -113,6 +113,8 @@
                                         <i class="fas fa-eye" id="eyeIcon"></i>
                                     </button>
                                 </div>
+                                @* FIX: Added validation span for password error messages *@
+                                <span asp-validation-for="Password" class="text-danger x-small mt-1 d-block"></span>
                             </div>
                             <div class="form-check mb-3">
                                 <input class="form-check-input accent-amazon" type="checkbox" asp-for="RememberMe">
@@ -172,12 +174,11 @@
             background-color: #fcfcfc;
         }
 
-        /* Responsive UI Improvements */
         .amazon-modern-input {
             border: 1px solid #a6a6a6;
             border-radius: 4px;
-            height: 44px; /* Mobile standard touch target */
-            font-size: 16px !important; /* Prevents iOS auto-zoom on focus */
+            height: 44px;
+            font-size: 16px !important;
             padding: 10px 12px;
             transition: all 0.2s;
         }
@@ -256,12 +257,15 @@
             let isRegisterMode = false;
             let currentXHR = null;
 
-            // Validation RegEx
             const itsRegex = /^\d{8}$/;
             const indianMobileRegex = /^(?:\+91|0)?[6-9]\d{9}$/;
             const emailRegex = /^[a-zA-Z0-9._%+-]+@@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-            // 1. DYNAMIC KEYBOARD SWITCHING (Mobile Ergonomics)
+            // FIX: Auto-trigger validation if the field is pre-filled (handles validation postbacks)
+            if ($userInput.val().trim() !== "") {
+                performValidation();
+            }
+
             $userInput.on('input', function() {
                 const val = $(this).val();
                 if (/^\d/.test(val)) {
@@ -270,14 +274,12 @@
                     $(this).attr('inputmode', 'email');
                 }
 
-                // Clear UI on re-type
                 $userInput.css('border-left', '1px solid #a6a6a6');
                 if($dynamicAuthSection.is(':visible')) {
                    hideDynamicFields();
                 }
             });
 
-            // 2. TOGGLE PASSWORD
             $('#togglePassword').on('click', function (e) {
                 e.preventDefault();
                 const $passInput = $('#PasswordInput');
@@ -286,12 +288,10 @@
                 $('#eyeIcon').toggleClass('fa-eye fa-eye-slash');
             });
 
-            // 3. VALIDATION TRIGGER
             $userInput.on('blur', function () {
                 performValidation();
             });
 
-            // Handle mobile keyboard "Go/Enter"
             $userInput.on('keypress', function(e) {
                 if(e.which === 13) {
                     e.preventDefault();
@@ -329,12 +329,15 @@
                         $btnIcon.attr('class', 'fas fa-arrow-right ms-2');
                         $errorSpan.text("Welcome back!").attr('class', 'text-success x-small mt-1 d-block');
                         $userInput.css('border-left', '4px solid #28a745');
-                        setTimeout(() => $('#PasswordInput').focus(), 300);
+
+                        // FIX: Focus password field ONLY if it's currently empty (avoids jumping during error display)
+                        if($('#PasswordInput').val() === "") {
+                            setTimeout(() => $('#PasswordInput').focus(), 300);
+                        }
                     }
                 }).always(() => { $loader.addClass('d-none'); });
             }
 
-            // 4. FORM SUBMISSION
             $loginForm.on('submit', function (e) {
                 if (isRegisterMode) {
                     e.preventDefault();

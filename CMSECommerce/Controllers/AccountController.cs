@@ -139,6 +139,7 @@ public class AccountController(
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
+            // 1. Basic check for Data Annotations (like [Required])
             if (!ModelState.IsValid)
             {
                 return View(model);
@@ -147,19 +148,21 @@ public class AccountController(
             IdentityUser user = null;
             var identifier = model.UserName?.Trim();
 
+            // 2. Validate identifier exists before proceeding to DB lookups
             if (string.IsNullOrEmpty(identifier))
             {
-                ModelState.AddModelError(string.Empty, "Please enter your username, email, ITS or mobile.");
+                ModelState.AddModelError("UserName", "Please enter your username, email, ITS or mobile.");
                 return View(model);
             }
 
-            // Try email
+            // 3. IDENTIFICATION LOGIC: Match identifier against various account fields
+            // Check if identifier is an Email
             if (identifier.Contains("@"))
             {
                 user = await _userManager.FindByEmailAsync(identifier);
             }
 
-            // Try ITS (8 digits) via UserProfile
+            // Check if identifier is an 8-digit ITS number (Unique to this business logic)
             if (user == null && identifier.All(char.IsDigit) && identifier.Length == 8)
             {
                 var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.ITSNumber == identifier);
@@ -169,34 +172,41 @@ public class AccountController(
                 }
             }
 
-            // Try username
+            // Fallback: Check standard Username
             if (user == null)
             {
                 user = await _userManager.FindByNameAsync(identifier);
             }
 
-            // Try phone number
+            // Fallback: Check Phone Number
             if (user == null)
             {
                 user = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == identifier);
             }
 
+            // 4. If no user is found, return error attached to UserName field
+            // This ensures the frontend dynamic JS can show the proper error state
             if (user == null)
             {
-                return InvalidLoginResponse(model);
-            }
-
-            // Check lockout
-            if (await _userManager.IsLockedOutAsync(user))
-            {
-                ViewBag.IsLockedOut = true;
+                ModelState.AddModelError("UserName", "We couldn't find an account with that identifier.");
                 return View(model);
             }
 
+            // 5. Pre-check: Is the account manually locked or temporarily suspended?
+            if (await _userManager.IsLockedOutAsync(user))
+            {
+                ViewBag.IsLockedOut = true; // Triggers the red 'Account Locked' alert box in View
+                ModelState.AddModelError(string.Empty, "Access denied. Your account is currently locked.");
+                return View(model);
+            }
+
+            // 6. PASSWORD AUTHENTICATION: The actual login attempt
+            // lockoutOnFailure: true increments the failed access count for security
             var signInResult = await _sign_in_manager.PasswordSignInAsync(user.UserName, model.Password, model.RememberMe, lockoutOnFailure: true);
 
             if (signInResult.Succeeded)
             {
+                // 7. ONLINE STATUS UPDATE: Optional logic to track active users
                 try
                 {
                     var status = await _context.UserStatuses.FindAsync(user.Id);
@@ -207,37 +217,45 @@ public class AccountController(
                         await _context.SaveChangesAsync();
                     }
                 }
-                catch { }
+                catch { /* Suppress status errors to avoid blocking login */ }
 
-                // Audit log for login
+                // 8. AUDIT TRAIL: Log the successful login event
                 await _auditService.LogActionAsync("Login", "AdminDashboard", user.Id, "User logged in", HttpContext);
+
+                // 9. DYNAMIC REDIRECTION: Route user based on their specific Role
+                // Use _userManager for roles because the User Claims aren't updated until the NEXT request
+                var roles = await _userManager.GetRolesAsync(user);
 
                 if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                 {
                     return Redirect(model.ReturnUrl);
                 }
-                if (User.IsInRole("Admin"))
-                {
+
+                if (roles.Contains("Admin"))
                     return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
-                }
-                if (User.IsInRole("SuperAdmin"))
-                {
+
+                if (roles.Contains("SuperAdmin"))
                     return RedirectToAction("Index", "Dashboard", new { area = "SuperAdmin" });
-                }
-                if (User.IsInRole("Subscriber"))
-                {
+
+                if (roles.Contains("Subscriber"))
                     return RedirectToAction("Index", "Dashboard", new { area = "Seller" });
-                }
+
                 return RedirectToAction("Index", "Home");
             }
 
+            // 10. ERROR HANDLING: Sign-in failed
             if (signInResult.IsLockedOut)
             {
-                ViewBag.IsLockedOut = true;
+                ViewBag.IsLockedOut = true; // Triggers the UI lock message
                 return View(model);
             }
 
-            return InvalidLoginResponse(model);
+            // 11. SPECIFIC PASSWORD ERROR: This is the fix for your missing validation message.
+            // By targeting "Password", the asp-validation-for="Password" span in HTML will populate.
+            ModelState.AddModelError("Password", "The password you entered is incorrect. Please try again.");
+
+            // Return the model to the view so the UserName stays filled and the JS can re-show the password field
+            return View(model);
         }
 
         [HttpGet]
