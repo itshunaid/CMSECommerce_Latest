@@ -1,9 +1,7 @@
-# TODO: Switch Admin Products Page to Card-Based Layout
-
-## Steps to Complete:
-- [x] Update CSS styling for cards to match Amazon theme
-- [x] Replace table with Bootstrap grid for responsive cards
-- [x] Design each product card with image, details, and actions
-- [x] Add pagination links after the cards
-- [x] Preserve slider preview, filter form, and pagination
-- [x] Test responsiveness and functionality (build successful)
+- [x] Add toggle button in control-plane div next to existing buttons
+- [x] Wrap existing grid (row div) in div with id="grid-view"
+- [x] Add new table structure for list view with id="list-view", initially hidden
+- [x] Populate table rows with user data and action forms
+- [x] Add JavaScript toggleView() function to switch views and update button text
+- [x] Modify filterTable() to work with both grid and list views
+- [x] Ensure responsive design for the table
