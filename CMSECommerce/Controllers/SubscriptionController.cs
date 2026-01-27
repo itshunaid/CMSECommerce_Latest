@@ -80,7 +80,7 @@ namespace CMSECommerce.Controllers
 
             if (userProfile == null)
             {
-                TempData["Error"] = "Please update your profile first.";
+               // TempData["Error"] = "Please update your profile first.";
                 return RedirectToAction("Create", "UserProfiles", new { isNewProfile = true, tierId = tierId, callingFrom="Subscription" });
             }
 

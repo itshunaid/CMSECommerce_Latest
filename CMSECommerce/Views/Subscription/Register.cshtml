@@ -144,12 +144,13 @@
     </div>
 
     <!-- Pay with UPI Button (Mobile Only) -->
-    <button type="button"
-            class="btn btn-success fw-bold d-md-none w-100"
-            style="font-size:0.85rem;border-radius:8px;"
-            onclick="payViaUPI()">
-        <i class="fas fa-wallet me-2"></i> Pay with any UPI
-    </button>
+                            <button type="button"
+                                    id="upiBtn"
+                                    class="btn btn-success fw-bold d-none d-md-block d-lg-none w-100"
+                                    style="font-size:0.85rem;border-radius:8px;"
+                                    onclick="payViaUPI()">
+                                <i class="fas fa-wallet me-2"></i> Pay with any UPI
+                            </button>
 
 </div>
 
@@ -248,21 +249,46 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 
-<script>
-    function payViaUPI() {
+    <script>
+        function payViaUPI() {
+            // Detect if the user is on a mobile device
+            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-        const upiUrl =
+            if (!isMobile) {
+                Swal.fire({
+                    title: "Desktop Detected",
+                    text: "UPI apps can only be opened on mobile devices. Please scan the QR code with your phone to pay.",
+                    icon: "info"
+                });
+                return;
+            }
+
+            //const upiUrl = "upi://pay?pa=abbas99631848@barodampay&pn=ABBAS%20KANCHWALA&am=@Model.FinalAmount&cu=INR&tn=Weypaari%20Subscription";
+            const upiUrl =
             "upi://pay" +
             "?pa=abbas99631848@barodampay" +        // UPI ID
             "&pn=ABBAS%20KANCHWALA" +               // Payee Name
-            "&am=@Model.FinalAmount" +              // Amount
+            "&am=" + @Model.FinalAmount +           // Amount
             "&cu=INR" +
             "&tn=Weypaari%20Subscription";          // Transaction Note
 
-        // Redirect to installed UPI app
-        window.location.href = upiUrl;
-    }
-</script>
+            // Try-Catch won't catch ERR_UNKNOWN_URL_SCHEME, so we use the timer trick
+            const start = Date.now();
+            window.location.href = upiUrl;
+
+            // If the browser is still active after 500ms, the app likely didn't open
+            setTimeout(() => {
+                if (Date.now() - start < 1500) {
+                    Swal.fire({
+                        title: "Opening UPI App...",
+                        text: "If no app opened, your browser might be blocking the request. Please use the QR code above.",
+                        icon: "warning",
+                        confirmButtonText: "Okay"
+                    });
+                }
+            }, 1000);
+        }
+    </script>
 
 
 }
