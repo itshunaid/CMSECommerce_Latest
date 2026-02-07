@@ -14,3 +14,9 @@ VALUES
 SET IDENTITY_INSERT SubscriptionTiers OFF;
 
 Select * from SubscriptionTiers;
+
+
+-----------------------IMPLEMENT FREE TRIAL-----------------------
+SELECT TOP 1000 * FROM dbo.SubscriptionTiers;
+
+Update dbo.SubscriptionTiers set Price=0 where Name='Trial'
