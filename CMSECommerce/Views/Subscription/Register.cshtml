@@ -72,6 +72,12 @@
     }
 
     .credit-text { color: #38a169; font-weight: 600; }
+
+    @@media (min-width: 768px) {
+        #upiBtn {
+            display: none !important;
+        }
+    }
 </style>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -146,8 +152,8 @@
     <!-- Pay with UPI Button (Mobile Only) -->
                             <button type="button"
                                     id="upiBtn"
-                                    class="btn btn-success fw-bold d-none d-md-block d-lg-none w-100"
-                                    style="font-size:0.85rem;border-radius:8px;"
+                                    class="btn btn-success fw-bold d-block d-md-none w-100 mt-3"
+                                    style="font-size:0.85rem; border-radius:8px;"
                                     onclick="payViaUPI()">
                                 <i class="fas fa-wallet me-2"></i> Pay with any UPI
                             </button>
