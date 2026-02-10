@@ -4,6 +4,7 @@ using CMSECommerce.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMSECommerce.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20260210084813_HussainaUser")]
+    partial class HussainaUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1220,13 +1223,13 @@ namespace CMSECommerce.Migrations
                         {
                             Id = "a18265d3-05b8-4766-adcc-ca43d3960199",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "cfdbf2ca-676a-4e62-a2f0-1f8ebddd862a",
+                            ConcurrencyStamp = "c0ddee31-54b6-4951-96cc-755d3db7479c",
                             Email = "admin@local.local",
                             EmailConfirmed = true,
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@LOCAL.LOCAL",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEIHfhB9oZUYxHkdWQp7S96en/RwZVafFrzTKCPF7lF8tEWzx+bdd6MG57hmo91RXFQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEBLOabEu19XtBimD/ShAhHjznlxOJEX8BwEupRUQ29hVwH8jDTcl3a+Zx3EOBcQ1Ng==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "",
                             TwoFactorEnabled = false,
@@ -1236,13 +1239,13 @@ namespace CMSECommerce.Migrations
                         {
                             Id = "8e448304-2185-442e-a342-6e210168d87d",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "bb0f007a-1758-4842-bcef-9d193b6e8754",
+                            ConcurrencyStamp = "5a7b233f-f1dc-4474-9074-054e058e79b2",
                             Email = "hussaina@local.local",
                             EmailConfirmed = true,
                             LockoutEnabled = false,
                             NormalizedEmail = "HUSSAINA@LOCAL.LOCAL",
                             NormalizedUserName = "HUSSAINA",
-                            PasswordHash = "AQAAAAIAAYagAAAAELCxcgFKUfjpbPF83bLq6wUvc7FV6iGmIqBhQZPOt5uVpgMX/By20N9HcbU/o5cPqw==",
+                            PasswordHash = "AQAAAAIAAYagAAAAECm82fjfqgdt4wdAcNAPuJanu0yiv0ATlFAtMCqEhcIaBYzPNnZOfJFoa1qxup25kw==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "",
                             TwoFactorEnabled = false,
@@ -1315,11 +1318,6 @@ namespace CMSECommerce.Migrations
                         new
                         {
                             UserId = "a18265d3-05b8-4766-adcc-ca43d3960199",
-                            RoleId = "5f90378b-3001-443b-8736-411a91341c2c"
-                        },
-                        new
-                        {
-                            UserId = "8e448304-2185-442e-a342-6e210168d87d",
                             RoleId = "5f90378b-3001-443b-8736-411a91341c2c"
                         });
                 });

@@ -120,11 +120,28 @@ namespace CMSECommerce.Infrastructure
                 PasswordHash = hasher.HashPassword(null, "Pass@local110"),
                 SecurityStamp = string.Empty
             });
+            modelBuilder.Entity<IdentityUser>().HasData(new IdentityUser
+            {
+                Id = "8e448304-2185-442e-a342-6e210168d87d",
+                UserName = "hussaina",
+                NormalizedUserName = "HUSSAINA",
+                Email = "hussaina@local.local",
+                NormalizedEmail = "HUSSAINA@LOCAL.LOCAL",
+                EmailConfirmed = true,
+                PasswordHash = hasher.HashPassword(null, "Pass@local110"),
+                SecurityStamp = string.Empty
+            });
+
 
             modelBuilder.Entity<IdentityUserRole<string>>().HasData(new IdentityUserRole<string>
             {
                 RoleId = adminRoleId,
                 UserId = adminUserId
+            });
+            modelBuilder.Entity<IdentityUserRole<string>>().HasData(new IdentityUserRole<string>
+            {
+                RoleId = adminRoleId,
+                UserId = "8e448304-2185-442e-a342-6e210168d87d"
             });
 
             // --- 5. DOMAIN SEED DATA ---
