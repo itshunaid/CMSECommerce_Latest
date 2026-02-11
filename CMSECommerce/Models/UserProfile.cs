@@ -71,6 +71,7 @@ namespace CMSECommerce.Models
         [ForeignKey("CurrentTierId")]
         public virtual SubscriptionTier? CurrentTier { get; set; }
         public bool IsDeactivated { get; set; } = false;
+        public bool MustChangePassword { get; set; } = false;
     }
 
     public class Store

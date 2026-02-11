@@ -205,7 +205,16 @@ public class AccountController(
 
             if (signInResult.Succeeded)
             {
-                // 7. ONLINE STATUS & ACTIVITY TRACKING
+                // 7. CHECK MUST CHANGE PASSWORD
+                var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+                if (userProfile != null && userProfile.MustChangePassword)
+                {
+                    // Redirect to change password page instead of normal login flow
+                    TempData["info"] = "For security reasons, you must change your password before proceeding.";
+                    return RedirectToAction("ResetPassword", new { email = user.Email });
+                }
+
+                // 8. ONLINE STATUS & ACTIVITY TRACKING
                 try
                 {
                     var status = await _context.UserStatuses.FindAsync(user.Id);
@@ -218,10 +227,10 @@ public class AccountController(
                 }
                 catch { /* Fail silently to prevent login blocking on DB errors */ }
 
-                // 8. AUDIT LOGGING
+                // 9. AUDIT LOGGING
                 await _auditService.LogActionAsync("Login", "Account", user.Id, "User logged in successfully", HttpContext);
 
-                // 9. DYNAMIC REDIRECTION BASED ON ROLE
+                // 10. DYNAMIC REDIRECTION BASED ON ROLE
                 // Note: We check roles via UserManager because User.IsInRole isn't available yet in this request
                 var roles = await _userManager.GetRolesAsync(user);
 
@@ -1600,6 +1609,14 @@ public class AccountController(
             var result = await _userManager.ResetPasswordAsync(user, decodedToken, model.Password);
             if (result.Succeeded)
             {
+                // Reset MustChangePassword flag after successful password change
+                var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+                if (userProfile != null)
+                {
+                    userProfile.MustChangePassword = false;
+                    await _context.SaveChangesAsync();
+                }
+
                 _logger.LogInformation("Password reset successful for user {Email}", model.Email);
                 return RedirectToAction("ResetPasswordConfirmation");
             }

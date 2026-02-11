@@ -1,8 +1,9 @@
-﻿﻿﻿using CMSECommerce.Areas.Admin.Models; // Assumed namespace for ViewModels
+﻿﻿using CMSECommerce.Areas.Admin.Models; // Assumed namespace for ViewModels
 using CMSECommerce.Areas.Admin.Services;
 using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
 using CMSECommerce.Services;
+using ExcelDataReader;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -1026,6 +1027,172 @@ namespace CMSECommerce.Areas.Admin.Controllers
             string errors = string.Join(", ", result.Errors.Select(e => e.Description));
             TempData["error"] = $"Identity Error: {errors}";
         }
+        [HttpGet]
+        public IActionResult BulkUpload()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkUpload(IFormFile excelFile)
+        {
+            if (excelFile == null || excelFile.Length == 0)
+            {
+                TempData["error"] = "Please select a valid Excel file.";
+                return View();
+            }
+
+            if (!Path.GetExtension(excelFile.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase) &&
+                !Path.GetExtension(excelFile.FileName).Equals(".xls", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["error"] = "Only .xlsx and .xls files are supported.";
+                return View();
+            }
+
+            var usersCreated = 0;
+            var errors = new List<string>();
+
+            try
+            {
+                using (var stream = new MemoryStream())
+                {
+                    await excelFile.CopyToAsync(stream);
+                    stream.Position = 0;
+
+                    using (var reader = ExcelReaderFactory.CreateReader(stream))
+                    {
+                        var result = reader.AsDataSet();
+                        var table = result.Tables[0];
+
+                        for (int i = 1; i < table.Rows.Count; i++) // Skip header
+                        {
+                            var row = table.Rows[i];
+                            if (row.ItemArray.Length < 4) continue;
+
+                            var itsNumber = row.ItemArray[0]?.ToString()?.Trim();
+                            var fullName = row.ItemArray[1]?.ToString()?.Trim();
+                            var email = row.ItemArray[2]?.ToString()?.Trim();
+                            var mobileNumber = row.ItemArray[3]?.ToString()?.Trim();
+
+                            if (string.IsNullOrEmpty(itsNumber) || string.IsNullOrEmpty(fullName) ||
+                                string.IsNullOrEmpty(email) || string.IsNullOrEmpty(mobileNumber))
+                            {
+                                errors.Add($"Row {i + 1}: Missing required data.");
+                                continue;
+                            }
+
+                            // Split name into first and last
+                            var nameParts = fullName.Split(' ', 2);
+                            var firstName = nameParts[0];
+                            var lastName = nameParts.Length > 1 ? nameParts[1] : "";
+
+                            // Check for duplicates
+                            var existingUser = await _userManager.FindByEmailAsync(email);
+                            if (existingUser != null)
+                            {
+                                errors.Add($"Row {i + 1}: Email {email} already exists.");
+                                continue;
+                            }
+
+                            var existingProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.ITSNumber == itsNumber);
+                            if (existingProfile != null)
+                            {
+                                errors.Add($"Row {i + 1}: ITS Number {itsNumber} already exists.");
+                                continue;
+                            }
+
+                            // Generate random password
+                            var password = GenerateRandomPassword();
+
+                            // Create IdentityUser
+                            var user = new IdentityUser
+                            {
+                                UserName = email, // Use email as username
+                                Email = email,
+                                EmailConfirmed = true,
+                                PhoneNumber = mobileNumber
+                            };
+
+                            var resultCreate = await _userManager.CreateAsync(user, password);
+                            if (!resultCreate.Succeeded)
+                            {
+                                errors.Add($"Row {i + 1}: Failed to create user {email}. Errors: {string.Join(", ", resultCreate.Errors.Select(e => e.Description))}");
+                                continue;
+                            }
+
+                            // Assign Customer role
+                            await _userManager.AddToRoleAsync(user, "Customer");
+
+                            // Create UserProfile
+                            var userProfile = new UserProfile
+                            {
+                                UserId = user.Id,
+                                FirstName = firstName,
+                                LastName = lastName,
+                                ITSNumber = itsNumber,
+                                WhatsAppNumber = mobileNumber,
+                                HomeAddress = "To be updated",
+                                BusinessAddress = "To be updated",
+                                IsProfileVisible = true,
+                                MustChangePassword = true
+                            };
+
+                            _context.UserProfiles.Add(userProfile);
+                            await _context.SaveChangesAsync();
+
+                            // Send invitation email with reset link
+                            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                            var resetLink = Url.Action("ResetPassword", "Account", new { token, email = user.Email }, Request.Scheme);
+
+                            var subject = "Welcome to Weypaari - Set Your Password";
+                            var body = $@"
+                            <h2>Welcome to Weypaari!</h2>
+                            <p>Dear {firstName} {lastName},</p>
+                            <p>Your account has been created successfully.</p>
+                            <p>Please click the link below to set your password:</p>
+                            <p><a href='{resetLink}'>Set Password</a></p>
+                            <p>This link will expire in 24 hours.</p>
+                            <br>
+                            <p>Best regards,<br>Weypaari Team</p>";
+
+                            try
+                            {
+                                await _emailService.SendEmailAsync(user.Email, subject, body);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Failed to send invitation email to {Email}", user.Email);
+                                // Continue, don't fail the creation
+                            }
+
+                            usersCreated++;
+                        }
+                    }
+                }
+
+                TempData["success"] = $"{usersCreated} users created successfully.";
+                if (errors.Any())
+                {
+                    TempData["warning"] = $"Some errors occurred: {string.Join("; ", errors)}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing bulk upload");
+                TempData["error"] = "An error occurred while processing the file.";
+            }
+
+            return View();
+        }
+
+        private string GenerateRandomPassword()
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+            var random = new Random();
+            return new string(Enumerable.Repeat(chars, 12).Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
         [HttpGet]
         public async Task<IActionResult> ExportUsersCsv()
         {
