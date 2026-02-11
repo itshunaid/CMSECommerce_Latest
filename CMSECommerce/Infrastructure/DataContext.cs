@@ -76,7 +76,7 @@ namespace CMSECommerce.Infrastructure
             string adminRoleId = "5f90378b-3001-443b-8736-411a91341c2c";
             string customerRoleId = "6f90378b-3001-443b-8736-411a91341c2d";
             string subscriberRoleId = "7f90378b-3001-443b-8736-411a91341c2e";
-            
+
             string idHunaid = "h07-8265d3-05b8-4766-adcc-ca43d3960197";
             string adminUserId = "a18265d3-05b8-4766-adcc-ca43d3960199";
             string hussainaUserId = "8e448304-2185-442e-a342-6e210168d87d";
@@ -84,10 +84,15 @@ namespace CMSECommerce.Infrastructure
             string idAbbas = "a02-8265d3-05b8-4766-adcc-ca43d3960192";
             string idTaherB = "t03-8265d3-05b8-4766-adcc-ca43d3960193";
             string idTaherH = "t04-8265d3-05b8-4766-adcc-ca43d3960194";
-            string idAbdul = "a05-8265d3-05b8-4766-adcc-ca43d3960195";
-
-            // NEW UNIQUE ID FOR YAHYA
             string idYahya = "b72c9184-e4d2-4e5a-9391-7241065162a0";
+
+            // NEW USER IDs
+            string idAbdulNew = "ab05-8265d3-05b8-4766-adcc-ca43d3960101";
+            string idAlAqmar = "al08-8265d3-05b8-4766-adcc-ca43d3960102";
+            string idKhader = "ak09-8265d3-05b8-4766-adcc-ca43d3960103";
+            string idKhuzaima = "kh10-8265d3-05b8-4766-adcc-ca43d3960104";
+
+
 
             var hasher = new PasswordHasher<IdentityUser>();
 
@@ -129,8 +134,12 @@ namespace CMSECommerce.Infrastructure
                 CreateUser(idAbbas, "bharmalprojects@gmail.com", "bharmalprojects@gmail.com", "9963107763"),
                 CreateUser(idTaherB, "mailbox.taher@gmail.com", "mailbox.taher@gmail.com", "8885216302"),
                 CreateUser(idTaherH, "thussain98490@gmail.com", "thussain98490@gmail.com", "9849217820"),
-                CreateUser(idAbdul, "abdulqadirlokhandwalaandwala@gmail.com", "abdulqadirlokhandwalaandwala@gmail.com", "9121835054"),
-                CreateUser(idYahya, "yaliasger@yahoo.co.in", "yaliasger@yahoo.co.in", "9130211052")
+                CreateUser(idYahya, "yaliasger@yahoo.co.in", "yaliasger@yahoo.co.in", "9130211052"),
+                    // NEW USERS
+                CreateUser(idAbdulNew, "abdulqadirlokhandwalaandwala@gmail.com", "abdulqadirlokhandwalaandwala@gmail.com", "9121835054"),
+                CreateUser(idAlAqmar, "alaqmarak0810@gmail.com", "alaqmarak0810@gmail.com", "9618443558"),
+                CreateUser(idKhader, "akframes@gmail.com", "akframes@gmail.com", "9949521090"),
+                CreateUser(idKhuzaima, "Mohdkhuzaima@gmail.com", "Mohdkhuzaima@gmail.com", "9989664052")
             );
 
             modelBuilder.Entity<IdentityUserRole<string>>().HasData(
@@ -141,8 +150,11 @@ namespace CMSECommerce.Infrastructure
                 new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idAbbas },
                 new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idTaherB },
                 new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idTaherH },
-                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idAbdul },
-                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idYahya }
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idYahya },
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idAbdulNew },
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idAlAqmar },
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idKhader },
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idKhuzaima }
             );
 
             // --- 3. DOMAIN DATA ---
@@ -160,14 +172,17 @@ namespace CMSECommerce.Infrastructure
             );
 
             modelBuilder.Entity<UserProfile>().HasData(
-              new UserProfile { Id = 107, UserId = idHunaid, FirstName = "Weypaari", LastName = "Admin", ITSNumber = "100010", WhatsAppNumber = "9603302152", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
+                new UserProfile { Id = 107, UserId = idHunaid, FirstName = "Weypaari", LastName = "Admin", ITSNumber = "100010", WhatsAppNumber = "9603302152", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
                 new UserProfile { Id = 1, UserId = adminUserId, StoreId = 1, FirstName = "System", LastName = "Admin", ITSNumber = "000000", IsProfileVisible = true, CurrentProductLimit = 1000, SubscriptionStartDate = DateTime.Parse("2026-01-01"), WhatsAppNumber = "0000000000", BusinessAddress = "Main Admin Office, Mumbai", HomeAddress = "Default Admin Home", About = "Default System Administrator", Profession = "Administrator" },
                 new UserProfile { Id = 100, UserId = idMurtaza, FirstName = "Murtaza", LastName = "Sagarwala", ITSNumber = "100001", WhatsAppNumber = "9700081831", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
                 new UserProfile { Id = 101, UserId = idAbbas, FirstName = "Abbas", LastName = "Shajapurwala", ITSNumber = "100002", WhatsAppNumber = "9963107763", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
                 new UserProfile { Id = 102, UserId = idTaherB, FirstName = "Taher", LastName = "Bensabwala", ITSNumber = "100003", WhatsAppNumber = "8885216302", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
                 new UserProfile { Id = 103, UserId = idTaherH, FirstName = "Taher", LastName = "Hyderabadwala", ITSNumber = "100004", WhatsAppNumber = "9849217820", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
-                new UserProfile { Id = 104, UserId = idAbdul, FirstName = "Abdulqadir", LastName = "Lokhandwala", ITSNumber = "100005", WhatsAppNumber = "9121835054", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
-                new UserProfile { Id = 105, UserId = idYahya, FirstName = "Yahya", LastName = "Aliasger", ITSNumber = "100009", WhatsAppNumber = "9130211052", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 }
+                new UserProfile { Id = 105, UserId = idYahya, FirstName = "Yahya", LastName = "Aliasger", ITSNumber = "100009", WhatsAppNumber = "9130211052", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
+                new UserProfile { Id = 110, UserId = idAbdulNew, FirstName = "Abdulqadir", LastName = "Lokhandwala", ITSNumber = "100011", WhatsAppNumber = "9121835054", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
+                new UserProfile { Id = 111, UserId = idAlAqmar, FirstName = "AL AQMAR", LastName = "KANCHWALA", ITSNumber = "100012", WhatsAppNumber = "9618443558", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
+                new UserProfile { Id = 112, UserId = idKhader, FirstName = "Abdul", LastName = "Khader Patanwala", ITSNumber = "100013", WhatsAppNumber = "9949521090", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
+                new UserProfile { Id = 113, UserId = idKhuzaima, FirstName = "Khuzaima", LastName = "Saeed", ITSNumber = "100014", WhatsAppNumber = "9989664052", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 }
             );
 
             modelBuilder.Entity<SubscriptionTier>().HasData(
