@@ -1,14 +1,15 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace CMSECommerce.Infrastructure
 {
     public class DataContext : IdentityDbContext<IdentityUser>
     {
-        public DataContext(DbContextOptions<DataContext> options) : base(options)
-        {
-        }
+        public DataContext(DbContextOptions<DataContext> options) : base(options) { }
+
         public DbSet<UserAgreement> UserAgreements { get; set; }
         public DbSet<Page> Pages { get; set; }
         public DbSet<Store> Stores { get; set; }
@@ -31,60 +32,36 @@ namespace CMSECommerce.Infrastructure
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // --- 1. CONFIGURATIONS ---
             modelBuilder.Entity<UnlockRequest>().ToTable("UnlockRequests");
-
-            // ARCHITECTURE: Automatically filter out deactivated stores globally
-            modelBuilder.Entity<Store>()
-                .HasQueryFilter(s => s.IsActive);
-
-            modelBuilder.Entity<UserProfile>()
-        .HasIndex(u => u.ITSNumber)
-        .IsUnique();
+            modelBuilder.Entity<Store>().HasQueryFilter(s => s.IsActive);
+            modelBuilder.Entity<UserProfile>().HasIndex(u => u.ITSNumber).IsUnique();
 
             modelBuilder.Entity<Category>()
-        .HasOne(c => c.Parent)
-        .WithMany(c => c.Children)
-        .HasForeignKey(c => c.ParentId)
-        .OnDelete(DeleteBehavior.Restrict);
+                .HasOne(c => c.Parent)
+                .WithMany(c => c.Children)
+                .HasForeignKey(c => c.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-
-            // Ensure a user can have multiple agreement records (as versions change over time)
             modelBuilder.Entity<UserAgreement>()
                 .HasOne(ua => ua.User)
                 .WithMany()
                 .HasForeignKey(ua => ua.UserId);
 
-            // 1. UserProfile Configuration
             modelBuilder.Entity<UserProfile>(entity =>
             {
                 entity.Property(u => u.StoreId).IsRequired(false);
-
-                entity.HasOne(u => u.Store)
-                      .WithMany()
-                      .HasForeignKey(u => u.StoreId)
-                      .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasOne(u => u.User)
-                      .WithOne()
-                      .HasForeignKey<UserProfile>(u => u.UserId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(u => u.Store).WithMany().HasForeignKey(u => u.StoreId).OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(u => u.User).WithOne().HasForeignKey<UserProfile>(u => u.UserId).OnDelete(DeleteBehavior.Cascade);
             });
 
-            // 2. Product Relationships
             modelBuilder.Entity<Product>(entity =>
             {
-                entity.HasOne(p => p.Store)
-                      .WithMany(s => s.Products)
-                      .HasForeignKey(p => p.StoreId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(p => p.User)
-                      .WithMany()
-                      .HasForeignKey(p => p.UserId)
-                      .OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne(p => p.Store).WithMany(s => s.Products).HasForeignKey(p => p.StoreId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(p => p.User).WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.NoAction);
             });
 
-            // 3. Chat Message Configuration
             modelBuilder.Entity<ChatMessage>(b =>
             {
                 b.ToTable("ChatMessages");
@@ -95,12 +72,48 @@ namespace CMSECommerce.Infrastructure
                 b.HasIndex(x => new { x.RecipientId, x.IsRead });
             });
 
-            // --- 4. IDENTITY SEEDING (Roles & Admin User) ---
-
+            // --- 2. IDENTITY SEEDING ---
             string adminRoleId = "5f90378b-3001-443b-8736-411a91341c2c";
             string customerRoleId = "6f90378b-3001-443b-8736-411a91341c2d";
             string subscriberRoleId = "7f90378b-3001-443b-8736-411a91341c2e";
+            
+            string idHunaid = "h07-8265d3-05b8-4766-adcc-ca43d3960197";
             string adminUserId = "a18265d3-05b8-4766-adcc-ca43d3960199";
+            string hussainaUserId = "8e448304-2185-442e-a342-6e210168d87d";
+            string idMurtaza = "m01-8265d3-05b8-4766-adcc-ca43d3960191";
+            string idAbbas = "a02-8265d3-05b8-4766-adcc-ca43d3960192";
+            string idTaherB = "t03-8265d3-05b8-4766-adcc-ca43d3960193";
+            string idTaherH = "t04-8265d3-05b8-4766-adcc-ca43d3960194";
+            string idAbdul = "a05-8265d3-05b8-4766-adcc-ca43d3960195";
+
+            // NEW UNIQUE ID FOR YAHYA
+            string idYahya = "b72c9184-e4d2-4e5a-9391-7241065162a0";
+
+            var hasher = new PasswordHasher<IdentityUser>();
+
+            IdentityUser CreateUser(string id, string user, string email, string phone = null)
+            {
+                var inputBytes = Encoding.UTF8.GetBytes(id);
+                var hashBytes = SHA1.HashData(inputBytes);
+                var guidBytes = new byte[16];
+                Array.Copy(hashBytes, guidBytes, 16);
+                string validGuidStamp = new Guid(guidBytes).ToString();
+
+                var newUser = new IdentityUser
+                {
+                    Id = id,
+                    UserName = user,
+                    NormalizedUserName = user.ToUpper(),
+                    Email = email,
+                    NormalizedEmail = email.ToUpper(),
+                    EmailConfirmed = true,
+                    PhoneNumber = phone,
+                    SecurityStamp = validGuidStamp,
+                    ConcurrencyStamp = id
+                };
+                newUser.PasswordHash = hasher.HashPassword(newUser, "Pass@local110");
+                return newUser;
+            }
 
             modelBuilder.Entity<IdentityRole>().HasData(
                 new IdentityRole { Id = adminRoleId, Name = "Admin", NormalizedName = "ADMIN" },
@@ -108,49 +121,34 @@ namespace CMSECommerce.Infrastructure
                 new IdentityRole { Id = subscriberRoleId, Name = "Subscriber", NormalizedName = "SUBSCRIBER" }
             );
 
-            var hasher = new PasswordHasher<IdentityUser>();
-            modelBuilder.Entity<IdentityUser>().HasData(new IdentityUser
-            {
-                Id = adminUserId,
-                UserName = "admin",
-                NormalizedUserName = "ADMIN",
-                Email = "admin@local.local",
-                NormalizedEmail = "ADMIN@LOCAL.LOCAL",
-                EmailConfirmed = true,
-                PasswordHash = hasher.HashPassword(null, "Pass@local110"),
-                SecurityStamp = string.Empty
-            });
-            modelBuilder.Entity<IdentityUser>().HasData(new IdentityUser
-            {
-                Id = "8e448304-2185-442e-a342-6e210168d87d",
-                UserName = "hussaina",
-                NormalizedUserName = "HUSSAINA",
-                Email = "hussaina@local.local",
-                NormalizedEmail = "HUSSAINA@LOCAL.LOCAL",
-                EmailConfirmed = true,
-                PasswordHash = hasher.HashPassword(null, "Pass@local110"),
-                SecurityStamp = string.Empty
-            });
+            modelBuilder.Entity<IdentityUser>().HasData(
+                CreateUser(idHunaid, "weypaari@gmail.com", "weypaari@gmail.com", "9603302152"),
+                CreateUser(adminUserId, "admin", "admin@local.local"),
+                CreateUser(hussainaUserId, "hussaina", "hussaina@local.local"),
+                CreateUser(idMurtaza, "murtazahussain166@gmail.com", "murtazahussain166@gmail.com", "9700081831"),
+                CreateUser(idAbbas, "bharmalprojects@gmail.com", "bharmalprojects@gmail.com", "9963107763"),
+                CreateUser(idTaherB, "mailbox.taher@gmail.com", "mailbox.taher@gmail.com", "8885216302"),
+                CreateUser(idTaherH, "thussain98490@gmail.com", "thussain98490@gmail.com", "9849217820"),
+                CreateUser(idAbdul, "abdulqadirlokhandwalaandwala@gmail.com", "abdulqadirlokhandwalaandwala@gmail.com", "9121835054"),
+                CreateUser(idYahya, "yaliasger@yahoo.co.in", "yaliasger@yahoo.co.in", "9130211052")
+            );
 
+            modelBuilder.Entity<IdentityUserRole<string>>().HasData(
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idHunaid },
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = adminUserId },
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = hussainaUserId },
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idMurtaza },
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idAbbas },
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idTaherB },
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idTaherH },
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idAbdul },
+                new IdentityUserRole<string> { RoleId = adminRoleId, UserId = idYahya }
+            );
 
-            modelBuilder.Entity<IdentityUserRole<string>>().HasData(new IdentityUserRole<string>
-            {
-                RoleId = adminRoleId,
-                UserId = adminUserId
-            });
-            modelBuilder.Entity<IdentityUserRole<string>>().HasData(new IdentityUserRole<string>
-            {
-                RoleId = adminRoleId,
-                UserId = "8e448304-2185-442e-a342-6e210168d87d"
-            });
-
-            // --- 5. DOMAIN SEED DATA ---
-
+            // --- 3. DOMAIN DATA ---
             modelBuilder.Entity<Category>().HasData(
                 new Category { Id = 1, Name = "Shirts", Slug = "shirts", Level = 0, ParentId = null },
                 new Category { Id = 2, Name = "Fruit", Slug = "fruit", Level = 0, ParentId = null },
-
-                // Additional seeded child categories for richer demo data
                 new Category { Id = 3, Name = "T-Shirts", Slug = "t-shirts", Level = 1, ParentId = 1 },
                 new Category { Id = 4, Name = "Formal Shirts", Slug = "formal-shirts", Level = 1, ParentId = 1 },
                 new Category { Id = 5, Name = "Apples", Slug = "apples", Level = 1, ParentId = 2 },
@@ -158,40 +156,18 @@ namespace CMSECommerce.Infrastructure
             );
 
             modelBuilder.Entity<Store>().HasData(
-                new Store
-                {
-                    Id = 1,
-                    UserId = adminUserId,
-                    StoreName = "Admin Central Store",
-                    Email = "admin@local.local",
-                    Contact = "0000000000",
-                    City = "Mumbai",
-                    Country = "India",
-                    PostCode = "400001"
-                }
+                new Store { Id = 1, UserId = adminUserId, StoreName = "Admin Central Store", Email = "admin@local.local", Contact = "0000000000", City = "Mumbai", Country = "India", PostCode = "400001" }
             );
 
-           
             modelBuilder.Entity<UserProfile>().HasData(
-                new UserProfile
-                {
-                    Id = 1,
-                    UserId = adminUserId,
-                    StoreId = 1,
-                    FirstName = "System",
-                    LastName = "Admin",
-                    ITSNumber = "000000",
-                    IsProfileVisible = true,
-                    CurrentProductLimit = 1000,
-                    SubscriptionStartDate = DateTime.Parse("2026-01-01"),
-                    WhatsAppNumber = "0000000000",
-                    // ADD THIS LINE TO FIX THE ERROR:
-                    BusinessAddress = "Main Admin Office, Mumbai",
-                    HomeAddress = "Default Admin Home",
-                    // Ensure other required fields like 'About' or 'Profession' are also filled if they are not nullable
-                    About = "Default System Administrator",
-                    Profession = "Administrator"
-                }
+              new UserProfile { Id = 107, UserId = idHunaid, FirstName = "Weypaari", LastName = "Admin", ITSNumber = "100010", WhatsAppNumber = "9603302152", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
+                new UserProfile { Id = 1, UserId = adminUserId, StoreId = 1, FirstName = "System", LastName = "Admin", ITSNumber = "000000", IsProfileVisible = true, CurrentProductLimit = 1000, SubscriptionStartDate = DateTime.Parse("2026-01-01"), WhatsAppNumber = "0000000000", BusinessAddress = "Main Admin Office, Mumbai", HomeAddress = "Default Admin Home", About = "Default System Administrator", Profession = "Administrator" },
+                new UserProfile { Id = 100, UserId = idMurtaza, FirstName = "Murtaza", LastName = "Sagarwala", ITSNumber = "100001", WhatsAppNumber = "9700081831", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
+                new UserProfile { Id = 101, UserId = idAbbas, FirstName = "Abbas", LastName = "Shajapurwala", ITSNumber = "100002", WhatsAppNumber = "9963107763", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
+                new UserProfile { Id = 102, UserId = idTaherB, FirstName = "Taher", LastName = "Bensabwala", ITSNumber = "100003", WhatsAppNumber = "8885216302", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
+                new UserProfile { Id = 103, UserId = idTaherH, FirstName = "Taher", LastName = "Hyderabadwala", ITSNumber = "100004", WhatsAppNumber = "9849217820", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
+                new UserProfile { Id = 104, UserId = idAbdul, FirstName = "Abdulqadir", LastName = "Lokhandwala", ITSNumber = "100005", WhatsAppNumber = "9121835054", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 },
+                new UserProfile { Id = 105, UserId = idYahya, FirstName = "Yahya", LastName = "Aliasger", ITSNumber = "100009", WhatsAppNumber = "9130211052", BusinessAddress = "Hyderabad", HomeAddress = "Hyderabad", About = "Admin", Profession = "Admin", CurrentProductLimit = 1000 }
             );
 
             modelBuilder.Entity<SubscriptionTier>().HasData(

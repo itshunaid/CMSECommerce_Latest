@@ -4,6 +4,7 @@ using CMSECommerce.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CMSECommerce.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20260211091226_RemovedYahya")]
+    partial class RemovedYahya
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1024,24 +1027,6 @@ namespace CMSECommerce.Migrations
                     b.HasData(
                         new
                         {
-                            Id = 107,
-                            About = "Admin",
-                            BusinessAddress = "Hyderabad",
-                            CurrentProductLimit = 1000,
-                            FirstName = "Weypaari",
-                            HomeAddress = "Hyderabad",
-                            ITSNumber = "100010",
-                            IsDeactivated = false,
-                            IsImageApproved = false,
-                            IsImagePending = false,
-                            IsProfileVisible = true,
-                            LastName = "Admin",
-                            Profession = "Admin",
-                            UserId = "h07-8265d3-05b8-4766-adcc-ca43d3960197",
-                            WhatsAppNumber = "9603302152"
-                        },
-                        new
-                        {
                             Id = 1,
                             About = "Default System Administrator",
                             BusinessAddress = "Main Admin Office, Mumbai",
@@ -1149,24 +1134,6 @@ namespace CMSECommerce.Migrations
                             Profession = "Admin",
                             UserId = "a05-8265d3-05b8-4766-adcc-ca43d3960195",
                             WhatsAppNumber = "9121835054"
-                        },
-                        new
-                        {
-                            Id = 105,
-                            About = "Admin",
-                            BusinessAddress = "Hyderabad",
-                            CurrentProductLimit = 1000,
-                            FirstName = "Yahya",
-                            HomeAddress = "Hyderabad",
-                            ITSNumber = "100009",
-                            IsDeactivated = false,
-                            IsImageApproved = false,
-                            IsImagePending = false,
-                            IsProfileVisible = true,
-                            LastName = "Aliasger",
-                            Profession = "Admin",
-                            UserId = "b72c9184-e4d2-4e5a-9391-7241065162a0",
-                            WhatsAppNumber = "9130211052"
                         });
                 });
 
@@ -1344,23 +1311,6 @@ namespace CMSECommerce.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "h07-8265d3-05b8-4766-adcc-ca43d3960197",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "h07-8265d3-05b8-4766-adcc-ca43d3960197",
-                            Email = "weypaari@gmail.com",
-                            EmailConfirmed = true,
-                            LockoutEnabled = false,
-                            NormalizedEmail = "WEYPAARI@GMAIL.COM",
-                            NormalizedUserName = "WEYPAARI@GMAIL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAECSQyre47SzRnqUsoLKS9lNovFkWjQLfyAiulVRqwcW/aP72at4dQmNcnBm/KSId6g==",
-                            PhoneNumber = "9603302152",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "c07fd76f-e4de-6578-3bf8-423548845c13",
-                            TwoFactorEnabled = false,
-                            UserName = "weypaari@gmail.com"
-                        },
-                        new
-                        {
                             Id = "a18265d3-05b8-4766-adcc-ca43d3960199",
                             AccessFailedCount = 0,
                             ConcurrencyStamp = "a18265d3-05b8-4766-adcc-ca43d3960199",
@@ -1369,7 +1319,7 @@ namespace CMSECommerce.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@LOCAL.LOCAL",
                             NormalizedUserName = "ADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEMxBz74WHGvKRNfU5ISzomptuErUsTH7DrEuuoLu9EWlZvnpEV+HXEIWyXU6pRF0Ww==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEJjjFRjQgvzZd4c76ykn/u6Yyg+PbA90hG7MKdG+hkIiGHwaju8hcfjtZy1XVuHiwQ==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "1840e320-7e7e-31c7-f6b2-291807391fc8",
                             TwoFactorEnabled = false,
@@ -1385,7 +1335,7 @@ namespace CMSECommerce.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "HUSSAINA@LOCAL.LOCAL",
                             NormalizedUserName = "HUSSAINA",
-                            PasswordHash = "AQAAAAIAAYagAAAAEJC6T0ISCNOPfA/hHM1gY13HYDPuau6w1XR8Z0sx2v7Ou+h5aCN+pBBLnE++TIiMEg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEJImCI3uZ1Y5xfI121LKphwM2BlR4Q/E+6UaPmvwDg+a0SgJHM3LI2ePfDW2rBGiaw==",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "ddcd9342-0bad-2c22-3198-510a21175506",
                             TwoFactorEnabled = false,
@@ -1401,7 +1351,7 @@ namespace CMSECommerce.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "MURTAZAHUSSAIN166@GMAIL.COM",
                             NormalizedUserName = "MURTAZAHUSSAIN166@GMAIL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEIOIwxpRD00OQD/I6fRilRvxtP+lCBHU0L8H+wRu+aQq6WNgsghZMeufM+wFfQS4+Q==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEFd2VN8WcZy91LJV+wQEJ4zRu4v0zHG9kI1K/43GfYfOgq54nHMQvMY4PWHFaNQ/CA==",
                             PhoneNumber = "9700081831",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "57b37af0-60a9-478a-ae26-86cd81ed7c27",
@@ -1418,7 +1368,7 @@ namespace CMSECommerce.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "BHARMALPROJECTS@GMAIL.COM",
                             NormalizedUserName = "BHARMALPROJECTS@GMAIL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEHKL8sotoHyJ7kU2UhhQpzgEwe5KEbMie3r8/9MQf3yIQjBDBFHXKgYq/f1nvaGcfQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEBcBkY5ps2zTsTkkT1WsdSB0eOvW0or2v+ibBKRh054sjSMn4UP9pFNd5OO1lA4i5w==",
                             PhoneNumber = "9963107763",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "8c6cdeef-d708-9ad2-479a-02c60a8086b3",
@@ -1435,7 +1385,7 @@ namespace CMSECommerce.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "MAILBOX.TAHER@GMAIL.COM",
                             NormalizedUserName = "MAILBOX.TAHER@GMAIL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAENdT5mGqFDQ404IuhlU9Wu0uzpQPXubUZ00joptTzwGq4tue9OqGMF/ocJjRb6gnQQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAELPEyRbX5DUb1uKzzQVnrhA7UounCW1xF0jG2ryWoq+9Sadw7z6VT4ZX/L7dK4vyCQ==",
                             PhoneNumber = "8885216302",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "b651f1d9-b39f-25ec-1788-67530ec34d56",
@@ -1452,7 +1402,7 @@ namespace CMSECommerce.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "THUSSAIN98490@GMAIL.COM",
                             NormalizedUserName = "THUSSAIN98490@GMAIL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEMTdEHG4+NOsnT9KBVi8WpyxQXvQSfsO2+34E+HRDIDNy3hzrk6T0LOeDWhK+YY2hw==",
+                            PasswordHash = "AQAAAAIAAYagAAAAELBCrOsG240aek/muXHrWMe5NjmJdmMu1lnaqIoRrtQL0+kGcs47U5eTUI/83aS7Pg==",
                             PhoneNumber = "9849217820",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "531979be-47fa-a133-ae4b-ca858da22655",
@@ -1469,29 +1419,12 @@ namespace CMSECommerce.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ABDULQADIRLOKHANDWALAANDWALA@GMAIL.COM",
                             NormalizedUserName = "ABDULQADIRLOKHANDWALAANDWALA@GMAIL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEHsPZ772izLrDa7MHJVqsrV6BpYrsAI4UMZ5brYoA3S5V6SK9c5RalcTEu1MXOavwA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEN00A8gScuHZMHUcCfrGb5r9X0zho4HdpF0bz9SFkw4zMLFiD4SXs29QYPQcE6Pc1A==",
                             PhoneNumber = "9121835054",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "87f1eeee-c426-76d5-d41b-ce297eb8f35d",
                             TwoFactorEnabled = false,
                             UserName = "abdulqadirlokhandwalaandwala@gmail.com"
-                        },
-                        new
-                        {
-                            Id = "b72c9184-e4d2-4e5a-9391-7241065162a0",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "b72c9184-e4d2-4e5a-9391-7241065162a0",
-                            Email = "yaliasger@yahoo.co.in",
-                            EmailConfirmed = true,
-                            LockoutEnabled = false,
-                            NormalizedEmail = "YALIASGER@YAHOO.CO.IN",
-                            NormalizedUserName = "YALIASGER@YAHOO.CO.IN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEJG8Dx60vtTq7mVWNfmty047tySN37en5+82VgDDqx75qCX2W6ob3hpsne1piNB9dg==",
-                            PhoneNumber = "9130211052",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "868c12ff-161a-73f1-97dd-b9283583441c",
-                            TwoFactorEnabled = false,
-                            UserName = "yaliasger@yahoo.co.in"
                         });
                 });
 
@@ -1559,11 +1492,6 @@ namespace CMSECommerce.Migrations
                     b.HasData(
                         new
                         {
-                            UserId = "h07-8265d3-05b8-4766-adcc-ca43d3960197",
-                            RoleId = "5f90378b-3001-443b-8736-411a91341c2c"
-                        },
-                        new
-                        {
                             UserId = "a18265d3-05b8-4766-adcc-ca43d3960199",
                             RoleId = "5f90378b-3001-443b-8736-411a91341c2c"
                         },
@@ -1595,11 +1523,6 @@ namespace CMSECommerce.Migrations
                         new
                         {
                             UserId = "a05-8265d3-05b8-4766-adcc-ca43d3960195",
-                            RoleId = "5f90378b-3001-443b-8736-411a91341c2c"
-                        },
-                        new
-                        {
-                            UserId = "b72c9184-e4d2-4e5a-9391-7241065162a0",
                             RoleId = "5f90378b-3001-443b-8736-411a91341c2c"
                         });
                 });
