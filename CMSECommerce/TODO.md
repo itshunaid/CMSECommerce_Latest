@@ -1,7 +1,10 @@
-- [x] Add toggle button in control-plane div next to existing buttons
-- [x] Wrap existing grid (row div) in div with id="grid-view"
-- [x] Add new table structure for list view with id="list-view", initially hidden
-- [x] Populate table rows with user data and action forms
-- [x] Add JavaScript toggleView() function to switch views and update button text
-- [x] Modify filterTable() to work with both grid and list views
-- [x] Ensure responsive design for the table
+# TODO: Fix Banners to be Fixed at Top, Sides, Bottom and Display Professionally
+
+## Plan
+- Make the banner carousel sticky at the top of the viewport.
+- Add proper padding/margins on sides and bottom for professional appearance.
+- Ensure responsiveness and no interference with existing features.
+
+## Steps to Complete
+- [x] Add CSS to make banner carousel sticky and professionally styled.
+- [x] Test the fixed positioning and responsiveness.
