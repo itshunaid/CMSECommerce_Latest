@@ -66,6 +66,38 @@
             margin-bottom: 2px;
         }
 
+        /* --- Web Dev Promo Banner Styling --- */
+        .service-promo-banner {
+            background: linear-gradient(90deg, #232f3e 0%, #37475a 100%);
+            color: white;
+            border-radius: 8px;
+            border-left: 5px solid var(--amazon-orange);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+            .service-promo-banner .banner-icon {
+                color: var(--amazon-orange);
+            }
+
+            .service-promo-banner .btn-warning {
+                background-color: var(--amazon-btn-yellow);
+                color: #111;
+                border: none;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                transition: all 0.2s;
+            }
+
+                .service-promo-banner .btn-warning:hover {
+                    background-color: var(--amazon-btn-yellow-hover);
+                    transform: translateY(-1px);
+                }
+
+        .contact-details .small {
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
         /* --- Original Styles preserved below --- */
         .brand-top-header {
             background: #000;
@@ -95,16 +127,13 @@
             }
 
         @@keyframes marquee-infinite {
-            0%
+            0% {
+                transform: translateX(0);
+            }
 
-        {
-            transform: translateX(0);
-        }
-
-        100% {
-            transform: translateX(-50%);
-        }
-
+            100% {
+                transform: translateX(-50%);
+            }
         }
 
         .bg-amazon-main {
@@ -274,6 +303,24 @@
                 text-decoration: underline;
                 color: #fff;
             }
+
+        @@media (max-width: 768px) {
+            .service-promo-banner {
+                text-align: center;
+                justify-content: center !important;
+            }
+
+            .banner-contact {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .contact-details {
+                margin-right: 0 !important;
+                margin-bottom: 15px;
+                text-align: center !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -319,7 +366,6 @@
                         <partial name="_IdentityLinksPartial" />
                     </div>
 
-                    @* --- UPDATED DYNAMIC CART ICON --- *@
                     <a class="nav-cart-link" asp-controller="Cart" asp-action="Index">
                         <div class="cart-icon-container">
                             <span class="cart-count-badge">@(ViewBag.CartCount ?? 0)</span>
@@ -372,7 +418,6 @@
                                 </a>
                             </li>
                         }
-                        
                     </ul>
 
                     @if (User.IsInRole("Admin"))
@@ -390,6 +435,28 @@
     </header>
 
     <div class="container-fluid main-content-container py-4">
+        <div class="service-promo-banner d-flex align-items-center justify-content-between flex-wrap shadow-sm">
+            <div class="banner-content d-flex align-items-center p-3">
+                <div class="banner-icon me-4 d-none d-md-block">
+                    <i class="fas fa-laptop-code fa-3x"></i>
+                </div>
+                <div>
+                    <h4 class="mb-1 fw-bold">Need a Professional Website or E-commerce Store?</h4>
+                    <p class="mb-0 text-light opacity-75">Custom Web Apps • CMS Development • UI/UX Design • Maintenance</p>
+                </div>
+            </div>
+            <div class="banner-contact p-3 d-flex align-items-center">
+                <div class="contact-details me-4 text-md-end">
+                    <div class="small fw-bold text-warning">Direct Contact:</div>
+                    <div class="small"><i class="fas fa-envelope me-1"></i> reach_hunaid@outlook.com</div>
+                    <div class="small"><i class="fab fa-whatsapp me-1 text-success"></i> +91 9603303252</div>
+                </div>
+                <a href="https://wa.me/919603303252" target="_blank" class="btn btn-warning fw-bold px-4 py-2">
+                    Get Free Consultation
+                </a>
+            </div>
+        </div>
+
         <main role="main">
             <partial name="_NotificationsPartial" />
 
@@ -437,6 +504,7 @@
                     <div class="d-flex align-items-center justify-content-center mb-3">
                         <span class="fw-light text-white" style="font-size: 1.2rem;">WE</span><span class="text-warning" style="font-size: 1.2rem;">y</span>paari
                     </div>
+                    <div class="small text-white-50">Developed by <span class="text-white">Hunaid</span></div>
                 </div>
                 <div class="col-md-4 mb-4 text-md-end">
                     <h6 class="fw-bold text-white mb-3">Community</h6>
@@ -457,27 +525,18 @@
 
     <script>
         $(document).ready(function() {
-            // Initialize collapsible categories
             $('.category-toggle').on('click', function(e) {
                 e.preventDefault();
-                var $this = $(this);
-                var targetId = $this.attr('href');
-                var $target = $(targetId);
-
-                $target.collapse('toggle');
+                var targetId = $(this).attr('href');
+                $(targetId).collapse('toggle');
             });
 
-            // Auto-expand if current category is in a collapsed section
             var currentSlug = '@ViewBag.CategorySlug';
             if (currentSlug) {
                 $('.category-list-item').each(function() {
                     var $item = $(this);
                     if ($item.find('a[href*="slug=' + currentSlug + '"]').length > 0) {
-                        // Find parent toggle and expand
-                        $item.parents('.collapse').each(function() {
-                            var collapseId = '#' + $(this).attr('id');
-                            $(collapseId).collapse('show');
-                        });
+                        $item.parents('.collapse').addClass('show');
                     }
                 });
             }
