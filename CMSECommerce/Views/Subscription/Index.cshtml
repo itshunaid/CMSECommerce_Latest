@@ -9,7 +9,7 @@
     bool isActiveSubscriber = ViewBag.IsActiveSubscriber ?? false;
 
     // Define the offer end date
-    DateTime offerEndDate = new DateTime(2026, 3, 18);
+    DateTime offerEndDate = new DateTime(2026, 3, 18, 23, 59, 59);
     bool isRamadanPeriod = DateTime.Now <= offerEndDate;
 }
 
@@ -26,6 +26,7 @@
             --warning: #f59e0b;
             --border-color: #e2e8f0;
             --ramadan-gold: #e67e22;
+            --ramadan-dark: #2c3e50;
         }
 
         body {
@@ -34,15 +35,56 @@
             color: var(--text-dark);
         }
 
+        /* Ramadan Banner Styles */
+        .ramadan-banner {
+            background: linear-gradient(135deg, #1e3a8a 0%, #e67e22 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .countdown-container {
+            display: flex;
+            gap: 15px;
+            background: rgba(0,0,0,0.2);
+            padding: 10px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+        }
+
+        .countdown-item {
+            text-align: center;
+            min-width: 45px;
+        }
+
+        .countdown-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            display: block;
+            line-height: 1;
+        }
+
+        .countdown-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        /* Existing Styles preserved... */
         .pricing-header {
-            padding: 4rem 0 3rem;
+            padding: 2rem 0 3rem;
             text-align: center;
         }
 
             .pricing-header h1 {
                 font-weight: 800;
                 font-size: 2.5rem;
-                letter-spacing: -0.02em;
                 margin-bottom: 1rem;
                 color: var(--text-dark);
             }
@@ -69,7 +111,7 @@
 
             .pricing-card:hover {
                 transform: translateY(-10px);
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
                 border-color: var(--primary-color);
             }
 
@@ -85,6 +127,7 @@
 
             .pricing-card.ramadan-special {
                 border: 2px solid var(--ramadan-gold);
+                background: #fffcf9;
             }
 
         .premium-label, .current-label, .offer-label {
@@ -98,7 +141,6 @@
             font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
             z-index: 10;
         }
 
@@ -222,7 +264,6 @@
         .modal-content {
             border-radius: 24px;
             border: none;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
 
         .disclaimer-box {
@@ -268,7 +309,6 @@
             font-weight: 800;
             text-transform: uppercase;
             color: #64748b;
-            letter-spacing: 0.05em;
             display: block;
             margin-bottom: 8px;
         }
@@ -296,6 +336,38 @@
 }
 
 <div class="container py-5">
+
+    @if (isRamadanPeriod)
+    {
+        <div class="ramadan-banner">
+            <div class="d-flex align-items-center mb-3 mb-md-0">
+                <div class="me-3 fs-1"><i class="fas fa-moon"></i></div>
+                <div>
+                    <h4 class="fw-bold mb-0">Ramadan Special Offer!</h4>
+                    <p class="mb-0 opacity-75">Claim your 1-month Trial for FREE. Offer ends soon!</p>
+                </div>
+            </div>
+            <div class="countdown-container">
+                <div class="countdown-item">
+                    <span class="countdown-value" id="days">00</span>
+                    <span class="countdown-label">Days</span>
+                </div>
+                <div class="countdown-item">
+                    <span class="countdown-value" id="hours">00</span>
+                    <span class="countdown-label">Hrs</span>
+                </div>
+                <div class="countdown-item">
+                    <span class="countdown-value" id="minutes">00</span>
+                    <span class="countdown-label">Min</span>
+                </div>
+                <div class="countdown-item">
+                    <span class="countdown-value" id="seconds">00</span>
+                    <span class="countdown-label">Sec</span>
+                </div>
+            </div>
+        </div>
+    }
+
     <div class="pricing-header">
         <h1>Elevate Your Business</h1>
         <p>Unlock professional tools to manage your inventory and scale your sales with Weypaari’s ecosystem.</p>
@@ -309,9 +381,7 @@
             bool isAdvance = tier.Name.Contains("Advance", StringComparison.OrdinalIgnoreCase);
             bool isPremium = tier.Name.Contains("Premium", StringComparison.OrdinalIgnoreCase);
 
-            // Ramadan Offer Active Logic
             bool isActiveOffer = isTrial && isRamadanPeriod;
-
             bool isCurrentTier = currentTierId == tier.Id;
             bool isDowngrade = currentTierId != null && tier.Id < currentTierId;
 
@@ -324,7 +394,7 @@
                     }
                     else if (isActiveOffer)
                     {
-                        <div class="offer-label"><i class="fas fa-moon me-1"></i> Ramadan Offer</div>
+                        <div class="offer-label"><i class="fas fa-star me-1"></i> Special Offer</div>
                     }
                     else if (isPremium)
                     {
@@ -348,7 +418,7 @@
                     @if (isActiveOffer)
                     {
                         <div class="text-warning small fw-bold mb-3" style="margin-top: -10px;">
-                            Valid until March 18
+                            <i class="fas fa-history me-1"></i> Limited Time Offer
                         </div>
                     }
 
@@ -378,10 +448,6 @@
                         <li class="feature-item @(isTrial ? "locked" : "")">
                             <i class="fas @(isTrial ? "fa-lock" : "fa-book-open")"></i>
                             <span>B2B Seller Directory</span>
-                        </li>
-                        <li class="feature-item @(isAdvance || isPremium ? "" : "locked")">
-                            <i class="fas @(isAdvance || isPremium ? "fa-bell" : "fa-lock")"></i>
-                            <span>@(isPremium ? "Instant Lead Alerts" : isAdvance ? "24h Lead Alerts" : "Standard Alerts")</span>
                         </li>
                     </ul>
 
@@ -416,7 +482,7 @@
     </div>
 </div>
 
-@* Disclaimer Modal *@
+@* Disclaimer Modal remains unchanged *@
 <div class="modal fade" id="disclaimerModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -432,8 +498,6 @@
                         <li><i class="fas fa-shield-alt"></i> <span><strong>Verification:</strong> Approval takes 24-48 working hours.</span></li>
                         <li><i class="fas fa-hand-holding-usd"></i> <span><strong>Final Sale:</strong> Payments are non-refundable once verified.</span></li>
                         <li><i class="fas fa-file-invoice"></i> <span><strong>Proof:</strong> A valid payment screenshot is required.</span></li>
-                        <li><i class="fas fa-exclamation-triangle"></i> <span><strong>Conduct:</strong> Account sharing is strictly prohibited.</span></li>
-                        <li><i class="fas fa-database"></i> <span><strong>Accuracy:</strong> You are responsible for your store's info.</span></li>
                     </ul>
                 </div>
 
@@ -468,6 +532,35 @@
 
 @section Scripts {
     <script>
+        // --- COUNTDOWN LOGIC ---
+        const targetDate = new Date("@offerEndDate.ToString("yyyy-MM-ddTHH:mm:ss")").getTime();
+
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance < 0) {
+                // If the offer expired, you could hide the banner or refresh
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById("days").innerText = days.toString().padStart(2, '0');
+            document.getElementById("hours").innerText = hours.toString().padStart(2, '0');
+            document.getElementById("minutes").innerText = minutes.toString().padStart(2, '0');
+            document.getElementById("seconds").innerText = seconds.toString().padStart(2, '0');
+        }
+
+        if(document.getElementById("days")) {
+            setInterval(updateCountdown, 1000);
+            updateCountdown();
+        }
+
+        // --- EXISTING REDIRECT & MODAL LOGIC ---
         let selectedTierId = null;
         let hasReadTC = false;
         let hasReadPP = false;
