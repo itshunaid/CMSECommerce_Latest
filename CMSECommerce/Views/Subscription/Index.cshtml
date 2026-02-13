@@ -7,11 +7,14 @@
     int? currentTierId = ViewBag.CurrentTierId;
     bool hasPendingRequest = ViewBag.HasPendingRequest ?? false;
     bool isActiveSubscriber = ViewBag.IsActiveSubscriber ?? false;
+
+    // Define the offer end date
+    DateTime offerEndDate = new DateTime(2026, 3, 18);
+    bool isRamadanPeriod = DateTime.Now <= offerEndDate;
 }
 
 @section Styles {
     <style>
-        /* Existing Variables */
         :root {
             --primary-gradient: linear-gradient(135deg, #21409a 0%, #152a66 100%);
             --primary-color: #21409a;
@@ -22,6 +25,7 @@
             --success: #10b981;
             --warning: #f59e0b;
             --border-color: #e2e8f0;
+            --ramadan-gold: #e67e22;
         }
 
         body {
@@ -30,7 +34,6 @@
             color: var(--text-dark);
         }
 
-        /* --- PRICING STYLES (Unchanged) --- */
         .pricing-header {
             padding: 4rem 0 3rem;
             text-align: center;
@@ -80,7 +83,11 @@
                 background-color: #f0fdf4;
             }
 
-        .premium-label, .current-label {
+            .pricing-card.ramadan-special {
+                border: 2px solid var(--ramadan-gold);
+            }
+
+        .premium-label, .current-label, .offer-label {
             position: absolute;
             top: -15px;
             left: 50%;
@@ -104,6 +111,11 @@
             white-space: nowrap;
             display: flex;
             align-items: center;
+        }
+
+        .offer-label {
+            background: var(--ramadan-gold);
+            white-space: nowrap;
         }
 
         .plan-name {
@@ -185,6 +197,11 @@
                 transform: scale(1.02);
             }
 
+        .btn-offer {
+            background: var(--ramadan-gold);
+            color: white !important;
+        }
+
         .btn-outline {
             background: transparent;
             border: 2px solid var(--border-color);
@@ -202,7 +219,6 @@
             cursor: not-allowed;
         }
 
-        /* --- MODAL UPDATES --- */
         .modal-content {
             border-radius: 24px;
             border: none;
@@ -239,7 +255,6 @@
                 font-size: 0.85rem;
             }
 
-        /* Reading Tracker Styles */
         .reading-requirement {
             background: #fff;
             border: 1px solid #e2e8f0;
@@ -266,18 +281,10 @@
             font-size: 0.85rem;
         }
 
-            .read-link-item:last-child {
-                margin-bottom: 0;
-            }
-
         .btn-read-sm {
             font-size: 0.75rem;
             padding: 2px 10px;
             border-radius: 6px;
-        }
-
-        #checkboxWrapper {
-            transition: all 0.3s ease;
         }
 
         .locked-state {
@@ -302,15 +309,22 @@
             bool isAdvance = tier.Name.Contains("Advance", StringComparison.OrdinalIgnoreCase);
             bool isPremium = tier.Name.Contains("Premium", StringComparison.OrdinalIgnoreCase);
 
+            // Ramadan Offer Active Logic
+            bool isActiveOffer = isTrial && isRamadanPeriod;
+
             bool isCurrentTier = currentTierId == tier.Id;
             bool isDowngrade = currentTierId != null && tier.Id < currentTierId;
 
             <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                <div class="pricing-card @(isPremium ? "premium" : "") @(isCurrentTier ? "current" : "")">
+                <div class="pricing-card @(isPremium ? "premium" : "") @(isCurrentTier ? "current" : "") @(isActiveOffer ? "ramadan-special" : "")">
 
                     @if (isCurrentTier)
                     {
                         <div class="current-label text-nowrap"><i class="fas fa-check me-1"></i> Current Plan</div>
+                    }
+                    else if (isActiveOffer)
+                    {
+                        <div class="offer-label"><i class="fas fa-moon me-1"></i> Ramadan Offer</div>
                     }
                     else if (isPremium)
                     {
@@ -318,15 +332,32 @@
                     }
 
                     <span class="plan-name">@tier.Name</span>
+
                     <div class="plan-price">
-                        ₹@tier.Price.ToString("N0")
-                        <span>/@(tier.DurationMonths == 1 ? "mo" : tier.DurationMonths + " mos")</span>
+                        @if (isActiveOffer)
+                        {
+                            @:FREE
+                        }
+                        else
+                        {
+                            @:₹@tier.Price.ToString("N0")
+                            <span>/@(tier.DurationMonths == 1 ? "mo" : tier.DurationMonths + " mos")</span>
+                        }
                     </div>
+
+                    @if (isActiveOffer)
+                    {
+                        <div class="text-warning small fw-bold mb-3" style="margin-top: -10px;">
+                            Valid until March 18
+                        </div>
+                    }
 
                     <ul class="feature-list">
                         <li class="feature-item">
                             <i class="fas fa-check-circle"></i>
-                            <span><strong>@tier.ProductLimit</strong> Product Listings</span>
+                            <span>
+                                <strong>@(isActiveOffer ? "10" : tier.ProductLimit.ToString())</strong> Product Listings
+                            </span>
                         </li>
                         <li class="feature-item">
                             <i class="fas fa-check-circle"></i>
@@ -373,9 +404,9 @@
                         }
                         else
                         {
-                            <button type="button" class="btn-upgrade @(isPremium ? "btn-fill" : "btn-outline")"
+                            <button type="button" class="btn-upgrade @(isActiveOffer ? "btn-offer" : (isPremium ? "btn-fill" : "btn-outline"))"
                                     onclick="openDisclaimer(@tier.Id, '@tier.Name')">
-                                @(currentTierId != null ? "Upgrade Now" : "Get Started")
+                                @(isActiveOffer ? "Claim Free Offer" : (currentTierId != null ? "Upgrade Now" : "Get Started"))
                             </button>
                         }
                     </div>
@@ -385,7 +416,7 @@
     </div>
 </div>
 
-@* Enhanced Disclaimer Modal *@
+@* Disclaimer Modal *@
 <div class="modal fade" id="disclaimerModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -451,8 +482,6 @@
         function openDisclaimer(tierId, tierName) {
             selectedTierId = tierId;
             document.getElementById('modalTierName').innerText = tierName;
-
-            // Reset state every time modal opens
             hasReadTC = false;
             hasReadPP = false;
             checkbox.checked = false;
@@ -460,11 +489,8 @@
             checkboxWrapper.classList.add('locked-state');
             unlockMsg.classList.remove('d-none');
             proceedBtn.classList.add('disabled');
-
-            // Reset Icons
             document.getElementById('icon-tc').className = "fas fa-circle-notch text-muted me-2";
             document.getElementById('icon-pp').className = "fas fa-circle-notch text-muted me-2";
-
             modal.show();
         }
 
@@ -476,8 +502,6 @@
                 hasReadPP = true;
                 document.getElementById('icon-pp').className = "fas fa-check-circle text-success me-2";
             }
-
-            // Unlock checkbox only if both links are clicked
             if (hasReadTC && hasReadPP) {
                 checkbox.disabled = false;
                 checkboxWrapper.classList.remove('locked-state');
@@ -497,7 +521,6 @@
             }
         }
 
-        // Entrance Animation
         document.addEventListener("DOMContentLoaded", function() {
             document.querySelectorAll('.pricing-card').forEach((card, index) => {
                 card.style.opacity = "0";
