@@ -368,8 +368,31 @@
         </div>
     }
 
-    <div class="pricing-header">
+    @* <div class="pricing-header">
         <h1>Elevate Your Business</h1>
+        <p>Unlock professional tools to manage your inventory and scale your sales with Weypaari’s ecosystem.</p>
+    </div> *@
+
+    <div class="pricing-header">
+        @if (isRamadanPeriod)
+        {
+            <div class="d-inline-block px-4 py-1 mb-3 rounded-pill"
+                 style="background: rgba(230, 126, 34, 0.1); border: 1px solid var(--ramadan-gold);">
+                <span style="color: var(--ramadan-gold); font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">
+                    🌙 Ramadan Mubarak Offer
+                </span>
+            </div>
+        }
+
+        <h1>Elevate Your Business</h1>
+
+        @if (isRamadanPeriod)
+        {
+            <p class="fw-bold" style="color: var(--ramadan-gold) !important;">
+                Celebrate the season of growth with exclusive free access to our professional tools.
+            </p>
+        }
+
         <p>Unlock professional tools to manage your inventory and scale your sales with Weypaari’s ecosystem.</p>
     </div>
 
