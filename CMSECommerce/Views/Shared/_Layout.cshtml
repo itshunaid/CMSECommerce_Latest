@@ -38,10 +38,10 @@
             color: white !important;
         }
 
-            .nav-cart-link:hover {
-                border: 1px solid white;
-                border-radius: 2px;
-            }
+        .nav-cart-link:hover {
+            border: 1px solid white;
+            border-radius: 2px;
+        }
 
         .cart-icon-container {
             position: relative;
@@ -68,37 +68,48 @@
 
         /* --- Web Dev Promo Banner Styling --- */
         .service-promo-banner {
-            background: linear-gradient(90deg, #232f3e 0%, #37475a 100%);
+            background: linear-gradient(90deg, #131921 0%, #232f3e 100%);
             color: white;
             border-radius: 8px;
             border-left: 5px solid var(--amazon-orange);
             overflow: hidden;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            position: relative;
         }
 
-            .service-promo-banner .banner-icon {
-                color: var(--amazon-orange);
-            }
+        .service-promo-banner::after {
+            content: "";
+            position: absolute;
+            right: 0; top: 0; width: 200px; height: 100%;
+            background: linear-gradient(to left, rgba(255,216,20,0.05), transparent);
+            pointer-events: none;
+        }
 
-            .service-promo-banner .btn-warning {
-                background-color: var(--amazon-btn-yellow);
-                color: #111;
-                border: none;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                transition: all 0.2s;
-            }
+        .service-promo-banner .banner-icon {
+            color: var(--amazon-orange);
+            opacity: 0.8;
+        }
 
-                .service-promo-banner .btn-warning:hover {
-                    background-color: var(--amazon-btn-yellow-hover);
-                    transform: translateY(-1px);
-                }
+        .service-promo-banner .btn-warning {
+            background-color: var(--amazon-btn-yellow);
+            color: #111;
+            border: none;
+            font-weight: 700;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+
+        .service-promo-banner .btn-warning:hover {
+            background-color: var(--amazon-btn-yellow-hover);
+            transform: translateY(-1px);
+        }
 
         .contact-details .small {
             font-size: 0.85rem;
-            line-height: 1.4;
+            line-height: 1.5;
         }
 
-        /* --- Original Styles preserved below --- */
+        /* --- Navigation & Marquee --- */
         .brand-top-header {
             background: #000;
             padding: 8px 0;
@@ -122,18 +133,11 @@
             text-transform: uppercase;
         }
 
-            .marquee-item span {
-                color: var(--amazon-btn-yellow);
-            }
+        .marquee-item span { color: var(--amazon-btn-yellow); }
 
         @@keyframes marquee-infinite {
-            0% {
-                transform: translateX(0);
-            }
-
-            100% {
-                transform: translateX(-50%);
-            }
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
 
         .bg-amazon-main {
@@ -149,10 +153,10 @@
             line-height: 1;
         }
 
-            .navbar-brand:hover {
-                border: 1px solid white;
-                border-radius: 2px;
-            }
+        .navbar-brand:hover {
+            border: 1px solid white;
+            border-radius: 2px;
+        }
 
         .brand-tag-line {
             font-size: 0.7rem;
@@ -180,10 +184,10 @@
             border: 2px solid transparent;
         }
 
-            .amazon-search-bar:focus-within {
-                border: 2px solid #ff9900;
-                box-shadow: 0 0 5px rgba(255, 153, 0, 0.5);
-            }
+        .amazon-search-bar:focus-within {
+            border: 2px solid #ff9900;
+            box-shadow: 0 0 5px rgba(255, 153, 0, 0.5);
+        }
 
         .search-category-pill {
             background: #f3f3f3;
@@ -211,27 +215,23 @@
             font-size: 1.1rem;
         }
 
-            .btn-amazon-search:hover {
-                background-color: #f3a847;
-            }
-
         .sub-nav-bar {
             background-color: var(--amazon-dark-blue) !important;
             padding: 0 10px;
         }
 
-            .sub-nav-bar .nav-link {
-                color: #fff !important;
-                font-weight: 500;
-                font-size: 0.85rem;
-                border: 1px solid transparent;
-                padding: 5px 10px !important;
-            }
+        .sub-nav-bar .nav-link {
+            color: #fff !important;
+            font-weight: 500;
+            font-size: 0.85rem;
+            border: 1px solid transparent;
+            padding: 5px 10px !important;
+        }
 
-                .sub-nav-bar .nav-link:hover {
-                    border: 1px solid white;
-                    border-radius: 2px;
-                }
+        .sub-nav-bar .nav-link:hover {
+            border: 1px solid white;
+            border-radius: 2px;
+        }
 
         .nav-tool-link {
             border: 1px solid transparent;
@@ -241,34 +241,18 @@
             display: block;
         }
 
-            .nav-tool-link:hover {
-                border: 1px solid white;
-                border-radius: 2px;
-            }
-
-        .nav-line-1 {
-            font-size: 0.75rem;
-            color: #ccc;
-            display: block;
+        .nav-tool-link:hover {
+            border: 1px solid white;
+            border-radius: 2px;
         }
 
-        .nav-line-2 {
-            font-size: 0.9rem;
-            font-weight: 700;
-            display: block;
-        }
+        .nav-line-1 { font-size: 0.75rem; color: #ccc; display: block; }
+        .nav-line-2 { font-size: 0.9rem; font-weight: 700; display: block; }
 
         .main-content-container {
             max-width: 1500px;
             margin: auto;
             min-height: 80vh;
-        }
-
-        .category-sidebar-header {
-            font-weight: 700;
-            font-size: 0.9rem;
-            padding: 10px 0;
-            color: #333;
         }
 
         .back-to-top {
@@ -282,11 +266,6 @@
             font-size: 0.85rem;
         }
 
-            .back-to-top:hover {
-                background: #485769;
-                color: white;
-            }
-
         footer.amazon-footer {
             background-color: var(--amazon-blue) !important;
             color: #ddd !important;
@@ -299,22 +278,20 @@
             font-size: 0.8rem;
         }
 
-            .footer-link:hover {
-                text-decoration: underline;
-                color: #fff;
-            }
+        .footer-link:hover {
+            text-decoration: underline;
+            color: #fff;
+        }
 
         @@media (max-width: 768px) {
             .service-promo-banner {
                 text-align: center;
                 justify-content: center !important;
             }
-
             .banner-contact {
                 flex-direction: column;
                 width: 100%;
             }
-
             .contact-details {
                 margin-right: 0 !important;
                 margin-bottom: 15px;
@@ -396,7 +373,6 @@
                                 <i class="fas fa-bars me-2"></i> All
                             </a>
                         </li>
-
                         <vc:menu />
                         <li class="nav-item"><a class="nav-link" asp-controller="Subscription" asp-action="Index">Seller Plans</a></li>
                         <li class="nav-item"><a class="nav-link" asp-controller="Subscription" asp-action="Status">My Status</a></li>
@@ -435,24 +411,25 @@
     </header>
 
     <div class="container-fluid main-content-container py-4">
+        
         <div class="service-promo-banner d-flex align-items-center justify-content-between flex-wrap shadow-sm">
             <div class="banner-content d-flex align-items-center p-3">
                 <div class="banner-icon me-4 d-none d-md-block">
                     <i class="fas fa-laptop-code fa-3x"></i>
                 </div>
                 <div>
-                    <h4 class="mb-1 fw-bold">Need a Professional Website or E-commerce Store?</h4>
-                    <p class="mb-0 text-light opacity-75">Custom Web Apps • CMS Development • UI/UX Design • Maintenance</p>
+                    <h4 class="mb-1 fw-bold">Professional Website & E-commerce Development</h4>
+                    <p class="mb-0 text-light opacity-75 small">Custom Stores • Business Portfolios • Mobile Responsive • Ongoing Support</p>
                 </div>
             </div>
             <div class="banner-contact p-3 d-flex align-items-center">
                 <div class="contact-details me-4 text-md-end">
-                    <div class="small fw-bold text-warning">Direct Contact:</div>
-                    <div class="small"><i class="fas fa-envelope me-1"></i> reach_hunaid@outlook.com</div>
-                    <div class="small"><i class="fab fa-whatsapp me-1 text-success"></i> +91 9603303252</div>
+                    <div class="small fw-bold text-warning">Direct Consultation:</div>
+                    <div class="small text-white-50"><i class="fas fa-envelope me-1"></i> reach_hunaid@outlook.com</div>
+                    <div class="small text-white-50"><i class="fab fa-whatsapp me-1 text-success"></i> +91 9603303252</div>
                 </div>
-                <a href="https://wa.me/919603303252" target="_blank" class="btn btn-warning fw-bold px-4 py-2">
-                    Get Free Consultation
+                <a href="https://wa.me/919603303252" target="_blank" class="btn btn-warning px-4 py-2">
+                    Start Your Project
                 </a>
             </div>
         </div>
@@ -504,7 +481,7 @@
                     <div class="d-flex align-items-center justify-content-center mb-3">
                         <span class="fw-light text-white" style="font-size: 1.2rem;">WE</span><span class="text-warning" style="font-size: 1.2rem;">y</span>paari
                     </div>
-                    <div class="small text-white-50">Developed by <span class="text-white">Hunaid</span></div>
+                    <div class="small text-white-50">Developed by <span class="text-white">Hunaid M Hasan Jamali</span></div>
                 </div>
                 <div class="col-md-4 mb-4 text-md-end">
                     <h6 class="fw-bold text-white mb-3">Community</h6>
