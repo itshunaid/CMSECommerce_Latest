@@ -5,11 +5,19 @@
     ViewData["Title"] = Model.IsUpgrade ? "Upgrade Plan" : "Register Plan";
     ViewData["HideLayoutSidebar"] = true;
     bool isCustomer = ViewBag.IsCustomer ?? false;
+
+    // Determine if the selected plan is a trial
+    bool isTrial = Model.TierName?.Contains("Trial", StringComparison.OrdinalIgnoreCase) ?? false;
 }
 
 <style>
-    .reg-container { font-size: 0.85rem; }
-    :root { --primary-color: #21409a; }
+    .reg-container {
+        font-size: 0.85rem;
+    }
+
+    :root {
+        --primary-color: #21409a;
+    }
 
     .qr-badge {
         background: #fff;
@@ -71,7 +79,10 @@
         font-size: .95rem;
     }
 
-    .credit-text { color: #38a169; font-weight: 600; }
+    .credit-text {
+        color: #38a169;
+        font-weight: 600;
+    }
 
     @@media (min-width: 768px) {
         #upiBtn {
@@ -99,7 +110,6 @@
 
                         <div asp-validation-summary="ModelOnly" class="text-danger text-xs mb-3"></div>
 
-                        <!-- Hidden model fields -->
                         <input type="hidden" asp-for="TierId" />
                         <input type="hidden" asp-for="IsUpgrade" />
                         <input type="hidden" asp-for="TierName" />
@@ -107,7 +117,6 @@
                         <input type="hidden" asp-for="FinalAmount" />
                         <input type="hidden" asp-for="CreditApplied" />
 
-                        <!-- ITS Number (popup only) -->
                         <input type="hidden" asp-for="ITSNumber" id="hiddenITS" />
                         <span asp-validation-for="ITSNumber" class="text-danger text-xs"></span>
 
@@ -138,39 +147,44 @@
                             </div>
                         </div>
 
-                        <div class="qr-badge text-center">
+                        @if (!isTrial)
+                        {
+                            <div class="qr-badge text-center" id="paymentSection">
+                                <img src="~/images/gpay/abbas_gpay_latest_QR_Code.jpeg"
+                                     alt="UPI QR Code"
+                                     style="width:150px;height:150px;" />
 
-    <!-- QR Code for Scan -->
-    <img src="~/images/gpay/abbas_gpay_latest_QR_Code.jpeg"
-         alt="UPI QR Code"
-         style="width:150px;height:150px;" />
+                                <div class="text-muted mt-2 mb-3" style="font-size:.75rem;">
+                                    Scan & pay ₹@Model.FinalAmount.ToString("N0")
+                                </div>
 
-    <div class="text-muted mt-2 mb-3" style="font-size:.75rem;">
-        Scan & pay ₹@Model.FinalAmount.ToString("N0")
-    </div>
+                                <button type="button"
+                                        id="upiBtn"
+                                        class="btn btn-success fw-bold d-block d-md-none w-100 mt-3"
+                                        style="font-size:0.85rem; border-radius:8px;"
+                                        onclick="payViaUPI()">
+                                    <i class="fas fa-wallet me-2"></i> Pay with any UPI
+                                </button>
+                            </div>
 
-    <!-- Pay with UPI Button (Mobile Only) -->
-                            <button type="button"
-                                    id="upiBtn"
-                                    class="btn btn-success fw-bold d-block d-md-none w-100 mt-3"
-                                    style="font-size:0.85rem; border-radius:8px;"
-                                    onclick="payViaUPI()">
-                                <i class="fas fa-wallet me-2"></i> Pay with any UPI
-                            </button>
-
-</div>
-
-
-
-
-                        <div class="mb-4">
-                            <label class="form-label">Payment Receipt</label>
-                            <input type="file" asp-for="Receipt"
-                                   class="form-control form-control-sm-custom"
-                                   accept="image/*"
-                                   required />
-                            <span asp-validation-for="Receipt" class="text-danger text-xs"></span>
-                        </div>
+                            <div class="mb-4" id="receiptSection">
+                                <label class="form-label">Payment Receipt</label>
+                                <input type="file" asp-for="Receipt"
+                                       id="receiptInput"
+                                       class="form-control form-control-sm-custom"
+                                       accept="image/*"
+                                       required />
+                                <span asp-validation-for="Receipt" class="text-danger text-xs"></span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info text-center py-2 mb-4">
+                                <i class="fas fa-gift me-2"></i> <strong>Trial Plan Selected</strong><br />
+                                <small>No payment required for this activation.</small>
+                            </div>
+                            <input type="file" asp-for="Receipt" id="receiptInput" style="display:none;" />
+                        }
 
                         <div class="d-flex justify-content-between align-items-center">
                             <a asp-action="Index" class="text-muted fw-bold" style="font-size:.75rem">
@@ -179,7 +193,7 @@
 
                             <button type="submit"
                                     class="btn @(Model.IsUpgrade ? "btn-primary" : "btn-success") btn-action px-4 py-2">
-                                @(Model.IsUpgrade ? "Pay & Confirm" : "Submit Request")
+                                @(isTrial ? "Activate Free Trial" : (Model.IsUpgrade ? "Pay & Confirm" : "Submit Request"))
                             </button>
                         </div>
 
@@ -191,73 +205,91 @@
 </div>
 
 @section Scripts {
-@{
-    await Html.RenderPartialAsync("_ValidationScriptsPartial");
-}
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-
-    const form = document.getElementById("subscriptionForm");
-    const hiddenITS = document.getElementById("hiddenITS");
-    const isUpgrade = @Model.IsUpgrade.ToString().ToLower();
-
-    function askITS() {
-        return Swal.fire({
-            title: "ITS Number Required",
-            text: "Enter your 8-digit ITS number",
-            input: "text",
-            inputPlaceholder: "XXXXXXXX",
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            confirmButtonText: "Verify & Continue",
-            confirmButtonColor: "#21409a",
-            showLoaderOnConfirm: true,
-            inputValidator: value => {
-                if (!value) return "ITS Number is required";
-                if (!/^\d{8}$/.test(value)) return "Must be exactly 8 digits";
-
-                return fetch(`/Account/CheckUniqueITS?itsNumber=${value}`)
-                    .then(r => r.json())
-                    .then(d => { if (d.exists) return "ITS already registered"; })
-                    .catch(() => "Validation failed");
-            }
-        }).then(r => {
-            if (r.isConfirmed) hiddenITS.value = r.value;
-        });
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-
-    if (!isUpgrade) askITS();
-
-    form.addEventListener("submit", function (e) {
-        e.preventDefault();
-
-        if (!$(form).valid()) return;
-
-        if (!hiddenITS.value || hiddenITS.value.length !== 8) {
-            askITS();
-            return;
-        }
-
-        Swal.fire({
-            title: "Confirm Submission",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonColor: "#198754",
-            confirmButtonText: "Confirm & Submit"
-        }).then(r => {
-            if (r.isConfirmed) form.submit();
-        });
-    });
-
-});
-</script>
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const form = document.getElementById("subscriptionForm");
+            const hiddenITS = document.getElementById("hiddenITS");
+            const isUpgrade = @Model.IsUpgrade.ToString().ToLower();
+            const isTrial = @isTrial.ToString().ToLower();
+
+            function askITS() {
+                return Swal.fire({
+                    title: "ITS Number Required",
+                    text: "Enter your 8-digit ITS number",
+                    input: "text",
+                    inputPlaceholder: "XXXXXXXX",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    confirmButtonText: "Verify & Continue",
+                    confirmButtonColor: "#21409a",
+                    showLoaderOnConfirm: true,
+                    inputValidator: value => {
+                        if (!value) return "ITS Number is required";
+                        if (!/^\d{8}$/.test(value)) return "Must be exactly 8 digits";
+
+                        return fetch(`/Account/CheckUniqueITS?itsNumber=${value}`)
+                            .then(r => r.json())
+                            .then(d => { if (d.exists) return "ITS already registered"; })
+                            .catch(() => "Validation failed");
+                    }
+                }).then(r => {
+                    if (r.isConfirmed) hiddenITS.value = r.value;
+                });
+            }
+
+            if (!isUpgrade) askITS();
+
+            form.addEventListener("submit", async function (e) {
+                e.preventDefault();
+
+                // Handle Trial validation bypass
+                if (isTrial) {
+                    const receiptInput = document.getElementById("receiptInput");
+                    if (receiptInput) receiptInput.removeAttribute("required");
+                }
+
+                if (!$(form).valid()) return;
+
+                if (!hiddenITS.value || hiddenITS.value.length !== 8) {
+                    await askITS();
+                    if (!hiddenITS.value) return;
+                }
+
+                Swal.fire({
+                    title: isTrial ? "Confirm Activation" : "Confirm Submission",
+                    text: isTrial ? "Are you sure you want to activate your trial?" : "Have you completed the payment?",
+                    icon: "question",
+                    showCancelButton: true,
+                    confirmButtonColor: "#198754",
+                    confirmButtonText: isTrial ? "Activate Now" : "Confirm & Submit"
+                }).then(async (r) => {
+                    if (r.isConfirmed) {
+                        if (isTrial) {
+                            // Generate a dummy 1x1 image to satisfy backend file requirements
+                            const dataTransfer = new DataTransfer();
+                            const canvas = document.createElement('canvas');
+                            canvas.width = 1;
+                            canvas.height = 1;
+                            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                            const file = new File([blob], "trial_dummy.png", { type: "image/png" });
+
+                            dataTransfer.items.add(file);
+                            document.getElementById("receiptInput").files = dataTransfer.files;
+                        }
+                        form.submit();
+                    }
+                });
+            });
+
+        });
+
         function payViaUPI() {
-            // Detect if the user is on a mobile device
             const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
             if (!isMobile) {
@@ -269,20 +301,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
-            //const upiUrl = "upi://pay?pa=abbas99631848@barodampay&pn=ABBAS%20KANCHWALA&am=@Model.FinalAmount&cu=INR&tn=Weypaari%20Subscription";
-            const upiUrl =
-            "upi://pay" +
-            "?pa=abbaszoher51-1@oksbi" +        // UPI ID
-            "&pn=ABBAS%20KANCHWALA" +               // Payee Name
-            "&am=" + @Model.FinalAmount +           // Amount
-            "&cu=INR" +
-            "&tn=Weypaari%20Subscription";          // Transaction Note
+            const upiUrl = "upi://pay?pa=abbaszoher51-1@oksbi&pn=ABBAS%20KANCHWALA&am=@Model.FinalAmount&cu=INR&tn=Weypaari%20Subscription";
 
-            // Try-Catch won't catch ERR_UNKNOWN_URL_SCHEME, so we use the timer trick
             const start = Date.now();
             window.location.href = upiUrl;
 
-            // If the browser is still active after 500ms, the app likely didn't open
             setTimeout(() => {
                 if (Date.now() - start < 1500) {
                     Swal.fire({
@@ -295,6 +318,4 @@ document.addEventListener("DOMContentLoaded", function () {
             }, 1000);
         }
     </script>
-
-
 }
