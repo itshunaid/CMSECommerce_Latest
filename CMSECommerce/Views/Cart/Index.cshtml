@@ -123,13 +123,18 @@
             <div class="col-lg-3">
                 <div class="buy-box border rounded-3 p-3 shadow-sm sticky-top" style="top: 20px;">
                     <div class="mb-3">
-                        <div class="d-flex align-items-start text-success small mb-2">
-                            <i class="fas fa-check-circle mt-1 me-2"></i>
-                            <span>Your order is eligible for FREE Delivery.</span>
-                        </div>
                         <div class="fs-5">
                             Subtotal (@Model.CartItems.Sum(x => x.Quantity) items):
                             <div class="fw-bold price-value-box mt-1">₹@Model.GrandTotal.ToString("#,##,##0.00")</div>
+                        </div>
+                    </div>
+
+                    @* Highlighted courier fee note *@
+                    <div class="alert alert-warning courier-note d-flex align-items-start mb-3" role="alert">
+                        <i class="fas fa-truck me-2 mt-1"></i>
+                        <div>
+                            <strong>Important:</strong>
+                            <div class="mt-1">Courier fees are subject to manual adjustment based on seller communication.</div>
                         </div>
                     </div>
 
@@ -269,6 +274,12 @@
                 background-color: #eff1f3 !important;
                 color: #a7abb0 !important;
             }
+
+        .courier-note {
+            background-color: #fff7e6; /* soft yellow */
+            border-left: 4px solid #ff8c00; /* orange accent */
+            color: #5a3e00;
+        }
 
         @@media (max-width: 991.98px) {
             .sticky-top {

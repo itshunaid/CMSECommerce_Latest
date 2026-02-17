@@ -194,7 +194,8 @@ app.MapControllerRoute(
     pattern: "{area}/{controller=Home}/{action=Index}/{id?}");
 
 // Specialized Routes
-app.MapControllerRoute(name: "product", pattern: "products/product/{slug?}", defaults: new { controller = "Products", action = "Product" });
+// Using {**slug} (catch-all) to allow slashes in the product slug (e.g., chocolate-cake-1/2-kg)
+app.MapControllerRoute(name: "product", pattern: "products/product/{**slug}", defaults: new { controller = "Products", action = "Product" });
 app.MapControllerRoute(name: "cart", pattern: "cart/{action}/{id?}", defaults: new { controller = "Cart", action = "Index" });
 app.MapControllerRoute(name: "account", pattern: "account/{action}", defaults: new { controller = "Account", action = "Index" });
 app.MapControllerRoute(name: "orders", pattern: "orders/{action}", defaults: new { controller = "Orders", action = "Index" });

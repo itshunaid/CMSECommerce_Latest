@@ -24,7 +24,6 @@
     <div class="row g-4">
         <div class="col-lg-8">
             <form asp-action="Edit" enctype="multipart/form-data" id="mainProductForm">
-                @* 1. Validation Summary and Hidden Fields *@
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger shadow-sm border-0"></div>
 
                 <input type="hidden" asp-for="Id" id="productId" />
@@ -43,7 +42,6 @@
                             <span asp-validation-for="Name" class="text-danger small"></span>
                         </div>
 
-                        @* 2. Category Selection (Required to fix ModelState.IsValid) *@
                         <div class="mb-4">
                             <label asp-for="CategoryId" class="form-label fw-bold small text-uppercase text-muted">Category</label>
                             <select asp-for="CategoryId" class="form-select border-2 shadow-none" asp-items="ViewBag.Categories">
@@ -71,6 +69,28 @@
                                 <label asp-for="StockQuantity" class="form-label fw-bold small text-uppercase text-muted">Inventory</label>
                                 <input asp-for="StockQuantity" type="number" class="form-control border-2 shadow-none" />
                                 <span asp-validation-for="StockQuantity" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* NEW: YouTube Video Section *@
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h5 class="mb-0 fw-bold text-dark">Video Content</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="mb-3">
+                            <label asp-for="YoutubeUrl" class="form-label fw-bold small text-uppercase text-muted">YouTube Video Link</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-2"><i class="bi bi-youtube text-danger"></i></span>
+                                <input asp-for="YoutubeUrl" id="YoutubeUrlInput" class="form-control border-2 shadow-none" placeholder="https://www.youtube.com/watch?v=..." />
+                            </div>
+                            <span asp-validation-for="YoutubeUrl" class="text-danger small"></span>
+                            <div id="videoPreviewContainer" class="mt-3 d-none">
+                                <div class="ratio ratio-16x9 shadow-sm rounded overflow-hidden border">
+                                    <iframe id="youtubePreview" src="" title="YouTube video" allowfullscreen></iframe>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -161,7 +181,28 @@
         // 1. CKEditor Initialization
         ClassicEditor.create(document.querySelector('#Description')).catch(err => console.error(err));
 
-        // 2. Local Main Image Preview
+        // 2. YouTube Preview Logic
+        function getYoutubeId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function updateYoutubePreview() {
+            const url = $('#YoutubeUrlInput').val();
+            const id = getYoutubeId(url);
+            if (id) {
+                $('#youtubePreview').attr('src', 'https://www.youtube.com/embed/' + id);
+                $('#videoPreviewContainer').removeClass('d-none');
+            } else {
+                $('#videoPreviewContainer').addClass('d-none');
+            }
+        }
+
+        $('#YoutubeUrlInput').on('input', updateYoutubePreview);
+        $(document).ready(updateYoutubePreview); // Preview on load if URL exists
+
+        // 3. Local Main Image Preview
         function previewMain(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -173,7 +214,7 @@
             }
         }
 
-        // 3. Dropzone AJAX Upload
+        // 4. Dropzone AJAX Upload
         Dropzone.autoDiscover = false;
         $(function () {
             const productId = "@Model.Id";
@@ -217,7 +258,7 @@
                 }
             });
 
-            // 4. Delete Gallery Image AJAX
+            // 5. Delete Gallery Image AJAX
             $(document).on("click", ".deleteImage", function (e) {
                 e.preventDefault();
                 const btn = $(this);
@@ -276,6 +317,10 @@
 
         .ck-editor__editable {
             min-height: 250px;
+        }
+        /* Style for the video aspect ratio */
+        .ratio-16x9 {
+            --bs-aspect-ratio: 56.25%;
         }
     </style>
 }

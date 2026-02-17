@@ -43,6 +43,11 @@ namespace CMSECommerce.Models
         [NotMapped]
         public IEnumerable<string> GalleryImages { get; set; }
 
+        [Display(Name = "YouTube Video URL")]
+        [Url(ErrorMessage = "Please enter a valid URL")]
+        [RegularExpression(@"^(https?://)?(www\.)?(youtube\.com|youtu\.be)/.+$", ErrorMessage = "Only YouTube links are allowed")]
+        public string? YoutubeUrl { get; set; }
+
         // Owner (subscriber) who created the product
         public string OwnerName { get; set; }
 

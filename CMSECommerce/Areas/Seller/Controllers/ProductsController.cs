@@ -284,7 +284,7 @@ namespace CMSECommerce.Areas.Seller.Controllers
                 try
                 {
                     // 3. Generate Unique Slug (Allows duplicate Names)
-                    string baseSlug = product.Name.ToLower().Trim().Replace(" ", "-");
+                    string baseSlug = product.Name.ToLower().Trim().Replace(" ", "-");                    
                     string uniqueSlug = baseSlug;
                     int suffix = 1;
 

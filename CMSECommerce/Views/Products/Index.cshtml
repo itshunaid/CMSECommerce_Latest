@@ -306,7 +306,19 @@
                                         </div>
 
                                         <div class="mt-auto">
-                                            <a asp-controller="Cart" asp-action="Add" asp-route-id="@item.Id" class="btn btn-amazon-yellow-pill btn-sm w-100 mb-2 shadow-none">Add to Cart</a>
+                                            @* If product stock is zero, show disabled out-of-stock button; otherwise use POST add form *@
+                                            @if (item.StockQuantity <= 0)
+                                            {
+                                                <button class="btn btn-secondary btn-sm w-100 shadow-none" disabled>Out of stock</button>
+                                            }
+                                            else
+                                            {
+                                                <form asp-controller="Cart" asp-action="Add" method="post" class="mb-2">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.Id" />
+                                                    <button type="submit" class="btn btn-amazon-yellow-pill btn-sm w-100 shadow-none">Add to Cart</button>
+                                                </form>
+                                            }
                                             <a asp-controller="Cart" asp-action="Index" class="btn btn-amazon-outline-pill btn-sm w-100 shadow-none">View Cart</a>
                                         </div>
                                     </div>
@@ -563,10 +575,10 @@
             padding: 2px 0;
         }
 
-        .amazon-category-tree .amazon-cat-link:hover {
-            color: #C45500;
-            text-decoration: underline;
-        }
+            .amazon-category-tree .amazon-cat-link:hover {
+                color: #C45500;
+                text-decoration: underline;
+            }
 
         .amazon-category-tree .active {
             font-weight: 700;
