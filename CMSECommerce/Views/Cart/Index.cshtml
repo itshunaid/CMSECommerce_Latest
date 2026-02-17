@@ -95,9 +95,11 @@
 
                                         <span class="text-muted d-none d-md-inline">|</span>
 
-                                        <a asp-action="Remove" asp-route-id="@item.ProductId" class="text-amazon-link small text-decoration-none">
-                                            Delete
-                                        </a>
+                                        <form method="post" asp-action="Remove" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item.ProductId" />
+                                            <button type="submit" class="btn btn-link p-0 small text-amazon-link text-decoration-none">Delete</button>
+                                        </form>
                                     </div>
                                 </div>
 
@@ -164,7 +166,10 @@
                     }
 
                     <div class="border-top pt-3">
-                        <a asp-action="Clear" class="text-amazon-link small text-decoration-none d-block text-center mb-2">Clear Shopping Cart</a>
+                        <form method="post" asp-action="Clear">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-link p-0 small text-amazon-link d-block text-center mb-2">Clear Shopping Cart</button>
+                        </form>
                         <a asp-controller="Products" asp-action="Index" class="btn btn-sm btn-outline-secondary w-100 rounded-pill">
                             Continue Shopping
                         </a>
