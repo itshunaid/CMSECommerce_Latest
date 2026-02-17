@@ -22,6 +22,11 @@ namespace CMSECommerce.Services
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
+            await SendEmailWithAttachmentAsync(toEmail, subject, body, null);
+        }
+
+        public async Task SendEmailWithAttachmentAsync(string toEmail, string subject, string body, string attachmentPath = null)
+        {
             var smtpSettings = _configuration.GetSection("EmailSettings");
             try
             {
@@ -45,6 +50,21 @@ namespace CMSECommerce.Services
                 message.Subject = subject;
 
                 var bodyBuilder = new BodyBuilder { HtmlBody = body };
+
+                // Add attachment if provided
+                if (!string.IsNullOrEmpty(attachmentPath) && File.Exists(attachmentPath))
+                {
+                    try
+                    {
+                        bodyBuilder.Attachments.Add(attachmentPath);
+                        _logger.LogInformation("Attachment added: {AttachmentPath}", attachmentPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to attach file {AttachmentPath}, sending without attachment", attachmentPath);
+                    }
+                }
+
                 message.Body = bodyBuilder.ToMessageBody();
 
                 var host = smtpServer;

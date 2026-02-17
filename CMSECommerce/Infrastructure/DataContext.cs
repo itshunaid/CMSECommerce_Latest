@@ -28,6 +28,7 @@ namespace CMSECommerce.Infrastructure
         public DbSet<SubscriptionRequest> SubscriptionRequests { get; set; }
         public DbSet<SubscriptionTier> SubscriptionTiers { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<BroadcastMessage> BroadcastMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

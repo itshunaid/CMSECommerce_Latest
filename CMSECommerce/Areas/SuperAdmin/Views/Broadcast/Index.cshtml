@@ -1,0 +1,267 @@
+@{
+    ViewData["Title"] = "Send Broadcast Message";
+}
+
+@{
+    var sellers = ViewBag.Sellers as dynamic;
+}
+
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white py-4">
+                    <h2 class="mb-0">
+                        <i class="fas fa-broadcast-tower me-2"></i>Send Broadcast Message to Sellers
+                    </h2>
+                </div>
+
+                <div class="card-body p-4">
+                    @if (TempData["success"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Success!</strong> @TempData["success"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (TempData["error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Error!</strong> @TempData["error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (TempData["warning"] != null)
+                    {
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Warning!</strong> @TempData["warning"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form method="post" asp-action="Send" enctype="multipart/form-data" id="broadcastForm">
+                        @Html.AntiForgeryToken()
+
+                        <!-- Message Subject -->
+                        <div class="mb-4">
+                            <label for="subject" class="form-label fw-bold">
+                                <i class="fas fa-heading me-2"></i>Subject <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   class="form-control form-control-lg"
+                                   id="subject"
+                                   name="subject"
+                                   placeholder="Enter message subject"
+                                   required />
+                            <small class="form-text text-muted">Max 255 characters</small>
+                        </div>
+
+                        <!-- Message Body -->
+                        <div class="mb-4">
+                            <label for="body" class="form-label fw-bold">
+                                <i class="fas fa-pen me-2"></i>Message Body <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control form-control-lg"
+                                      id="body"
+                                      name="body"
+                                      rows="10"
+                                      placeholder="Enter your message here. HTML formatting is supported."
+                                      required></textarea>
+                            <small class="form-text text-muted">You can use HTML formatting (e.g., <code>&lt;b&gt;bold&lt;/b&gt;</code>, <code>&lt;i&gt;italic&lt;/i&gt;</code>, <code>&lt;a href=&quot;url&quot;&gt;link&lt;/a&gt;</code>)</small>
+                        </div>
+
+                        <!-- Recipient Selection -->
+                        <div class="mb-4 border-top pt-4">
+                            <label class="form-label fw-bold mb-3">
+                                <i class="fas fa-users me-2"></i>Recipients
+                            </label>
+
+                            <!-- Send to All -->
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input recipient-toggle"
+                                           type="radio"
+                                           name="sendToAllSellers"
+                                           id="sendToAll"
+                                           value="true"
+                                           checked />
+                                    <label class="form-check-label fw-bold" for="sendToAll">
+                                        <i class="fas fa-globe me-2"></i>Send to All Sellers
+                                    </label>
+                                    <small class="d-block text-muted ms-4 mt-1">
+                                        Message will be sent to all registered sellers in the system.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Send to Selected Sellers -->
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input recipient-toggle"
+                                           type="radio"
+                                           name="sendToAllSellers"
+                                           id="sendToSelected"
+                                           value="false" />
+                                    <label class="form-check-label fw-bold" for="sendToSelected">
+                                        <i class="fas fa-hand-pointer me-2"></i>Send to Selected Sellers
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Seller Selection (initially hidden) -->
+                            <div id="sellerSelectionContainer" class="ms-4 mb-3" style="display: none;">
+                                <label for="sellerSelect" class="form-label">Choose Sellers:</label>
+                                <select multiple
+                                        class="form-select form-select-lg"
+                                        id="sellerSelect"
+                                        size="8">
+                                    <!-- Will be populated by JavaScript -->
+                                </select>
+                                <small class="form-text text-muted">Hold Ctrl/Cmd and click to select multiple sellers</small>
+                                <input type="hidden" id="selectedSellerIds" name="selectedSellerIds" />
+                            </div>
+                        </div>
+
+                        <!-- Attachment -->
+                        <div class="mb-4 border-top pt-4">
+                            <label for="attachmentFile" class="form-label fw-bold">
+                                <i class="fas fa-file-upload me-2"></i>Attachment (Optional)
+                            </label>
+                            <input type="file"
+                                   class="form-control form-control-lg"
+                                   id="attachmentFile"
+                                   name="attachmentFile"
+                                   accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.png,.jpeg" />
+                            <small class="form-text text-muted">
+                                Supported: PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, PNG, JPEG (Max 10 MB)
+                            </small>
+                        </div>
+
+                        <!-- File Info Display -->
+                        <div id="fileInfoAlert" class="alert alert-info d-none" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Selected file: <strong id="fileName"></strong> (<span id="fileSize"></span> KB)
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2 d-sm-flex justify-content-sm-end border-top pt-4">
+                            <a href="@Url.Action("History", "Broadcast", new { area = "SuperAdmin" })" 
+                               class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="fas fa-history me-2"></i>View History
+                            </a>
+                            <button type="reset" class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="fas fa-redo me-2"></i>Clear
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="fas fa-paper-plane me-2"></i>Send Broadcast
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="alert alert-info mt-4" role="alert">
+                <h5 class="alert-heading">
+                    <i class="fas fa-lightbulb me-2"></i>Tips
+                </h5>
+                <ul class="mb-0">
+                    <li>Messages are sent asynchronously in the background</li>
+                    <li>You will receive a confirmation once all messages are sent</li>
+                    <li>Failed emails will be logged for debugging</li>
+                    <li>You can view your broadcast history at any time</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Load sellers list
+        async function loadSellers() {
+            try {
+                const response = await fetch('@Url.Action("GetSellers", "Broadcast", new { area = "SuperAdmin" })');
+                const sellers = await response.json();
+
+                const select = document.getElementById('sellerSelect');
+                select.innerHTML = '';
+
+                sellers.forEach(seller => {
+                    const option = document.createElement('option');
+                    option.value = seller.id;
+                    option.textContent = `${seller.name} (${seller.email})`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading sellers:', error);
+                alert('Failed to load sellers list');
+            }
+        }
+
+        // Toggle between "All Sellers" and "Selected Sellers"
+        document.querySelectorAll('.recipient-toggle').forEach(radio => {
+            radio.addEventListener('change', function () {
+                const container = document.getElementById('sellerSelectionContainer');
+                const selectedInput = document.getElementById('selectedSellerIds');
+
+                if (this.id === 'sendToSelected') {
+                    container.style.display = 'block';
+                    // Make it required
+                    document.getElementById('sellerSelect').setAttribute('required', 'required');
+                } else {
+                    container.style.display = 'none';
+                    document.getElementById('sellerSelect').removeAttribute('required');
+                    selectedInput.value = '';
+                }
+            });
+        });
+
+        // Handle file selection
+        document.getElementById('attachmentFile').addEventListener('change', function () {
+            const fileAlert = document.getElementById('fileInfoAlert');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+
+            if (this.files && this.files[0]) {
+                fileName.textContent = this.files[0].name;
+                fileSize.textContent = (this.files[0].size / 1024).toFixed(2);
+                fileAlert.classList.remove('d-none');
+            } else {
+                fileAlert.classList.add('d-none');
+            }
+        });
+
+        // Update hidden input with selected seller IDs
+        document.getElementById('sellerSelect').addEventListener('change', function () {
+            const selectedIds = Array.from(this.selectedOptions).map(option => option.value).join(',');
+            document.getElementById('selectedSellerIds').value = selectedIds;
+        });
+
+        // Form submission validation
+        document.getElementById('broadcastForm').addEventListener('submit', function (e) {
+            const sendToSelected = document.getElementById('sendToSelected').checked;
+            const sellerSelect = document.getElementById('sellerSelect');
+
+            if (sendToSelected && sellerSelect.selectedOptions.length === 0) {
+                e.preventDefault();
+                alert('Please select at least one seller');
+                return false;
+            }
+
+            // Update hidden input before submit
+            if (sendToSelected) {
+                const selectedIds = Array.from(sellerSelect.selectedOptions).map(option => option.value).join(',');
+                document.getElementById('selectedSellerIds').value = selectedIds;
+            }
+        });
+
+        // Load sellers on page load
+        document.addEventListener('DOMContentLoaded', loadSellers);
+    </script>
+}
