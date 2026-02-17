@@ -37,27 +37,65 @@ namespace CMSECommerce.Areas.SuperAdmin.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
+        private async Task<List<IdentityUser>> GetActiveSellersAsync()
+        {
+            // Sellers are users who have an active subscription according to UserProfile
+            var now = DateTime.UtcNow;
+            var profiles = await _context.UserProfiles
+                .Include(p => p.User)
+                .Where(p => p.SubscriptionStartDate != null && p.SubscriptionEndDate != null && p.SubscriptionEndDate >= now)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var users = profiles
+                .Where(p => p.User != null)
+                .Select(p => p.User)
+                .Distinct()
+                .ToList();
+
+            return users;
+        }
+
+        private async Task<List<IdentityUser>> GetCustomersAsync()
+        {
+            var now = DateTime.UtcNow;
+
+            // Customers: users who do NOT have an active subscription
+            // We'll select user IDs from UserProfiles that either have no subscription or expired subscriptions
+            var profiles = await _context.UserProfiles
+                .Include(p => p.User)
+                .Where(p => p.User != null)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var customers = profiles
+                .Where(p => !(p.SubscriptionStartDate != null && p.SubscriptionEndDate != null && p.SubscriptionEndDate >= now))
+                .Where(p => p.User != null)
+                .Select(p => p.User)
+                .Distinct()
+                .ToList();
+
+            return customers;
+        }
+
         /// <summary>
         /// Display broadcast message form
         /// </summary>
         public async Task<IActionResult> Index()
         {
-            // Get all sellers (users with active subscription)
-            // Users with active subscription are those who have:
-            // 1. CurrentTierId set AND
-            // 2. SubscriptionEndDate is null OR SubscriptionEndDate > DateTime.Now
-            var sellerProfiles = await _context.UserProfiles
-                .Where(p => p.CurrentTierId.HasValue && 
-                           (p.SubscriptionEndDate == null || p.SubscriptionEndDate > DateTime.Now))
-                .Include(p => p.User)
-                .ToListAsync();
+            // Get active sellers (users with active subscription)
+            var sellers = await GetActiveSellersAsync();
+            var sellerList = sellers
+                .Select(s => new { id = s.Id, email = s.Email, name = s.UserName })
+                .ToList();
 
-            var sellerList = sellerProfiles
-                .Where(p => p.User != null)
-                .Select(p => new { id = p.User.Id, email = p.User.Email, name = p.User.UserName })
+            var customers = await GetCustomersAsync();
+            var customerList = customers
+                .Select(c => new { id = c.Id, email = c.Email, name = c.UserName })
                 .ToList();
 
             ViewBag.Sellers = sellerList;
+            ViewBag.Customers = customerList;
             return View();
         }
 
@@ -69,8 +107,9 @@ namespace CMSECommerce.Areas.SuperAdmin.Controllers
         public async Task<IActionResult> Send(
             [FromForm] string subject,
             [FromForm] string body,
-            [FromForm] bool sendToAllSellers,
-            [FromForm] string selectedSellerIds,
+            [FromForm] string audience, // "sellers" or "customers" or "both"
+            [FromForm] bool sendToAll,
+            [FromForm] string selectedIds,
             [FromForm] IFormFile attachmentFile)
         {
             if (string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(body))
@@ -79,8 +118,18 @@ namespace CMSECommerce.Areas.SuperAdmin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            if (string.IsNullOrWhiteSpace(audience) || (audience != "sellers" && audience != "customers" && audience != "both"))
+            {
+                TempData["error"] = "Invalid audience selected.";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
+                // Robustly interpret checkbox value: HTML checkbox often posts "on" when checked
+                var sendToAllRaw = (Request.Form["sendToAll"].FirstOrDefault() ?? string.Empty).ToLowerInvariant();
+                bool sendToAllFlag = sendToAll || sendToAllRaw == "on" || sendToAllRaw == "true" || sendToAllRaw == "1";
+
                 var currentUser = await _userManager.GetUserAsync(User);
                 if (currentUser == null)
                 {
@@ -88,45 +137,125 @@ namespace CMSECommerce.Areas.SuperAdmin.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                // Get list of sellers to send to
-                List<IdentityUser> recipientSellers;
-                if (sendToAllSellers)
+                // Verify the user exists in the database to ensure foreign key validity
+                var dbUser = await _context.Users.FindAsync(currentUser.Id);
+                if (dbUser == null)
                 {
-                    // Get all users with active subscriptions
-                    var sellerProfiles = await _context.UserProfiles
-                        .Where(p => p.CurrentTierId.HasValue && 
-                                   (p.SubscriptionEndDate == null || p.SubscriptionEndDate > DateTime.Now))
-                        .Include(p => p.User)
-                        .ToListAsync();
-
-                    recipientSellers = sellerProfiles
-                        .Where(p => p.User != null)
-                        .Select(p => p.User)
-                        .ToList();
+                    _logger.LogError("Current user {UserId} not found in database context", currentUser.Id);
+                    TempData["error"] = "User validation failed. Please log in again.";
+                    return RedirectToAction(nameof(Index));
                 }
-                else
-                {
-                    if (string.IsNullOrWhiteSpace(selectedSellerIds))
-                    {
-                        TempData["error"] = "Please select at least one seller.";
-                        return RedirectToAction(nameof(Index));
-                    }
 
-                    var sellerIds = selectedSellerIds.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
-                    recipientSellers = new List<IdentityUser>();
-                    foreach (var id in sellerIds)
+
+                List<IdentityUser> recipients = new();
+                var selectedSellerIds = new List<string>();
+                var selectedCustomerIds = new List<string>();
+
+                if (audience == "sellers" || audience == "both")
+                {
+                    if (sendToAllFlag && audience == "sellers")
                     {
-                        var seller = await _userManager.FindByIdAsync(id);
-                        if (seller != null)
+                        recipients = (await GetActiveSellersAsync()).ToList();
+                    }
+                    else if (sendToAllFlag && audience == "both")
+                    {
+                        // we'll populate later by combining both lists
+                    }
+                    else if (!sendToAllFlag && (audience == "sellers" || audience == "both"))
+                    {
+                        if (string.IsNullOrWhiteSpace(selectedIds))
                         {
-                            recipientSellers.Add(seller);
+                            TempData["error"] = "Please select at least one seller.";
+                            return RedirectToAction(nameof(Index));
+                        }
+
+                        var ids = selectedIds.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                        foreach (var id in ids)
+                        {
+                            var user = await _userManager.FindByIdAsync(id);
+                            if (user == null) continue;
+                            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+                            var now = DateTime.UtcNow;
+                            // classify
+                            if (profile != null && profile.SubscriptionStartDate != null && profile.SubscriptionEndDate != null && profile.SubscriptionEndDate >= now)
+                            {
+                                if (!selectedSellerIds.Contains(user.Id)) selectedSellerIds.Add(user.Id);
+                                if (!recipients.Any(r => r.Id == user.Id)) recipients.Add(user);
+                            }
+                            else
+                            {
+                                if (!selectedCustomerIds.Contains(user.Id)) selectedCustomerIds.Add(user.Id);
+                                if (!recipients.Any(r => r.Id == user.Id)) recipients.Add(user);
+                            }
                         }
                     }
                 }
 
-                if (!recipientSellers.Any())
+                if (audience == "customers" || audience == "both")
                 {
-                    TempData["error"] = "No sellers found to send message to.";
+                    if (sendToAllFlag && audience == "customers")
+                    {
+                        recipients = (await GetCustomersAsync()).ToList();
+                    }
+                    else if (sendToAllFlag && audience == "both")
+                    {
+                        // we'll populate later by combining both lists
+                    }
+                    else if (!sendToAllFlag && audience == "customers")
+                    {
+                        if (string.IsNullOrWhiteSpace(selectedIds))
+                        {
+                            TempData["error"] = "Please select at least one customer.";
+                            return RedirectToAction(nameof(Index));
+                        }
+
+                        var ids = selectedIds.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                        foreach (var id in ids)
+                        {
+                            var user = await _userManager.FindByIdAsync(id);
+                            if (user == null) continue;
+                            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+                            var now = DateTime.UtcNow;
+                            if (profile == null || !(profile.SubscriptionStartDate != null && profile.SubscriptionEndDate != null && profile.SubscriptionEndDate >= now))
+                            {
+                                if (!selectedCustomerIds.Contains(user.Id)) selectedCustomerIds.Add(user.Id);
+                                if (!recipients.Any(r => r.Id == user.Id)) recipients.Add(user);
+                            }
+                        }
+                    }
+                }
+
+                // Handle sendToAll for 'both' audience by combining both lists
+                if (sendToAllFlag && audience == "both")
+                {
+                    var sellers = await GetActiveSellersAsync();
+                    var customers = await GetCustomersAsync();
+                    // combine distinct by Id
+                    var combined = sellers.Concat(customers).GroupBy(u => u.Id).Select(g => g.First()).ToList();
+                    recipients = combined;
+                }
+
+                // Remove recipients without a valid email and log them
+                var initialCount = recipients.Count;
+                var invalidEmails = new List<string>();
+                recipients = recipients.Where(u =>
+                {
+                    if (string.IsNullOrWhiteSpace(u?.Email))
+                    {
+                        invalidEmails.Add(u?.Id ?? "<unknown>");
+                        return false;
+                    }
+                    return true;
+                }).ToList();
+
+                if (invalidEmails.Any())
+                {
+                    _logger.LogWarning("Broadcast recipients removed due to missing email addresses: {Ids}", string.Join(',', invalidEmails));
+                }
+
+                if (!recipients.Any())
+                {
+                    TempData["error"] = "No recipients with valid email addresses found for the selected audience.";
                     return RedirectToAction(nameof(Index));
                 }
 
@@ -149,14 +278,11 @@ namespace CMSECommerce.Areas.SuperAdmin.Controllers
                         var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "broadcast-attachments");
                         Directory.CreateDirectory(uploadsFolder);
 
-                        // Generate unique filename to avoid conflicts
                         var uniqueFileName = $"{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid()}_{attachmentFileName}";
                         attachmentPath = Path.Combine(uploadsFolder, uniqueFileName);
 
-                        using (var fileStream = new FileStream(attachmentPath, FileMode.Create))
-                        {
-                            await attachmentFile.CopyToAsync(fileStream);
-                        }
+                        using var fileStream = new FileStream(attachmentPath, FileMode.Create);
+                        await attachmentFile.CopyToAsync(fileStream);
 
                         _logger.LogInformation("Attachment uploaded: {AttachmentPath}", attachmentPath);
                     }
@@ -165,37 +291,77 @@ namespace CMSECommerce.Areas.SuperAdmin.Controllers
                         _logger.LogError(ex, "Failed to upload attachment");
                         TempData["warning"] = "Attachment upload failed, sending without attachment.";
                         attachmentPath = null;
+                        attachmentFileName = null;
                     }
                 }
 
-                // Create broadcast message record
-                var broadcastMessage = new BroadcastMessage
+                var broadcast = new BroadcastMessage
                 {
                     Subject = subject,
                     Body = body,
                     AttachmentFileName = attachmentFileName,
                     AttachmentPath = attachmentPath,
-                    SendToAllSellers = sendToAllSellers,
-                    SelectedSellerIds = sendToAllSellers ? null : selectedSellerIds,
+                    SendToAllSellers = (audience == "sellers" && sendToAllFlag) || (audience == "both" && sendToAllFlag),
+                    SelectedSellerIds = selectedSellerIds.Any() ? string.Join(',', selectedSellerIds) : null,
+                    SendToAllCustomers = (audience == "customers" && sendToAllFlag) || (audience == "both" && sendToAllFlag),
+                    SelectedCustomerIds = selectedCustomerIds.Any() ? string.Join(',', selectedCustomerIds) : null,
                     SentByUserId = currentUser.Id,
                     DateSent = DateTime.UtcNow,
-                    RecipientCount = recipientSellers.Count,
+                    RecipientCount = recipients.Count,
                     Status = "Pending"
                 };
 
-                _context.BroadcastMessages.Add(broadcastMessage);
-                await _context.SaveChangesAsync();
+                _context.BroadcastMessages.Add(broadcast);
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    // Log detailed information about the failure
+                    _logger.LogError(ex, "Failed to save BroadcastMessage entity to database. " +
+                        "Subject: {Subject}, Body Length: {BodyLength}, SentByUserId: {SentByUserId}, " +
+                        "RecipientCount: {RecipientCount}, Status: {Status}, Audience: {Audience}, " +
+                        "SendToAllSellers: {SendToAllSellers}, SendToAllCustomers: {SendToAllCustomers}, " +
+                        "SelectedSellerIds: {SelectedSellerIds}, SelectedCustomerIds: {SelectedCustomerIds}",
+                        broadcast.Subject,
+                        broadcast.Body?.Length ?? 0,
+                        broadcast.SentByUserId,
+                        broadcast.RecipientCount,
+                        broadcast.Status,
+                        audience,
+                        broadcast.SendToAllSellers,
+                        broadcast.SendToAllCustomers,
+                        broadcast.SelectedSellerIds,
+                        broadcast.SelectedCustomerIds);
+                    
+                    // Log inner exception if available
+                    if (ex.InnerException != null)
+                    {
+                        _logger.LogError(ex.InnerException, "Inner exception: {InnerMessage}", ex.InnerException.Message);
+                    }
+                    
+                    TempData["error"] = "Failed to save broadcast record. See logs for details.";
+
+                    // Clean up uploaded attachment file if present to avoid orphan files
+                    if (!string.IsNullOrEmpty(attachmentPath) && System.IO.File.Exists(attachmentPath))
+                    {
+                        try { System.IO.File.Delete(attachmentPath); } catch { }
+                    }
+
+                    return RedirectToAction(nameof(Index));
+                }
 
                 // Send emails asynchronously
-                _ = SendBroadcastEmailsAsync(broadcastMessage, recipientSellers, attachmentPath, body);
+                _ = SendBroadcastEmailsAsync(broadcast, recipients, attachmentPath, body);
 
-                TempData["success"] = $"Broadcast message queued for sending to {recipientSellers.Count} seller(s).";
+                TempData["success"] = $"Broadcast queued for sending to {recipients.Count} recipient(s).";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending broadcast message");
-                TempData["error"] = "An error occurred while sending the broadcast message.";
+                TempData["error"] = "An error occurred while sending the broadcast message. See logs for details.";
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -244,19 +410,20 @@ namespace CMSECommerce.Areas.SuperAdmin.Controllers
         [HttpGet]
         public async Task<IActionResult> GetSellers()
         {
-            // Get all sellers (users with active subscription)
-            var sellerProfiles = await _context.UserProfiles
-                .Where(p => p.CurrentTierId.HasValue && 
-                           (p.SubscriptionEndDate == null || p.SubscriptionEndDate > DateTime.Now))
-                .Include(p => p.User)
-                .ToListAsync();
-
-            var sellerList = sellerProfiles
-                .Where(p => p.User != null)
-                .Select(p => new { id = p.User.Id, email = p.User.Email, name = p.User.UserName })
-                .ToList();
-
+            var sellers = await GetActiveSellersAsync();
+            var sellerList = sellers.Select(s => new { id = s.Id, email = s.Email, name = s.UserName }).ToList();
             return Json(sellerList);
+        }
+
+        /// <summary>
+        /// Get customers as JSON for dropdown
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetCustomers()
+        {
+            var customers = await GetCustomersAsync();
+            var customerList = customers.Select(c => new { id = c.Id, email = c.Email, name = c.UserName }).ToList();
+            return Json(customerList);
         }
 
         /// <summary>

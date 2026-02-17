@@ -4,6 +4,7 @@
 
 @{
     var sellers = ViewBag.Sellers as dynamic;
+    var customers = ViewBag.Customers as dynamic;
 }
 
 <div class="container my-5">
@@ -12,7 +13,7 @@
             <div class="card shadow-lg border-0">
                 <div class="card-header bg-primary text-white py-4">
                     <h2 class="mb-0">
-                        <i class="fas fa-broadcast-tower me-2"></i>Send Broadcast Message to Sellers
+                        <i class="fas fa-broadcast-tower me-2"></i>Send Broadcast Message
                     </h2>
                 </div>
 
@@ -35,17 +36,11 @@
                         </div>
                     }
 
-                    @if (TempData["warning"] != null)
-                    {
-                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>Warning!</strong> @TempData["warning"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    }
-
                     <form method="post" asp-action="Send" enctype="multipart/form-data" id="broadcastForm">
                         @Html.AntiForgeryToken()
+
+                        <input type="hidden" name="audience" id="audienceInput" value="sellers" />
+                        <input type="hidden" name="selectedIds" id="selectedIdsInput" value="" />
 
                         <!-- Message Subject -->
                         <div class="mb-4">
@@ -75,6 +70,38 @@
                             <small class="form-text text-muted">You can use HTML formatting (e.g., <code>&lt;b&gt;bold&lt;/b&gt;</code>, <code>&lt;i&gt;italic&lt;/i&gt;</code>, <code>&lt;a href=&quot;url&quot;&gt;link&lt;/a&gt;</code>)</small>
                         </div>
 
+                        <!-- Audience Selection -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Audience</label>
+                            <div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input audience-radio"
+                                           type="radio"
+                                           name="audienceRadio"
+                                           id="audienceSellers"
+                                           value="sellers"
+                                           checked />
+                                    <label class="form-check-label"
+                                           for="audienceSellers">
+                                        <i class="fas fa-users me-2"></i>
+                                        Sellers (active subscribers)
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input audience-radio"
+                                           type="radio"
+                                           name="audienceRadio"
+                                           id="audienceCustomers"
+                                           value="customers" />
+                                    <label class="form-check-label"
+                                           for="audienceCustomers">
+                                        <i class="fas fa-user-tag me-2"></i>
+                                        Customers (non-subscribed users)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Recipient Selection -->
                         <div class="mb-4 border-top pt-4">
                             <label class="form-label fw-bold mb-3">
@@ -84,46 +111,28 @@
                             <!-- Send to All -->
                             <div class="mb-3">
                                 <div class="form-check">
-                                    <input class="form-check-input recipient-toggle"
-                                           type="radio"
-                                           name="sendToAllSellers"
+                                    <input class="form-check-input"
+                                           type="checkbox"
                                            id="sendToAll"
-                                           value="true"
+                                           name="sendToAll"
                                            checked />
-                                    <label class="form-check-label fw-bold" for="sendToAll">
-                                        <i class="fas fa-globe me-2"></i>Send to All Sellers
-                                    </label>
-                                    <small class="d-block text-muted ms-4 mt-1">
-                                        Message will be sent to all registered sellers in the system.
-                                    </small>
-                                </div>
-                            </div>
-
-                            <!-- Send to Selected Sellers -->
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input recipient-toggle"
-                                           type="radio"
-                                           name="sendToAllSellers"
-                                           id="sendToSelected"
-                                           value="false" />
-                                    <label class="form-check-label fw-bold" for="sendToSelected">
-                                        <i class="fas fa-hand-pointer me-2"></i>Send to Selected Sellers
+                                    <label class="form-check-label fw-bold"
+                                           for="sendToAll">
+                                        <i class="fas fa-globe me-2"></i>Send to All (selected audience)
                                     </label>
                                 </div>
                             </div>
 
-                            <!-- Seller Selection (initially hidden) -->
-                            <div id="sellerSelectionContainer" class="ms-4 mb-3" style="display: none;">
-                                <label for="sellerSelect" class="form-label">Choose Sellers:</label>
+                            <!-- Send to Selected Sellers/Customers -->
+                            <div id="selectionContainer" class="mb-3" style="display: none;">
+                                <label class="form-label">Select Recipients:</label>
                                 <select multiple
                                         class="form-select form-select-lg"
-                                        id="sellerSelect"
+                                        id="recipientSelect"
                                         size="8">
                                     <!-- Will be populated by JavaScript -->
                                 </select>
-                                <small class="form-text text-muted">Hold Ctrl/Cmd and click to select multiple sellers</small>
-                                <input type="hidden" id="selectedSellerIds" name="selectedSellerIds" />
+                                <small class="form-text text-muted">Hold Ctrl/Cmd and click to select multiple recipients</small>
                             </div>
                         </div>
 
@@ -183,43 +192,45 @@
 
 @section Scripts {
     <script>
-        // Load sellers list
-        async function loadSellers() {
+        // Load recipient list based on audience type
+        async function loadList(audience) {
+            const select = document.getElementById('recipientSelect');
+            select.innerHTML = '';
             try {
-                const response = await fetch('@Url.Action("GetSellers", "Broadcast", new { area = "SuperAdmin" })');
-                const sellers = await response.json();
-
-                const select = document.getElementById('sellerSelect');
-                select.innerHTML = '';
-
-                sellers.forEach(seller => {
-                    const option = document.createElement('option');
-                    option.value = seller.id;
-                    option.textContent = `${seller.name} (${seller.email})`;
-                    select.appendChild(option);
+                const url = audience === 'sellers' ?
+                    '@Url.Action("GetSellers", "Broadcast", new { area = "SuperAdmin" })' :
+                    '@Url.Action("GetCustomers", "Broadcast", new { area = "SuperAdmin" })';
+                const res = await fetch(url);
+                const list = await res.json();
+                list.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = `${item.name} (${item.email})`;
+                    select.appendChild(opt);
                 });
-            } catch (error) {
-                console.error('Error loading sellers:', error);
-                alert('Failed to load sellers list');
+            } catch (e) {
+                console.error(e);
+                alert('Failed to load recipients');
             }
         }
 
-        // Toggle between "All Sellers" and "Selected Sellers"
-        document.querySelectorAll('.recipient-toggle').forEach(radio => {
-            radio.addEventListener('change', function () {
-                const container = document.getElementById('sellerSelectionContainer');
-                const selectedInput = document.getElementById('selectedSellerIds');
+        document.querySelectorAll('.audience-radio').forEach(r => r.addEventListener('change', function () {
+            document.getElementById('audienceInput').value = this.value;
+            // Reload recipient list for the selected audience
+            loadList(this.value);
+        }));
 
-                if (this.id === 'sendToSelected') {
-                    container.style.display = 'block';
-                    // Make it required
-                    document.getElementById('sellerSelect').setAttribute('required', 'required');
-                } else {
-                    container.style.display = 'none';
-                    document.getElementById('sellerSelect').removeAttribute('required');
-                    selectedInput.value = '';
-                }
-            });
+        document.getElementById('sendToAll').addEventListener('change', function () {
+            const sel = document.getElementById('selectionContainer');
+            if (this.checked) {
+                sel.style.display = 'none';
+                // Clear selection if "Send to All" is checked
+                const select = document.getElementById('recipientSelect');
+                select.value = '';
+                document.getElementById('selectedIdsInput').value = '';
+            } else {
+                sel.style.display = 'block';
+            }
         });
 
         // Handle file selection
@@ -237,31 +248,34 @@
             }
         });
 
-        // Update hidden input with selected seller IDs
-        document.getElementById('sellerSelect').addEventListener('change', function () {
+        // Update hidden input with selected recipient IDs
+        document.getElementById('recipientSelect').addEventListener('change', function () {
             const selectedIds = Array.from(this.selectedOptions).map(option => option.value).join(',');
-            document.getElementById('selectedSellerIds').value = selectedIds;
+            document.getElementById('selectedIdsInput').value = selectedIds;
         });
 
         // Form submission validation
         document.getElementById('broadcastForm').addEventListener('submit', function (e) {
-            const sendToSelected = document.getElementById('sendToSelected').checked;
-            const sellerSelect = document.getElementById('sellerSelect');
+            const sendToAll = document.getElementById('sendToAll').checked;
+            const recipientSelect = document.getElementById('recipientSelect');
 
-            if (sendToSelected && sellerSelect.selectedOptions.length === 0) {
+            if (!sendToAll && recipientSelect.selectedOptions.length === 0) {
                 e.preventDefault();
-                alert('Please select at least one seller');
+                alert('Please select at least one recipient');
                 return false;
             }
 
             // Update hidden input before submit
-            if (sendToSelected) {
-                const selectedIds = Array.from(sellerSelect.selectedOptions).map(option => option.value).join(',');
-                document.getElementById('selectedSellerIds').value = selectedIds;
+            if (!sendToAll) {
+                const selectedIds = Array.from(recipientSelect.selectedOptions).map(option => option.value).join(',');
+                document.getElementById('selectedIdsInput').value = selectedIds;
             }
         });
 
-        // Load sellers on page load
-        document.addEventListener('DOMContentLoaded', loadSellers);
+        // Load recipient list on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            loadList('sellers');
+            document.getElementById('selectionContainer').style.display = 'none';
+        });
     </script>
 }

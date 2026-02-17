@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Identity;
 
 namespace CMSECommerce.Models
 {
@@ -34,12 +35,19 @@ namespace CMSECommerce.Models
         [Display(Name = "Selected Seller IDs")]
         public string SelectedSellerIds { get; set; } // Comma-separated list of seller user IDs
 
+        // New: customer targeting
+        [Display(Name = "Send to All Customers")]
+        public bool SendToAllCustomers { get; set; } = false;
+
+        [Display(Name = "Selected Customer IDs")]
+        public string SelectedCustomerIds { get; set; } // Comma-separated list of customer user IDs
+
         [Required]
         [Display(Name = "Sent By")]
         public string SentByUserId { get; set; }
 
         [ForeignKey("SentByUserId")]
-        public virtual User SentByUser { get; set; }
+        public virtual IdentityUser SentByUser { get; set; }
 
         [Required]
         [Display(Name = "Date Sent")]

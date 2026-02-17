@@ -73,6 +73,23 @@ namespace CMSECommerce.Infrastructure
                 b.HasIndex(x => new { x.RecipientId, x.IsRead });
             });
 
+            // Configure BroadcastMessage entity
+            modelBuilder.Entity<BroadcastMessage>(entity =>
+            {
+                entity.HasKey(b => b.Id);
+                entity.Property(b => b.Subject).IsRequired().HasMaxLength(255);
+                entity.Property(b => b.Body).IsRequired();
+                entity.Property(b => b.AttachmentFileName).HasMaxLength(255);
+                entity.Property(b => b.AttachmentPath).HasMaxLength(500);
+                entity.Property(b => b.Status).HasMaxLength(50);
+                
+                // Configure relationship with IdentityUser
+                entity.HasOne(b => b.SentByUser)
+                    .WithMany()
+                    .HasForeignKey(b => b.SentByUserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             // --- 2. IDENTITY SEEDING ---
             string adminRoleId = "5f90378b-3001-443b-8736-411a91341c2c";
             string customerRoleId = "6f90378b-3001-443b-8736-411a91341c2d";
