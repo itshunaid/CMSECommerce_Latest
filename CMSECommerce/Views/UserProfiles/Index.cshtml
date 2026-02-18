@@ -6,8 +6,9 @@
     ViewData["Title"] = isCustomer ? "My Personal Profile" : "My Business Profile";
     ViewData["HideLayoutSidebar"] = true;
 
-    // 1. Generate the Public Link for sharing
-    var publicUrl = Url.Action("View", "UserProfiles", new { id = Model.Id }, Context.Request.Scheme);
+    // 1. Generate the Public Link for sharing - format: /mystore/{email}
+    var userEmail = Model.User?.Email ?? Model.Store?.Email ?? "";
+    var publicUrl = $"{Context.Request.Scheme}://{Context.Request.Host}/mystore/{userEmail}";
 
     // 2. Security Check: Is the person viewing this the person who owns it?
     var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -184,7 +185,7 @@
                     </button>
 
                     <button onclick="copyProfileLink('@publicUrl')" class="btn btn-custom bg-white text-secondary border shadow-sm">
-                        <i class="bi bi-share-fill"></i> Share Link
+                        <i class="bi bi-share-fill"></i> Share My Store Link
                     </button>
 
                     @if (ViewBag.RequestFromDictionary)
