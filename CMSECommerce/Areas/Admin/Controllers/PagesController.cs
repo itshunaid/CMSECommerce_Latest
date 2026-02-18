@@ -1,4 +1,5 @@
 ﻿using CMSECommerce.Infrastructure;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -6,10 +7,11 @@ using Microsoft.EntityFrameworkCore;
 namespace CMSECommerce.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize("Admin")]
-    public class PagesController(DataContext context) : Controller
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public class PagesController(DataContext context, IAuditService auditService) : Controller
     {
         private readonly DataContext _context = context;
+        private readonly IAuditService _auditService = auditService;
 
         public async Task<IActionResult> Index()
         {
@@ -82,6 +84,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                 TempData["Success"] = "The page has been edited!";
 
+                // Audit logging
+                await _auditService.LogEntityUpdateAsync(page, page, page.Id.ToString(), HttpContext);
+
                 return RedirectToAction("Edit", new { page.Id });
             }
 
@@ -105,7 +110,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
             return RedirectToAction("Index");
         }
 
-        public void ReorderPages(int[] id)
+        public async Task ReorderPages(int[] id)
         {
             int count = 1;
 
@@ -118,6 +123,9 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
                 count++;
             }
+
+            // Audit logging
+            await _auditService.LogActionAsync("Reorder Pages", "Page", string.Join(",", id), "Pages reordered", HttpContext);
         }
     }
 }

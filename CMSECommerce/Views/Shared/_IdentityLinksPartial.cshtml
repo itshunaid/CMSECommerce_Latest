@@ -1,55 +1,157 @@
 ﻿@using System.Security.Claims
-<ul class="activeul navbar-nav flex-grow-1 justify-content-end">
+@using CMSECommerce.Infrastructure
+@using Microsoft.AspNetCore.Identity
+@inject DataContext _context
+@inject UserManager<IdentityUser> UserManager
+
+<style>
+    /* 1. The Top-Level Link */
+    .nav-account__link {
+        text-decoration: none !important;
+        padding: 2px 8px;
+        display: flex; /* Use flex to align text and arrow */
+        align-items: center;
+        border: 1px solid transparent;
+    }
+
+        .nav-account__link:hover {
+            border: 1px solid #ffffff;
+            border-radius: 2px;
+        }
+
+        /* Remove the default Bootstrap caret if it's interfering */
+        .nav-account__link.dropdown-toggle::after {
+            display: none;
+        }
+
+    .nav-account__line-1 {
+        font-size: 11px;
+        color: #cccccc !important;
+        display: block;
+        line-height: 1.2;
+    }
+
+    /* Arrow Styling */
+    .nav-account__caret {
+        color: #cccccc;
+        font-size: 10px;
+        margin-left: 5px;
+        margin-top: 2px;
+    }
+
+    /* 2. The Dropdown Container */
+    .nav-account__dropdown-menu {
+        background-color: #ffffff !important;
+        min-width: 220px;
+        border: 1px solid #ddd;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        padding: 10px 0;
+        margin-top: 5px !important;
+    }
+
+        /* 3. The Links inside the Dropdown */
+        .nav-account__dropdown-menu a.nav-account__dropdown-item,
+        .nav-account__dropdown-menu button.nav-account__dropdown-item {
+            color: #111111 !important;
+            font-size: 13px;
+            padding: 8px 20px;
+            text-decoration: none !important;
+            background: none;
+            border: none;
+            width: 100%;
+            display: block;
+            text-align: left;
+        }
+
+            .nav-account__dropdown-menu a.nav-account__dropdown-item:hover {
+                color: #e47911 !important;
+                background-color: #f8f9fa !important;
+                text-decoration: underline !important;
+            }
+
+    .nav-account__header {
+        font-size: 15px;
+        font-weight: 700;
+        color: #111 !important;
+        padding: 5px 20px;
+        margin: 0;
+    }
+</style>
+
+<ul class="navbar-nav align-items-center">
     @if (User.Identity.IsAuthenticated)
     {
-        <li class="nav-item d-flex align-items-center me-2">
-            <span class="nav-link text-dark">Hello, @User.Identity.Name
-                @* @{
-                    var roleLabel = string.Empty;
-                    if (User.IsInRole("Admin")) { roleLabel = "Admin"; }
-                    else if (User.IsInRole("Customer")) { roleLabel = "Customer"; }
-                }
-                @if (!string.IsNullOrEmpty(roleLabel))
+        // 1. Fetch the current user and their profile
+        var userId = UserManager.GetUserId(User);
+        var profile = _context.UserProfiles.FirstOrDefault(u => u.UserId == userId);
+
+        // 2. Determine the display name
+        string displayName = "";
+
+        if (profile != null && !string.IsNullOrEmpty(profile.FirstName) && !string.IsNullOrEmpty(profile.LastName))
+        {
+            displayName = $"{profile.FirstName} {profile.LastName}";
+        }
+        else
+        {
+            displayName = User.Identity.Name; // This is usually the Email in Identity
+        }
+        //var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.Identity.Name;
+        var userEmail = displayName;
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle nav-account__link"
+               href="#" id="UserAccountDropdown" role="button"
+               data-bs-toggle="dropdown" aria-expanded="false">
+
+                <div class="d-flex flex-column">
+                    <span class="nav-account__line-1">Welcome,</span>
+                    <span style="color: #ffffff; font-weight: 700; font-size: 14px;">
+                        @displayName
+                        <i class="fas fa-caret-down nav-account__caret"></i>
+                    </span>
+                </div>
+            </a>
+
+            <div class="dropdown-menu dropdown-menu-end nav-account__dropdown-menu" aria-labelledby="UserAccountDropdown">
+                <h6 class="nav-account__header">Your Account</h6>
+
+                @if (User.IsInRole("Admin"))
                 {
-                    <span class="badge bg-secondary ms-2">@roleLabel</span>
-                } *@
-            </span>
-        </li>
+                    <a class="nav-account__dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                        My Dashboard
+                    </a>
+                }
+                @if (User.IsInRole("Subscriber"))
+                {
+                    <a class="nav-account__dropdown-item" asp-area="Seller" asp-controller="Dashboard" asp-action="Index">
+                        My Dashboard
+                    </a>
+                }
 
-        <li class="nav-item">
-            <a asp-controller="Account" asp-action="Index" class="nav-link text-dark">My Account</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Profile" title="Profile">
-                <i class="fas fa-user-cog me-1"></i> My Profile
-            </a>
-        </li>
+                <a class="nav-account__dropdown-item" asp-controller="UserProfiles" asp-action="Index">
+                    My Profile
+                </a>
 
-        <li class="nav-item">
-            <a asp-controller="Account"
-               asp-action="Logout"
-               class="nav-link text-dark">
-                Log Out
-            </a>
+                <a class="nav-account__dropdown-item" asp-controller="Orders" asp-action="MyOrders">
+                    My Orders
+                </a>
+
+                <hr class="dropdown-divider">
+
+                <form method="post" asp-controller="Account" asp-action="Logout" class="m-0">
+                    <button type="submit" class="nav-account__dropdown-item text-danger fw-bold">
+                        Sign Out
+                    </button>
+                </form>
+            </div>
         </li>
     }
     else
     {
         <li class="nav-item">
-            <a asp-controller="Account"
-               asp-action="Register"
-               class="nav-link text-dark">
-                Register
-            </a>
-        </li>
-
-        <li class="nav-item">
-            <a asp-controller="Account"
-               asp-action="Login"
-               class="nav-link text-dark">
-                Log in
+            <a asp-controller="Account" asp-action="Login" class="nav-account__link">
+                <span class="nav-account__line-1">Hello, sign in</span>
             </a>
         </li>
     }
-
 </ul>

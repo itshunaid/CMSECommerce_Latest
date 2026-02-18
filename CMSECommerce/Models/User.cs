@@ -59,5 +59,9 @@ namespace CMSECommerce.Models
 
         [Required]
         public string Country { get; set; }
+
+       
+
+       
     }
 }

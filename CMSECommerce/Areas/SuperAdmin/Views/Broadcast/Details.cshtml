@@ -1,0 +1,144 @@
+@model CMSECommerce.Models.BroadcastMessage
+
+@{
+    ViewData["Title"] = "Broadcast Message Details";
+}
+
+<div class="container my-5">
+    <div class="row mb-4">
+        <div class="col-lg-10">
+            <h2>
+                <i class="fas fa-envelope-open me-2"></i>Message Details
+            </h2>
+        </div>
+        <div class="col-lg-2 text-end">
+            <a asp-action="History" asp-controller="Broadcast" asp-area="SuperAdmin" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-header bg-primary text-white py-4">
+                    <h4 class="mb-0">@Model.Subject</h4>
+                </div>
+
+                <div class="card-body p-4">
+                    <!-- Metadata -->
+                    <div class="row mb-4 pb-4 border-bottom">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">
+                                <i class="fas fa-user me-2"></i>Sent By
+                            </h6>
+                            <p class="mb-0">
+                                <strong>@(Model.SentByUser?.UserName ?? "Unknown")</strong>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">
+                                <i class="fas fa-calendar me-2"></i>Date Sent
+                            </h6>
+                            <p class="mb-0">
+                                <strong>@Model.DateSent.ToString("MMM dd, yyyy HH:mm:ss")</strong>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4 pb-4 border-bottom">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">
+                                <i class="fas fa-users me-2"></i>Recipients
+                            </h6>
+                            <p class="mb-0">
+                                <strong>@Model.RecipientCount seller(s)</strong>
+                                @if (Model.SendToAllSellers)
+                                {
+                                    <span class="badge bg-info ms-2">All Sellers</span>
+                                }
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">
+                                <i class="fas fa-circle me-2"></i>Status
+                            </h6>
+                            <p class="mb-0">
+                                @if (Model.Status == "Sent")
+                                {
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>Sent Successfully
+                                    </span>
+                                }
+                                else if (Model.Status == "Failed")
+                                {
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times-circle me-1"></i>Failed
+                                    </span>
+                                }
+                                else if (Model.Status == "PartialSent")
+                                {
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-exclamation-circle me-1"></i>Partially Sent
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-clock me-1"></i>Pending
+                                    </span>
+                                }
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Attachment Info -->
+                    @if (!string.IsNullOrEmpty(Model.AttachmentFileName))
+                    {
+                        <div class="mb-4 pb-4 border-bottom">
+                            <h6 class="text-muted mb-2">
+                                <i class="fas fa-file me-2"></i>Attachment
+                            </h6>
+                            <p class="mb-0">
+                                <strong>@Model.AttachmentFileName</strong>
+                                <br />
+                                <small class="text-muted">
+                                    @if (!string.IsNullOrEmpty(Model.AttachmentPath) && System.IO.File.Exists(Model.AttachmentPath))
+                                    {
+                                        <span>(@(new System.IO.FileInfo(Model.AttachmentPath).Length / 1024) KB)</span>
+                                    }
+                                </small>
+                            </p>
+                        </div>
+                    }
+
+                    <!-- Message Body -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-envelope me-2"></i>Message Content
+                        </h6>
+                        <div class="card border-light bg-light p-4">
+                            @Html.Raw(Model.Body)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-end">
+                <a asp-action="History"
+                   asp-controller="Broadcast"
+                   asp-area="SuperAdmin"
+                   class="btn btn-outline-secondary btn-lg px-4">
+                    <i class="fas fa-arrow-left me-2"></i>Back to History
+                </a>
+                <a asp-action="Index"
+                   asp-controller="Broadcast"
+                   asp-area="SuperAdmin"
+                   class="btn btn-primary btn-lg px-4">
+                    <i class="fas fa-plus me-2"></i>Send Another Message
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

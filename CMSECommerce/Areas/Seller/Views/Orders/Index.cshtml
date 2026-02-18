@@ -1,218 +1,317 @@
 ﻿@model IEnumerable<CMSECommerce.Models.OrderDetail>
 
 @{
-    // Conditional Title based on ViewBag.IsProcessed
+    // Architect Decision: Maintain separate lists for active vs cancelled to ensure data integrity
+    var activeItems = Model.Where(d => !d.IsCancelled).ToList();
     ViewData["Title"] = ViewBag.IsProcessed ? "Processed Orders" : "New Orders (Unprocessed Items)";
 
-    // Retrieve search parameters for form persistence
+    // Persistence for search parameters
     string currentSearchString = ViewBag.CurrentSearchString ?? string.Empty;
-    string currentSearchField = ViewBag.CurrentSearchField ?? "Product"; // Default filter field
+    string currentSearchField = ViewBag.CurrentSearchField ?? "Product";
 }
 
 <div class="container py-5">
-    @if (!ViewBag.IsProcessed)
-    {
-        <h1 class="display-5 fw-bold text-dark mb-4">🆕 New Orders Awaiting Processing</h1>
-        <p class="lead text-muted">
-            This table displays individual line items from customer orders that you need to fulfill. Mark an item as **Processed** once it has been shipped or completed.
-        </p>
-    }
-    else
-    {
-        <h1 class="display-5 fw-bold text-dark mb-4">✅ Processed & Shipped Orders</h1>
-        <p class="lead text-muted">
-            This table displays individual line items from customer orders that you have already processed and shipped.
-        </p>
-    }
+    @* --- Page Header --- *@
+    <div class="row align-items-center mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold text-dark">
+                @(ViewBag.IsProcessed ? "✅ Processed & Shipped" : "🆕 New Orders Awaiting Action")
+            </h1>
+            <p class="lead text-muted">
+                @(ViewBag.IsProcessed
+                                ? "History of fulfilled items and tracking records."
+                                : "Review, accept, and process new customer requests.")
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a asp-action="@(ViewBag.IsProcessed ? "Index" : "Shipped")" class="btn btn-outline-primary shadow-sm px-4">
+                <i class="fas @(ViewBag.IsProcessed ? "fa-inbox" : "fa-history") me-2"></i>
+                View @(ViewBag.IsProcessed ? "New" : "Processed") Orders
+            </a>
+        </div>
+    </div>
 
-    @* Display Status Messages (Success/Error from ToggleProcessed action) *@
-    @* ... (TempData success/error alerts remain the same) ... *@
-
+    @* --- Notifications --- *@
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["Success"]
+        <div class="alert alert-success alert-dismissible fade show shadow-sm border-start border-4 border-success" role="alert">
+            <i class="fas fa-check-circle me-2"></i> @TempData["Success"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["Error"]
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-start border-4 border-danger" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i> @TempData["Error"]
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
 
+    @* --- Search Module --- *@
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-3">
+            <form asp-action="@(ViewBag.IsProcessed ? "Shipped" : "Index")" method="get">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="fas fa-filter text-muted"></i></span>
+                    <select name="searchField" class="form-select" style="max-width: 160px;">
+                        <option value="Product" selected="@(currentSearchField == "Product")">Product Name</option>
+                        <option value="Customer" selected="@(currentSearchField == "Customer")">Customer</option>
+                        <option value="OrderId" selected="@(currentSearchField == "OrderId")">Order ID</option>
+                        <option value="Contact" selected="@(currentSearchField == "Contact")">Contact No.</option>
+                    </select>
+                    <input type="text" name="searchString" class="form-control" placeholder="Search orders..." value="@currentSearchString" />
+                    <button class="btn btn-primary px-4" type="submit">
+                        <i class="fas fa-search me-1"></i> Search
+                    </button>
+                    @if (!string.IsNullOrEmpty(currentSearchString))
+                    {
+                        <a asp-action="@(ViewBag.IsProcessed ? "Shipped" : "Index")" class="btn btn-secondary">Clear</a>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
 
-    @if (!Model.Any())
+    @if (!activeItems.Any())
     {
-        // ... (No orders message remains the same) ...
-        @if (!ViewBag.IsProcessed)
-        {
-            <div class="alert alert-success text-center mt-5" role="alert">
-                <h4 class="alert-heading">All Orders Processed! 🎉</h4>
-                <p class="mb-0">You have no new orders awaiting processing. Great job!</p>
-            </div>
-        }
-        else
-        {
-            <div class="alert alert-info text-center mt-5" role="alert">
-                <h4 class="alert-heading">No Processed Orders Found 😞</h4>
-                <p class="mb-0">You haven't marked any items as processed yet.</p>
-            </div>
-        }
+        <div class="text-center py-5 bg-light rounded-3 border-dashed mt-4">
+            <i class="fas @(ViewBag.IsProcessed ? "fa-box-open" : "fa-check-double") fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">No orders found matching your criteria.</h4>
+        </div>
     }
     else
     {
-        // ... (Summary Cards: Revenue and Items Sold remain the same) ...
-        @if (!ViewBag.IsProcessed)
-        {
-            decimal totalRevenue = Model.Sum(d => d.Price * d.Quantity);
-            <div class="row mb-4">
-                <div class="col-md-6 col-lg-4">
-                    <div class="card text-white bg-danger mb-3 shadow-sm">
-                        <div class="card-body">
-                            <h5 class="card-title">Pending Revenue</h5>
-                            <p class="card-text fs-3 fw-bold">@totalRevenue.ToString("C")</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-lg-4">
-                    <div class="card text-white bg-warning text-dark mb-3 shadow-sm">
-                        <div class="card-body">
-                            <h5 class="card-title">Items Awaiting Shipment</h5>
-                            <p class="card-text fs-3 fw-bold">@Model.Sum(d => d.Quantity)</p>
-                        </div>
-                    </div>
-                </div>
-
-
-            </div>
-        }
-
-        <div class="row mb-4">
-            <div class="col-12">
-                <form asp-action="@(ViewBag.IsProcessed ? "Shipped" : "Index")" method="get">
-                    <div class="input-group">
-                        <select name="searchField" class="form-select" style="max-width: 150px;">
-                            <option value="Product" selected="@(currentSearchField == "Product")">Product</option>
-                            <option value="Customer" selected="@(currentSearchField == "Customer")">Customer</option>
-                            <option value="OrderId" selected="@(currentSearchField == "OrderId")">Order ID</option>
-                            <option value="Subtotal" selected="@(currentSearchField == "Subtotal")">Subtotal</option>
-                            <option value="Price" selected="@(currentSearchField == "Price")">Price</option>
-                            <option value="Qty" selected="@(currentSearchField == "Qty")">Qty</option>
-                            <option value="Contact" selected="@(currentSearchField == "Contact")">Contact</option>
-                        </select>
-                        <input type="text" name="searchString" class="form-control" placeholder="Search orders..." value="@currentSearchString" />
-                        <button class="btn btn-primary" type="submit">
-                            <i class="fas fa-search me-1"></i> Search
-                        </button>
-                        @* Add a clear button that navigates back to the unfiltered index/shipped action *@
-                        @if (!string.IsNullOrEmpty(currentSearchString))
-                        {
-                            <a asp-action="@(ViewBag.IsProcessed ? "Shipped" : "Index")" class="btn btn-secondary">Clear Filter</a>
-                        }
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="table-responsive">
-            <table class="table table-hover table-striped border rounded-3 overflow-hidden shadow-sm align-middle">
-                @* ... (Table Head/Thead remains the same) ... *@
+        @* --- Orders Table --- *@
+        <div class="table-responsive shadow-sm rounded-3">
+            <table class="table table-hover align-middle mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th style="width: 5%;"></th> @* Image column placeholder *@
-                        <th style="width: 20%;">Product</th>
-                        <th style="width: 15%;">Customer</th>
-                        <th style="width: 15%;">Contact</th>
-                        <th style="width: 5%;">Qty</th>
-                        <th style="width: 10%;">Price</th>
-                        <th style="width: 10%;">Subtotal</th>
-                        <th style="width: 10%;">Order ID</th>
-                        @if (!ViewBag.IsProcessed)
-                        {
-                            <th style="width: 10%;">Status / Action</th> @* Combined Status and Action *@
-                        }
-
+                        <th>Item</th>
+                        <th>Customer Details</th>
+                        <th class="text-center">Qty</th>
+                        <th>Subtotal</th>
+                        <th>Current Status</th>
+                        <th class="text-center">Action Workflow</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach (var item in Model.OrderBy(d => d.OrderId))
+                <tbody class="bg-white">
+                    @foreach (var item in activeItems.OrderBy(d => d.OrderId))
                     {
-                        @* ... (Table Row/TR contents remain the same) ... *@
                         <tr>
                             <td>
-                                @* Assuming image path is /media/products/{ImageFile.png} *@
-                                <img src="/media/products/@item.Image" class="img-thumbnail rounded-3" alt="@item.ProductName" style="width: 50px; height: 50px; object-fit: cover;">
+                                <div class="d-flex align-items-center">
+                                    <img src="/media/products/@item.Image" class="rounded shadow-sm me-3"
+                                         style="width: 50px; height: 50px; object-fit: cover;" alt="Product">
+                                    <div>
+                                        <div class="fw-bold text-dark">@item.ProductName</div>
+                                        <small class="text-muted">Order #@item.OrderId</small>
+                                    </div>
+                                </div>
                             </td>
                             <td>
-                                <strong>@item.ProductName</strong>
-                                <br><span class="text-muted small">ID: @item.ProductId</span>
-                            </td>
-                            <td>
-                                @item.Customer
-                            </td>
-                            <td>
-                                <a href="tel:@item.CustomerNumber" class="text-decoration-none">
-                                    <i class="fas fa-phone me-1"></i> @item.CustomerNumber
+                                <div class="fw-semibold">@item.Customer</div>
+                                <a href="tel:@item.CustomerNumber" class="small text-decoration-none">
+                                    <i class="fas fa-phone-alt me-1"></i> @item.CustomerNumber
                                 </a>
                             </td>
-                            <td>@item.Quantity</td>
-                            <td>@item.Price.ToString("C")</td>
-                            <td class="fw-bold text-info">@((item.Price * item.Quantity).ToString("C"))</td>
-                            <td>
-                                @* Link to Order Details page, assuming a controller named Orders exists *@
-                                <a asp-area="" asp-controller="Orders" asp-action="Details" asp-route-id="@item.OrderId" class="btn btn-sm btn-outline-secondary">
-                                    #@item.OrderId
-                                </a>
+                            <td class="text-center">@item.Quantity</td>
+                            <td class="fw-bold text-primary">
+                                @((item.Price * item.Quantity).ToString("C", new System.Globalization.CultureInfo("en-IN")))
                             </td>
-                            @if (!ViewBag.IsProcessed)
-                            {
-                                <td>
-                                    @* Toggle Form for IsProcessed *@
-                                    <form asp-action="ToggleProcessed" method="post" class="d-inline-block">
-                                        @* Pass the OrderDetail ID and the status to set (true) *@
-                                        <input type="hidden" name="detailId" value="@item.Id" />
-                                        <input type="hidden" name="setTo" value="true" />
-                                        <button type="submit" class="btn btn-success btn-sm fw-bold" data-bs-toggle="tooltip" title="Mark as Processed / Shipped">
-                                            <i class="fas fa-check me-1"></i> Process
-                                        </button>
-                                    </form>
-                                </td>
-                            }
+                            <td>
+                                @if (item.IsProcessed)
+                                {
+                                    <span class="badge rounded-pill bg-success px-3">Shipped</span>
+                                }
+                                else if (item.SellerNote != null && item.SellerNote.Contains("Accepted"))
+                                {
+                                    <span class="badge rounded-pill bg-info text-dark px-3">Accepted</span>
+                                }
+                                else
+                                {
+                                    <span class="badge rounded-pill bg-warning text-dark px-3">Pending</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group shadow-sm rounded">
+                                    @if (!item.IsProcessed)
+                                    {
+                                        @if (item.SellerNote == null || !item.SellerNote.Contains("Accepted"))
+                                        {
+                                            @* STEP 1: ACCEPT *@
+                                            <form asp-action="AcceptOrder" asp-route-id="@item.Id" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-success btn-sm fw-bold px-3 border-end">
+                                                    <i class="fas fa-check me-1"></i> Accept
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            @* STEP 2: PROCESS *@
+                                            <button type="button" class="btn btn-primary btn-sm fw-bold px-3 border-end"
+                                                    onclick="openProcessModal(@item.Id, '@item.ProductName')">
+                                                <i class="fas fa-truck-loading me-1"></i> Process
+                                            </button>
+                                        }
 
+                                        @* STEP 3: CANCEL (Always available until processed) *@
+                                        <button type="button" class="btn btn-outline-danger btn-sm fw-bold px-3"
+                                                onclick="openCancelModal(@item.Id, '@item.ProductName', @item.OrderId)">
+                                            <i class="fas fa-times me-1"></i> Cancel
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-light btn-sm text-muted fw-bold px-3" disabled>
+                                            <i class="fas fa-clipboard-check me-1"></i> Completed
+                                        </button>
+                                    }
+                                </div>
+                            </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
-
-        @* Update the link to toggle between views based on current state *@
-        <div class="text-center mt-4">
-            @if (!ViewBag.IsProcessed)
-            {
-                <a asp-action="Shipped" class="btn btn-outline-primary">
-                    <i class="fas fa-history me-2"></i> View Processed/Completed Orders
-                </a>
-            }
-            else
-            {
-                <a asp-action="Index" class="btn btn-outline-primary">
-                    <i class="fas fa-inbox me-2"></i> View New Orders Awaiting Processing
-                </a>
-            }
-        </div>
     }
+</div>
+
+@* --- ARCHITECT COMPONENT: PROCESS MODAL (IMAGE UPLOAD) --- *@
+<div class="modal fade" id="processModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <form asp-action="ProcessOrder" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-shipping-fast me-2"></i>Ship Item</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="OrderDetailId" id="processDetailId" />
+                    <p class="small text-muted mb-4">Mark <strong id="processProductNameDisplay"></strong> as shipped and provide delivery details.</p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-uppercase">Proof of Dispatch (Required)</label>
+                        <input type="file" name="DeliveryImage" class="form-control" accept="image/*" required />
+                        <div class="form-text">Upload a photo of the package or courier receipt.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-uppercase">Tracking Note</label>
+                        <textarea name="Note" class="form-control" rows="2" placeholder="e.g. Dispatched via BlueDart. Tracking: #12345">Seller has shipped your order.</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold">Update Tracking</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* --- ARCHITECT COMPONENT: CANCEL MODAL --- *@
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <form asp-action="CancelOrder" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-exclamation-circle me-2"></i>Cancel Fulfillment</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="OrderDetailId" id="cancelDetailId" />
+                    <p>Are you sure you want to cancel item <strong id="cancelProductNameDisplay"></strong> for order <strong id="cancelOrderIdDisplay"></strong>?</p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-uppercase">Cancellation Reason</label>
+                        <select name="SelectedReason" id="reasonSelect" class="form-select" required onchange="checkCustomReason(this)">
+                            <option value="" selected disabled>Select a valid reason...</option>
+                            <option value="Out of Stock">Inventory: Out of Stock</option>
+                            <option value="Pricing Error">Listing: Pricing Error</option>
+                            <option value="Damaged Item">Quality: Damaged Item</option>
+                            <option value="Shipping Restrictions">Logistics: Cannot Ship to Area</option>
+                            <option value="Other">Other (Custom Reason)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3 d-none" id="customReasonBox">
+                        <label class="form-label fw-bold small text-uppercase">Custom Details</label>
+                        <textarea name="CustomReason" class="form-control" rows="2" placeholder="Provide reason for the customer..."></textarea>
+                    </div>
+
+                    <div class="alert alert-warning py-2 mb-0">
+                        <i class="fas fa-info-circle me-1"></i> This action will notify the customer.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Keep Order</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4 fw-bold">Confirm Cancellation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="fulfillModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form asp-action="FulfillItem" method="post" enctype="multipart/form-data">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ship Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="OrderDetailId" id="modalItemId" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Seller Note / Tracking Info</label>
+                        <textarea name="SellerNote" class="form-control" placeholder="e.g. Left with neighbor at #42"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Proof of Delivery (Image)</label>
+                        <input type="file" name="DeliveryImage" class="form-control" accept="image/*" required />
+                        <small class="text-muted">Upload a photo of the package at the destination.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Mark as Dispatched</button>
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
 
 @section Scripts {
     <script>
-        // Initialize tooltips for better UX (Bootstrap feature)
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
+        // Use standard Bootstrap API for high reliability
+        function openProcessModal(id, name) {
+            document.getElementById('processDetailId').value = id;
+            document.getElementById('processProductNameDisplay').innerText = name;
+            var processModal = new bootstrap.Modal(document.getElementById('processModal'));
+            processModal.show();
+        }
+
+        function openCancelModal(id, name, orderId) {
+            document.getElementById('cancelDetailId').value = id;
+            document.getElementById('cancelProductNameDisplay').innerText = name;
+            document.getElementById('cancelOrderIdDisplay').innerText = "#" + orderId;
+            var cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
+            cancelModal.show();
+        }
+
+        function checkCustomReason(select) {
+            const customBox = document.getElementById('customReasonBox');
+            if (select.value === 'Other') {
+                customBox.classList.remove('d-none');
+                customBox.querySelector('textarea').required = true;
+            } else {
+                customBox.classList.add('d-none');
+                customBox.querySelector('textarea').required = false;
+            }
+        }
     </script>
 }

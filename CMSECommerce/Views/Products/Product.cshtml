@@ -1,15 +1,19 @@
-﻿@model Product
+﻿@using Microsoft.AspNetCore.Html
+@using System.Linq
+@using System.Globalization
+@using Microsoft.AspNetCore.WebUtilities
+@model Product
 
 @{
     ViewData["Title"] = Model.Name;
+    ViewData["HideLayoutSidebar"] = true;
 
+    // --- Image Logic (Strictly Preserved) ---
     var allImages = new List<string>();
-
     if (!string.IsNullOrEmpty(Model.Image))
     {
         allImages.Add($"/media/products/{Model.Image}");
     }
-
     if (Model.GalleryImages?.Any() == true)
     {
         foreach (var img in Model.GalleryImages)
@@ -17,169 +21,592 @@
             allImages.Add($"/media/gallery/{Model.Id}/{img}");
         }
     }
-
-    var defaultImagePath = "/media/default-product.png";
-
     if (!allImages.Any())
-        allImages.Add(defaultImagePath);
+        allImages.Add("/media/default-product.png");
 
     bool isInStock = Model.StockQuantity > 0;
+    var reviewsToDisplay = Model.Reviews?.OrderByDescending(r => r.DateCreated).ToList() ?? new List<Review>();
+
+    Func<double, IHtmlContent> RenderStars = (rating) =>
+    {
+        var content = new HtmlContentBuilder();
+        for (int i = 1; i <= 5; i++)
+        {
+            if (rating >= i) content.AppendHtml("<i class='fas fa-star'></i>");
+            else if (rating > i - 1 && rating < i) content.AppendHtml("<i class='fas fa-star-half-alt'></i>");
+            else content.AppendHtml("<i class='far fa-star'></i>");
+        }
+        return content;
+    };
 }
 
-<div class="container py-4">
+<div class="amazon-bg-white pb-5">
+    <div class="container py-4">
+        @* --- Breadcrumbs --- *@
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb bg-transparent p-0 m-0" style="font-size: 0.9rem;">
+                <li class="breadcrumb-item"><a asp-controller="Products" asp-action="Index" class="text-amazon-link text-decoration-none">All Products</a></li>
+                @if (Model.Category != null)
+                {
+                    <li class="breadcrumb-item"><a asp-controller="Products" asp-action="Index" asp-route-slug="@Model.Category.Slug" class="text-amazon-link text-decoration-none">@Model.Category.Name</a></li>
+                }
+                <li class="breadcrumb-item active text-muted" aria-current="page">@Model.Name</li>
+            </ol>
+        </nav>
 
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb bg-light rounded p-2">
-            <li class="breadcrumb-item">
-                <a asp-controller="Home" asp-action="Index" class="text-decoration-none">Home</a>
-            </li>
-            <li class="breadcrumb-item">
-                <a href="/products" class="text-decoration-none">Products</a>
-            </li>
-            <li class="breadcrumb-item active fw-bold" aria-current="page">@Model.Name</li>
-        </ol>
-    </nav>
+        <div class="row g-4 align-items-start">
+            @* --- Left: Image Gallery --- *@
+            <div class="col-lg-5 col-md-6">
+                <div class="card product-gallery shadow-sm">
+                    <div class="card-body text-center p-3">
+                        <div class="main-image-viewport mb-3">
+                            <img id="mainImage" src="@allImages.First()" class="img-fluid product-hero-img rounded" alt="@Model.Name" />
+                        </div>
 
-    <div class="row">
+                        @if (allImages.Count > 1)
+                        {
+                            <div class="d-flex flex-wrap gap-2 justify-content-center mt-2 gallery-thumbs">
+                                @foreach (var img in allImages)
+                                {
+                                    <div class="thumb-wrapper rounded">
+                                        <img src="@img" class="thumb-img rounded" data-img="@img" alt="thumbnail" loading="lazy" />
+                                    </div>
+                                }
+                            </div>
+                        }
 
-        <!-- LEFT COLUMN — Images -->
-        <div class="col-lg-6 mb-4">
+                        @* --- Video moved here: below gallery --- *@
+                        @{
+                            var videoIdLeft = GetYoutubeVideoId(Model.YoutubeUrl);
+                        }
+                        @if (!string.IsNullOrEmpty(videoIdLeft))
+                        {
+                            var thumbLeft = GetYoutubeThumbnailUrl(videoIdLeft);
+                            var embedLeft = GetYoutubeEmbedUrl(videoIdLeft);
+                            <div class="video-container small mt-3 mb-3" aria-hidden="false">
+                                <h6 class="fw-bold mb-2">Product Video</h6>
+                                <div class="ratio ratio-16x9">
+                                    <div class="youtube-placeholder" role="button" aria-label="Play product video" data-embed-url="@embedLeft" data-video-id="@videoIdLeft" style="background-image:url('@thumbLeft')">
+                                        <div class="youtube-play-btn" aria-hidden="true">▶</div>
+                                    </div>
+                                </div>
+                                @* Controls will be added dynamically after iframe is created *@
+                            </div>
+                        }
 
-            <div class="border rounded p-3 shadow-sm bg-white text-center">
-                <img id="mainImage"
-                     src="@allImages.First()"
-                     class="img-fluid"
-                     style="max-height:480px; object-fit:contain;" />
+                    </div>
+                </div>
             </div>
 
-            @if (allImages.Count > 1)
-            {
-                <div class="row g-2 mt-3">
-                    @foreach (var img in allImages)
+            @* --- Center: Product Details --- *@
+            <div class="col-lg-4 col-md-6">
+                <div class="card product-details shadow-sm h-100 border-0">
+                    <div class="card-body p-4">
+                        <div class="product-header-info mb-3">
+                            <h1 class="h4 fw-bold text-dark mb-1 product-title">@Model.Name</h1>
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="star-rating me-2 fs-6">@RenderStars(Model.AverageRating)</span>
+                                <a href="#reviews-section" class="text-amazon-link text-decoration-none small">@Model.RatingCount ratings</a>
+                            </div>
+                            <div class="text-muted small">@Model.Category?.Name</div>
+                        </div>
+
+                        <hr />
+
+                        <div class="price-section mb-3">
+                            <div class="d-flex align-items-start justify-content-between">
+                                <div>
+                                    <div class="d-flex align-items-baseline gap-2">
+                                        <span class="price-whole display-6 fw-bold">₹@Math.Floor(Model.Price).ToString("#,##,##0")</span>
+                                        <span class="text-muted ms-1">@((Model.Price % 1).ToString(".00").Replace(".", ""))</span>
+                                    </div>
+                                    <div class="text-muted small">M.R.P.: <span class="text-decoration-line-through">₹@((Model.Price * 1.15m).ToString("#,##,##0"))</span></div>
+                                </div>
+                                <div class="badge bg-warning text-dark align-self-start small py-2 px-3">Deal: -15%</div>
+                            </div>
+                            <div class="mt-2 text-dark small">Inclusive of all taxes</div>
+                        </div>
+
+                        <hr />
+
+                        @* Vendor Info Section *@
+                        @if (ViewBag.UserProfile != null)
+                        {
+                            <div class="vendor-card p-3 rounded mb-4 d-flex gap-3 align-items-center">
+                                <div class="vendor-avatar bg-light rounded-circle d-flex align-items-center justify-content-center" style="width:64px;height:64px;">
+                                    <i class="fas fa-store fa-2x text-secondary"></i>
+                                </div>
+                                <div class="flex-fill">
+                                    <div class="small fw-bold text-uppercase text-muted mb-1">Sold By</div>
+                                    <div class="fw-bold">@ViewBag.UserProfile.FirstName @ViewBag.UserProfile.LastName</div>
+                                    @if (ViewBag.UserProfile.User != null)
+                                    {
+                                        <div class="text-muted small"><i class="fas fa-map-marker-alt me-1"></i> @ViewBag.UserProfile.User.HomeAddress</div>
+                                    }
+                                </div>
+                                <div class="d-flex flex-column gap-2">
+                                    @if (!string.IsNullOrEmpty(ViewBag.UserProfile.WhatsAppNumber))
+                                    {
+                                        <a href="https://wa.me/@ViewBag.UserProfile.WhatsAppNumber" target="_blank" class="btn btn-sm btn-success">WhatsApp</a>
+                                    }
+                                    @if (!string.IsNullOrEmpty(ViewBag.UserProfile.FacebookUrl))
+                                    {
+                                        <a href="@ViewBag.UserProfile.FacebookUrl" target="_blank" class="btn btn-sm btn-primary">Profile</a>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <div class="about-section mb-4">
+                            <h6 class="fw-bold mb-2">About this item</h6>
+                            <div class="product-description-preview text-dark small">
+                                @Html.Raw(Model.Description)
+                            </div>
+                        </div>
+
+                        @* Video removed from here to left gallery to improve layout clarity *@
+
+                    </div>
+                </div>
+            </div>
+
+            @* --- Right: Action Box --- *@
+            <div class="col-lg-3 col-md-12">
+                <aside class="card buy-box shadow-sm sticky-top" style="top: 90px;">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <div class="text-muted small">Price</div>
+                                <div class="price-display-lg fw-bold fs-4 text-danger">₹@Model.Price.ToString("#,##,##0.00")</div>
+                            </div>
+                            <div class="text-end">
+                                @if (isInStock)
+                                {
+                                    <span class="badge bg-success">In Stock</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Unavailable</span>
+                                }
+                            </div>
+                        </div>
+
+                        <form asp-controller="Cart" asp-action="Add" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+
+                            @if (isInStock)
+                            {
+                                <div class="mb-3">
+                                    <label class="small fw-semibold mb-1">Quantity</label>
+                                    <select name="quantity" class="form-select qty-select shadow-sm">
+                                        @for (int i = 1; i <= Math.Min(10, Model.StockQuantity); i++)
+                                        {
+                                            <option value="@i">@i</option>
+                                        }
+                                    </select>
+                                </div>
+
+                                <button type="submit" class="btn btn-amazon-yellow w-100 mb-2 py-2 rounded-pill">Add to Cart</button>
+
+                                <a asp-controller="Cart" asp-action="Index" class="btn btn-outline-secondary w-100 py-2 rounded-pill mb-2 text-decoration-none">View Cart</a>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-outline-secondary w-100 py-2 rounded-pill mb-2" disabled>Notify me when available</button>
+                            }
+                        </form>
+
+                        <div class="secure-info pt-3 border-top mt-3">
+                            <div class="small text-muted mb-1"><i class="fas fa-lock me-2"></i>Secure transaction</div>
+                            <div class="small text-muted"><i class="fas fa-shield-alt me-2"></i>Local Verification</div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        @* --- Review Section --- *@
+        <div class="row mt-5 pt-4 border-top">
+            <div class="col-lg-4 pe-lg-5 mb-4">
+                <h5 class="fw-bold mb-3">Customer Reviews</h5>
+                <div class="d-flex align-items-center mb-2">
+                    <div class="star-rating fs-5 me-2">@RenderStars(Model.AverageRating)</div>
+                    <span class="fw-bold">@Model.AverageRating.ToString("F1") out of 5</span>
+                </div>
+                <div class="text-muted small mb-4">@Model.RatingCount global ratings</div>
+
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <div class="write-review-card border p-3 rounded">
+                        <h6 class="fw-bold small mb-1">Review this product</h6>
+                        <p class="small text-muted">Share your experience with others</p>
+                        <button class="btn btn-sm btn-outline-dark w-100 py-2" type="button" data-bs-toggle="collapse" data-bs-target="#reviewForm">
+                            Write a customer review
+                        </button>
+                    </div>
+                }
+            </div>
+
+            <div class="col-lg-8" id="reviews-section">
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <div class="collapse mb-4" id="reviewForm">
+                        <div class="p-4 border rounded bg-light shadow-inner">
+                            <form asp-controller="Reviews" asp-action="AddReview" method="post">
+                                <input type="hidden" name="ProductId" value="@Model.Id" />
+                                <div class="mb-3">
+                                    <label class="fw-bold small mb-2">Overall Rating</label>
+                                    <div class="rating-input-group">
+                                        @for (int i = 5; i >= 1; i--)
+                                        {
+                                            <input type="radio" id="star@(i)" name="Rating" value="@i" required />
+                                            <label for="star@(i)" class="fas fa-star"></label>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <input type="text" class="form-control" name="Title" placeholder="Add a headline" required />
+                                </div>
+                                <div class="mb-3">
+                                    <textarea class="form-control" name="Comment" rows="4" placeholder="What did you like or dislike?" required></textarea>
+                                </div>
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-amazon-yellow px-4 rounded-pill">Submit</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                }
+
+                <div class="review-list">
+                    <h6 class="fw-bold border-bottom pb-2 mb-4">Top reviews from India</h6>
+                    @if (reviewsToDisplay.Any())
                     {
-                        <div class="col-3 col-sm-2">
-                            <img src="@img"
-                                 class="img-fluid rounded border thumb-img"
-                                 data-img="@img"
-                                 style="height:60px; object-fit:cover; cursor:pointer;" />
+                        @foreach (var review in reviewsToDisplay)
+                        {
+                            <div class="review-item mb-4 pb-4 border-bottom">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="reviewer-avatar me-2 rounded-circle bg-light d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
+                                        <i class="fas fa-user-circle fs-3 text-secondary"></i>
+                                    </div>
+                                    <span class="fw-bold small">@review.UserName</span>
+                                </div>
+                                <div class="d-flex align-items-center mb-1">
+                                    <span class="star-rating small me-2">@RenderStars((double)review.Rating)</span>
+                                    <span class="fw-bold small">@review.Title</span>
+                                </div>
+                                <div class="text-muted mb-2" style="font-size: 0.75rem;">Reviewed on @review.DateCreated.ToString("MMM dd, yyyy")</div>
+                                <p class="review-text text-dark">@review.Comment</p>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="p-5 text-center bg-light rounded text-muted small border-dashed">
+                            No reviews yet. Share your thoughts!
                         </div>
                     }
                 </div>
-            }
-        </div>
-
-        <!-- RIGHT COLUMN — Product Info -->
-        <div class="col-lg-6">
-
-            <h2 class="fw-bold mb-3">@Model.Name</h2>
-
-            <!-- Stars -->
-            <div class="text-warning mb-2">
-                <i class="fas fa-star"></i><i class="fas fa-star"></i>
-                <i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
-                <i class="far fa-star"></i>
-                <span class="text-muted small ms-2">(128 ratings)</span>
             </div>
-
-            <!-- Price -->
-            <h1 class="text-primary fw-bolder mb-4">@Model.Price.ToString("C2")</h1>
-
-            <!-- Add to Cart -->
-            <form asp-controller="Cart" asp-action="Add" method="post">
-                <input type="hidden" name="id" value="@Model.Id" />
-
-                <div class="d-flex align-items-center mb-3">
-                    <label class="fw-bold me-3">Qty:</label>
-
-                    <input type="number"
-                           name="quantity"
-                           value="1"
-                           min="1"
-                           max="@Model.StockQuantity"
-                           class="form-control text-center"
-                           style="width:85px;"
-                           @(isInStock ? "" : "disabled") />
-                </div>
-
-                @if (isInStock)
-                {
-                    <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
-                        <i class="fas fa-cart-plus me-1"></i> Add to Cart
-                    </button>
-
-                    <a asp-controller="Cart" asp-action="Index"
-                       class="btn btn-outline-success btn-lg w-100">
-                        <i class="fas fa-shopping-cart me-1"></i> View Cart
-                    </a>
-                }
-                else
-                {
-                    <button class="btn btn-danger btn-lg w-100" disabled>
-                        Out of Stock
-                    </button>
-                }
-            </form>
-
-            <!-- Stock Info -->
-            <p class="mt-3">
-                @if (isInStock)
-                {
-                    <span class="text-success fw-bold">In Stock</span>
-                    <span class="text-muted">(@Model.StockQuantity available)</span>
-                }
-                else
-                {
-                    <span class="text-danger fw-bold">Out of Stock</span>
-                }
-            </p>
-
-            <ul class="list-unstyled small text-muted">
-                <li><i class="fas fa-truck me-2 text-info"></i> Free Shipping over ₹1500</li>
-                <li><i class="fas fa-shield-alt me-2 text-info"></i> Secure Checkout</li>
-                <li><i class="fas fa-undo me-2 text-info"></i> 7-Day Return Policy</li>
-            </ul>
-
         </div>
     </div>
-
-    <hr class="my-5" />
-
-    <!-- DESCRIPTION -->
-    <h3 class="fw-bold mb-3">Product Description</h3>
-    <div class="text-dark">
-        @Html.Raw(Model.Description)
-    </div>
-
 </div>
 
 @section Scripts {
-
-    <!-- Thumbnail Click -->
     <script>
-        document.querySelectorAll('.thumb-img').forEach(img => {
-            img.addEventListener('click', function () {
-                document.getElementById('mainImage').src = this.dataset.img;
-
-                document.querySelectorAll('.thumb-img').forEach(t => {
-                    t.style.border = '1px solid #ddd';
+        (function(){
+            // Thumbnails
+            var thumbs = document.querySelectorAll('.thumb-img');
+            if (thumbs && thumbs.length) {
+                thumbs.forEach(function(img){
+                    img.addEventListener('click', function () {
+                        var main = document.getElementById('mainImage');
+                        if (main && this.dataset && this.dataset.img) {
+                            main.src = this.dataset.img;
+                            thumbs.forEach(function(t){ t.classList.remove('active-thumb'); });
+                            this.classList.add('active-thumb');
+                        }
+                    });
                 });
+            }
 
-                this.style.border = '2px solid #0d6efd';
+            // YouTube Player management
+            window._ytPlayers = window._ytPlayers || {};
+            var _ytApiLoading = false;
+            var _ytApiReadyResolvers = [];
+
+            function loadYouTubeAPI() {
+                return new Promise(function (resolve) {
+                    if (window.YT && window.YT.Player) {
+                        return resolve(window.YT);
+                    }
+                    _ytApiReadyResolvers.push(resolve);
+                    if (_ytApiLoading) return;
+                    _ytApiLoading = true;
+                    var tag = document.createElement('script');
+                    tag.src = 'https://www.youtube.com/iframe_api';
+                    var firstScriptTag = document.getElementsByTagName('script')[0];
+                    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                    window.onYouTubeIframeAPIReady = function () {
+                        _ytApiLoading = false;
+                        while (_ytApiReadyResolvers.length) {
+                            var fn = _ytApiReadyResolvers.shift();
+                            try { fn(window.YT); } catch (e) { console.error(e); }
+                        }
+                    };
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                var firstThumb = document.querySelector('.thumb-img');
+                if(firstThumb) firstThumb.classList.add('active-thumb');
+
+                // Lazy-load YouTube placeholders: replace placeholder with iframe when clicked
+                var placeholders = document.querySelectorAll('.youtube-placeholder');
+                placeholders.forEach(function (el) {
+                    el.addEventListener('click', function () {
+                        try {
+                            var embedUrl = el.getAttribute('data-embed-url');
+                            var videoId = el.getAttribute('data-video-id');
+                            if (!embedUrl || !videoId) return;
+
+                            // Build src without autoplay - user controls only
+                            var src = embedUrl + (embedUrl.indexOf('?') === -1 ? '?rel=0&controls=1&enablejsapi=1' : '&rel=0&controls=1&enablejsapi=1');
+
+                            var iframeId = 'yt-iframe-' + videoId + '-' + Date.now();
+                            var iframe = document.createElement('iframe');
+                            iframe.setAttribute('id', iframeId);
+                            iframe.setAttribute('src', src);
+                            iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                            iframe.setAttribute('allowfullscreen', '');
+                            iframe.setAttribute('loading', 'lazy');
+                            iframe.className = 'youtube-iframe';
+                            iframe.style.position = 'absolute';
+                            iframe.style.top = '0';
+                            iframe.style.left = '0';
+                            iframe.style.width = '100%';
+                            iframe.style.height = '100%';
+
+                            // Replace placeholder with iframe
+                            var ratio = el.parentNode; // .ratio
+                            ratio.replaceChild(iframe, el);
+
+                            // Insert controls container after the ratio container inside .video-container
+                            var videoContainer = ratio.parentNode;
+                            if (videoContainer) {
+                                var controls = document.createElement('div');
+                                controls.className = 'youtube-controls mt-2 d-flex gap-2 justify-content-center';
+
+                                var btnPlay = document.createElement('button');
+                                btnPlay.type = 'button';
+                                btnPlay.className = 'btn btn-sm btn-outline-primary';
+                                btnPlay.textContent = 'Play';
+
+                                var btnPause = document.createElement('button');
+                                btnPause.type = 'button';
+                                btnPause.className = 'btn btn-sm btn-outline-secondary';
+                                btnPause.textContent = 'Pause';
+
+                                var btnStop = document.createElement('button');
+                                btnStop.type = 'button';
+                                btnStop.className = 'btn btn-sm btn-outline-danger';
+                                btnStop.textContent = 'Stop';
+
+                                controls.appendChild(btnPlay);
+                                controls.appendChild(btnPause);
+                                controls.appendChild(btnStop);
+
+                                // Remove existing controls if present
+                                var existing = videoContainer.querySelector('.youtube-controls');
+                                if (existing) existing.remove();
+                                videoContainer.appendChild(controls);
+
+                                // Setup player when API is ready
+                                loadYouTubeAPI().then(function (YT) {
+                                    try {
+                                        var player = new YT.Player(iframeId, {
+                                            events: {
+                                                onReady: function (evt) {
+                                                    window._ytPlayers[iframeId] = evt.target;
+                                                }
+                                            }
+                                        });
+
+                                        btnPlay.addEventListener('click', function () {
+                                            var p = window._ytPlayers[iframeId];
+                                            if (p && p.playVideo) p.playVideo();
+                                        });
+                                        btnPause.addEventListener('click', function () {
+                                            var p = window._ytPlayers[iframeId];
+                                            if (p && p.pauseVideo) p.pauseVideo();
+                                        });
+                                        btnStop.addEventListener('click', function () {
+                                            var p = window._ytPlayers[iframeId];
+                                            if (p && p.stopVideo) p.stopVideo();
+                                            // Also remove iframe to fully stop and free resources
+                                            try { iframe.parentNode.removeChild(iframe); } catch (e) {}
+                                            try { controls.parentNode.removeChild(controls); } catch (e) {}
+                                        });
+                                    } catch (e) { console.error(e); }
+                                }).catch(function(e){ console.error('YT API failed', e); });
+                            }
+                        } catch (e) {
+                            console.error('Failed to initialize video', e);
+                        }
+                    }, { once: true }); // ensure placeholder click only triggers once
+                });
             });
-        });
+        })();
     </script>
+}
 
-    <!-- CSS FIXES -->
+@section Styles {
     <style>
-        @@media (max-width: 576px) {
-            #mainImage {
-                max-height: 300px !important;
-            }
+        /* Amazon-like color palette */
+        :root {
+            --amazon-dark: #232F3E;
+            --amazon-teal: #007185;
+            --amazon-yellow: #FFD814;
+            --amazon-yellow-700: #F3C200;
+            --muted: #6c757d;
+            --card-bg: #ffffff;
+            --border: #E6E9EE;
+        }
 
-            .thumb-img {
-                height: 50px !important;
-            }
+        body, .amazon-bg-white {
+            font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+            color: var(--amazon-dark);
+            background-color: #F7F7F7;
+        }
+
+        .container { max-width: 1200px; }
+
+        /* Cards */
+        .card { border-radius: 6px; background: var(--card-bg); border: 1px solid var(--border); }
+        .product-gallery .card-body, .buy-box .card-body { padding: 1rem; }
+        .product-details .card-body { padding: 1.25rem; }
+
+        .product-title { font-size: 1.5rem; font-weight: 700; }
+
+        .product-hero-img { max-height: 520px; object-fit: contain; background: #fff; padding: 12px; }
+
+        .gallery-thumbs .thumb-img { width: 64px; height: 64px; object-fit: cover; border: 1px solid var(--border); padding: 4px; background: #fff; }
+        .thumb-wrapper { transition: transform .12s ease-in-out; border-radius: 6px; }
+        .thumb-wrapper:hover { transform: translateY(-4px); box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
+
+        .price-whole { color: #B12704; font-size: 1.6rem; }
+        .price-fraction { color: var(--amazon-dark); margin-left: 4px; }
+
+        .vendor-card { background: #fff; border: 1px solid #f0f0f0; }
+        .vendor-avatar { background: linear-gradient(180deg,#f8fafc,#eef2f6); }
+
+        /* Amazon yellow button */
+        .btn-amazon-yellow {
+            background: linear-gradient(180deg, var(--amazon-yellow), var(--amazon-yellow-700));
+            color: #232F3E;
+            border: 1px solid rgba(0,0,0,0.08);
+            font-weight: 700;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.06);
+        }
+        .btn-amazon-yellow:hover { filter: brightness(.98); }
+
+        .btn-outline-secondary { border-radius: 24px; }
+
+        .write-review-card { background: #fff; }
+
+        .review-item { background: #fff; padding: 1rem; border-radius: 8px; }
+
+        /* video */
+        .video-container { position: relative; width: 100%; padding-bottom: 56.25%; /* 16:9 */ overflow: hidden; border-radius: 6px; background: #f0f0f0; }
+        .video-container.small { max-width: 420px; margin: 0.5rem auto 0 auto; }
+        .video-container .ratio { height: 100%; }
+        .youtube-placeholder { background-size: cover; background-position: center center; position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .youtube-play-btn { width: 56px; height: 56px; border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: 0 8px 20px rgba(2,6,23,0.18); }
+        .youtube-iframe { border: 0; }
+        .youtube-controls { text-align: center; }
+        .youtube-controls .btn { min-width: 80px; border-radius: 24px; }
+
+        /* buy box */
+        .buy-box { border: 1px solid #e6e9ee; }
+        .buy-box .price-display-lg { font-size: 1.25rem; font-weight: 700; }
+
+        /* responsive tweaks */
+        @@media (max-width: 992px) {
+            .product-hero-img { max-height: 420px; }
+            .gallery-thumbs .thumb-img { width: 48px; height: 48px; }
+            .video-container.small { max-width: 420px; }
+        }
+
+        @@media (max-width: 576px) {
+            .product-hero-img { max-height: 300px; }
+            .product-title { font-size: 1.05rem; }
+            .youtube-play-btn { width: 48px; height: 48px; font-size: 20px; }
+            .video-container.small { max-width: 320px; }
         }
     </style>
+}
+
+@functions {
+    // Extract YouTube video ID if valid (stricter validation)
+    private string GetYoutubeVideoId(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+        try
+        {
+            var uri = new Uri(url);
+            var host = uri.Host.ToLower();
+            string candidate = null;
+
+            if (host.Contains("youtu.be"))
+            {
+                candidate = uri.AbsolutePath.Trim('/');
+            }
+            else if (host.Contains("youtube.com"))
+            {
+                var query = QueryHelpers.ParseQuery(uri.Query);
+                if (query.TryGetValue("v", out var v))
+                {
+                    candidate = v.ToString();
+                }
+
+                if (string.IsNullOrEmpty(candidate))
+                {
+                    var parts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length > 0)
+                    {
+                        // check for /embed/{id} or /v/{id}
+                        candidate = parts.Last();
+                    }
+                }
+            }
+
+            if (string.IsNullOrEmpty(candidate)) return null;
+
+            // sanitize: YouTube IDs are typically 11 chars [A-Za-z0-9_-]
+            candidate = candidate.Split('?')[0].Split('&')[0];
+            if (System.Text.RegularExpressions.Regex.IsMatch(candidate, "^[a-zA-Z0-9_-]{11}$"))
+            {
+                return candidate;
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+        return null;
+    }
+
+    private string GetYoutubeThumbnailUrl(string videoId)
+    {
+        if (string.IsNullOrEmpty(videoId)) return string.Empty;
+        return $"https://i.ytimg.com/vi/{videoId}/hqdefault.jpg";
+    }
+
+    private string GetYoutubeEmbedUrl(string videoId)
+    {
+        if (string.IsNullOrEmpty(videoId)) return string.Empty;
+        // Use privacy-enhanced domain
+        return $"https://www.youtube-nocookie.com/embed/{videoId}";
+    }
 }

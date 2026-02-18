@@ -1,147 +1,289 @@
 ﻿@model CMSECommerce.Areas.Admin.Models.AdminDashboardViewModel
 
-<h1 class="mb-5 text-primary"><i class="fas fa-crown me-2"></i>Welcome, Admin!</h1>
+@* Dependency Injection for platform-wide metrics *@
+@inject CMSECommerce.Infrastructure.DataContext _context
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<IdentityUser> _userManager
 
-<div class="row g-4">
+@{
+    ViewData["Title"] = "Executive Admin Dashboard";
+}
 
-    @* Total Users *@
-    <div class="col-xl-3 col-md-6">
-        <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background: linear-gradient(135deg,#4e73df,#224abe);">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-uppercase fw-bold mb-1 fs-6">Total Users</div>
-                    <div class="h3 fw-bolder mb-0">@Model.UsersCount</div>
-                </div>
-                <i class="fas fa-users fa-3x opacity-75"></i>
-            </div>
-            <div class="card-footer d-flex justify-content-between align-items-center bg-white bg-opacity-10 p-3">
-                <a asp-area="Admin" asp-controller="Users" asp-action="Index" class="small text-white text-decoration-none fw-bold stretched-link">
-                    Manage Users
-                </a>
-                <i class="fas fa-arrow-circle-right"></i>
+@* Anti-Forgery Token for security on global settings *@
+@Html.AntiForgeryToken()
+
+<div class="container-fluid px-4">
+    @* 1. DASHBOARD HEADER *@
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 mt-4 gap-3">
+        <div>
+            <h2 class="h3 mb-0 text-gray-800 fw-bold">
+                <i class="fas fa-tachometer-alt me-2 text-primary"></i>Command Center
+            </h2>
+            <p class="text-muted small mb-0">Platform-wide health and executive governance overview.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button onclick="exportKPIToExcel()" class="btn btn-outline-success btn-sm fw-bold px-3 shadow-sm bg-white">
+                <i class="fas fa-file-excel me-1"></i> Export KPI Report
+            </button>
+            <div class="timestamp bg-white px-3 py-1 rounded-pill border small text-muted shadow-sm">
+                <i class="fas fa-clock me-1 text-primary"></i> @DateTime.Now.ToString("HH:mm")
             </div>
         </div>
     </div>
 
-    @* Pending Seller Requests *@
-    <div class="col-xl-3 col-md-6">
-        @{
-            string sellerReqClass = Model.PendingSubscriberRequests > 0 ? "linear-gradient(135deg,#e74a3b,#c0392b)" : "linear-gradient(135deg,#36b9cc,#1cc0c9)";
+    @* 2. GLOBAL SETTINGS PARTIAL *@
+    <div class="mb-4">
+        <partial name="_AdminSettingsPartial" />
+    </div>
+
+    @* 3. PRIMARY KPI GRID *@
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="modern-card bg-primary text-white shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="p-2 bg-white bg-opacity-25 rounded-3"><i class="fas fa-users fa-lg"></i></div>
+                        <span class="badge bg-white bg-opacity-25 rounded-pill">Total Growth</span>
+                    </div>
+                    <h3 class="fw-bold mb-0">@Model.UsersCount</h3>
+                    <p class="small mb-0 opacity-75">Registered Platform Users</p>
+                </div>
+                <a asp-area="Admin" asp-controller="Users" asp-action="Index" class="card-footer-link">
+                    Manage Users <i class="fas fa-chevron-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="modern-card @(Model.PendingSubscriberRequests > 0 ? "bg-danger" : "bg-info") text-white shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="p-2 bg-white bg-opacity-25 rounded-3"><i class="fas fa-user-tag fa-lg"></i></div>
+                        @if (Model.PendingSubscriberRequests > 0)
+                        {
+                            <span class="badge bg-white text-danger pulse">Review Needed</span>
+                        }
+                    </div>
+                    <h3 class="fw-bold mb-0">@Model.PendingSubscriberRequests</h3>
+                    <p class="small mb-0 opacity-75">Pending Seller Approvals</p>
+                </div>
+                <a asp-area="Admin" asp-controller="SubscriberRequests" asp-action="Index" class="card-footer-link">
+                    Review Queue <i class="fas fa-chevron-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="modern-card bg-warning text-dark shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="p-2 bg-dark bg-opacity-10 rounded-3"><i class="fas fa-boxes fa-lg"></i></div>
+                    </div>
+                    <h3 class="fw-bold mb-0">@Model.ProductsRequestCount</h3>
+                    <p class="small mb-0 text-dark opacity-75">Inventory Approvals</p>
+                </div>
+                <a asp-area="Admin" asp-controller="Products" asp-action="PendingProducts" class="card-footer-link text-dark">
+                    Moderate Catalog <i class="fas fa-chevron-right ms-1 text-dark"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="modern-card bg-success text-white shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div class="p-2 bg-white bg-opacity-25 rounded-3"><i class="fas fa-shopping-cart fa-lg"></i></div>
+                    </div>
+                    <h3 class="fw-bold mb-0">@Model.OrdersCount</h3>
+                    <p class="small mb-0 opacity-75">Total Transactions</p>
+                </div>
+                <a asp-area="Admin" asp-controller="Orders" asp-action="Index" class="card-footer-link">
+                    Financials <i class="fas fa-chevron-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @* 4. OPERATIONAL METRIC ROW (Removed Store Section) *@
+    <div class="row g-4 mb-5">
+        <div class="col-xl-4 col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body">
+                    <h6 class="fw-bold text-muted text-uppercase small mb-3">Content Moderation</h6>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="icon-circle bg-light text-primary me-3"><i class="fas fa-image"></i></div>
+                        <div>
+                            <h4 class="mb-0 fw-bold">@Model.UserProfilesCount</h4>
+                            <span class="text-muted small">Pending Media Review</span>
+                        </div>
+                    </div>
+                    <a asp-area="Admin" asp-controller="UsersProfile" asp-action="PendingImageApprovals" class="btn btn-outline-primary btn-sm w-100 rounded-pill">Review Media</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 @(Model.PendingUnlockRequests > 0 ? "bg-warning" : "bg-secondary") text-white">
+                <div class="card-body">
+                    <h6 class="fw-bold opacity-50 text-uppercase small mb-3">Account Management</h6>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="icon-circle bg-white bg-opacity-25 me-3"><i class="fas fa-unlock"></i></div>
+                        <div>
+                            <h4 class="mb-0 fw-bold">@Model.PendingUnlockRequests</h4>
+                            <span class="opacity-75 small">Pending Unlock Requests</span>
+                        </div>
+                    </div>
+                    <a asp-area="Admin" asp-controller="UnlockRequests" asp-action="Index" class="btn btn-light btn-sm w-100 rounded-pill">
+                        <i class="fas fa-eye me-1"></i>Review Requests
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-dark text-white">
+                <div class="card-body d-flex flex-column">
+                    <h6 class="fw-bold opacity-50 text-uppercase small mb-3">Advanced Settings</h6>
+                    <div class="mt-auto">
+                        <p class="small opacity-75 mb-3">Manage data retention and system clean-up thresholds.</p>
+                        <a asp-area="Admin" asp-page="/UserStatusSettings" class="btn btn-primary w-100 btn-sm rounded-pill border-0" style="background: var(--primary-gradient)">
+                            <i class="fas fa-cog me-2"></i>Global Config
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* 5. SELLERS WITH DECLINES SECTION *@
+    <div class="row g-4 mb-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-light border-0">
+                    <h6 class="fw-bold text-muted text-uppercase small mb-0">
+                        <i class="fas fa-exclamation-triangle me-2 text-warning"></i>Sellers with Order Declines
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.SellersWithDeclines != null && Model.SellersWithDeclines.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="border-0">Seller Name</th>
+                                        <th class="border-0 text-center">Manual Declines</th>
+                                        <th class="border-0 text-center">Auto Declines</th>
+                                        <th class="border-0 text-center">Total Declines</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var seller in Model.SellersWithDeclines)
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold">@seller.SellerName</td>
+                                            <td class="text-center">
+                                                <span class="badge bg-warning text-dark">@seller.ManualDeclines</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-danger">@seller.AutoDeclines</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary">@seller.TotalDeclines</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h5 class="text-muted">No Declines Found</h5>
+                            <p class="text-muted small">All sellers are performing well with order acceptance.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+    }
+
+    .modern-card {
+        border-radius: 1rem;
+        border: none;
+        position: relative;
+        overflow: hidden;
+        transition: 0.3s;
+    }
+
+        .modern-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 1rem 3rem rgba(0,0,0,.1) !important;
         }
-        <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background:@sellerReqClass;">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-uppercase fw-bold mb-1 fs-6">Pending Seller Requests</div>
-                    <div class="h3 fw-bolder mb-0">@Model.PendingSubscriberRequests</div>
-                </div>
-                <i class="fas fa-user-tag fa-3x opacity-75"></i>
-            </div>
-            <div class="card-footer d-flex justify-content-between align-items-center bg-white bg-opacity-10 p-3">
-                <a asp-area="Admin" asp-controller="SubscriberRequests" asp-action="Index" class="small text-white text-decoration-none fw-bold stretched-link">
-                    Review Requests
-                </a>
-                <i class="fas fa-arrow-circle-right"></i>
-            </div>
-        </div>
-    </div>
 
-    @* Product Approval Required *@
-    <div class="col-xl-3 col-md-6">
-        <div class="card shadow-lg h-100 border-0 rounded-3 text-dark" style="background: linear-gradient(135deg,#f6c23e,#dda20a);">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-uppercase fw-bold mb-1 fs-6">Product Approval Required</div>
-                    <div class="h3 fw-bolder mb-0">@Model.ProductsRequestCount</div>
-                </div>
-                <i class="fas fa-boxes fa-3x opacity-75"></i>
-            </div>
-            <div class="card-footer d-flex justify-content-between align-items-center bg-white bg-opacity-10 p-3">
-                <a asp-area="Admin" asp-controller="Products" asp-action="PendingProducts" class="small text-dark text-decoration-none fw-bold stretched-link">
-                    Review Pending Products
-                </a>
-                <i class="fas fa-arrow-circle-right"></i>
-            </div>
-        </div>
-    </div>
+    .card-footer-link {
+        display: block;
+        padding: 0.75rem 1.25rem;
+        background: rgba(255,255,255,0.1);
+        color: white;
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
 
-    @* Total Orders *@
-    <div class="col-xl-3 col-md-6">
-        <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background: linear-gradient(135deg,#36b9cc,#1cc0c9);">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-uppercase fw-bold mb-1 fs-6">Total Orders</div>
-                    <div class="h3 fw-bolder mb-0">@Model.OrdersCount</div>
-                </div>
-                <i class="fas fa-shopping-basket fa-3x opacity-75"></i>
-            </div>
-            <div class="card-footer d-flex justify-content-between align-items-center bg-white bg-opacity-10 p-3">
-                <a asp-area="Admin" asp-controller="Orders" asp-action="Index" class="small text-white text-decoration-none fw-bold stretched-link">
-                    Manage Orders
-                </a>
-                <i class="fas fa-arrow-circle-right"></i>
-            </div>
-        </div>
-    </div>
+        .card-footer-link:hover {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
 
-</div>
+    .icon-circle {
+        height: 3rem;
+        width: 3rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-<div class="row g-4 mt-4">
+    .pulse {
+        animation: pulse-animation 2s infinite;
+    }
 
-    @* Total Active Products *@
-    <div class="col-xl-3 col-md-6">
-        <div class="card shadow-lg h-100 border-0 rounded-3 text-white" style="background: linear-gradient(135deg,#1cc88a,#17a673);">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-uppercase fw-bold mb-1 fs-6">Total Active Products</div>
-                    <div class="h3 fw-bolder mb-0">@Model.ProductsCount</div>
-                </div>
-                <i class="fas fa-store fa-3x opacity-75"></i>
-            </div>
-            <div class="card-footer d-flex justify-content-between align-items-center bg-white bg-opacity-10 p-3">
-                <a asp-area="Admin" asp-controller="Products" asp-action="Index" class="small text-white text-decoration-none fw-bold stretched-link">
-                    Manage All Products
-                </a>
-                <i class="fas fa-arrow-circle-right"></i>
-            </div>
-        </div>
-    </div>
+    @@keyframes pulse-animation {
+        0% {
+            box-shadow: 0 0 0 0px rgba(255,255,255,0.4);
+        }
 
-    @* Total Categories/Sections *@
-    <div class="col-xl-3 col-md-6">
-        <div class="card shadow-lg h-100 border-0 rounded-3 text-white bg-secondary">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-uppercase fw-bold mb-1 fs-6">Total Categories/Sections</div>
-                    <div class="h3 fw-bolder mb-0">@Model.Categories</div>
-                </div>
-                <i class="fas fa-tags fa-3x opacity-50"></i>
-            </div>
-            <div class="card-footer d-flex justify-content-between align-items-center bg-secondary bg-opacity-75 p-3">
-                <a asp-area="Admin" asp-controller="Categories" asp-action="Index" class="small text-white text-decoration-none fw-bold stretched-link">
-                    Manage Categories
-                </a>
-                <i class="fas fa-arrow-circle-right"></i>
-            </div>
-        </div>
-    </div>
+        100% {
+            box-shadow: 0 0 0 10px rgba(255,255,255,0);
+        }
+    }
+</style>
 
-    @* User Profile Image Requests *@
-    <div class="col-xl-3 col-md-6">
-        <div class="card shadow-lg h-100 border-0 rounded-3 text-white bg-secondary">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="text-uppercase fw-bold mb-1 fs-6">User Profile Image Requests</div>
-                    <div class="h3 fw-bolder mb-0">@Model.UserProfilesCount</div>
-                </div>
-                <i class="fas fa-user-circle fa-3x opacity-50"></i>
-            </div>
-            <div class="card-footer d-flex justify-content-between align-items-center bg-secondary bg-opacity-75 p-3">
-                <a asp-area="Admin" asp-controller="UsersProfile" asp-action="PendingImageApprovals" class="small text-white text-decoration-none fw-bold stretched-link">
-                    Manage Requests
-                </a>
-                <i class="fas fa-arrow-circle-right"></i>
-            </div>
-        </div>
-    </div>
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        function exportKPIToExcel() {
+            const data = [
+                ["Platform Metric", "Current Value", "Snapshot Date"],
+                ["Total Registered Users", "@Model.UsersCount", new Date().toLocaleDateString()],
+                ["Pending Seller Requests", "@Model.PendingSubscriberRequests", ""],
+                ["Pending Product Approvals", "@Model.ProductsRequestCount", ""],
+                ["Total Platform Orders", "@Model.OrdersCount", ""]
+            ];
 
-</div>
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, "Executive Summary");
+            XLSX.writeFile(wb, `Platform_KPI_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+    </script>
+}

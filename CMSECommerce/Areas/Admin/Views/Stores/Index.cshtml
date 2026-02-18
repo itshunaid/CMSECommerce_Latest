@@ -1,0 +1,251 @@
+﻿@model IEnumerable<CMSECommerce.Models.Store>
+
+@{
+    ViewData["Title"] = "Store Governance";
+}
+
+@* 1. HEADER & ACTIONS SECTION *@
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold text-primary mb-0"><i class="fas fa-store-alt me-2"></i>Store Governance</h2>
+        <p class="text-muted small mb-0">Monitor merchant status and export operational reports.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        @* Search Input *@
+        <div class="input-group shadow-sm" style="max-width: 250px;">
+            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+            <input type="text" id="storeSearchInput" class="form-control border-start-0" placeholder="Search stores..." onkeyup="filterStores()">
+        </div>
+
+        @* Export Button *@
+        <button onclick="exportToExcel()" class="btn btn-success shadow-sm d-flex align-items-center">
+            <i class="fas fa-file-excel me-2"></i> Export to Excel
+        </button>
+
+        @* Filter Toggles *@
+        <div class="btn-group shadow-sm">
+            <a asp-action="Index" class="btn btn-outline-secondary">All</a>
+            <a asp-action="Index" asp-route-activeOnly="false" class="btn btn-outline-danger">Inactive</a>
+        </div>
+    </div>
+</div>
+
+@* 2. DATA TABLE SECTION *@
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0" id="storesTable">
+            <thead class="bg-light text-secondary">
+                <tr>
+                    <th class="ps-4 py-3">Store Identity</th>
+                    <th class="py-3 text-center">Current Status</th>
+                    <th class="py-3">Associated User ID</th>
+                    <th class="text-end pe-4 py-3">Quick Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr class="store-row" data-search="@item.StoreName.ToLower() @item.UserId.ToLower()">
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-3 @(item.IsActive ? "bg-primary" : "bg-secondary") text-white d-flex align-items-center justify-content-center fw-bold">
+                                    @item.StoreName.Substring(0, 1).ToUpper()
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark">@item.StoreName</div>
+                                    <span class="text-muted small">Merchant Account</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            @if (item.IsActive)
+                            {
+                                <span class="status-pill status-active">Live</span>
+                            }
+                            else
+                            {
+                                <span class="status-pill status-inactive">Offline</span>
+                            }
+                        </td>
+                        <td>
+                            <code class="small text-primary bg-light px-2 py-1 rounded">@item.UserId</code>
+                        </td>
+                        <td class="text-end pe-4">
+                            <button type="button" class="btn btn-link p-0 @(item.IsActive ? "text-danger" : "text-success")"
+                                    onclick="openToggleModal('@item.UserId', '@item.StoreName', @(item.IsActive ? "true" : "false"))"
+                                    title="@(item.IsActive ? "Deactivate Store" : "Activate Store")">
+                                <i class="fas @(item.IsActive ? "fa-toggle-on" : "fa-toggle-off") fa-2x"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@* Empty Results State *@
+<div id="noResults" class="text-center py-5 d-none">
+    <div class="mb-3 text-muted opacity-25">
+        <i class="fas fa-search fa-5x"></i>
+    </div>
+    <h4 class="text-muted">No matching stores found</h4>
+    <p class="text-secondary">Try adjusting your search or filters</p>
+</div>
+
+@* 3. CONFIRMATION MODAL *@
+<div class="modal fade" id="toggleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <form asp-action="ToggleStoreStatus" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body text-center p-5">
+                    <input type="hidden" name="userId" id="modalUserId" />
+                    <div id="modalIconContainer" class="mb-4"></div>
+                    <h3 class="fw-bold mb-3" id="modalTitle"></h3>
+                    <p class="text-muted mb-4" id="modalBodyText"></p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-light px-4 py-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" id="modalSubmitBtn" class="btn px-4 py-2 text-white">Confirm Change</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* 4. ARCHITECTURAL STYLES *@
+<style>
+    .avatar-circle {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        font-size: 1.2rem;
+    }
+
+    .status-pill {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 5px 15px;
+        border-radius: 50px;
+        letter-spacing: 0.5px;
+    }
+
+    .status-active {
+        background-color: #e6fffa;
+        color: #047481;
+        border: 1px solid #b2f5ea;
+    }
+
+    .status-inactive {
+        background-color: #fff5f5;
+        color: #c53030;
+        border: 1px solid #feb2b2;
+    }
+
+    .table thead th {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .store-row {
+        transition: background-color 0.2s ease;
+    }
+
+        .store-row:hover {
+            background-color: #fbfcfe;
+        }
+
+    .btn-link {
+        text-decoration: none;
+        transition: opacity 0.2s;
+    }
+
+        .btn-link:hover {
+            opacity: 0.8;
+        }
+</style>
+
+@section Scripts {
+    @* External dependency for Excel export (SheetJS) *@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+        // --- 1. SEARCH LOGIC ---
+        function filterStores() {
+            const filter = document.getElementById('storeSearchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('.store-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const searchContent = row.getAttribute('data-search');
+                if (searchContent.includes(filter)) {
+                    row.style.display = "";
+                    visibleCount++;
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            const table = document.getElementById('storesTable');
+            const noResults = document.getElementById('noResults');
+
+            table.classList.toggle('d-none', visibleCount === 0);
+            noResults.classList.toggle('d-none', visibleCount > 0);
+        }
+
+        // --- 2. MODAL LOGIC ---
+        function openToggleModal(userId, storeName, isActive) {
+            const modal = new bootstrap.Modal(document.getElementById('toggleModal'));
+            document.getElementById('modalUserId').value = userId;
+
+            const iconDiv = document.getElementById('modalIconContainer');
+            const submitBtn = document.getElementById('modalSubmitBtn');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBodyText');
+
+            if (isActive) {
+                iconDiv.innerHTML = '<div class="bg-danger bg-opacity-10 p-4 rounded-circle d-inline-block text-danger"><i class="fas fa-ban fa-3x"></i></div>';
+                title.innerText = "Deactivate Store";
+                body.innerText = `You are about to deactivate '${storeName}'. This merchant's products will be hidden from all customers immediately.`;
+                submitBtn.className = "btn btn-danger px-4 text-white";
+            } else {
+                iconDiv.innerHTML = '<div class="bg-success bg-opacity-10 p-4 rounded-circle d-inline-block text-success"><i class="fas fa-check-circle fa-3x"></i></div>';
+                title.innerText = "Reactivate Store";
+                body.innerText = `This will set '${storeName}' back to LIVE status. All their products will be restored to the public marketplace.`;
+                submitBtn.className = "btn btn-success px-4 text-white";
+            }
+            modal.show();
+        }
+
+        // --- 3. EXCEL EXPORT LOGIC ---
+        function exportToExcel() {
+            const table = document.getElementById("storesTable");
+
+            // ARCHITECT TIP: We create a custom data array to avoid exporting
+            // the 'Actions' column buttons and styling noise.
+            const rows = document.querySelectorAll('.store-row');
+            const data = [["Store Name", "Status", "User ID"]];
+
+            rows.forEach(row => {
+                if (row.style.display !== "none") { // Only export current filtered view
+                    const name = row.querySelector('.fw-bold').innerText;
+                    const status = row.querySelector('.status-pill').innerText;
+                    const id = row.querySelector('code').innerText;
+                    data.push([name, status, id]);
+                }
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(data);
+
+            // Set column widths for better readability
+            ws['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 40 }];
+
+            XLSX.utils.book_append_sheet(wb, ws, "Stores Report");
+            XLSX.writeFile(wb, `Store_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+    </script>
+}

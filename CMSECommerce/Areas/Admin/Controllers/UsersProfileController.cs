@@ -1,78 +1,78 @@
 ﻿using CMSECommerce.Infrastructure;
+using CMSECommerce.Services;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using CMSECommerce.Areas.Admin.Models; // Assumed namespace for ViewModels
-using System.Linq; // Required for Select and FirstOrDefault
-using System.Collections.Generic; // Required for List
+using Microsoft.AspNetCore.Hosting; // 1. ADDED
+using Microsoft.Extensions.Logging;
+using System.IO; // 1. ADDED
 
 namespace CMSECommerce.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    // 🔴 RECTIFIED: Changed [Authorize("Admin")] to [Authorize(Roles = "Admin")]
-    // assuming 'Admin' is a role name, which is the standard Identity authorization pattern.
-    [Authorize(Roles = "Admin")]    
-    public class UsersProfileController : Controller
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public class UsersProfileController(
+        UserManager<IdentityUser> userManager,
+        RoleManager<IdentityRole> roleManager,
+        DataContext context,
+        IWebHostEnvironment webHostEnvironment,
+        ILogger<UsersProfileController> logger,
+        IAuditService auditService) : Controller
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
-        private readonly DataContext _context;
-        // private readonly DataContext _context; // Inject DataContext if needed here
-
-        // 🔴 RECTIFIED: Optional - Use primary constructor syntax (C# 12) for cleaner injection, 
-        // though the current constructor is perfectly valid.
-        public UsersProfileController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, DataContext context)
-        {
-            _userManager = userManager;
-            _roleManager = roleManager;
-            _context = context;
-        }
-
-        //[HttpGet]
-        //public async Task<IActionResult> Index()
-        //{
-        //    var users = await _userManager.Users.ToListAsync();
-        //    // 🔴 RECTIFIED: Ensure UserViewModel is referenced by 'using CMSECommerce.Areas.Admin.Models;'
-        //    var model = new List<UserViewModel>();
-
-        //    foreach (var u in users)
-        //    {
-        //        var roles = await _userManager.GetRolesAsync(u);
-        //        var isLocked = await _userManager.IsLockedOutAsync(u);
-        //        model.Add(new UserViewModel { Id = u.Id, UserName = u.UserName, Email = u.Email,PhoneNumber=u.PhoneNumber, Roles = roles, IsLockedOut = isLocked });
-        //    }
-
-        //    return View(model);
-        //}
+        // Fields are automatically initialized by the primary constructor in modern C# (>= 12).
+        // While defining the fields explicitly below is redundant, it is kept here for clarity
+        // since the original code defined them.
+        private readonly UserManager<IdentityUser> _userManager = userManager;
+        private readonly RoleManager<IdentityRole> _roleManager = roleManager;
+        private readonly DataContext _context = context;
+        private readonly IWebHostEnvironment _webHostEnvironment = webHostEnvironment;
+        private readonly ILogger<UsersProfileController> _logger = logger;
+        private readonly IAuditService _auditService = auditService;
 
         // GET: /admin/user/pendingimageapprovals
         [HttpGet("pendingimageapprovals")]
         public async Task<IActionResult> PendingImageApprovals()
         {
-            // Fetch all UserProfiles where ProfileImagePath is set but IsImageApproved is false
-            var pendingProfiles = await _context.UserProfiles
-                .Where(p => !p.IsImageApproved && p.ProfileImagePath != null)
-                .ToListAsync();
+            try
+            {
+                // Fetch all UserProfiles where ProfileImagePath is set but IsImageApproved is false
+                var pendingProfiles = await _context.UserProfiles
+                    .AsNoTracking()
+                    // Checking for IsImageApproved == false and the existence of an image path
+                    .Where(p => !p.IsImageApproved && p.ProfileImagePath != null && p.ProfileImagePath != "")
+                    .ToListAsync();
 
-            return View(pendingProfiles); // Pass the list to a view for the Admin to review
+                return View(pendingProfiles); // Pass the list to a view for the Admin to review
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error retrieving pending image approvals list.");
+                TempData["ErrorMessage"] = "A database error occurred while loading the profiles list.";
+                return View(new List<UserProfile>());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error retrieving pending image approvals list.");
+                TempData["ErrorMessage"] = "An unexpected error occurred while loading the approvals.";
+                return View(new List<UserProfile>());
+            }
         }
 
         // POST: /admin/user/ApproveProfileImage
-        [HttpPost("ApproveProfileImage")] // 🟢 ADDED: Route to match action name, using base route
+        [HttpPost("ApproveProfileImage")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveProfileImage(int id)
         {
-            // 1. Find the UserProfile by its ID
             var userProfile = await _context.UserProfiles.FindAsync(id);
-
             if (userProfile == null)
             {
                 TempData["ErrorMessage"] = $"User profile with ID {id} not found.";
                 return RedirectToAction(nameof(PendingImageApprovals));
             }
 
-            // 2. Check if it already has a path and is not already approved
+            // Simple checks
             if (string.IsNullOrEmpty(userProfile.ProfileImagePath))
             {
                 TempData["WarningMessage"] = "No profile image path found for this user.";
@@ -85,71 +85,105 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 return RedirectToAction(nameof(PendingImageApprovals));
             }
 
-            // 3. Set the approval status to true and save
+            // Set the approval status to true and save
             userProfile.IsImageApproved = true;
+            userProfile.IsImagePending = false;
 
             try
             {
                 await _context.SaveChangesAsync();
                 TempData["SuccessMessage"] = $"Profile image for user ID {userProfile.UserId} has been **approved** and is now live.";
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException dbEx)
             {
-                // Handle concurrency issues if needed
+                _logger.LogError(dbEx, "Concurrency error approving image for profile ID: {ProfileId}", id);
+                TempData["ErrorMessage"] = "A database concurrency error occurred during approval. Please retry.";
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error approving image for profile ID: {ProfileId}", id);
                 TempData["ErrorMessage"] = "A database error occurred during approval.";
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error approving image for profile ID: {ProfileId}", id);
+                TempData["ErrorMessage"] = "An unexpected error occurred during approval.";
+            }
 
-            // 4. Redirect back to the list of pending approvals
+            // Redirect back to the list of pending approvals
             return RedirectToAction(nameof(PendingImageApprovals));
         }
 
         // POST: /admin/user/DisapproveProfileImage
-        [HttpPost("DisapproveProfileImage")] // 🟢 ADDED: Route to match action name, using base route
+        [HttpPost("DisapproveProfileImage")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DisapproveProfileImage(int id)
         {
-            // 1. Find the UserProfile by its ID
             var userProfile = await _context.UserProfiles.FindAsync(id);
-
             if (userProfile == null)
             {
                 TempData["ErrorMessage"] = $"User profile with ID {id} not found.";
                 return RedirectToAction(nameof(PendingImageApprovals));
             }
 
-            // 2. Clear the image path and explicitly set approval to false
-
-            // **Crucial Step:** Clear the path so the image no longer resolves.
-            // You might also want to delete the file from your storage (disk/cloud) here.
             string oldPath = userProfile.ProfileImagePath;
-            userProfile.ProfileImagePath = null;
+            string userId = userProfile.UserId;
 
-            // Ensure approval status is false
+            // Clear the image path and explicitly set approval to false
+            userProfile.ProfileImagePath = null;
             userProfile.IsImageApproved = false;
 
             try
             {
+                // Database save
                 await _context.SaveChangesAsync();
 
-                // 3. Optional: Delete the physical file (recommended for cleaning up storage)
-                // You would need to inject or access your file management service here.
-                /* if (!string.IsNullOrEmpty(oldPath))
+                // Delete the physical file (RECOMMENDED)
+                if (!string.IsNullOrEmpty(oldPath))
                 {
-                    // File.Delete(Path.Combine(_webHostEnvironment.WebRootPath, oldPath));
-                } 
-                */
+                    // Trimming both '~' and '/' ensures the path is correctly combined with WebRootPath
+                    string fullPath = Path.Combine(_webHostEnvironment.WebRootPath, oldPath.TrimStart('~', '/'));
 
-                TempData["SuccessMessage"] = $"Profile image for user ID {userProfile.UserId} has been **rejected**. The user must upload a new image.";
+                    if (System.IO.File.Exists(fullPath))
+                    {
+                        System.IO.File.Delete(fullPath);
+                        _logger.LogInformation("Deleted rejected profile image at path: {Path}", fullPath);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Attempted to delete rejected profile image but file not found at path: {Path}", fullPath);
+                    }
+                }
+
+                TempData["SuccessMessage"] = $"Profile image for user ID {userId} has been **rejected** and removed. The user must upload a new image.";
+
+                // Audit logging
+                await _auditService.LogStatusChangeAsync("UserProfile", userProfile.Id.ToString(), "Pending", "Rejected", HttpContext);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException dbEx)
             {
-                TempData["ErrorMessage"] = "A database error occurred during rejection.";
+                _logger.LogError(dbEx, "Concurrency error rejecting image for profile ID: {ProfileId}", id);
+                TempData["ErrorMessage"] = "A database concurrency error occurred during rejection. Please retry.";
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "Database error rejecting image for profile ID: {ProfileId}", id);
+                TempData["ErrorMessage"] = "A database error occurred while saving the rejection status.";
+            }
+            catch (IOException ioEx)
+            {
+                _logger.LogError(ioEx, "File system error deleting rejected image for profile ID: {ProfileId}", id);
+                // The database change was already saved, so the file system error is logged as a warning, but the user is still informed.
+                TempData["WarningMessage"] = $"Profile image rejected, but failed to delete the physical file. The database record was updated successfully.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error rejecting image for profile ID: {ProfileId}", id);
+                TempData["ErrorMessage"] = "An unexpected error occurred during rejection.";
             }
 
-            // 4. Redirect back to the list of pending approvals
+            // Redirect back to the list of pending approvals
             return RedirectToAction(nameof(PendingImageApprovals));
         }
-
-        
     }
 }

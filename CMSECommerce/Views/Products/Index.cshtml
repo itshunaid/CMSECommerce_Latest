@@ -1,387 +1,703 @@
-﻿
-@model IEnumerable<Product>
-@* Assuming Product has Id, Name, Slug, Image, Price, Category properties *@
+﻿@model ProductListViewModel
 
 @{
-    ViewData["Title"] = "Vepari";
-    var categoryName = ViewBag.CategoryName as string;
-    var currentSearchTerm = ViewBag.CurrentSearchTerm as string;
+    ViewData["Title"] = "Weypaari";
+    // Hides default layout sidebar to allow our custom 1500px wide grid and internal filter sidebar
+    ViewData["HideLayoutSidebar"] = true;
+
+    var categoryName = Model.CategoryName;
+    var currentSearchTerm = Model.CurrentSearchTerm;
+
+    // View State
     var currentCategorySlug = ViewBag.CategorySlug as string;
     var currentPage = (int)(ViewBag.PageNumber ?? 1);
     var totalPages = (int)(ViewBag.TotalPages ?? 1);
     var sortOrder = ViewBag.SortOrder as string ?? "default";
     var pageRange = ViewBag.PageRange ?? 3;
+
+    // Filter values (ensure these are passed from the Controller)
+    var minPrice = ViewBag.MinPrice as decimal?;
+    var maxPrice = ViewBag.MaxPrice as decimal?;
+    var rating = ViewBag.Rating as int?;
+
+    // Assume Categories are passed via Model or ViewBag
+    var categories = ViewBag.Categories as IEnumerable<Category> ?? Enumerable.Empty<Category>();
+
+    var currentUserId = Model.CurrentUser?.Id;
 }
 
-<div class="container py-4">
+<div class="amazon-bg-gray pb-5">
+    <div class="container-fluid py-4" style="max-width: 1500px;">
 
-    <div class="row mb-3">
-        <div class="col-12">
-            <h1 class="h3 fw-bold text-dark mb-1">
-                @if (!string.IsNullOrEmpty(categoryName))
-                {
-                    <span class="text-amazon-teal">Results in </span> 
-                    @categoryName
-                }
-                else
-                {
-                    <span class="text-amazon-teal">Featured </span>
-                    
-                                }
-            </h1>
+        <div class="row gx-4">
+            @* --- 1. LEFT SIDEBAR FILTERS --- *@
+            <aside class="col-lg-2 d-none d-lg-block">
+                <div class="filter-sidebar sticky-top" style="top: 20px; z-index: 100;">
 
-            <p class="text-muted small mb-0">
-                @if (!string.IsNullOrEmpty(currentSearchTerm))
-                {
-                    <span>Showing results for: <strong class="text-dark">"@currentSearchTerm"</strong></span>
-                }
-                else
-                {
-                    <span>Browse our complete collection.</span>
-                }
-            </p>
-        </div>
-    </div>
+                    @* --- AMAZON CATEGORY TREE --- *@
+                    <partial name="_AmazonCategoryTree"
+                             model="new CategoryTreeViewModel {
+                                 Categories = ViewBag.CategoryTree,
+                                 CurrentCategorySlug = currentCategorySlug,
+                                 SearchTerm = currentSearchTerm
+                             }" />
 
-    <hr class="mb-4" />
+                    <hr class="my-3" />
 
-    <div class="row g-4 product-card-grid">
-        <div class="col-lg-12">
+                    @* --- CUSTOMER REVIEWS --- *@
+                    <h6 class="fw-bold mb-2 small-caps">Customer Reviews</h6>
+                    <ul class="list-unstyled small mb-4">
+                        @for (int i = 4; i >= 1; i--)
+                        {
+                            <li class="mb-1">
+                                <a href="@Url.Action("Index", new { slug = currentCategorySlug, searchTerm = currentSearchTerm, rating = i, minPrice, maxPrice, sortOrder })"
+                                   class="text-decoration-none text-dark filter-link @(rating == i ? "fw-bold" : "")">
+                                    <span class="text-amazon-yellow">
+                                        @for (int s = 1; s <= 5; s++)
+                                        {
+                                            <i class="@(s <= i ? "fas" : "far") fa-star"></i>
+                                        }
+                                    </span> & Up
+                                </a>
+                            </li>
+                        }
+                    </ul>
 
-            <div class="row mb-4 align-items-end p-3 border rounded shadow-sm bg-white">
-                <div class="col-md-7">
-                    <label for="searchTermInput" class="form-label fw-bold text-dark small mb-1">Filter Search:</label>
-                    <form asp-controller="Products" asp-action="Index" method="get" class="d-flex input-group input-group-sm">
+                    <hr class="my-3" />
+
+                    @* --- PRICE FILTERS --- *@
+                    <h6 class="fw-bold mb-2 small-caps">Price</h6>
+                    <ul class="list-unstyled small mb-2">
+                        <li><a class="filter-link" href="@Url.Action("Index", new { slug = currentCategorySlug, searchTerm = currentSearchTerm, minPrice = 0, maxPrice = 1000, rating, sortOrder })">Under ₹1,000</a></li>
+                        <li><a class="filter-link" href="@Url.Action("Index", new { slug = currentCategorySlug, searchTerm = currentSearchTerm, minPrice = 1000, maxPrice = 5000, rating, sortOrder })">₹1,000 - ₹5,000</a></li>
+                        <li><a class="filter-link" href="@Url.Action("Index", new { slug = currentCategorySlug, searchTerm = currentSearchTerm, minPrice = 5000, maxPrice = 10000, rating, sortOrder })">₹5,000 - ₹10,000</a></li>
+                        <li><a class="filter-link" href="@Url.Action("Index", new { slug = currentCategorySlug, searchTerm = currentSearchTerm, minPrice = 10000, rating, sortOrder })">Over ₹10,000</a></li>
+                    </ul>
+
+                    @* Custom Price Form *@
+                    <form asp-action="Index" method="get" class="mt-2">
                         <input type="hidden" name="slug" value="@currentCategorySlug" />
-                        <input type="hidden" name="p" value="1" />
+                        <input type="hidden" name="searchTerm" value="@currentSearchTerm" />
+                        <input type="hidden" name="rating" value="@rating" />
                         <input type="hidden" name="sortOrder" value="@sortOrder" />
-
-                        <input type="text" name="searchTerm" id="searchTermInput" class="form-control form-control-sm"
-                               placeholder="Refine results..." value="@currentSearchTerm" />
-
-                        <button type="submit" class="btn btn-amazon-search">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </form>
-                </div>
-
-                <div class="col-md-5 mt-3 mt-md-0 d-flex justify-content-end align-items-end">
-                    <label for="sortDropdown" class="form-label me-2 mb-0 small text-dark fw-bold">Sort By:</label>
-
-                    <select id="sortDropdown" class="form-select form-select-sm w-auto shadow-none border-secondary">
-                        <option value="default">Default</option>
-                        <option value="price-asc">Price: Low to High</option>
-                        <option value="price-desc">Price: High to Low</option>
-                        <option value="name-asc">Name: A to Z</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="d-flex justify-content-start align-items-center mb-4 p-2 bg-light rounded shadow-sm border">
-                <h2 class="h6 text-muted mb-0">
-                    <i class="fas fa-filter me-2"></i> Showing @Model.Count() items on page @currentPage of @totalPages
-                </h2>
-            </div>
-
-            <div class="row g-3">
-                @if (!Model.Any())
-                {
-                    <div class="col-12">
-                        <div class="alert alert-info text-center border-0 shadow-sm py-5" role="alert">
-                            <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning"></i>
-                            <h4 class="alert-heading">No Products Found!</h4>
-                            <p>We couldn't find any items matching your current criteria.</p>
-                            <a asp-controller="Products" asp-action="Index" class="btn btn-amazon-yellow mt-3"><i class="fas fa-undo me-2"></i> Browse All Products</a>
+                        <div class="d-flex align-items-center gap-1">
+                            <input type="number" name="minPrice" placeholder="Min" class="form-control form-control-sm border-secondary-subtle" value="@minPrice" />
+                            <input type="number" name="maxPrice" placeholder="Max" class="form-control form-control-sm border-secondary-subtle" value="@maxPrice" />
+                            <button type="submit" class="btn btn-outline-dark btn-sm px-2 py-1">Go</button>
                         </div>
-                    </div>
-                }
+                    </form>
 
-                @foreach (var item in Model)
+                    @if (minPrice != null || maxPrice != null || rating != null)
+                    {
+                        <hr class="my-3" />
+                        <a asp-action="Index" asp-route-slug="@currentCategorySlug" asp-route-searchTerm="@currentSearchTerm" class="btn btn-sm btn-link text-amazon-teal p-0 text-decoration-none small">
+                            <i class="fas fa-times-circle"></i> Clear all filters
+                        </a>
+                    }
+
+                    @* === SIDEBAR ADVERTISEMENTS === *@
+@if (currentPage == 1)
+{
+    <hr class="my-4" />
+
+    <div class="sidebar-ads">
+
+        <h6 class="fw-bold small-caps mb-3">Sponsored</h6>
+
+        @{
+            var sidebarAds = new[]
+            {
+                "/media/sidebar-ads/side1.jpg",
+                "/media/sidebar-ads/side2.jpg",
+                "/media/sidebar-ads/side3.jpg"
+            };
+        }
+
+        @for (int i = 0; i < sidebarAds.Length; i++)
+        {
+            <div class="sidebar-ad-card mb-3 shadow-sm rounded overflow-hidden bg-white">
+                <img src="@sidebarAds[i]"
+                     class="img-fluid w-100 sidebar-ad-img"
+                     loading="lazy"
+                     alt="Sidebar Advertisement @(i + 1)"
+                     onerror="this.onerror=null;this.src='/media/sidebar-ads/default-side.jpg';" />
+            </div>
+        }
+    </div>
+}
+                </div>
+            </aside>
+
+            @* --- 2. MAIN CONTENT --- *@
+            <main class="col-lg-10 col-md-12">
+
+                @* Amazon Top Slider - Visible only on landing page with no filters *@
+                @if (Model.Products != null && Model.Products.Any() && currentPage == 1 && string.IsNullOrEmpty(currentSearchTerm) && minPrice == null && rating == null)
                 {
-                    <div class="col-xxl-3 col-xl-4 col-lg-4 col-md-4 col-sm-6 d-flex align-items-stretch">
-                        <div class="card product-card w-100 rounded-3 shadow-sm">
-                            <a asp-action="Product" asp-route-slug="@item.Slug" class="d-block product-image-wrapper">
-                                <img src="/media/products/@item.Image" class="card-img-top product-img" alt="@item.Name" loading="lazy" />
-                            </a>
-
-                            <div class="card-body d-flex flex-column p-3">
-                                @if (item.Category != null)
-                                {
-                                    <p class="card-text small mb-0">
-                                        <a asp-action="Index" asp-route-slug="@item.Category.Slug" class="text-decoration-none product-category-link">
-                                            @item.Category.Name
-                                        </a>
-                                    </p>
+                    <div class="bg-white shadow-sm mb-4 p-3 rounded">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h2 class="h5 fw-bold mb-0">
+                                @(string.IsNullOrEmpty(categoryName) ? "Recommended For You" : $"Top Picks in {categoryName}")
+                            </h2>
+                            <div class="slider-controls">
+                                <button class="btn btn-slider shadow-sm me-1" type="button" data-bs-target="#productCarousel" data-bs-slide="prev"><i class="fas fa-chevron-left"></i></button>
+                                <button class="btn btn-slider shadow-sm" type="button" data-bs-target="#productCarousel" data-bs-slide="next"><i class="fas fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                        <div id="productCarousel" class="carousel slide" data-bs-ride="false">
+                            <div class="carousel-inner">
+                                @{
+                                    var itemsPerSlide = 6;
+                                    var sliderItems = Model.Products.Take(12).Select((v, i) => new { v, i }).GroupBy(x => x.i / itemsPerSlide).ToList();
                                 }
-
-                                <h5 class="card-title product-name mt-1 mb-1">
-                                    <a asp-action="Product" asp-route-slug="@item.Slug" class="text-dark text-decoration-none fw-semibold">
-                                        @item.Name
-                                    </a>
-                                </h5>
-
-                                <div class="mb-2 star-rating" aria-hidden="true">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star-half-alt"></i>
-                                    <i class="far fa-star"></i>
-                                </div>
-
-                                <p class="card-text price-text fw-bolder fs-4 mt-auto mb-2">
-                                    @item.Price.ToString("C2")
-                                </p>
-
-                                <div class="d-grid gap-2">
-                                    <a asp-controller="Cart" asp-action="Add" asp-route-id="@item.Id"
-                                       class="btn btn-amazon-yellow w-100 text-uppercase fw-bold btn-sm" role="button">
-                                        <i class="fas fa-shopping-basket me-2"></i> Add to Cart
-                                    </a>
-
-                                    <a asp-controller="Cart" asp-action="Index"
-                                       class="btn btn-amazon-outline w-100 text-uppercase fw-bold btn-sm" role="button">
-                                        <i class="fas fa-shopping-cart me-2"></i> View Cart
-                                    </a>
-                                </div>
+                                @for (int i = 0; i < sliderItems.Count; i++)
+                                {
+                                    <div class="carousel-item @(i == 0 ? "active" : "")">
+                                        <div class="row g-2 flex-nowrap overflow-hidden">
+                                            @foreach (var item in sliderItems[i])
+                                            {
+                                                <div class="col-4 col-md-2">
+                                                    <div class="card border-0 h-100 p-2 amazon-mini-card">
+                                                        <a asp-action="Product" asp-route-slug="@item.v.Slug" class="text-decoration-none text-dark">
+                                                            <div class="amazon-mini-img-wrap"><img src="/media/products/@item.v.Image" class="img-fluid" onerror="this.src='/media/products/noimage.png';"></div>
+                                                            <div class="mt-2 text-center">
+                                                                <p class="amazon-mini-title mb-1">@item.v.Name</p>
+                                                                <span class="text-amazon-price fw-bold">₹@item.v.Price.ToString("N2")</span>
+                                                            </div>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
                             </div>
                         </div>
                     </div>
                 }
+
+                @* Search & Sort Toolbar *@
+                <div class="bg-white shadow-sm mb-4 p-3 rounded">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-7">
+                            <form asp-controller="Products" asp-action="Index" method="get" class="amazon-search-wrap">
+                                <input type="hidden" name="slug" value="@currentCategorySlug" />
+                                <input type="hidden" name="minPrice" value="@minPrice" />
+                                <input type="hidden" name="maxPrice" value="@maxPrice" />
+                                <input type="hidden" name="rating" value="@rating" />
+                                <div class="input-group">
+                                    <input type="text" name="searchTerm" class="form-control" placeholder="Search in @(categoryName ?? "all departments")..." value="@currentSearchTerm" />
+                                    <button type="submit" class="btn btn-amazon-search"><i class="fas fa-search"></i> Search</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="col-md-5 d-flex justify-content-md-end align-items-center">
+                            <span class="small text-muted me-2">Sort by:</span>
+                            <select id="sortDropdown" class="form-select form-select-sm w-auto border-secondary-subtle">
+                                <option value="default" selected="@(sortOrder == "default")">Featured</option>
+                                <option value="price-asc" selected="@(sortOrder == "price-asc")">Price: Low to High</option>
+                                <option value="price-desc" selected="@(sortOrder == "price-desc")">Price: High to Low</option>
+                                <option value="name-asc" selected="@(sortOrder == "name-asc")">Name: A to Z</option>
+                                <option value="newest" selected="@(sortOrder == "newest")">Newest Arrivals</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                @* === PROMOTIONAL IMAGE BANNERS (NON-BREAKING) === *@
+@if (currentPage == 1 
+    && string.IsNullOrEmpty(currentSearchTerm) 
+    && minPrice == null 
+    && maxPrice == null 
+    && rating == null)
+{
+    <div class="bg-white shadow-sm mb-4 rounded overflow-hidden">
+
+        <div id="weypaariBannerCarousel"
+             class="carousel slide"
+             data-bs-ride="carousel"
+             data-bs-interval="4500">
+
+            <!-- Indicators -->
+            <div class="carousel-indicators">
+                @for (int i = 0; i < 10; i++)
+                {
+                    <button type="button"
+                            data-bs-target="#weypaariBannerCarousel"
+                            data-bs-slide-to="@i"
+                            class="@(i == 0 ? "active" : "")"
+                            aria-label="Slide @(i + 1)">
+                    </button>
+                }
             </div>
 
-            @if (totalPages > 1)
+            <!-- Slides -->
+            <div class="carousel-inner">
+                @{
+                    var banners = new[]
+                    {
+                        "/media/banners/banner1.jpg",
+                        "/media/banners/banner2.jpg",
+                        "/media/banners/banner3.jpg",
+                        "/media/banners/banner4.jpg",
+                        "/media/banners/banner5.jpg",
+                        "/media/banners/banner6.jpg",
+                        "/media/banners/banner7.jpg",
+                        "/media/banners/banner8.jpg",
+                        "/media/banners/banner9.jpg",
+                        "/media/banners/banner10.jpg"
+                    };
+                }
+
+                @for (int i = 0; i < banners.Length; i++)
+                {
+                    <div class="carousel-item @(i == 0 ? "active" : "")">
+                        <img src="@banners[i]"
+                             class="d-block w-100 weypaari-banner-img"
+                             loading="lazy"
+                             alt="Weypaari Promotion @(i + 1)"
+                             onerror="this.onerror=null;this.src='/media/banners/default-banner.jpg';" />
+                    </div>
+                }
+            </div>
+
+            <!-- Controls -->
+            <button class="carousel-control-prev" type="button"
+                    data-bs-target="#weypaariBannerCarousel"
+                    data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+            </button>
+
+            <button class="carousel-control-next" type="button"
+                    data-bs-target="#weypaariBannerCarousel"
+                    data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+            </button>
+        </div>
+    </div>
+}
+
+                @* Product Grid *@
+                <div class="row g-0 border-start border-top bg-white shadow-sm rounded overflow-hidden">
+                    @if (Model.Products != null && Model.Products.Any())
+                    {
+                        @foreach (var item in Model.Products)
+                        {
+                            <div class="col-6 col-md-4 col-lg-3 d-flex align-items-stretch border-bottom border-end product-card-hover bg-white">
+                                <div class="card border-0 w-100 p-3">
+                                    <a asp-action="Product" asp-route-slug="@item.Slug" class="product-image-link mb-3 text-center d-block">
+                                        <img src="/media/products/@item.Image" class="product-main-img img-fluid" alt="@item.Name" loading="lazy" onerror="this.onerror=null;this.src='/media/products/noimage.png';" />
+                                    </a>
+
+                                    <div class="card-body d-flex flex-column p-0">
+                                        <h5 class="amazon-product-title mb-1">
+                                            <a asp-action="Product" asp-route-slug="@item.Slug" class="text-dark text-decoration-none">@item.Name</a>
+                                        </h5>
+
+                                        <div class="mb-2 text-amazon-yellow small">
+                                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                                            <span class="text-amazon-teal ms-1 small">@((new Random().Next(50, 5000)).ToString("N0"))</span>
+                                        </div>
+
+                                        <div class="price-box mb-3">
+                                            <span class="price-symbol">₹</span>
+                                            <span class="price-whole">@Math.Floor(item.Price).ToString("#,##,##0")</span>
+                                            <span class="price-fraction">@((item.Price % 1).ToString(".00").Replace(".", ""))</span>
+                                        </div>
+
+                                        <div class="mt-auto">
+                                            @* If product stock is zero, show disabled out-of-stock button; otherwise use POST add form *@
+                                            @if (item.StockQuantity <= 0)
+                                            {
+                                                <button class="btn btn-secondary btn-sm w-100 shadow-none" disabled>Out of stock</button>
+                                            }
+                                            else
+                                            {
+                                                <form asp-controller="Cart" asp-action="Add" method="post" class="mb-2">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.Id" />
+                                                    <button type="submit" class="btn btn-amazon-yellow-pill btn-sm w-100 shadow-none">Add to Cart</button>
+                                                </form>
+                                            }
+                                            <a asp-controller="Cart" asp-action="Index" class="btn btn-amazon-outline-pill btn-sm w-100 shadow-none">View Cart</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="col-12 p-5 text-center">
+                            <h4 class="text-muted">No products found matching your criteria.</h4>
+                            <a asp-action="Index" asp-route-slug="" class="btn btn-amazon-outline-pill mt-3">Clear all filters</a>
+                        </div>
+                    }
+                </div>
+
+                @* Pagination *@
+                @if (totalPages > 1)
+                {
+                    <div class="d-flex justify-content-center mt-5">
+                        <front-pagination page-count="@totalPages"
+                                          page-target="@currentCategorySlug"
+                                          page-number="@currentPage"
+                                          page-range="@pageRange"
+                                          current-search-term="@currentSearchTerm"
+                                          sort-order="@sortOrder"
+                                          min-price="@minPrice"
+                                          max-price="@maxPrice"
+                                          rating="@rating"></front-pagination>
+                    </div>
+                }
+
+                @if (currentPage == 1)
+{
+    <div class="mt-5 pt-4 border-top">
+
+        <h5 class="mb-4 fw-bold text-center text-muted">
+            Sponsored Advertisements
+        </h5>
+
+        <div class="row g-4">
+
+            @{
+                var bottomAds = new[]
+                {
+                    "/media/ads/ad1.jpg",
+                    "/media/ads/ad2.jpg",
+                    "/media/ads/ad3.jpg",
+                    "/media/ads/ad4.jpg",
+                    "/media/ads/ad5.jpg",
+                    "/media/ads/ad6.jpg"
+                };
+            }
+
+            @for (int i = 0; i < bottomAds.Length; i++)
             {
-                <div class="d-flex w-100 justify-content-center mt-5">
-                    <front-pagination page-count="@totalPages"
-                                      page-target="@currentCategorySlug"
-                                      page-number="@currentPage"
-                                      page-range="@pageRange"
-                                      current-search-term="@currentSearchTerm"
-                                      sort-order="@sortOrder">
-                    </front-pagination>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="ad-card shadow-sm rounded overflow-hidden bg-white">
+
+                        <img src="@bottomAds[i]"
+                             class="img-fluid w-100 bottom-ad-img"
+                             loading="lazy"
+                             alt="Advertisement @(i + 1)"
+                             onerror="this.onerror=null;this.src='/media/ads/default-ad.jpg';" />
+
+                    </div>
                 </div>
             }
+
         </div>
+    </div>
+}
+        
+
+            </main>
+        
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            </div>
+    
+        
+        @* === BOTTOM ADVERTISEMENT SECTION (SAFE ADDITION) === *@
+
+        </div>
+</div>
+
+@* --- SIGNALR & CHAT SYSTEM (PRESERVED) --- *@
+<div class="d-none" aria-hidden="true">
+    <div id="chat-window-container"></div><div id="chat-messages"></div>
+    <input type="text" id="chat-input" /><button id="send-btn"></button><button id="close-chat-btn"></button>
+    <div id="user-list-view"></div><a id="group-chat-link"></a><button id="open-chat-toggle"></button>
+    <div id="floating-chat-modal">
+        <h6 id="floating-chat-title"></h6><button id="floating-chat-users-toggle"></button>
+        <button id="floating-chat-minimize"></button><button id="floating-chat-close"></button>
+        <div id="floating-user-list"></div><div id="floating-chat-messages"></div>
+        <input type="text" id="floating-chat-input" /><button id="floating-chat-send"></button>
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        (function () {
-            // Safely pass server-side vars to JS
-            const currentCategorySlug = @Html.Raw(Json.Serialize(currentCategorySlug ?? ""));
-            const currentSearchTerm = @Html.Raw(Json.Serialize(currentSearchTerm ?? ""));
-            const currentSortOrder = @Html.Raw(Json.Serialize(sortOrder ?? "default"));
-            const productsIndexUrl = @Html.Raw(Json.Serialize(Url.Action("Index", "Products")));
-
-            // Build URL helper (keeps clean slug path if provided)
-            function buildUrl(basePath, slug, searchTerm, sortOrder, page) {
-                let url = basePath;
-                let queryParts = [];
-
-                // Attach slug to path (clean URLs)
-                if (slug && slug.length > 0) {
-                    url = url.replace(/\/$/, '') + "/" + encodeURIComponent(slug);
-                }
-
-                if (searchTerm && searchTerm.length > 0) {
-                    queryParts.push("searchTerm=" + encodeURIComponent(searchTerm));
-                }
-
-                if (sortOrder && sortOrder !== "default") {
-                    queryParts.push("sortOrder=" + encodeURIComponent(sortOrder));
-                }
-
-                if (page && page > 1) {
-                    queryParts.push("p=" + page);
-                }
-
-                if (queryParts.length > 0) {
-                    // Check if URL already has query parameters (unlikely if starting from basePath)
-                    const separator = url.includes('?') ? '&' : '?';
-                    url += separator + queryParts.join("&");
-                }
-
-                return url;
-            }
-
-            // Apply initial sort order to dropdown (Razor-safe)
-            document.addEventListener("DOMContentLoaded", function () {
-                var sortDropdown = document.getElementById("sortDropdown");
-
-                if (sortDropdown && currentSortOrder) {
-                    sortDropdown.value = currentSortOrder;
-                }
-
-                if (sortDropdown) {
-                    sortDropdown.addEventListener("change", function () {
-                        var selected = sortDropdown.value;
-
-                        // Reset to page 1 when sorting
-                        var newUrl = buildUrl(
-                            productsIndexUrl,
-                            currentCategorySlug,
-                            currentSearchTerm,
-                            selected,
-                            1
-                        );
-
-                        window.location.href = newUrl;
-                    });
-                }
-            });
-        })();
-    </script>
-}
-
 @section Styles {
     <style>
-        /* Define Amazon-like Colors */
         :root {
-            --amazon-orange-accent: #FF9900;
-            --amazon-price-red: #B12704;
-            --amazon-yellow-button: #FFD814;
-            --amazon-yellow-button-hover: #F7CA00;
-            --amazon-link-teal: #007185;
-            --amazon-search-yellow: #FEBD69;
+            --amazon-teal: #007185;
+            --amazon-price: #B12704;
+            --amazon-yellow: #FFD814;
+            --amazon-bg: #EAEDED;
+            --amazon-link-hover: #C45500;
+        }
+
+        .amazon-bg-gray {
+            background-color: var(--amazon-bg);
+            min-height: 100vh;
         }
 
         .text-amazon-teal {
-            color: var(--amazon-link-teal) !important;
+            color: var(--amazon-teal) !important;
         }
 
-        /* --- PRODUCT CARD STYLES --- */
-        .product-card {
-            border: 1px solid #d5d9d9 !important;
-            border-radius: 12px;
-            background: #fff;
-            transition: box-shadow .18s ease, border-color .18s ease;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden; /* Ensures rounded corners look right */
+        .text-amazon-price {
+            color: var(--amazon-price) !important;
         }
 
-            .product-card:hover {
-                box-shadow: 0 4px 12px rgba(0,0,0,.1);
-                border-color: var(--amazon-link-teal) !important;
+        .text-amazon-yellow {
+            color: #FFA41C;
+        }
+
+        /* Filter Sidebar */
+        .filter-sidebar {
+            padding-right: 15px;
+        }
+
+        .filter-link {
+            color: #0f1111;
+            text-decoration: none;
+            display: block;
+            padding: 2px 0;
+            transition: color 0.2s;
+            font-size: 0.9rem;
+        }
+
+            .filter-link:hover {
+                color: var(--amazon-link-hover);
+                text-decoration: underline;
             }
 
-        .product-image-wrapper {
-            background: #fff;
-            padding: 18px;
-            height: 220px;
-            border-bottom: 1px solid #eee;
+        .small-caps {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #444;
+        }
+
+        /* Buttons & Grid */
+        .btn-slider {
+            background: white;
+            border: 1px solid #D5D9D9;
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            font-size: 0.8rem;
+        }
+
+        .amazon-mini-img-wrap {
+            height: 120px;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .amazon-mini-title {
+            font-size: 0.75rem;
+            color: var(--amazon-teal);
             overflow: hidden;
-        }
-
-        .product-img {
-            object-fit: contain;
-            max-height: 100%;
-            max-width: 100%;
-            transition: transform .25s ease;
-        }
-
-        .product-card:hover .product-img {
-            transform: scale(1.06);
-        }
-
-        .product-category-link {
-            color: var(--amazon-link-teal) !important;
-            font-size: 0.80rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }
-
-            .product-category-link:hover {
-                text-decoration: underline !important;
-            }
-
-        .product-name a {
-            font-size: 1.05rem;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
-            overflow: hidden;
-            line-height: 1.3;
-            height: 2.6em; /* Set a fixed height for consistency */
-            color: #0F1111 !important;
-            text-decoration: none;
-            font-weight: 600;
         }
 
-        .star-rating i {
-            color: #ffa41c; /* Amazon Star Gold */
-            margin-right: 2px;
-        }
-
-        .price-text {
-            color: var(--amazon-price-red) !important;
-            font-size: 1.5rem !important;
-            font-weight: 700 !important;
-            font-family: "Amazon Ember", Arial, sans-serif; /* Ideal Amazon Font Family */
-        }
-
-        /* --- BUTTONS --- */
-
-        /* Add to Cart Button (Primary Yellow) */
-        .btn-amazon-yellow {
-            background-color: var(--amazon-yellow-button) !important;
-            border-color: #FCD200 !important;
-            color: #0F1111 !important;
-            font-weight: 700;
-            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
-        }
-
-            .btn-amazon-yellow:hover {
-                background-color: var(--amazon-yellow-button-hover) !important;
-            }
-
-        /* View Cart Button (Secondary Outline) */
-        .btn-amazon-outline {
-            border: 1px solid var(--amazon-link-teal) !important;
-            color: var(--amazon-link-teal) !important;
-            background: transparent;
-            font-weight: 700;
-        }
-
-            .btn-amazon-outline:hover {
-                background-color: #E7F2F5 !important;
-                border-color: #005666 !important;
-            }
-
-        /* Search Button */
-        .btn-amazon-search {
-            background-color: var(--amazon-search-yellow) !important;
-            border: none;
-            color: #111;
-        }
-
-            .btn-amazon-search:hover {
-                background-color: #F3A847 !important;
-            }
-
-        /* --- GRID & LAYOUT --- */
-        .product-card .card-body {
+        .price-box {
+            color: #0F1111;
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 1rem;
+            align-items: flex-start;
+            line-height: 1;
         }
 
-        /* Responsive Adjustments */
-        @@media (max-width: 576px) {
-            .product-image-wrapper {
-                height: 160px;
-                padding: 12px;
+        .price-symbol {
+            font-size: 0.85rem;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .price-whole {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .price-fraction {
+            font-size: 0.85rem;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .product-main-img {
+            height: 200px;
+            object-fit: contain;
+        }
+
+        .amazon-product-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            height: 2.8rem;
+            overflow: hidden;
+        }
+
+        .btn-amazon-yellow-pill {
+            background: var(--amazon-yellow);
+            border: 1px solid #FCD200;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .btn-amazon-outline-pill {
+            background: white;
+            border: 1px solid #D5D9D9;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .btn-amazon-search {
+            background: var(--amazon-yellow);
+            border: 1px solid #FCD200;
+        }
+
+        .product-card-hover:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 5;
+            transform: scale(1.01);
+            border-radius: 4px;
+        }
+
+        .amazon-category-tree .amazon-cat-link {
+            font-size: 0.9rem;
+            color: #0F1111;
+            text-decoration: none;
+            display: block;
+            padding: 2px 0;
+        }
+
+            .amazon-category-tree .amazon-cat-link:hover {
+                color: #C45500;
+                text-decoration: underline;
             }
 
-            .price-text {
-                font-size: 1.25rem !important;
-            }
+        .amazon-category-tree .active {
+            font-weight: 700;
+            color: #C45500;
         }
+
+        .amazon-subcat-link {
+            font-size: 0.85rem;
+            color: #565959;
+            text-decoration: none;
+        }
+
+        .amazon-subcat-link:hover {
+            color: #C45500;
+        }
+
+
+        /* === Weypaari Promotional Banners === */
+.weypaari-banner-img {
+    height: 260px;
+    object-fit: cover;
+}
+
+@@media (max-width: 992px) {
+    .weypaari-banner-img {
+        height: 200px;
+    }
+}
+
+@@media (max-width: 576px) {
+    .weypaari-banner-img {
+        height: 150px;
+    }
+}
+
+
+/* === Bottom Advertisement Section === */
+
+.bottom-ad-img {
+    height: 200px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.ad-card:hover .bottom-ad-img {
+    transform: scale(1.05);
+}
+
+@@media (max-width: 992px) {
+    .bottom-ad-img {
+        height: 170px;
+    }
+}
+
+@@media (max-width: 576px) {
+    .bottom-ad-img {
+        height: 140px;
+    }
+}
+
+
+/* === Sidebar Advertisement Section === */
+
+.sidebar-ads {
+    margin-top: 10px;
+}
+
+.sidebar-ad-img {
+    height: 160px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-ad-card:hover .sidebar-ad-img {
+    transform: scale(1.05);
+}
+
+/* Make sidebar sticky with ads */
+.filter-sidebar {
+    position: sticky;
+    top: 20px;
+}
+
+/* Responsive behavior */
+@@media (max-width: 992px) {
+    .sidebar-ad-img {
+        height: 140px;
+    }
+}
+
+@@media (max-width: 576px) {
+    .sidebar-ad-img {
+        height: 120px;
+    }
+}
+
     </style>
+
+
+}
+
+@section Scripts {
+    <script src="~/lib/microsoft-signalr/signalr.js"></script>
+    <script src="~/js/chat-products.js" asp-append-version="true"></script>
+    <script>
+        ChatProductsModule.init({
+            cS: @Html.Raw(Json.Serialize(currentCategorySlug ?? "")),
+            cST: @Html.Raw(Json.Serialize(currentSearchTerm ?? "")),
+            cSO: @Html.Raw(Json.Serialize(sortOrder ?? "default")),
+            pIU: @Html.Raw(Json.Serialize(Url.Action("Index", "Products"))),
+            currentUserId: '@currentUserId',
+            chatEnabled: false
+        });
+
+        document.getElementById('sortDropdown').addEventListener('change', function() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('sortOrder', this.value);
+            url.searchParams.set('p', '1');
+            window.location.href = url.href;
+        });
+    </script>
 }

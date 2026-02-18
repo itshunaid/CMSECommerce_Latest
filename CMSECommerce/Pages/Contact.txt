@@ -1,0 +1,86 @@
+﻿<div class="container py-5 text-center">
+	<h1>Connect With WEypaari</h1>
+	<p>Have questions? We’re here to help you grow. Reach out through any of our direct channels or join our growing community of women entrepreneurs.</p>
+</div>
+
+<div class="container mb-5">
+	<div class="g-4 justify-content-center row">
+		<div class="col-lg-4 col-md-6">
+			<div class="border-0 card h-100 p-5 shadow-sm text-center">
+				<div class="mb-4">
+					<i class="fab fa-whatsapp fa-4x text-success"></i>
+				</div>
+				<h4>WhatsApp Support</h4>
+				<p>Chat directly with our team for quick help regarding your store or products.</p>
+				<a class="btn btn-success fw-bold px-4" href="https://wa.me/919603302152?text=Hello%20WEypaari,%20I%20need%20assistance%20with%20my%20store." target="_blank">
+					<i class="fab fa-whatsapp me-1"></i> Chat Now
+				</a>
+			</div>
+		</div>
+
+		<div class="col-lg-4 col-md-6">
+			<div class="border-0 card h-100 p-5 shadow-sm text-center">
+				<div class="mb-4">
+					<i class="fas fa-envelope-open-text fa-4x text-warning"></i>
+				</div>
+				<h4>Email Inquiries</h4>
+				<p>For detailed business queries or partnership ideas, send us a mail.</p>
+				<a class="btn btn-dark fw-bold px-4" href="mailto:support@weypaari.in">
+					<i class="fas fa-envelope me-1"></i> Send Email
+				</a>
+			</div>
+		</div>
+
+		<div class="col-lg-4 col-md-6">
+			<div class="border-0 card h-100 p-5 shadow-sm text-center">
+				<div class="mb-4">
+					<i class="fas fa-file-invoice fa-4x text-primary"></i>
+				</div>
+				<h4>Help Center</h4>
+				<p>Check our frequently asked questions about selling and listing.</p>
+				<a class="btn btn-outline-primary fw-bold px-4" href="/Products/Policies">
+					<i class="fas fa-book me-1"></i> Read Policies
+				</a>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="container-fluid py-5" style="background-color:#232f3e; color:white">
+	<div class="container">
+		<div class="align-items-center row">
+			<div class="col-md-6 mb-4 mb-md-0">
+				<h2>Follow Our Journey</h2>
+				<p>Stay updated with new seller arrivals, success stories, and platform updates. We celebrate every milestone of our home-business owners.</p>
+				<div class="d-flex gap-4 mt-4">
+					<a class="text-white text-decoration-none d-flex align-items-center" href="#">
+						<i class="fab fa-instagram fa-2x me-2"></i> @weypaari
+					</a>
+					<a class="text-white text-decoration-none d-flex align-items-center" href="#">
+						<i class="fab fa-facebook fa-2x me-2"></i> weypaari.in
+					</a>
+				</div>
+			</div>
+			<div class="col-md-6 text-center">
+				<div class="border border-secondary p-4 rounded">
+					<h5>Location</h5>
+					<p>Hyderabad, Telangana, India</p>
+					<p class="text-secondary small">Serving Entrepreneurs PAN India</p>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="container py-5">
+	<div class="align-items-center row">
+		<div class="col-md-4">
+			<img alt="Women Entrepreneurship" class="img-fluid rounded shadow" src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=600&amp;q=80" />
+		</div>
+		<div class="col-md-8 mt-4 mt-md-0 ps-md-5">
+			<h3>Supporting Your Home Business</h3>
+			<p>WEypaari is more than a website; it is a movement to digitize the amazing work being done in home kitchens, living rooms, and small workshops by women across India.</p>
+			<p class="fw-bold">Need a featured spot on our homepage? Contact our marketing team via email.</p>
+		</div>
+	</div>
+</div>

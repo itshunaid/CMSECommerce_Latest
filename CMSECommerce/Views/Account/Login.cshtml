@@ -1,120 +1,358 @@
 ﻿@model LoginViewModel
 
 @{
-    ViewData["Title"] = "Log In";
+    ViewData["Title"] = "Sign-In";
     const string controllerName = "Account";
-    const string primaryColor = "#146eb4"; // Amazon blue
+    ViewData["HideLayoutSidebar"] = true;
 }
 
-<div class="container py-5">
-    <div class="row justify-content-center align-items-center">
+<div class="amazon-login-wrapper py-3 py-md-5 d-flex align-items-center">
+    <div class="container">
+        <div class="row g-0 justify-content-center align-items-stretch">
 
-        <!-- Left panel (Info/Promotions) -->
-        <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-start pe-5">
-            <h1 class="display-5 fw-bold mb-3 text-dark">Welcome Back</h1>
-            <p class="text-muted mb-4">
-                Access your account to track orders, manage your wishlist, and explore new deals every day.
-            </p>
-            <ul class="list-unstyled text-muted">
-                <li class="mb-2"><i class="fas fa-check-circle me-2" style="color:@primaryColor;"></i> Track your orders</li>
-                <li class="mb-2"><i class="fas fa-check-circle me-2" style="color:@primaryColor;"></i> Personalized recommendations</li>
-                <li class="mb-2"><i class="fas fa-check-circle me-2" style="color:@primaryColor;"></i> Save your favorite products</li>
-            </ul>
+            @* --- LEFT PANEL: BRANDING (Hidden on Mobile) --- *@
+            <div class="col-lg-5 d-none d-lg-flex flex-column justify-content-center p-5 bg-white border-end rounded-start-2 shadow-sm">
+                <div class="brand-logo mb-4">
+                    <div class="d-flex align-items-center h2 fw-bold text-amazon-dark m-0">
+                        <i class="fas fa-box text-amazon-orange me-2"></i>
+                        <span style="font-weight: 300;">WE</span><span class="text-amazon-orange">y</span>paari
+                    </div>
+                </div>
+                <h1 class="display-6 fw-bold mb-3 text-amazon-dark">Empowering Women Entrepreneurs.</h1>
+                <p class="text-secondary mb-5">
+                    Access your personalized dashboard, showcase your products, and manage your business with industrial-grade security.
+                </p>
+
+                <div class="features-list">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="feature-icon-circle me-3">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold">Secure Marketplace</h6>
+                            <p class="small text-muted mb-0">Multi-factor authentication & encrypted sessions.</p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="feature-icon-circle me-3">
+                            <i class="fas fa-store"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold">Seller Community</h6>
+                            <p class="small text-muted mb-0">Join a directory of talented home-based businesses.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* --- RIGHT PANEL: FORM --- *@
+            <div class="col-12 col-sm-10 col-md-8 col-lg-4 p-4 p-lg-5 bg-white shadow-sm border rounded-2 rounded-lg-start-0">
+
+                @* Mobile Logo *@
+                <div class="text-center mb-4 d-lg-none">
+                    <div class="d-flex align-items-center justify-content-center h3 fw-bold text-amazon-dark">
+                        <i class="fas fa-box text-amazon-orange me-2"></i>
+                        <span style="font-weight: 300;">WE</span><span class="text-amazon-orange">y</span>paari
+                    </div>
+                </div>
+
+                @* --- STATUS ALERTS --- *@
+               @if (ViewBag.IsLockedOut == true)
+{
+    <div class="alert alert-danger border-0 border-start border-4 border-danger shadow-sm py-3 mb-4">
+        <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-exclamation-circle fs-4 me-3 text-danger"></i>
+            <h6 class="fw-bold mb-0">Account Locked</h6>
         </div>
-
-        <!-- Right panel (Login Form) -->
-        <div class="col-lg-5 col-md-8 col-sm-10">
+        <div class="small ps-5">
+            @* This will now display the "Access denied..." message from the controller *@
+            @Html.ValidationSummary(true, "", new { @class = "list-unstyled mb-0" })
             
+            <div class="mt-2">
+                <a asp-action="RequestUnlock" asp-controller="Account" class="text-decoration-none">
+                    <i class="fas fa-unlock me-1"></i>Request Account Unlock
+                </a>
+            </div>
+        </div>
+    </div>
+}
+                <div class="signin-header mb-4">
+                    <h2 class="fw-normal text-amazon-dark h4">Sign-In</h2>
+                    <p class="text-muted small">Enter your identifier to begin.</p>
+                </div>
 
-            <div class="card p-5 border-0 rounded-3 shadow-sm bg-white auth-card">
-                <h2 class="h4 fw-bold mb-4 text-dark text-center">Sign-In</h2>
+                <form id="loginForm" method="post" asp-controller="@controllerName" asp-action="Login" role="form">
+                    @Html.AntiForgeryToken()
 
-                <form method="post" asp-controller="@controllerName" asp-action="Login" role="form" title="User Login Form">
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-
-                    <div class="form-floating mb-3">
-                        <input asp-for="UserName" class="form-control" placeholder="Username or Email" autofocus />
-                        <label asp-for="UserName"><i class="fas fa-user me-2"></i> Email or mobile phone number</label>
-                        <span asp-validation-for="UserName" class="text-danger small mt-1 d-block"></span>
+                    @* USERNAME FIELD *@
+                    <div class="mb-3 position-relative">
+                        <label asp-for="UserName" class="form-label fw-bold mb-1 small required-label">Email / Mobile / ITS</label>
+                        <input asp-for="UserName" id="UserNameInput"
+                               class="form-control amazon-modern-input"
+                               autofocus
+                               autocomplete="username"
+                               spellcheck="false"
+                               autocorrect="off"
+                               autocapitalize="none" />
+                        <div id="checkLoader" class="spinner-border spinner-border-sm text-amazon-orange position-absolute d-none" style="right: 12px; top: 43px; z-index: 5;"></div>
+                        <span id="UserNameError" class="text-danger x-small mt-1 d-block" style="min-height: 1.2rem;"></span>
                     </div>
 
-                    <div class="form-floating mb-3">
-                        <input asp-for="Password" type="password" class="form-control" placeholder="Password" />
-                        <label asp-for="Password"><i class="fas fa-lock me-2"></i> Password</label>
-                        <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
-                    </div>
+                    @* DYNAMIC SECTION *@
+                    <div id="dynamicAuthSection" style="display: none;">
 
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        @if (Model.GetType().GetProperty("RememberMe") != null)
-                        {
-                            <div class="form-check">
-                                <input class="form-check-input form-check-input-a11y" type="checkbox" asp-for="RememberMe">
+                        @* Password block *@
+                        <div id="passwordFieldBlock" style="display: none;">
+                            <div class="mb-2 position-relative">
+                                <div class="d-flex justify-content-between">
+                                    <label asp-for="Password" class="form-label fw-bold mb-1 small required-label">Password</label>
+                                    <a asp-action="ForgotPassword" class="small text-amazon-link text-decoration-none">Forgot?</a>
+                                </div>
+                                <div class="position-relative">
+                                    <input asp-for="Password" id="PasswordInput" type="password" class="form-control amazon-modern-input" autocomplete="current-password" />
+                                    <button type="button" id="togglePassword" class="btn position-absolute end-0 top-0 h-100 px-3 border-0 bg-transparent text-muted" style="z-index: 5;">
+                                        <i class="fas fa-eye" id="eyeIcon"></i>
+                                    </button>
+                                </div>
+                                @* FIX: Added validation span for password error messages *@
+                                <span asp-validation-for="Password" class="text-danger x-small mt-1 d-block"></span>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input accent-amazon" type="checkbox" asp-for="RememberMe">
                                 <label class="form-check-label small text-muted" asp-for="RememberMe">Keep me signed in</label>
                             </div>
-                        }
-                        <a asp-controller="@controllerName" asp-action="ForgotPassword" class="small fw-semibold text-decoration-none" style="color:@primaryColor;">Forgot your password?</a>
+                        </div>
+
+                        @* Submit Button *@
+                        <div class="d-grid mt-4">
+                            <button type="submit" id="submitBtn" class="btn btn-amazon-primary py-2 shadow-sm">
+                                <span id="btnText">Sign In</span> <i class="fas fa-arrow-right ms-2" id="btnIcon"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <input type="hidden" asp-for="ReturnUrl" />
-
-                    <div class="d-grid mb-4">
-                        <button type="submit" class="btn btn-primary btn-lg fw-bold" style="background-color:@primaryColor; border-color:@primaryColor;">
-                            Sign-In
-                        </button>
-                    </div>
-
-                    <div class="text-center border-top pt-3 mt-3">
-                        <p class="mb-0 small">
-                            New to Amazon?
-                            <a asp-controller="@controllerName" asp-action="Register" class="fw-semibold text-decoration-none" style="color:@primaryColor;">Create your account</a>
-                        </p>
-                    </div>
                 </form>
+
+                @* Social Login Section *@
+                <div class="mt-4">
+                    <div class="text-center mb-3">
+                        <span class="text-muted small">or continue with</span>
+                    </div>
+                    <div class="d-grid">
+                        <form asp-action="ExternalLogin" asp-route-provider="Google" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="returnUrl" value="@Model?.ReturnUrl" />
+                            <button type="submit"
+                                    name="provider"
+                                    value="Google"
+                                    class="btn btn-outline-dark w-100 py-2 shadow-sm d-flex align-items-center justify-content-center"
+                                    style="text-transform: none; font-weight: 500;">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
+                                     alt="Google logo"
+                                     style="width: 20px; margin-right: 10px;">
+                                Continue with Google
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
-
     </div>
 </div>
 
 @section Styles {
     <style>
-        .auth-card {
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        :root {
+            --amazon-dark: #111111;
+            --amazon-orange: #e47911;
+            --amazon-yellow: #f0c14b;
+            --amazon-link: #0066c0;
         }
 
-            .auth-card:hover {
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                transform: translateY(-2px);
+        body {
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            background-color: #fcfcfc;
+        }
+
+        .amazon-modern-input {
+            border: 1px solid #a6a6a6;
+            border-radius: 4px;
+            height: 44px;
+            font-size: 16px !important;
+            padding: 10px 12px;
+            transition: all 0.2s;
+        }
+
+            .amazon-modern-input:focus {
+                border-color: var(--amazon-orange);
+                box-shadow: 0 0 0 3px rgba(228, 121, 17, .15);
+                outline: 0;
             }
 
-        .form-control:focus {
-            border-color: @primaryColor;
-            box-shadow: 0 0 0 0.25rem rgba(20,110,180,0.25);
-        }
-
-        .form-check-input-a11y:focus {
-            box-shadow: 0 0 0 0.25rem rgba(20,110,180,0.25);
-            border-color: @primaryColor;
-            outline: 0;
-        }
-
-        .btn-primary:hover {
-            background-color: #0f5ba3;
-            border-color: #0f5ba3;
-        }
-
-        /* Left panel text colors */
-        .col-lg-6 h1,
-        .col-lg-6 p,
-        .col-lg-6 ul li {
+        .btn-amazon-primary {
+            background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+            border: 1px solid #a88734;
             color: #111;
+            height: 44px;
+            font-weight: 500;
         }
 
-        
+            .btn-amazon-primary:active {
+                background: #f0c14b;
+            }
+
+        .feature-icon-circle {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 153, 0, 0.1);
+            color: var(--amazon-orange);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .required-label::after {
+            content: " *";
+            color: #d00;
+            font-weight: bold;
+        }
+
+        .x-small {
+            font-size: 0.8rem;
+        }
+
+        .text-amazon-orange {
+            color: var(--amazon-orange);
+        }
+
+        .text-amazon-dark {
+            color: var(--amazon-dark);
+        }
+
+        .text-amazon-link {
+            color: var(--amazon-link);
+        }
+
+        .accent-amazon:checked {
+            background-color: var(--amazon-orange);
+            border-color: var(--amazon-orange);
+        }
     </style>
 }
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            const $userInput = $('#UserNameInput');
+            const $errorSpan = $('#UserNameError');
+            const $loader = $('#checkLoader');
+            const $btnText = $('#btnText');
+            const $btnIcon = $('#btnIcon');
+            const $dynamicAuthSection = $('#dynamicAuthSection');
+            const $passwordBlock = $('#passwordFieldBlock');
+            const $loginForm = $('#loginForm');
+
+            let isRegisterMode = false;
+            let currentXHR = null;
+
+            const itsRegex = /^\d{8}$/;
+            const indianMobileRegex = /^(?:\+91|0)?[6-9]\d{9}$/;
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+            // FIX: Auto-trigger validation if the field is pre-filled (handles validation postbacks)
+            if ($userInput.val().trim() !== "") {
+                performValidation();
+            }
+
+            $userInput.on('input', function() {
+                const val = $(this).val();
+                if (/^\d/.test(val)) {
+                    $(this).attr('inputmode', 'numeric');
+                } else {
+                    $(this).attr('inputmode', 'email');
+                }
+
+                $userInput.css('border-left', '1px solid #a6a6a6');
+                if($dynamicAuthSection.is(':visible')) {
+                   hideDynamicFields();
+                }
+            });
+
+            $('#togglePassword').on('click', function (e) {
+                e.preventDefault();
+                const $passInput = $('#PasswordInput');
+                const isPass = $passInput.attr('type') === 'password';
+                $passInput.attr('type', isPass ? 'text' : 'password');
+                $('#eyeIcon').toggleClass('fa-eye fa-eye-slash');
+            });
+
+            $userInput.on('blur', function () {
+                performValidation();
+            });
+
+            $userInput.on('keypress', function(e) {
+                if(e.which === 13) {
+                    e.preventDefault();
+                    $(this).blur();
+                }
+            });
+
+            function performValidation() {
+                const val = $userInput.val().trim();
+                if (val === "") { hideDynamicFields(); return; }
+
+                if (!itsRegex.test(val) && !indianMobileRegex.test(val) && !emailRegex.test(val)) {
+                    $errorSpan.text("Invalid format. Use Email, 8-digit ITS or Mobile.").addClass('text-danger');
+                    hideDynamicFields();
+                    return;
+                }
+
+                if (currentXHR) currentXHR.abort();
+                $loader.removeClass('d-none');
+                $errorSpan.text("");
+
+                currentXHR = $.get('@Url.Action("ValidateIdentifier", "Account")', { value: val, type: 'Username' }, function (res) {
+                    $dynamicAuthSection.fadeIn(200);
+                    if (res.isAvailable) {
+                        isRegisterMode = true;
+                        $passwordBlock.hide();
+                        $btnText.text("Continue to Register");
+                        $btnIcon.attr('class', 'fas fa-user-plus ms-2');
+                        $errorSpan.text("New identifier detected.").attr('class', 'text-warning x-small mt-1 d-block');
+                        $userInput.css('border-left', '4px solid #ff9900');
+                    } else {
+                        isRegisterMode = false;
+                        $passwordBlock.show();
+                        $btnText.text("Sign In");
+                        $btnIcon.attr('class', 'fas fa-arrow-right ms-2');
+                        $errorSpan.text("Welcome back!").attr('class', 'text-success x-small mt-1 d-block');
+                        $userInput.css('border-left', '4px solid #28a745');
+
+                        // FIX: Focus password field ONLY if it's currently empty (avoids jumping during error display)
+                        if($('#PasswordInput').val() === "") {
+                            setTimeout(() => $('#PasswordInput').focus(), 300);
+                        }
+                    }
+                }).always(() => { $loader.addClass('d-none'); });
+            }
+
+            $loginForm.on('submit', function (e) {
+                if (isRegisterMode) {
+                    e.preventDefault();
+                    const val = $userInput.val().trim();
+                    window.location.href = '@Url.Action("Register", "Account")' + '?username=' + encodeURIComponent(val);
+                }
+            });
+
+            function hideDynamicFields() {
+                $dynamicAuthSection.hide();
+                $passwordBlock.hide();
+                $errorSpan.text("");
+                isRegisterMode = false;
+            }
+        });
+    </script>
 }

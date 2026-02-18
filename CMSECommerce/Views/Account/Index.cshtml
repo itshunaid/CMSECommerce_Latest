@@ -1,49 +1,199 @@
-﻿@model IEnumerable<Order>
+﻿@model IEnumerable<CMSECommerce.Models.Order>
 
 @{
-    ViewData["Title"] = "Orders";
+    ViewData["Title"] = "Your Orders";
+    ViewData["HideLayoutSidebar"] = true;
 }
 
-<h1>Orders</h1>
+<div class="container my-4 amazon-orders-page">
+    <h1 class="h2 fw-bold text-dark mb-4 border-bottom pb-2">
+        Your Orders
+    </h1>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                Order Number
-            </th>
-            <th>
-                GrandTotal
-            </th>
-            <th>
-                Date
-            </th>
-            <th>
-                Shipped
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>
-                    @item.Id
-                </td>
-                <td>
-                    @item.GrandTotal.ToString("C2")
-                </td>
-                <td>
-                    @item.DateTime
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Shipped)
-                </td>
-                <td>
-                    <a asp-action="OrderDetails" asp-route-id="@item.Id">Details</a>
-                </td>
-            </tr>
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5 bg-white rounded border shadow-sm empty-state-box">
+            <i class="fas fa-box-open display-1 text-muted mb-3"></i>
+            <h3 class="fw-bold">No Orders Found</h3>
+            <p class="text-muted">It looks like you haven't placed any orders yet.</p>
+            <a asp-controller="Products" asp-action="Index" class="btn btn-amazon-checkout btn-lg rounded-pill fw-bold px-5">
+                Start Shopping
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="orders-list-container">
+            @foreach (var order in Model)
+            {
+                @* Logic Check: 'order.Shipped' is now automatically updated by the Controller 
+                   whenever ALL 'OrderDetails.IsProcessed' flags are true.
+                *@
+                var isShipped = order.Shipped;
+                var statusText = isShipped ? "Shipped / Delivered" : "Processing";
+                var statusClass = isShipped ? "text-success" : "text-amazon-orange";
+
+                // Calculate Progress using the eager-loaded OrderDetails
+                int totalItems = order.OrderDetails?.Count() ?? 0;
+                int processedItems = order.OrderDetails?.Count(d => d.IsProcessed) ?? 0;
+                double progressPercent = totalItems > 0 ? (double)processedItems / totalItems * 100 : 0;
+
+                <div class="card mb-4 shadow-sm border amazon-order-card">
+                    @* --- Card Header: Order Metadata --- *@
+                    <div class="card-header d-flex justify-content-between align-items-center bg-light p-3">
+                        <div class="d-flex flex-wrap">
+                            <div class="d-flex flex-column me-4 mb-2 mb-md-0">
+                                <span class="small text-muted mb-0 text-uppercase">Order Placed</span>
+                                <span class="text-secondary fw-semibold">@order.OrderDate.Value.ToString("MMMM dd, yyyy")</span>
+                            </div>
+                            <div class="d-flex flex-column me-4 mb-2 mb-md-0">
+                                <span class="small text-muted mb-0 text-uppercase">Total</span>
+                                <span class="fw-bold price-red">@order.GrandTotal.ToString("C")</span>
+                            </div>
+                            <div class="d-flex flex-column mb-2 mb-md-0">
+                                <span class="small text-muted mb-0 text-uppercase">Ship To</span>
+                                <span class="text-amazon-link fw-semibold" title="User ID: @order.UserId">@order.UserName</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-column text-end">
+                            <span class="small text-muted mb-0">ORDER # @order.Id</span>
+                            <div class="d-flex gap-2 mt-1 justify-content-end">
+                                <a asp-action="OrderDetails" asp-route-id="@order.Id" class="small text-amazon-link text-decoration-none">View details</a>
+                                <span class="text-muted small">|</span>
+                                <a asp-action="Invoice" asp-route-id="@order.Id" target="_blank" class="small text-amazon-link text-decoration-none">Invoice</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* --- Card Body: Status and Progress --- *@
+                    <div class="card-body p-4">
+                        <div class="row align-items-center">
+                            <div class="col-lg-7">
+                                <h5 class="fw-bold @statusClass mb-2">
+                                    <i class="fas @(isShipped ? "fa-check-circle" : "fa-sync fa-spin") me-2"></i> @statusText
+                                </h5>
+
+                                @if (!isShipped)
+                                {
+                                    <div class="mb-2 mt-3">
+                                        <div class="d-flex justify-content-between mb-1" style="max-width: 300px;">
+                                            <small class="fw-bold">Order Progress</small>
+                                            <small class="text-muted">@processedItems of @totalItems items</small>
+                                        </div>
+                                        <div class="progress" style="height: 10px; width: 300px; max-width: 100%;">
+                                            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated"
+                                                 role="progressbar"
+                                                 style="width: @progressPercent%"
+                                                 aria-valuenow="@progressPercent"
+                                                 aria-valuemin="0"
+                                                 aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                    <p class="small text-muted mb-0 mt-2">
+                                        Delivery details will be confirmed once all items are processed.
+                                    </p>
+                                }
+                                else
+                                {
+                                    <p class="small text-muted mb-0">Your package has been handed over to the courier and is on its way.</p>
+                                }
+                            </div>
+
+                            <div class="col-lg-5 text-lg-end text-start mt-4 mt-lg-0">
+                                <a asp-action="OrderDetails" asp-route-id="@order.Id"
+                                   class="btn btn-amazon-view-order btn-sm fw-bold w-100 mb-2 py-2" style="max-width: 220px;">
+                                    Track / View Order
+                                </a>
+                                <a asp-action="Invoice" asp-route-id="@order.Id" target="_blank"
+                                   class="btn btn-outline-secondary btn-sm fw-bold w-100 py-2" style="max-width: 220px;">
+                                    Download Invoice
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Styles {
+    <style>
+        :root {
+            --amazon-price-red: #B12704;
+            --amazon-dark-text: #0F1111;
+            --amazon-yellow-action: #FFD814;
+            --amazon-link-teal: #007185;
+            --amazon-link-teal-hover: #C7511F;
+            --amazon-card-border: #ddd;
+            --amazon-orange: #C7511F;
         }
-    </tbody>
-</table>
+
+        .amazon-orders-page {
+            color: var(--amazon-dark-text);
+        }
+
+        .price-red {
+            color: var(--amazon-price-red) !important;
+            font-size: 1.1rem;
+        }
+
+        .text-amazon-link {
+            color: var(--amazon-link-teal) !important;
+            cursor: pointer;
+        }
+
+            .text-amazon-link:hover {
+                color: var(--amazon-link-teal-hover) !important;
+                text-decoration: underline !important;
+            }
+
+        .text-amazon-orange {
+            color: var(--amazon-orange) !important;
+        }
+
+        .amazon-order-card {
+            border: 1px solid var(--amazon-card-border) !important;
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.15s ease-in-out;
+        }
+
+            .amazon-order-card:hover {
+                border-color: #bbb !important;
+            }
+
+            .amazon-order-card .card-header {
+                background-color: #f0f2f2 !important;
+                border-bottom: 1px solid var(--amazon-card-border);
+            }
+
+        .btn-amazon-view-order {
+            background-color: #f0f2f2;
+            border: 1px solid #c9c9c9;
+            color: var(--amazon-dark-text) !important;
+            border-radius: 7px;
+            box-shadow: 0 1px 2px rgba(15, 17, 17, 0.15);
+        }
+
+            .btn-amazon-view-order:hover {
+                background-color: #e0e0e0;
+                border-color: #b1b1b1;
+            }
+
+        .btn-amazon-checkout {
+            background-color: var(--amazon-yellow-action) !important;
+            border-color: #FCD200 !important;
+            color: #0F1111 !important;
+            font-weight: 700;
+            border-radius: 7px !important;
+        }
+
+        .progress {
+            background-color: #e9ecef;
+            border-radius: 10px;
+        }
+    </style>
+}

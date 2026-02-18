@@ -1,9 +1,12 @@
-﻿namespace CMSECommerce.Models
+﻿using System.Text.Json.Serialization;
+
+namespace CMSECommerce.Models
 {
     public class CartItem
     {
         public int ProductId { get; set; }
         public string ProductName { get; set; }
+        public string ProductSlug { get; set; }
         public int Quantity { get; set; }
         public decimal Price { get; set; }
         public decimal Total { get { return Quantity * Price; } }
@@ -13,6 +16,11 @@
 
         public bool IsOutOfStock { get; set; }
 
+        // Remove or mark [JsonIgnore] the complex object to prevent loops
+        [JsonIgnore]
+        public UserProfile UserProfile { get; set; }
+
+        public string SellerName { get; set; }
 
         public CartItem()
         {
@@ -25,7 +33,7 @@
             Price = product.Price;
             Quantity = 1;
             Image = product.Image;
-            ProductOwner = product.OwnerId;            
+            ProductOwner = product.OwnerName;            
         }
     }
 

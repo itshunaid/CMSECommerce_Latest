@@ -1,0 +1,138 @@
+﻿@model CMSECommerce.Models.UserProfile
+
+@{
+    ViewData["Title"] = Model.Store?.StoreName ?? "Merchant Profile";
+    Layout = "_Layout"; // Or your public-facing layout
+    ViewData["HideLayoutSidebar"] = true;
+}
+
+<div class="container py-5">
+    <div class="row g-4">
+        @* --- LEFT SIDE: Branding & Contact --- *@
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm text-center p-4 h-100">
+                <div class="mb-3">
+                    <img src="@(string.IsNullOrEmpty(Model.ProfileImagePath) ? "/images/default-store.png" : Model.ProfileImagePath)"
+                         alt="@Model.Store.StoreName"
+                         class="rounded-circle border shadow-sm"
+                         style="width: 150px; height: 150px; object-fit: cover;" />
+                </div>
+
+                <h2 class="fw-bold mb-1">@Model.Store.StoreName</h2>
+                <p class="text-muted mb-3">@Model.Profession</p>
+
+                <div class="d-flex justify-content-center gap-3 mb-4">
+                    @if (!string.IsNullOrEmpty(Model.FacebookUrl))
+                    {
+                        <a href="@Model.FacebookUrl" target="_blank" class="btn btn-outline-primary btn-sm rounded-circle"><i class="bi bi-facebook"></i></a>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.InstagramUrl))
+                    {
+                        <a href="@Model.InstagramUrl" target="_blank" class="btn btn-outline-danger btn-sm rounded-circle"><i class="bi bi-instagram"></i></a>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.LinkedInUrl))
+                    {
+                        <a href="@Model.LinkedInUrl" target="_blank" class="btn btn-outline-info btn-sm rounded-circle"><i class="bi bi-linkedin"></i></a>
+                    }
+                </div>
+
+                <hr />
+
+                <div class="text-start">
+                    <h6 class="fw-bold small text-uppercase text-muted">Contact Details</h6>
+                    <p class="mb-2 small"><i class="bi bi-envelope me-2"></i>@Model.Store.Email</p>
+                    <p class="mb-2 small"><i class="bi bi-telephone me-2"></i>@Model.Store.Contact</p>
+                    @if (!string.IsNullOrEmpty(Model.WhatsAppNumber))
+                    {
+                        <a href="https://wa.me/@Model.WhatsAppNumber" target="_blank" class="btn btn-success w-100 mt-2">
+                            <i class="bi bi-whatsapp me-2"></i>Chat on WhatsApp
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* --- RIGHT SIDE: Bio & Location --- *@
+        <div class="col-lg-8">
+            @* About Section *@
+            <div class="card border-0 shadow-sm p-4 mb-4">
+                <h4 class="fw-bold text-dark border-bottom pb-2 mb-3">About the Merchant</h4>
+                <p class="text-secondary" style="white-space: pre-line;">@Model.About</p>
+
+                @if (!string.IsNullOrEmpty(Model.ServicesProvided))
+                {
+                    <div class="mt-3">
+                        <h6 class="fw-bold">Services Offered:</h6>
+                        <span class="badge bg-light text-dark border p-2">@Model.ServicesProvided</span>
+                    </div>
+                }
+            </div>
+
+            @* Location & Payment Section *@
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm p-4 h-100">
+                        <h5 class="fw-bold mb-3"><i class="bi bi-geo-alt me-2 text-primary"></i>Store Location</h5>
+                        <p class="small text-muted mb-0">
+                            @Model.BusinessAddress<br />
+                            @Model.Store.City, @Model.Store.PostCode<br />
+                            @Model.Store.Country
+                        </p>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm p-4 h-100">
+                        <h5 class="fw-bold mb-3"><i class="bi bi-qr-code-scan me-2 text-primary"></i>Accepting Payments</h5>
+                        <div class="d-flex gap-2">
+                            @if (!string.IsNullOrEmpty(Model.GpayQRCodePath))
+                            {
+                                <button type="button" class="btn btn-outline-dark btn-sm flex-fill" data-bs-toggle="modal" data-bs-target="#qrModal" onclick="setQrImg('@Model.GpayQRCodePath', 'Google Pay')">
+                                    Google Pay
+                                </button>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.PhonePeQRCodePath))
+                            {
+                                <button type="button" class="btn btn-outline-dark btn-sm flex-fill" data-bs-toggle="modal" data-bs-target="#qrModal" onclick="setQrImg('@Model.PhonePeQRCodePath', 'PhonePe')">
+                                    PhonePe
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Product CTA *@
+            <div class="mt-4 text-center p-5 bg-dark text-white rounded shadow">
+                <h3>Check out our catalog!</h3>
+                <p class="mb-4">Explore our wide range of products and services.</p>
+                <a asp-action="StoreFront" asp-controller="Products" asp-route-id="@Model.StoreId" class="btn btn-warning btn-lg px-5 fw-bold">View All Products</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* --- QR Code Modal --- *@
+<div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content text-center">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title w-100 fw-bold" id="qrTitle">Payment QR</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <img src="" id="modalQrImg" class="img-fluid rounded border shadow-sm" alt="Payment QR" />
+                <p class="mt-3 small text-muted">Scan with your mobile app to pay</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function setQrImg(path, title) {
+            document.getElementById('modalQrImg').src = path;
+            document.getElementById('qrTitle').innerText = title + " QR Code";
+        }
+    </script>
+}

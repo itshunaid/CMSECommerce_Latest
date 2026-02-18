@@ -1,0 +1,63 @@
+-- 1. Declare the ID so it's easy to reuse if you add roles later
+DECLARE @AdminId NVARCHAR(450) = '8e448304-2185-442e-a342-6e210168d87d';
+
+-- 2. Insert the User
+INSERT INTO [AspNetUsers] (
+    [Id], 
+    [UserName], 
+    [NormalizedUserName], 
+    [Email], 
+    [NormalizedEmail], 
+    [EmailConfirmed], 
+    [PasswordHash], 
+    [SecurityStamp], 
+    [ConcurrencyStamp], 
+    [PhoneNumberConfirmed], 
+    [TwoFactorEnabled], 
+    [LockoutEnabled], 
+    [AccessFailedCount]
+)
+VALUES (
+    @AdminId,
+    'hussaina', 
+    'HUSSAINA', 
+    'hussaina@local.local', 
+    'HUSSAINA@LOCAL.LOCAL', 
+    1, -- EmailConfirmed = true
+    'AQAAAAEAACcQAAAAEPaF4M/XzX0K7H6vM5Y8V0S4n6/7kY2Z9W8A7fR5G3==', -- Hash for Pass@local110
+    NEWID(), -- SecurityStamp
+    NEWID(), -- ConcurrencyStamp
+    0,       -- PhoneNumberConfirmed
+    0,       -- TwoFactorEnabled
+    1,       -- LockoutEnabled
+    0        -- AccessFailedCount
+);
+
+
+INSERT INTO [AspNetUsers] (
+    [Id], 
+    [UserName], 
+    [NormalizedUserName], 
+    [Email], 
+    [NormalizedEmail], 
+    [EmailConfirmed], 
+    [PasswordHash], 
+    [SecurityStamp], 
+    [ConcurrencyStamp], 
+    [PhoneNumberConfirmed], 
+    [TwoFactorEnabled], 
+    [LockoutEnabled], 
+    [AccessFailedCount]
+)
+SELECT 
+    '8e448304-2185-442e-a342-6e210168d87d', -- The AdminId
+    'hussaina', 
+    'HUSSAINA', 
+    'hussaina@local.local', 
+    'HUSSAINA@LOCAL.LOCAL', 
+    1, 
+    'AQAAAAEAACcQAAAAEPaF4M/XzX0K7H6vM5Y8V0S4n6/7kY2Z9W8A7fR5G3==', 
+    NEWID(), 
+    NEWID(), 
+    0, 0, 1, 0
+WHERE NOT EXISTS (SELECT 1 FROM [AspNetUsers] WHERE [UserName] = 'admin');

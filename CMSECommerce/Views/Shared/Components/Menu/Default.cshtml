@@ -1,74 +1,76 @@
 ﻿@model IEnumerable<CMSECommerce.Infrastructure.Components.MenuItemViewModel>
 
-@* Assumed Context: This code is placed inside the <ul> tag 
-    of the main Navbar (e.g., inside <ul class="navbar-nav me-auto activeul">)
-*@
+<style>
+    /* Styling to match Amazon Dark Blue Sub-Nav Bar */
+    .amazon-sub-nav__link {
+        color: #ffffff !important; /* Force white text for dark blue background */
+        font-size: 0.85rem;
+        font-weight: 500;
+        padding: 5px 10px;
+        border: 1px solid transparent;
+        text-decoration: none !important;
+        transition: all 0.1s;
+    }
+
+        .amazon-sub-nav__link:hover {
+            border: 1px solid #ffffff; /* Amazon white border hover */
+            border-radius: 2px;
+            color: #ffffff !important;
+        }
+
+    /* Specialized color for the Request Seller Access to make it stand out */
+    .amazon-sub-nav__link--request {
+        color: #febd69 !important; /* Amazon Orange/Gold */
+        font-weight: 700;
+    }
+
+        .amazon-sub-nav__link--request:hover {
+            border-color: #febd69;
+        }
+
+    .amazon-sub-nav__link--muted {
+        color: #cccccc !important;
+        font-size: 0.75rem;
+    }
+</style>
 
 @foreach (var item in Model)
 {
-    // 1. ADMIN/DASHBOARD LINKS (Highlighting Admin area links)
-    if (item.IsAdmin)
+    @* Skip Admin items if they are handled elsewhere, or keep logic for future use *@
+    if (item.IsAdmin) { continue; }
+
+    @* Standard Menu Items (Pages like About, Contact, etc.) *@
+    if (item.Title != "Home")
     {
-        <li class="nav-item ms-lg-3">
-            <a class="nav-link btn btn-outline-danger btn-sm text-uppercase fw-semibold" 
-               asp-area="Admin" 
-               asp-controller="Dashboard" 
-               asp-action="Index"
-               title="Administrator Dashboard Access">
-                <i class="fas fa-chart-line me-1"></i> @item.Title
-            </a>
-        </li>
-    }
-    // 2. PUBLIC/CONTENT PAGES LINKS (Standard Menu Items)
-    else if (item.Title != "Home")
-    {         
-               
         <li class="nav-item">
-            <a class="nav-link text-dark fw-medium mx-1" 
-               asp-controller="Pages" 
-               asp-action="Index" 
+            <a class="nav-link amazon-sub-nav__link"
+               asp-controller="Pages"
+               asp-action="Index"
                asp-route-slug="@item.Slug">
-               
-                    @item.Title
-                
-                
+                @item.Title
             </a>
         </li>
-                
     }
 }
 
-
-
 @if (User.Identity?.IsAuthenticated == true)
 {
-    // CUSTOMER LINKS (Requesting an upgrade)
-    if (User.IsInRole("Customer") && !User.IsInRole("Subscriber"))
+    @* CUSTOMER LINKS (Requesting an upgrade) *@
+   @*  if (User.IsInRole("Customer") && !User.IsInRole("Subscriber"))
     {
-        // Use a visual hint (text-success) for the 'Request' action
         <li class="nav-item ms-lg-2">
-            <a class="nav-link text-success fw-semibold" asp-controller="Account" asp-action="RequestSeller">
+            <a class="nav-link amazon-sub-nav__link amazon-sub-nav__link--request"
+               asp-controller="Account"
+               asp-action="RequestSeller">
                 <i class="fas fa-hand-point-right me-1"></i> Request Seller Access
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link text-muted small" asp-controller="Account" asp-action="RequestStatus">
+            <a class="nav-link amazon-sub-nav__link amazon-sub-nav__link--muted"
+               asp-controller="Account"
+               asp-action="RequestStatus">
                 Status
             </a>
         </li>
-    }
-    // SUBSCRIBER (SELLER) LINKS (Direct access to their area)
-    else if (User.IsInRole("Subscriber"))
-    {
-        // Use a badge or button styling to make the seller access clear
-        <li class="nav-item ms-lg-3">
-            <a class="nav-link btn btn-success btn-sm text-uppercase fw-semibold" 
-               asp-area="Seller" 
-               asp-controller="Dashboard" 
-               asp-action="Index"
-               title="Access Seller Tools">
-                <i class="fas fa-chart-line me-1"></i> Seller
-            </a>
-        </li>
-    }
+    } *@
 }

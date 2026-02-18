@@ -1,264 +1,324 @@
-﻿@using System.Security.Claims
-@model CMSECommerce.Models.ViewModels.ProfileUpdateViewModel
+@model CMSECommerce.Areas.Admin.Models.EditUserModel
 
 @{
-    ViewData["Title"] = "My Profile Overview";
-    var loggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    ViewData["Title"] = "Profile Details";
+    // Check if profile status is false (we handle null as true to show everything by default)
+    bool isLimitedView = ViewBag.ProfileStatus == false;
+    ViewData["HideLayoutSidebar"] = true;
 }
 
-<style>
-    :root {
-        --primary-blue: #0073b1;
-        --accent-teal: #059669;
-        --shadow-card: 0 4px 6px rgba(0,0,0,0.1);
-    }
-
-    .text-primary-blue {
-        color: var(--primary-blue) !important;
-    }
-
-    .text-accent-teal {
-        color: var(--accent-teal) !important;
-    }
-
-    .bg-header {
-        background: linear-gradient(135deg, #eef6ff 0%, #dbeafe 100%);
-    }
-
-    .profile-nav .nav-link {
-        font-weight: 600;
-        color: #6b7280;
-        border-bottom: 4px solid transparent;
-        transition: 0.3s;
-    }
-
-        .profile-nav .nav-link.active {
-            color: var(--primary-blue);
-            border-bottom: 4px solid var(--accent-teal);
-        }
-
-    .detail-list .row:nth-of-type(odd) {
-        background-color: #f9fafb;
-        border-radius: 0.25rem;
-    }
-
-    .detail-list .row:hover {
-        background-color: #f3f4f6;
-    }
-
-    .card {
-        box-shadow: var(--shadow-card);
-    }
-
-    .social-link-btn {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.375rem 0.75rem;
-        border-radius: 50rem;
-        font-weight: 500;
-        text-decoration: none;
-        transition: 0.3s;
-    }
-
-        .social-link-btn:hover {
-            opacity: 0.9;
-        }
-
-    .linkedin-color {
-        background-color: #0077b5;
-        color: white;
-    }
-
-    .facebook-color {
-        background-color: #1877f2;
-        color: white;
-    }
-
-    .instagram-color {
-        background-color: #e4405f;
-        color: white;
-    }
-
-    .text-purple {
-        color: #5352ed;
-    }
-</style>
-
-<div class="container py-5">
+<div class="container-fluid px-4 py-5" style="background: #EAEDED; min-height: 100vh;">
     <div class="row justify-content-center">
-        <div class="col-lg-10 col-xl-8">
-
-            <h1 class="display-5 fw-bold text-primary-blue mb-4 text-center">Profile Management</h1>
-
-            <div class="card border-0">
-
-                <!-- Header -->
-                <div class="card-header bg-header text-center p-5 border-bottom-0 rounded-top">
-                    @if (Model.IsImageApproved && !string.IsNullOrEmpty(Model.ExistingProfileImagePath))
-                    {
-                        <img src="/@Model.ExistingProfileImagePath" alt="Profile Image" class="img-fluid rounded-circle shadow-lg mb-3 border border-4 border-white" style="width:150px; height:150px; object-fit:cover;" />
-                    }
-                    else
-                    {
-
-                        <i class="fas fa-user-circle fa-7x text-secondary mb-3"></i>
-                    }
-
-                    <h2 class="h3 fw-bold text-primary-blue">@Model.UserName</h2>
-                    <p class="text-secondary">@Model.Profession</p>
-                </div>
-
-                <!-- Actions -->
-                <div class="card-body pt-3 px-4 px-md-5">
-                    @if (Model.UserId == loggedInUserId || User.IsInRole("Admin"))
-                    {
-                        <div class="d-flex justify-content-end mb-4">
-                            <div class="btn-group">
-                                <a asp-action="EditProfile" asp-route-id="@Model.UserId" class="btn btn-primary shadow-sm fw-bold">
-                                    <i class="fas fa-edit me-1"></i> Edit Details
-                                </a>
-                                <button type="button" class="btn btn-outline-danger shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#deleteProfileModal">
-                                    <i class="fas fa-trash-alt me-1"></i> Delete Data
-                                </button>
+        <div class="col-lg-10">
+            <div class="amazon-card bg-white">
+                <div class="amazon-header">
+                    <div class="container">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h1 class="h2 mb-0 fw-bold"><i class="fas fa-user-edit me-3"></i>Profile Details</h1>
+                                <p class="mb-0 mt-2 opacity-75">Admin view for managing user profiles</p>
                             </div>
-                        </div>
-                    }
-                </div>
-
-                <!-- Tabs -->
-                <div class="card-body pt-0 px-4 px-md-5 border-top">
-                    <ul class="nav nav-tabs nav-fill profile-nav mb-4" id="profileTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button" role="tab">Account</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="professional-tab" data-bs-toggle="tab" data-bs-target="#professional" type="button" role="tab">Professional</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="address-tab" data-bs-toggle="tab" data-bs-target="#address" type="button" role="tab">Addresses</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab">Social & Pay</button>
-                        </li>
-                    </ul>
-
-                    <div class="tab-content" id="profileTabsContent">
-                        <!-- Account Tab -->
-                        <div class="tab-pane fade show active" id="account" role="tabpanel">
-                            <h5 class="text-primary-blue mb-3">Login and Contact</h5>
-                            <dl class="detail-list border rounded p-3">
-                                <div class="row"><dt class="col-sm-4 text-muted">Username:</dt><dd class="col-sm-8 fw-bold text-primary-blue">@Model.UserName</dd></div>
-                                <div class="row"><dt class="col-sm-4 text-muted">Email:</dt><dd class="col-sm-8">@Model.Email</dd></div>
-                                <div class="row"><dt class="col-sm-4 text-muted">Phone:</dt><dd class="col-sm-8">@Model.PhoneNumber</dd></div>
-                            </dl>
-                            <h5 class="mt-4 text-primary-blue">About Me:</h5>
-                            <div class="p-3 border rounded bg-white shadow-sm">@(!string.IsNullOrEmpty(Model.About) ? @Model.About : "<em class='text-muted small'>N/A</em>")</div>
-                        </div>
-
-                        <!-- Professional Tab -->
-                        <div class="tab-pane fade" id="professional" role="tabpanel">
-                            <h5 class="text-primary-blue mb-3">Professional Info</h5>
-                            <dl class="detail-list border rounded p-3">
-                                <div class="row"><dt class="col-sm-4 text-muted">ITS Number:</dt><dd class="col-sm-8">@(string.IsNullOrEmpty(Model.ITSNumber) ? "<span class='text-danger'>Not Set</span>" : Model.ITSNumber)</dd></div>
-                                <div class="row"><dt class="col-sm-4 text-muted">Profession:</dt><dd class="col-sm-8">@Model.Profession</dd></div>
-                                <div class="row"><dt class="col-sm-4 text-muted">WhatsApp:</dt><dd class="col-sm-8">@(!string.IsNullOrEmpty(Model.WhatsappNumber) ? $"<a href='https://wa.me/{Model.WhatsappNumber}' class='text-success'>{Model.WhatsappNumber}</a>" : "N/A")</dd></div>
-                                <div class="row">
-                                    <dt class="col-sm-4 text-muted">Services:</dt>
-                                    <dd class="col-sm-8">
-                                        @if (!string.IsNullOrEmpty(Model.ServicesProvided))
-                                        {
-                                            foreach (var s in Model.ServicesProvided.Split(','))
-                                            {
-                                                <span class="badge bg-accent-teal text-white me-2">@s.Trim()</span>
-                                            }
-                                        }
-                                        else
-                                        {
-
-                                            <span>N/A</span>
-                                        }
-                                    </dd>
-                                </div>
-                            </dl>
-                        </div>
-
-                        <!-- Address Tab -->
-                        <div class="tab-pane fade" id="address" role="tabpanel">
-                            <div class="row g-4">
-                                <div class="col-md-6">
-                                    <div class="card address-card border-0">
-                                        <div class="card-header fw-bold">Home Address</div>
-                                        <div class="card-body bg-white">@(!string.IsNullOrEmpty(Model.HomeAddress) ? Model.HomeAddress : "<em class='text-muted'>N/A</em>")</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card address-card border-0">
-                                        <div class="card-header fw-bold">Business Address</div>
-                                        <div class="card-body bg-white">@(!string.IsNullOrEmpty(Model.BusinessAddress) ? Model.BusinessAddress : "<em class='text-muted'>N/A</em>")</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Social Tab -->
-                        <div class="tab-pane fade" id="social" role="tabpanel">
-                            <h5 class="text-primary-blue mb-3">Social Links</h5>
-                            <div class="mb-4">
-                                @if (!string.IsNullOrEmpty(Model.LinkedInUrl))
+                            <div class="col-md-4 text-end">
+                                @if (User.IsInRole("Admin") || User.Identity.Name == Model.UserName)
                                 {
-                                    <a href="@Model.LinkedInUrl" target="_blank" class="social-link-btn linkedin-color me-2"><i class="fab fa-linkedin me-1"></i> LinkedIn</a>
+                                    <a asp-action="Profile" asp-route-id="@Model.Id" class="btn amazon-btn-secondary btn-sm">
+                                        <i class="fas fa-edit me-1"></i>Edit Profile
+                                    </a>
                                 }
-                                @if (!string.IsNullOrEmpty(Model.FacebookUrl))
-                                {
-                                    <a href="@Model.FacebookUrl" target="_blank" class="social-link-btn facebook-color me-2"><i class="fab fa-facebook me-1"></i> Facebook</a>
-                                }
-                                @if (!string.IsNullOrEmpty(Model.InstagramUrl))
-                                {
-                                    <a href="@Model.InstagramUrl" target="_blank" class="social-link-btn instagram-color"><i class="fab fa-instagram me-1"></i> Instagram</a>
-                                }
-                            </div>
-                            <h5 class="text-primary-blue mb-3">Payment QR Codes</h5>
-                            <div class="row g-4 justify-content-center">
-                                <div class="col-sm-6 text-center">
-                                    <p class="fw-bold text-success">GPay</p>
-                                    @if (!string.IsNullOrEmpty(Model.ExistingGpayQRCodePath))
-                                    {
-                                        <img src="/@Model.ExistingGpayQRCodePath" class="img-fluid border rounded" style="max-width:150px;" />
-                                    }
-                                </div>
-                                <div class="col-sm-6 text-center">
-                                    <p class="fw-bold text-purple">PhonePe</p>
-                                    @if (!string.IsNullOrEmpty(Model.ExistingPhonePeQRCodePath))
-                                    {
-                                        <img src="/@Model.ExistingPhonePeQRCodePath" class="img-fluid border rounded" style="max-width:150px;" />
-                                    }
-                                </div>
+                                <i class="fas fa-user-circle fa-3x opacity-75 ms-3"></i>
                             </div>
                         </div>
-
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
+                <div class="card-body p-4">
+                    <form asp-action="ProfileDetails" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
 
-<!-- Delete Modal -->
-<div class="modal fade" id="deleteProfileModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Confirm Deletion</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p><strong>Warning:</strong> Deleting profile data is irreversible.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form asp-action="DeleteProfileData" method="post">
-                    <button type="submit" class="btn btn-danger">Delete Profile Data</button>
-                </form>
+                        <div class="amazon-section">
+                            <h5><i class="fas fa-user me-2"></i>Basic Information</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label asp-for="FirstName" class="form-label"></label>
+                                    <input asp-for="FirstName" class="form-control" />
+                                    <span asp-validation-for="FirstName" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="LastName" class="form-label"></label>
+                                    <input asp-for="LastName" class="form-control" />
+                                    <span asp-validation-for="LastName" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            @if (!isLimitedView)
+                            {
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-6">
+                                        <label asp-for="UserName" class="form-label"></label>
+                                        <input asp-for="UserName" class="form-control" readonly />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="Email" class="form-label"></label>
+                                        <input asp-for="Email" class="form-control" type="email" />
+                                        <span asp-validation-for="Email" class="text-danger"></span>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-6">
+                                        <label asp-for="PhoneNumber" class="form-label"></label>
+                                        <input asp-for="PhoneNumber" class="form-control" />
+                                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="Role" class="form-label"></label>
+                                        <select asp-for="Role" class="form-select" asp-items="@(new SelectList(ViewBag.Roles ?? new List<string>(), Model.Role))">
+                                            <option value="">Select Role</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <label asp-for="ITSNumber" class="form-label"></label>
+                                    <input asp-for="ITSNumber" class="form-control" />
+                                    <span asp-validation-for="ITSNumber" class="text-danger"></span>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="amazon-section">
+                            <h5><i class="fas fa-briefcase me-2"></i>Professional Information</h5>
+                            <div class="mb-3">
+                                <label asp-for="Profession" class="form-label"></label>
+                                <input asp-for="Profession" class="form-control" />
+                                <span asp-validation-for="Profession" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="About" class="form-label"></label>
+                                <textarea asp-for="About" class="form-control" rows="4"></textarea>
+                                <span asp-validation-for="About" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="ServicesProvided" class="form-label"></label>
+                                <input asp-for="ServicesProvided" class="form-control" placeholder="Separate services with commas" />
+                                <span asp-validation-for="ServicesProvided" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="amazon-section">
+                            <h5><i class="fas fa-map-marker-alt me-2"></i>Addresses</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label asp-for="HomeAddress" class="form-label"></label>
+                                    <textarea asp-for="HomeAddress" class="form-control" rows="3"></textarea>
+                                    <span asp-validation-for="HomeAddress" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="BusinessAddress" class="form-label"></label>
+                                    <textarea asp-for="BusinessAddress" class="form-control" rows="3"></textarea>
+                                    <span asp-validation-for="BusinessAddress" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-2">
+                                <div class="col-md-6">
+                                    <label asp-for="HomePhoneNumber" class="form-label"></label>
+                                    <input asp-for="HomePhoneNumber" class="form-control" />
+                                    <span asp-validation-for="HomePhoneNumber" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="BusinessPhoneNumber" class="form-label"></label>
+                                    <input asp-for="BusinessPhoneNumber" class="form-control" />
+                                    <span asp-validation-for="BusinessPhoneNumber" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="amazon-section">
+                            <h5><i class="fas fa-share-alt me-2"></i>Social Media</h5>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label asp-for="LinkedInUrl" class="form-label"></label>
+                                    <input asp-for="LinkedInUrl" class="form-control" type="url" />
+                                    <span asp-validation-for="LinkedInUrl" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="FacebookUrl" class="form-label"></label>
+                                    <input asp-for="FacebookUrl" class="form-control" type="url" />
+                                    <span asp-validation-for="FacebookUrl" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="InstagramUrl" class="form-label"></label>
+                                    <input asp-for="InstagramUrl" class="form-control" type="url" />
+                                    <span asp-validation-for="InstagramUrl" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <label asp-for="WhatsAppNumber" class="form-label"></label>
+                                <input asp-for="WhatsAppNumber" class="form-control" />
+                                <span asp-validation-for="WhatsAppNumber" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        @if (!isLimitedView)
+                        {
+                            <div class="amazon-section">
+                                <h5><i class="fas fa-store me-2"></i>Store Information</h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="StoreName" class="form-label"></label>
+                                        <input asp-for="StoreName" class="form-control" />
+                                        <span asp-validation-for="StoreName" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="GSTIN" class="form-label"></label>
+                                        <input asp-for="GSTIN" class="form-control" />
+                                        <span asp-validation-for="GSTIN" class="text-danger"></span>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-6">
+                                        <label asp-for="StoreEmail" class="form-label"></label>
+                                        <input asp-for="StoreEmail" class="form-control" type="email" />
+                                        <span asp-validation-for="StoreEmail" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="StoreContact" class="form-label"></label>
+                                        <input asp-for="StoreContact" class="form-control" />
+                                        <span asp-validation-for="StoreContact" class="text-danger"></span>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-4">
+                                        <label asp-for="StoreStreetAddress" class="form-label"></label>
+                                        <input asp-for="StoreStreetAddress" class="form-control" />
+                                        <span asp-validation-for="StoreStreetAddress" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="StoreCity" class="form-label"></label>
+                                        <input asp-for="StoreCity" class="form-control" />
+                                        <span asp-validation-for="StoreCity" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label asp-for="StorePostCode" class="form-label"></label>
+                                        <input asp-for="StorePostCode" class="form-control" />
+                                        <span asp-validation-for="StorePostCode" class="text-danger"></span>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <label asp-for="StoreCountry" class="form-label"></label>
+                                    <input asp-for="StoreCountry" class="form-control" />
+                                    <span asp-validation-for="StoreCountry" class="text-danger"></span>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="amazon-section">
+                            <h5><i class="fas fa-upload me-2"></i>File Uploads</h5>
+
+                            <div class="mb-4">
+                                <label asp-for="ProfileImageFile" class="form-label"></label>
+                                @if (!string.IsNullOrEmpty(Model.ProfileImagePath))
+                                {
+                                    <div class="mb-3 d-flex align-items-center">
+                                        <img src="/@Model.ProfileImagePath" alt="Current Profile Image" class="rounded-circle border me-3" style="width: 80px; height: 80px; object-fit: cover;" />
+                                        <div>
+                                            <small class="text-muted d-block">Current profile image</small>
+                                            <small class="text-warning">Upload a new image to replace it</small>
+                                        </div>
+                                    </div>
+                                }
+                                <input asp-for="ProfileImageFile" class="form-control" type="file" accept="image/*" />
+                                <div class="form-check mt-2">
+                                    <input asp-for="IsImageApproved" class="form-check-input" />
+                                    <label asp-for="IsImageApproved" class="form-check-label fw-bold"></label>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="GpayQRCodeFile" class="form-label"></label>
+                                @if (!string.IsNullOrEmpty(Model.GpayQRCodePath))
+                                {
+                                    <div class="mb-3 d-flex align-items-center">
+                                        <img src="/@Model.GpayQRCodePath" alt="Current GPay QR" class="border rounded me-3" style="width: 80px; height: 80px; object-fit: cover;" />
+                                        <div>
+                                            <small class="text-muted d-block">Current GPay QR code</small>
+                                            <small class="text-warning">Upload a new QR code to replace it</small>
+                                        </div>
+                                    </div>
+                                }
+                                <input asp-for="GpayQRCodeFile" class="form-control" type="file" accept="image/*" />
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="PhonePeQRCodeFile" class="form-label"></label>
+                                @if (!string.IsNullOrEmpty(Model.PhonePeQRCodePath))
+                                {
+                                    <div class="mb-3 d-flex align-items-center">
+                                        <img src="/@Model.PhonePeQRCodePath" alt="Current PhonePe QR" class="border rounded me-3" style="width: 80px; height: 80px; object-fit: cover;" />
+                                        <div>
+                                            <small class="text-muted d-block">Current PhonePe QR code</small>
+                                            <small class="text-warning">Upload a new QR code to replace it</small>
+                                        </div>
+                                    </div>
+                                }
+                                <input asp-for="PhonePeQRCodeFile" class="form-control" type="file" accept="image/*" />
+                            </div>
+
+                            <div class="mt-3">
+                                <div class="form-check">
+                                    <input asp-for="IsProfileVisible" class="form-check-input" />
+                                    <label asp-for="IsProfileVisible" class="form-check-label fw-bold"></label>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (User.IsInRole("Admin") && !isLimitedView)
+                        {
+                            <div class="amazon-section">
+                                <h5><i class="fas fa-key me-2"></i>Password Management</h5>
+                                <div class="mb-3">
+                                    <label asp-for="NewPassword" class="form-label"></label>
+                                    <input asp-for="NewPassword" class="form-control" type="password" />
+                                    <small class="text-muted">Leave blank to keep existing password</small>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" asp-controller="Home" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Home
+                            </a>
+                            <div>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <button type="submit" class="btn btn-success me-2">
+                                        <i class="fas fa-save me-2"></i>Save Changes
+                                    </button>
+                                    @if (!isLimitedView)
+                                    {
+                                        <a asp-action="DeleteUser" asp-route-userId="@Model.Id" class="btn btn-danger"
+                                           onclick="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">
+                                            <i class="fas fa-trash me-2"></i>Delete User
+                                        </a>
+                                    }
+                                }
+                                else
+                                {
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Save Changes
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

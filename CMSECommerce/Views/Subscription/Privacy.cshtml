@@ -1,0 +1,85 @@
+﻿@{
+    ViewData["Title"] = "Privacy Policy";
+    ViewData["HideLayoutSidebar"] = true;
+}
+
+<style>
+    :root {
+        --primary-color: #21409a;
+        --bg-light: #f7fafc;
+        --text-dark: #1a202c;
+        --text-muted: #4a5568;
+    }
+
+    body {
+        background-color: var(--bg-light);
+        font-family: 'Inter', sans-serif;
+    }
+
+    .legal-container {
+        max-width: 900px;
+        margin: 4rem auto;
+        background: white;
+        padding: 3rem;
+        border-radius: 24px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    }
+
+    h1 {
+        color: var(--primary-color);
+        font-weight: 800;
+        margin-bottom: 2rem;
+    }
+
+    h3 {
+        font-weight: 700;
+        margin-top: 2rem;
+        color: var(--text-dark);
+    }
+
+    p, li {
+        color: var(--text-muted);
+        line-height: 1.7;
+    }
+
+    .icon-box {
+        color: var(--primary-color);
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+</style>
+
+<div class="container legal-container">
+    <div class="text-center">
+        <h1>Privacy Policy</h1>
+        <p class="text-muted">Your privacy is important to us.</p>
+    </div>
+
+    <section class="mt-5">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="icon-box"><i class="fas fa-user-shield"></i></div>
+                <h3>Data Collection</h3>
+                <p>We collect your business name, contact info, and payment proof (screenshots) solely for the purpose of managing your seller account and verifying subscriptions.</p>
+            </div>
+            <div class="col-md-6">
+                <div class="icon-box"><i class="fas fa-lock"></i></div>
+                <h3>Data Security</h3>
+                <p>All payment screenshots and verification data are stored on secure servers. We do not share your private payment details with third parties.</p>
+            </div>
+        </div>
+
+        <h3 class="mt-5">Use of Information</h3>
+        <p>Your business contact information is displayed on your Store Page to facilitate connections with buyers. Your internal subscription data (ITS ID/Reference) is used only by Weypaari admins for activation purposes.</p>
+
+        <h3>Third-Party Links</h3>
+        <p>Our site may contain links to external payment gateways or QR generators. We are not responsible for the privacy practices of those external sites.</p>
+
+        <h3>Cookies</h3>
+        <p>We use essential cookies to keep you logged into your seller dashboard and to remember your preferences during your session.</p>
+    </section>
+
+    <div class="mt-5 pt-4 border-top text-center">
+        <a href="mailto:askwe@weypaari.com" class="text-decoration-none text-primary fw-bold">Questions? Contact Support</a>
+    </div>
+</div>

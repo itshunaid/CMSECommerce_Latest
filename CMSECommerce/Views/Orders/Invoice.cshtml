@@ -1,0 +1,304 @@
+﻿@model OrderDetailsViewModel
+@using System.Globalization
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Tax Invoice - #" + Model.Order.Id;
+    ViewData["HideLayoutSidebar"] = true;
+    var indianCulture = new CultureInfo("en-IN");
+
+    // 1. Get all details and handle nulls
+    var allDetails = Model.OrderDetails as IEnumerable<OrderDetail> ?? new List<OrderDetail>();
+
+    // 2. Separate active items to calculate the correct Invoice Total
+    // Filtered using your IsCancelled property
+    var activeItems = allDetails.Where(od => !od.IsCancelled).ToList();
+
+    // 3. Recalculate Total based on active items only
+    decimal activeGrandTotal = activeItems.Sum(x => x.Price * x.Quantity);
+
+    var sellerProfiles = Model.SellerProfiles as IDictionary<string, UserProfile> ?? new Dictionary<string, UserProfile>();
+    var profile = Model.UserProfile;
+    var store = Model.UserProfile?.Store;
+
+    // 4. Group all items (including cancelled) for the display table
+    var groupedItems = allDetails
+        .GroupBy(od => od.ProductOwner ?? "Store")
+        .ToDictionary(g => g.Key, g => g.ToList());
+}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<div class="container my-4 no-print">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a asp-action="MyOrders" class="btn btn-sm btn-outline-secondary shadow-sm">
+            <i class="fas fa-arrow-left me-1"></i> Back to Orders
+        </a>
+        <div class="btn-group">
+            <button onclick="downloadInvoice(event)" class="btn btn-warning fw-bold px-4 shadow-sm" style="background-color: #FFD814; border-color: #FCD200; color: #0F1111;">
+                <i class="fas fa-file-pdf me-2"></i> Download PDF
+            </button>
+            <button onclick="window.print()" class="btn btn-light fw-bold border shadow-sm px-4">
+                <i class="fas fa-print me-2"></i> Print Invoice
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="invoice-document">
+    <div class="container invoice-wrapper bg-white p-5 mb-5">
+
+        @* --- Header --- *@
+        <div class="row border-bottom pb-3 mb-4">
+            <div class="col-6">
+                <h3 class="fw-bold mb-0">Final Details for Order #@Model.Order.Id</h3>
+                <p class="text-muted small">Print this page for your records.</p>
+            </div>
+            <div class="col-6 text-end">
+                <p class="mb-0 small"><strong>Order Placed:</strong> @Model.Order.OrderDate.Value.ToString("MMMM dd, yyyy")</p>
+                <p class="mb-0 small"><strong>Weypaari order number:</strong> @Model.Order.Id</p>
+                <p class="mb-0 small"><strong>Order Total: @activeGrandTotal.ToString("C", indianCulture)</strong></p>
+            </div>
+        </div>
+
+        @* --- Address & Summary Block --- *@
+        <div class="row mb-4">
+            <div class="col-4">
+                <h6 class="fw-bold small mb-2">Shipping Address</h6>
+                <div class="small">
+                    <p class="mb-0 fw-bold">@profile?.FirstName @profile?.LastName</p>
+                    <p class="mb-0">@profile?.HomeAddress</p>
+                    <p class="mb-0">Phone: @profile?.HomePhoneNumber</p>
+                    @if (!string.IsNullOrEmpty(profile?.ITSNumber))
+                    {
+                        <p class="mb-0 text-muted">ITS: @profile.ITSNumber</p>
+                    }
+                </div>
+            </div>
+            <div class="col-4">
+                <h6 class="fw-bold small mb-2">Payment Method</h6>
+                <div class="small">
+                    <p class="mb-0 text-muted">Cash on Delivery / Digital Transfer</p>
+                    @if (!string.IsNullOrEmpty(profile?.GpayQRCodePath) || !string.IsNullOrEmpty(profile?.PhonePeQRCodePath))
+                    {
+                        <p class="mb-0 mt-1 text-success fw-bold"><i class="fas fa-qrcode"></i> QR Payment Available</p>
+                    }
+                </div>
+            </div>
+            <div class="col-4 border p-3 rounded bg-light">
+                <h6 class="fw-bold small mb-2">Order Summary</h6>
+                <div class="small">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Item(s) Subtotal:</span>
+                        <span>@activeGrandTotal.ToString("C", indianCulture)</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Shipping:</span>
+                        <span>₹0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between border-top pt-1 mt-1 fw-bold fs-6">
+                        <span>Grand Total:</span>
+                        <span class="text-danger">@activeGrandTotal.ToString("C", indianCulture)</span>
+                    </div>
+                    @if (allDetails.Any(x => x.IsCancelled))
+                    {
+                        <div class="x-small text-muted mt-2">
+                            <i class="fas fa-info-circle"></i> * Total excludes cancelled items.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* --- Product Items --- *@
+        @foreach (var sellerGroup in groupedItems)
+        {
+            var sellerId = sellerGroup.Key;
+            var items = sellerGroup.Value;
+            var sellerProfile = sellerProfiles.ContainsKey(sellerId) ? sellerProfiles[sellerId] : null;
+            var sellerStore = sellerProfile?.Store;
+
+            <div class="card mb-4 border shadow-none">
+                <div class="card-header bg-light py-2">
+                    <div class="row align-items-center">
+                        <div class="col-6">
+                            <span class="small text-muted">Sold by:</span>
+                            <span class="small fw-bold">@(sellerStore?.StoreName ?? $"{sellerProfile?.FirstName} {sellerProfile?.LastName}" ?? "Official Store")</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            @if (!string.IsNullOrEmpty(sellerStore?.GSTIN))
+                            {
+                                <span class="x-small text-muted">GSTIN: @sellerStore.GSTIN</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-borderless mb-0 small">
+                        <thead>
+                            <tr class="border-bottom text-muted x-small">
+                                <th class="ps-3 py-2">Items Ordered</th>
+                                <th class="text-center py-2">Price</th>
+                                <th class="text-center py-2">Qty</th>
+                                <th class="text-end pe-3 py-2">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in items)
+                            {
+                                bool isCancelled = item.IsCancelled;
+                                <tr class="border-bottom @(isCancelled ? "bg-cancelled" : "")">
+                                    <td class="ps-3 py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="fw-bold @(isCancelled ? "text-strike text-muted" : "text-primary")">
+                                                @item.ProductName
+                                            </div>
+                                            @if (isCancelled)
+                                            {
+                                                <span class="badge rounded-pill bg-danger ms-2" style="font-size: 0.65rem;">
+                                                    <i class="fas fa-ban me-1"></i> CANCELLED
+                                                </span>
+                                            }
+                                        </div>
+                                        <div class="text-muted x-small">Condition: New</div>
+                                    </td>
+                                    <td class="text-center align-middle @(isCancelled ? "text-strike text-muted" : "")">
+                                        @item.Price.ToString("C", indianCulture)
+                                    </td>
+                                    <td class="text-center align-middle">@item.Quantity</td>
+                                    <td class="text-end pe-3 align-middle fw-bold @(isCancelled ? "text-strike text-muted" : "")">
+                                        @((item.Price * item.Quantity).ToString("C", indianCulture))
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        @* --- Footer QR & Payment --- *@
+        <div class="row mt-5 pt-4 border-top">
+            <div class="col-8">
+                <h6 class="fw-bold small">Digital Payment Instructions</h6>
+                <p class="text-muted x-small mb-1">Scan the QR code to pay the seller directly. Please mention Order #@Model.Order.Id in payment remarks.</p>
+                <p class="text-muted x-small italic">Returns Policy: Contact the seller directly for returns and refunds as per store policy.</p>
+            </div>
+            <div class="col-4">
+                <div class="d-flex justify-content-end gap-3">
+                    @if (!string.IsNullOrEmpty(profile?.GpayQRCodePath))
+                    {
+                        <div class="text-center border p-1 rounded">
+                            <img src="/@profile.GpayQRCodePath.TrimStart('/')" style="width:70px; height:70px;" />
+                            <p class="x-small mt-1 mb-0 fw-bold">GPay</p>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(profile?.PhonePeQRCodePath))
+                    {
+                        <div class="text-center border p-1 rounded">
+                            <img src="/@profile.PhonePeQRCodePath.TrimStart('/')" style="width:70px; height:70px;" />
+                            <p class="x-small mt-1 mb-0 fw-bold">PhonePe</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-5">
+            <p class="x-small text-muted border-top pt-3">To view the status of your order, return to Order Summary.</p>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .invoice-wrapper {
+            max-width: 900px;
+            margin: auto;
+            color: #0F1111;
+            font-family: "Amazon Ember", Arial, sans-serif;
+            border: 1px solid #ddd;
+        }
+
+        .x-small {
+            font-size: 0.7rem;
+        }
+
+        .text-primary {
+            color: #007185 !important;
+        }
+
+        .bg-light {
+            background-color: #F8F9FA !important;
+        }
+
+        /* Cancellation Styles */
+        .bg-cancelled {
+            background-color: #fafafa !important;
+        }
+
+        .text-strike {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        .italic {
+            font-style: italic;
+        }
+
+        @@media print {
+            .no-print, header, footer, .navbar {
+                display: none !important;
+            }
+
+            .invoice-wrapper {
+                border: none !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+
+            body {
+                background-color: white !important;
+            }
+
+            .card {
+                border: 1px solid #ddd !important;
+                break-inside: avoid;
+            }
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        window.downloadInvoice = async function (evt) {
+            try {
+                var element = document.getElementById('invoice-document');
+                var originalButton = evt && evt.currentTarget;
+                if (originalButton) {
+                    originalButton.disabled = true;
+                    var originalText = originalButton.innerHTML;
+                    originalButton.innerHTML = 'Preparing PDF...';
+                }
+
+                // Configuration for html2pdf
+                var opt = {
+                    margin: 0.5,
+                    filename: 'Invoice-#@(Model.Order.Id).pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                };
+
+                html2pdf().set(opt).from(element).save().then(() => {
+                    if (originalButton) {
+                        originalButton.disabled = false;
+                        originalButton.innerHTML = originalText;
+                    }
+                });
+            } catch (e) {
+                console.error("PDF generation failed", e);
+                if (originalButton) originalButton.disabled = false;
+            }
+        };
+    </script>
+}

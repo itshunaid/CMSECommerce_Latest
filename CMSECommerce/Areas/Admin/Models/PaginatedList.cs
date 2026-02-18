@@ -26,5 +26,12 @@ namespace CMSECommerce.Areas.Admin.Models
             var items = await source.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
             return new PaginatedList<T>(items, count, pageIndex, pageSize);
         }
+
+        public static PaginatedList<T> Empty()
+        {
+            // Returns an instance with an empty list, zero total count, 
+            // starting on page 1, with a default page size (e.g., 10 or 1).
+            return new PaginatedList<T>(new List<T>(), 0, 1, 10);
+        }
     }
 }

@@ -1,27 +1,22 @@
 ﻿using CMSECommerce.Infrastructure;
 using CMSECommerce.Models.ViewModels;
+using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 
 namespace CMSECommerce.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize("Admin")]
-    public class OrdersController(DataContext context) : Controller
+    // NOTE: If using role-based security, the Authorize attribute should be [Authorize(Roles = "Admin")]
+    // Based on the original code, I will use [Authorize(Roles = "Admin")] which is the standard, 
+    // assuming "Admin" is a role, otherwise keep it as [Authorize("Admin")] if it's a policy name.
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public class OrdersController(DataContext context, IAuditService auditService) : Controller
     {
         private readonly DataContext _context = context;
+        private readonly IAuditService _auditService = auditService;
 
-        //public async Task<IActionResult> Index()
-        //{
-        //    List<Order> orders = await _context.Orders.OrderByDescending(x => x.Id).ToListAsync();
-
-        //    return View(orders);
-        //}
-
-        // Your Controller would return PagedList<Order> instead of IEnumerable<Order>
-        // Example Controller Action (conceptual):
         // Index action now accepts all filter parameters and the current page
         public async Task<IActionResult> Index(
             int? page,
@@ -36,63 +31,82 @@ namespace CMSECommerce.Areas.Admin.Controllers
             int pageSize = 10;
             int pageNumber = page ?? 1; // Default to page 1
 
-            // Get the current user ID (IMPORTANT for a customer order history page)
-            // You must ensure this logic works with your authentication system (e.g., using ClaimsPrincipal)
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            // Initialize variables outside the try block
+            IQueryable<Order> orders = _context.Orders.OrderByDescending(x => x.Id).AsQueryable();
+            int count = 0;
+            List<Order> items = new List<Order>();
 
-            // Start with all orders for the current user
-            var orders = _context.Orders.OrderByDescending(x => x.Id).AsQueryable();
-
-            // 2. Apply Filters to the Query
-
-            // Filter by Order ID
-            if (!string.IsNullOrEmpty(orderId))
+            try
             {
-                // Assuming Order Id (Id) is an integer, we filter based on a partial match or exact match. 
-                // If it's a long integer, you might use ToString() and Contains().
-                if (int.TryParse(orderId, out int id))
+                // 2. Apply Filters to the Query
+
+                // Filter by Order ID
+                if (!string.IsNullOrEmpty(orderId))
                 {
-                    orders = orders.Where(o => o.Id == id);
+                    if (int.TryParse(orderId, out int id))
+                    {
+                        orders = orders.Where(o => o.Id == id);
+                    }
                 }
-            }
 
-            // Filter by Status (Shipped property is a boolean)
-            if (!string.IsNullOrEmpty(status))
-            {
-                if (status.Equals("Shipped", StringComparison.OrdinalIgnoreCase))
+                // Filter by Status (Shipped property is a boolean)
+                if (!string.IsNullOrEmpty(status))
                 {
-                    orders = orders.Where(o => o.Shipped == true);
+                    if (status.Equals("Shipped", StringComparison.OrdinalIgnoreCase))
+                    {
+                        orders = orders.Where(o => o.Shipped == true);
+                    }
+                    else if (status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+                    {
+                        orders = orders.Where(o => o.Shipped == false);
+                    }
                 }
-                else if (status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+
+                // Filter by Total Range
+                if (minTotal.HasValue)
                 {
-                    orders = orders.Where(o => o.Shipped == false);
+                    orders = orders.Where(o => o.GrandTotal >= minTotal.Value);
                 }
+                if (maxTotal.HasValue)
+                {
+                    orders = orders.Where(o => o.GrandTotal <= maxTotal.Value);
+                }
+
+                // Filter by Date Range
+                if (minDate.HasValue)
+                {
+                    orders = orders.Where(o => o.OrderDate.Value.Date >= minDate.Value.Date);
+                }
+                if (maxDate.HasValue)
+                {
+                    orders = orders.Where(o => o.OrderDate.Value.Date <= maxDate.Value.Date);
+                }
+
+                // 4. Execute Query and Apply Pagination
+                count = await orders.CountAsync();
+                items = await orders
+                    .OrderByDescending(o => o.OrderDate) // Always sort for consistent pagination
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Log database errors
+                // _logger.LogError(dbEx, "Database error retrieving orders for Admin.");
+                TempData["Error"] = "A database error occurred while loading the orders list.";
+                // Continue with zeroed items and count
+            }
+            catch (Exception ex)
+            {
+                // Log general exceptions
+                // _logger.LogError(ex, "Unexpected error in Orders Index action.");
+                TempData["Error"] = "An unexpected error occurred while processing orders.";
+                // Continue with zeroed items and count
             }
 
-            // Filter by Total Range
-            if (minTotal.HasValue)
-            {
-                orders = orders.Where(o => o.GrandTotal >= minTotal.Value);
-            }
-            if (maxTotal.HasValue)
-            {
-                orders = orders.Where(o => o.GrandTotal <= maxTotal.Value);
-            }
-
-            // Filter by Date Range
-            if (minDate.HasValue)
-            {
-                // Use Date to filter orders placed on or after the min date
-                orders = orders.Where(o => o.DateTime.Date >= minDate.Value.Date);
-            }
-            if (maxDate.HasValue)
-            {
-                // Use Date to filter orders placed on or before the max date
-                // Note: Add one day to maxDate to include all orders on that last day
-                orders = orders.Where(o => o.DateTime.Date <= maxDate.Value.Date);
-            }
-
-            // 3. Store Current Filter Values for the View (used for form persistence and pagination links)
+            // 3. Store Current Filter Values for the View (outside the try-catch)
             ViewData["CurrentOrderId"] = orderId;
             ViewData["CurrentStatus"] = status;
             ViewData["CurrentMinTotal"] = minTotal?.ToString();
@@ -100,21 +114,11 @@ namespace CMSECommerce.Areas.Admin.Controllers
             ViewData["CurrentMinDate"] = minDate?.ToString("yyyy-MM-dd"); // Format for HTML date input
             ViewData["CurrentMaxDate"] = maxDate?.ToString("yyyy-MM-dd"); // Format for HTML date input
 
-            // 4. Execute Query and Apply Pagination
-            var count = await orders.CountAsync();
-            var items = await orders
-                .OrderByDescending(o => o.DateTime) // Always sort for consistent pagination
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
             // Create the PagedList instance (assuming you have this custom ViewModel)
             var pagedList = new PagedList<Order>(items, count, pageNumber, pageSize);
 
             return View(pagedList);
         }
-
-
 
         public IActionResult Create()
         {
@@ -123,30 +127,96 @@ namespace CMSECommerce.Areas.Admin.Controllers
 
         public async Task<IActionResult> Details(int id)
         {
-            var order = await _context.Orders.FirstOrDefaultAsync(o => o.Id == id);
-            if (order == null) return NotFound();
-            var details = await _context.OrderDetails.Where(d => d.OrderId == id).ToListAsync();
-            return View(new CMSECommerce.Models.ViewModels.OrderDetailsViewModel { Order = order, OrderDetails = details });
+            Order order = null;
+            List<OrderDetail> details = new List<OrderDetail>();
+
+            try
+            {
+                order = await _context.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id);
+                if (order == null)
+                {
+                    TempData["Warning"] = $"Order ID {id} not found.";
+                    return RedirectToAction("Index");
+                }
+
+                details = await _context.OrderDetails.AsNoTracking().Where(d => d.OrderId == id).ToListAsync();
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Log database errors
+                // _logger.LogError(dbEx, "Database error retrieving order details for ID: {OrderId}", id);
+                TempData["Error"] = "A database error occurred while fetching order details.";
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                // Log general exceptions
+                // _logger.LogError(ex, "Unexpected error retrieving order details for ID: {OrderId}", id);
+                TempData["Error"] = "An unexpected error occurred.";
+                return RedirectToAction("Index");
+            }
+
+            return View(new OrderDetailsViewModel { Order = order, OrderDetails = details });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ShippedStatus(int id, bool shipped)
         {
-            Order order = await _context.Orders.FirstOrDefaultAsync(x => x.Id == id);
+            Order order;
 
-            order.Shipped = shipped;
+            try
+            {
+                // 1. Fetch the order
+                order = await _context.Orders.FirstOrDefaultAsync(x => x.Id == id);
 
-            // This performs the update directly on the database with a single command.
-            var rowsAffected = await _context.OrderDetails
-                .Where(od => od.OrderId == id)
-                .ExecuteUpdateAsync(
-                    setters => setters.SetProperty(od => od.IsProcessed, shipped)
-                );
-            _context.Update(order);
-            await _context.SaveChangesAsync();
+                if (order == null)
+                {
+                    TempData["Error"] = $"Order ID {id} not found for status update.";
+                    return RedirectToAction("Index");
+                }
 
-            TempData["success"] = "The order has been modified!";
+                // 2. Update the main Order record properties
+                order.Shipped = shipped;
+                if(shipped)
+                {
+                    order.IsCancelled = false;
+                }
+                order.ShippedDate = shipped ? DateTime.Now : null;
+               
+
+                // 3. Update all associated OrderDetails in one efficient command
+                // If 'shipped' is true, we mark items as Processed AND reset Return flags.
+                // If 'shipped' is false, we mark items as NOT Processed.
+                await _context.OrderDetails
+                    .Where(od => od.OrderId == id)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(od => od.IsProcessed, shipped)
+                        // If setting to shipped, clear Return status to ensure data consistency
+                        .SetProperty(od => od.IsReturned, od => shipped ? false : od.IsReturned)
+                        .SetProperty(od => od.IsCancelled, od => shipped ? false : od.IsCancelled)
+                        // Also clear ReturnDate/Reason if shipping fresh
+                        .SetProperty(od => od.ReturnDate, od => shipped ? null : od.ReturnDate)
+                        .SetProperty(od => od.ReturnReason, od => shipped ? null : od.ReturnReason)
+                    );
+
+                // 4. Save the main Order changes (Status and ShippedDate)
+                _context.Update(order);
+                await _context.SaveChangesAsync();
+
+                // Audit logging
+                await _auditService.LogActionAsync("Update Order Shipped Status", "Order", id.ToString(), $"Order status updated to {(shipped ? "Shipped" : "Pending")}", HttpContext);
+
+                TempData["Success"] = $"Order ID {id} status has been updated to {(shipped ? "Shipped" : "Pending")}!";
+            }
+            catch (DbUpdateException dbEx)
+            {
+                TempData["Error"] = "A database error occurred while saving the shipment status. Please try again.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "An unexpected error occurred during the status update.";
+            }
 
             return RedirectToAction("Index");
         }

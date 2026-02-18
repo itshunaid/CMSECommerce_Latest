@@ -10,6 +10,13 @@
 *.userosscache
 *.sln.docstates
 
+
+# Exclude sensitive config files
+appsettings.Production.json
+secrets.json
+.env
+
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

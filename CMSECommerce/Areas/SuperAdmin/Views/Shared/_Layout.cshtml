@@ -1,0 +1,147 @@
+@using CMSECommerce.Infrastructure
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore @* Added for potential performance extensions *@
+@inject DataContext _context
+@inject UserManager<IdentityUser> UserManager
+
+@{
+    // ARCHITECT NOTE: This logic is best handled via a ViewComponent or a Custom Claims Principal.
+    // To maintain existing functionality without breaking features, we keep the query here but clean it up.
+    string displayName = User.Identity?.Name ?? "Guest";
+
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        var userId = UserManager.GetUserId(User);
+        if (!string.IsNullOrEmpty(userId))
+        {
+            var profile = _context.UserProfiles
+                .Select(u => new { u.UserId, u.FirstName, u.LastName }) // Projection for performance
+                .FirstOrDefault(u => u.UserId == userId);
+
+            if (profile != null && !string.IsNullOrWhiteSpace(profile.FirstName) && !string.IsNullOrWhiteSpace(profile.LastName))
+            {
+                displayName = $"{profile.FirstName} {profile.LastName}";
+            }
+        }
+    }
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weypaari - SuperAdmin</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/CMSECommerce.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+    <style>
+        :root {
+            --superadmin-purple: #6f42c1;
+            --superadmin-purple-dark: #5a359a;
+            --superadmin-gold: #ffd700;
+            --superadmin-bg-light: #f8f9fa;
+        }
+
+        body { background-color: var(--superadmin-bg-light); }
+        .superadmin-header { background-color: var(--superadmin-purple); border: none; padding: 5px 0; }
+        .superadmin-header .navbar-brand { color: #fff !important; font-weight: 700; display: flex; align-items: center; }
+        .superadmin-header .nav-link { color: #fff !important; font-size: 0.9rem; padding: 8px 15px; border: 1px solid transparent; }
+        .superadmin-header .nav-link:hover, .superadmin-header .show > .nav-link { border: 1px solid #fff; border-radius: 3px; }
+        .superadmin-dropdown-menu { background-color: #fff; border: 1px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 5px; border-radius: 4px; min-width: 220px; }
+        .superadmin-dropdown-item { font-size: 0.85rem; padding: 10px 20px; color: var(--superadmin-purple); }
+        .superadmin-dropdown-item:hover { background-color: #f0f2f2; color: var(--superadmin-gold); }
+        .dropdown-header { font-weight: bold; color: #555; font-size: 0.75rem; text-transform: uppercase; }
+        .superadmin-footer { background-color: var(--superadmin-purple-dark); color: #ccc; padding: 15px 0; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-toggleable-sm superadmin-header mb-3 shadow-sm">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">
+                    <i class="fas fa-crown" style="color:var(--superadmin-gold); margin-right:5px;"></i>
+                    <span style="font-weight: 300;">WE</span><span style="color:var(--superadmin-gold);">y</span>paari
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item"><a href="/SuperAdmin" class="nav-link">Dashboard</a></li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="systemDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">System Management</a>
+                            <ul class="dropdown-menu superadmin-dropdown-menu" aria-labelledby="systemDropdown">
+                                <li><h6 class="dropdown-header">Users & Roles</h6></li>
+                                <li><a class="dropdown-item superadmin-dropdown-item" asp-area="Admin" asp-controller="Users" asp-action="Index"><i class="fas fa-users me-2"></i>All Users</a></li>
+                                <li><a class="dropdown-item superadmin-dropdown-item" asp-area="Admin" asp-controller="Users" asp-action="Create"><i class="fas fa-user-plus me-2"></i>Create User</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><h6 class="dropdown-header">Content Management</h6></li>
+                                <li><a class="dropdown-item superadmin-dropdown-item" asp-area="Admin" asp-controller="Products" asp-action="Index"><i class="fas fa-box me-2"></i>Products</a></li>
+                                <li><a class="dropdown-item superadmin-dropdown-item" asp-area="Admin" asp-controller="Categories" asp-action="Index"><i class="fas fa-tags me-2"></i>Categories</a></li>
+                                <li><a class="dropdown-item superadmin-dropdown-item" asp-area="Admin" asp-controller="Pages" asp-action="Index"><i class="fas fa-file-alt me-2"></i>Pages</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><h6 class="dropdown-header">Orders & Requests</h6></li>
+                                <li><a class="dropdown-item superadmin-dropdown-item" asp-area="Admin" asp-controller="Orders" asp-action="Index"><i class="fas fa-shopping-cart me-2"></i>Orders</a></li>
+                                <li><a class="dropdown-item superadmin-dropdown-item" asp-area="Admin" asp-controller="SubscriberRequests" asp-action="Index"><i class="fas fa-user-check me-2"></i>Subscriber Requests</a></li>
+                                <li><a class="dropdown-item superadmin-dropdown-item" asp-area="Admin" asp-controller="UnlockRequests" asp-action="Index"><i class="fas fa-unlock me-2"></i>Unlock Requests</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="monitoringDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">System Monitoring</a>
+                            <ul class="dropdown-menu superadmin-dropdown-menu" aria-labelledby="monitoringDropdown">
+                                <li><h6 class="dropdown-header">Health & Performance</h6></li>
+                                <li><a class="dropdown-item superadmin-dropdown-item" href="/SuperAdmin"><i class="fas fa-chart-line me-2"></i>System Dashboard</a></li>
+                                <li><a class="dropdown-item superadmin-dropdown-item" asp-area="Admin" asp-page="/UserStatusSettings"><i class="fas fa-cog me-2"></i>Status Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><h6 class="dropdown-header">Database & Logs</h6></li>
+                                <li><a class="dropdown-item superadmin-dropdown-item" href="/logs"><i class="fas fa-database me-2"></i>Database Status</a></li>
+                                <li><a class="dropdown-item superadmin-dropdown-item" href="/logs"><i class="fas fa-file-text me-2"></i>System Logs</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+
+                    <ul class="navbar-nav justify-content-end">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-white" href="#" id="accountDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-crown" style="color:var(--superadmin-gold); margin-right:5px;"></i>
+                                    Hello, <span style="font-weight:600; color:var(--superadmin-gold);">@displayName</span>
+                                </a>
+                                <ul class="dropdown-menu superadmin-dropdown-menu dropdown-menu-end shadow">
+                                    <li><a class="dropdown-item superadmin-dropdown-item" asp-area="" asp-controller="UserProfiles" asp-action="Index">Profile Settings</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item superadmin-dropdown-item text-danger" asp-area="" asp-controller="Account" asp-action="Logout"><i class="fas fa-power-off me-2"></i>Log Out</a></li>
+                                </ul>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container mt-4">
+        <main role="main" class="pb-3">
+            <partial name="_NotificationsPartial" />
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="superadmin-footer">
+        <div class="container text-center">
+            &copy; @DateTime.Now.Year - Weypaari CMSECommerce SuperAdmin - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy Policy</a>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

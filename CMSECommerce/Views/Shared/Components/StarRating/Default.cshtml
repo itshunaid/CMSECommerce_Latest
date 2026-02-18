@@ -1,0 +1,27 @@
+﻿@* Renders the star rating based on the double value passed in ViewBag.Rating *@
+@{
+    double rating = (double)ViewBag.Rating;
+    int fullStars = (int)Math.Floor(rating);
+    bool hasHalfStar = (rating - fullStars) >= 0.25 && (rating - fullStars) < 0.75;
+    int emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+}
+
+<span class="star-rating-icons">
+    @* Display Full Stars *@
+    @for (int i = 0; i < fullStars; i++)
+    {
+        <i class="fas fa-star" style="color: var(--amazon-star-gold);"></i>
+    }
+
+    @* Display Half Star *@
+    @if (hasHalfStar)
+    {
+        <i class="fas fa-star-half-alt" style="color: var(--amazon-star-gold);"></i>
+    }
+
+    @* Display Empty Stars *@
+    @for (int i = 0; i < emptyStars; i++)
+    {
+        <i class="far fa-star" style="color: var(--amazon-star-gold);"></i>
+    }
+</span>

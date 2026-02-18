@@ -1,0 +1,24 @@
+@model Tuple<Category,int>
+
+@{
+    var node = Model.Item1;
+    var depth = Model.Item2;
+    var padding = 1 + depth * 1; // rem
+}
+<li class="list-group-item category-list-item @(ViewBag.CategorySlug == node.Slug ? "active-category" : "")">
+    <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center" style="padding-left:@(padding)rem;"
+       asp-controller="Products"
+       asp-action="Index"
+       asp-route-slug="@node.Slug">
+        <span><i class="far fa-folder me-2"></i> @node.Name</span>
+        <i class="fas fa-chevron-right small text-muted"></i>
+    </a>
+</li>
+
+@if (node.Children != null && node.Children.Any())
+{
+    foreach (var child in node.Children)
+    {
+        @await Html.PartialAsync("_CategoryNode", Tuple.Create(child, depth + 1))
+    }
+}

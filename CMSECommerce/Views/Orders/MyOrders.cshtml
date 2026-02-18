@@ -1,0 +1,358 @@
+﻿@using CMSECommerce.Models
+@using CMSECommerce.Models.ViewModels
+@using Microsoft.AspNetCore.Routing
+@using System.Globalization
+
+@model PagedList<Order> 
+
+@{
+    ViewData["Title"] = "Your Orders History";
+    ViewData["HideLayoutSidebar"] = true;
+
+    // --- Color Palette ---
+    var amazonDarkBlue = "#232F3E";
+    var amazonYellow = "#FF9900";
+    var amazonLinkBlue = "#0066c0";
+    var shippedGreen = "#1A7525"; 
+    var pendingOrange = "#E08F00";
+    var cancelledRed = "#B12704"; 
+
+    // --- Filter Capture ---
+    var currentOrderId = ViewData["CurrentOrderId"] as string;
+    var currentStatus = ViewData["CurrentStatus"] as string;
+    var currentMinTotal = ViewData["CurrentMinTotal"] as string;
+    var currentMaxTotal = ViewData["CurrentMaxTotal"] as string;
+    var currentMinDate = ViewData["CurrentMinDate"] as string;
+    var currentMaxDate = ViewData["CurrentMaxDate"] as string;
+
+    var profile = ViewBag.UserProfile as UserProfile;
+}
+
+<style>
+    body { background-color: #EAEDED; color: @amazonDarkBlue; }
+
+    .btn-amazon-primary {
+        background-color: #FFD814;
+        border-color: #FCD200;
+        color: #0F1111;
+        font-weight: 500;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .btn-amazon-primary:hover { background-color: #F7CA00; border-color: #F2C200; }
+
+    .btn-amazon-secondary {
+        background-color: #FFFFFF;
+        border: 1px solid #D5D9D9;
+        color: #0F1111;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(213,217,217,.5);
+    }
+
+    .btn-amazon-secondary:hover { background-color: #F7FAFA; }
+
+    /* Card Styling */
+    .order-card { border: 1px solid #D5D9D9; border-radius: 8px; margin-bottom: 25px; background-color: white; overflow: hidden; position: relative; }
+    .order-card.cancelled-card { border-left: 5px solid @cancelledRed; }
+
+    .order-header { background-color: #F0F2F2; padding: 12px 20px; border-bottom: 1px solid #D5D9D9; font-size: 0.85rem; }
+    .order-header .label-text { text-transform: uppercase; color: #565959; display: block; margin-bottom: 2px; }
+    .order-header .value-text { font-weight: 500; color: #0F1111; }
+
+    /* Status Styles */
+    .status-shipped { color: @shippedGreen; font-weight: 700; }
+    .status-pending { color: @pendingOrange; font-weight: 700; }
+    .status-cancelled { color: @cancelledRed; font-weight: 700; }
+    
+    .filter-box { background: white; border: 1px solid #D5D9D9; border-radius: 8px; }
+    
+    /* Pagination Styling */
+    .pagination .page-link { color: #007185; border-radius: 4px; margin: 0 2px; }
+    .pagination .page-item.active .page-link { 
+        background-color: @amazonYellow !important; 
+        border-color: #f3a847 !important; 
+        color: black !important; 
+        font-weight: bold; 
+    }
+    
+    /* Spinner Helper */
+    .spinner-border-sm { width: 1rem; height: 1rem; border-width: 0.2em; }
+    .time-warning { font-size: 0.75rem; color: #B12704; font-weight: bold; }
+</style>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="fw-bold h2">Your Orders</h1>
+        <div class="text-muted">@Model.TotalCount orders placed</div>
+    </div>
+
+    @* --- SEARCH/FILTER FORM --- *@
+    <div class="filter-box p-3 mb-4 shadow-sm">
+        <form asp-action="MyOrders" method="get" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="small fw-bold">Order ID</label>
+                <input type="text" name="orderId" value="@currentOrderId" class="form-control form-control-sm" placeholder="ID..." />
+            </div>
+            <div class="col-md-2">
+                <label class="small fw-bold">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    <option value="Shipped" selected="@(currentStatus == "Shipped")">Shipped</option>
+                    <option value="Pending" selected="@(currentStatus == "Pending")">Pending</option>
+                    <option value="Cancelled" selected="@(currentStatus == "Cancelled")">Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="small fw-bold">Price Range (₹)</label>
+                <div class="input-group input-group-sm">
+                    <input type="number" name="minTotal" value="@currentMinTotal" class="form-control" placeholder="Min" />
+                    <input type="number" name="maxTotal" value="@currentMaxTotal" class="form-control" placeholder="Max" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="small fw-bold">From Date</label>
+                <input type="date" name="minDate" value="@currentMinDate" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="small fw-bold">To Date</label>
+                <input type="date" name="maxDate" value="@currentMaxDate" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-amazon-primary btn-sm w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center bg-white p-5 border rounded shadow-sm">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h4>No orders found</h4>
+            <p class="text-muted">Try adjusting your filters or search criteria.</p>
+            <a asp-action="MyOrders" class="btn btn-amazon-secondary btn-sm">Reset All Filters</a>
+        </div>
+    }
+    else
+    {
+        @foreach (var item in Model)
+        {
+            bool isWithin24Hours = (DateTime.Now - item.OrderDate.Value).TotalHours <= 24;
+
+            <div class="card order-card shadow-sm @(item.IsCancelled ? "cancelled-card" : "")">
+                @* Card Header *@
+                <div class="order-header">
+                    <div class="row">
+                        <div class="col-6 col-md-2">
+                            <span class="label-text">Order Placed</span>
+                            <span class="value-text">@item.OrderDate.Value.ToString("MMMM dd, yyyy")</span>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <span class="label-text">Total</span>
+                            <span class="value-text">@item.GrandTotal.ToString("C", new CultureInfo("en-IN"))</span>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <span class="label-text">Ship To</span>
+                            <span class="value-text text-primary" title="@(profile?.HomeAddress ?? "Address not set")">
+                                @(profile != null ? $"{profile.FirstName} {profile.LastName}" : item.UserName)
+                                <i class="fas fa-chevron-down small"></i>
+                            </span>
+                        </div>
+                        <div class="col-6 col-md-4 text-md-end">
+                            <span class="label-text">Order # @item.Id</span>
+                            <div class="d-flex gap-2 justify-content-md-end">
+                                <a asp-controller="Account" asp-action="OrderDetails" asp-route-id="@item.Id" class="text-decoration-none">Order Details</a>
+                                <span class="text-muted">|</span>
+                                <a asp-action="Invoice" asp-route-id="@item.Id" target="_blank" class="text-decoration-none @(item.IsCancelled ? "text-muted disabled" : "")">Invoice</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* Card Body *@
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="fw-bold mb-1">
+                                @if (item.IsCancelled)
+                                {
+                                    <span class="status-cancelled"><i class="fas fa-times-circle me-1"></i> Order Cancelled</span>
+                                }
+                                else if (item.Shipped)
+                                {
+                                    <span class="status-shipped"><i class="fas fa-check-circle me-1"></i> Shipped</span>
+                                }
+                                else
+                                {
+                                    <span class="status-pending"><i class="fas fa-sync-alt fa-spin me-1"></i> Preparing for Shipment</span>
+                                }
+                            </h5>
+                            
+                            @if (item.IsCancelled)
+                            {
+                                <p class="text-muted small mb-0">This order was cancelled. Re-activate it below if needed.</p>
+                            }
+                            else if (!item.Shipped && !isWithin24Hours)
+                            {
+                                <p class="time-warning mb-0"><i class="fas fa-lock me-1"></i> Cancellation period ended (24h passed).</p>
+                            }
+                            else if (!item.Shipped)
+                            {
+                                <p class="text-muted small mb-0">Items are being verified. You have 24 hours from purchase to cancel.</p>
+                            }
+                        </div>
+
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <div class="d-flex flex-column gap-2 align-items-end">
+                                @if (!item.IsCancelled)
+                                {
+                                    <a asp-controller="Account" asp-action="OrderDetails" asp-route-id="@item.Id" 
+                                       class="btn btn-amazon-primary btn-sm w-100" style="max-width:200px">Track Package</a>
+                                }
+
+                                @if (!item.Shipped && !item.IsCancelled && isWithin24Hours)
+                                {
+                                    <button type="button" class="btn btn-amazon-secondary btn-sm w-100" style="max-width:200px" 
+                                            onclick="triggerCancelModal(@item.Id)">
+                                        Cancel Order
+                                    </button>
+                                }
+
+                                @if (item.IsCancelled)
+                                {
+                                    <form asp-action="ReOrder" asp-controller="Account" method="post" class="w-100 js-form-submit" style="max-width:200px">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@item.Id" />
+                                        <button type="submit" class="btn btn-amazon-primary btn-sm w-100">
+                                            <span class="btn-text">Re-activate Order</span>
+                                            <span class="spinner-border spinner-border-sm d-none"></span>
+                                        </button>
+                                    </form>
+                                }
+
+                                @if (item.Shipped && !item.IsCancelled)
+                                {
+                                    <form asp-action="ReOrder" asp-controller="Account" method="post" class="w-100 js-form-submit" style="max-width:200px">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@item.Id" />
+                                        <button type="submit" class="btn btn-amazon-secondary btn-sm w-100">
+                                            <span class="btn-text">Buy it again</span>
+                                            <span class="spinner-border spinner-border-sm d-none"></span>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* --- PAGINATION --- *@
+        
+            var routeData = new Dictionary<string, string>
+            {
+                { "orderId", currentOrderId },
+                { "status", currentStatus },
+                { "minTotal", currentMinTotal },
+                { "maxTotal", currentMaxTotal },
+                { "minDate", currentMinDate },
+                { "maxDate", currentMaxDate }
+            };
+            var baseRoute = routeData.Where(x => x.Value != null).ToDictionary(x => x.Key, x => x.Value);
+        
+
+        <nav class="d-flex justify-content-between align-items-center mt-4 mb-5">
+            <div class="small text-muted">
+                Showing page <strong>@Model.PageIndex</strong> of <strong>@Model.TotalPages</strong> 
+                <span class="ms-1">(@Model.TotalCount total orders)</span>
+            </div>
+            
+            <ul class="pagination pagination-sm mb-0">
+                @if (Model.HasPreviousPage)
+                {
+                    var prevRoute = new Dictionary<string, string>(baseRoute) { ["page"] = (Model.PageIndex - 1).ToString() };
+                    <li class="page-item"><a class="page-link" asp-action="MyOrders" asp-all-route-data="prevRoute"><i class="fas fa-chevron-left small"></i> Previous</a></li>
+                }
+                else
+                {
+                    <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                }
+
+                @for (int i = 1; i <= Model.TotalPages; i++)
+                {
+                    var pageRoute = new Dictionary<string, string>(baseRoute) { ["page"] = i.ToString() };
+                    <li class="page-item @(i == Model.PageIndex ? "active" : "")">
+                        <a class="page-link" asp-action="MyOrders" asp-all-route-data="pageRoute">@i</a>
+                    </li>
+                }
+
+                @if (Model.HasNextPage)
+                {
+                    var nextRoute = new Dictionary<string, string>(baseRoute) { ["page"] = (Model.PageIndex + 1).ToString() };
+                    <li class="page-item"><a class="page-link" asp-action="MyOrders" asp-all-route-data="nextRoute">Next <i class="fas fa-chevron-right small"></i></a></li>
+                }
+                else
+                {
+                    <li class="page-item disabled"><span class="page-link">Next</span></li>
+                }
+            </ul>
+        </nav>
+    }
+</div>
+
+@* --- Cancellation Modal --- *@
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="CancelOrder" asp-controller="Account" method="post" id="cancelForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold">Cancel Your Order</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="orderId" id="modalOrderId" />
+                    <p>Are you sure? You can only cancel an order within <strong>24 hours</strong> of placement.</p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Reason for cancellation</label>
+                        <select name="reason" class="form-select" required>
+                            <option value="Ordered by mistake">Ordered by mistake</option>
+                            <option value="Found a better price elsewhere">Found a better price elsewhere</option>
+                            <option value="Need to change shipping address">Need to change shipping address</option>
+                            <option value="Changed my mind">Changed my mind</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4 fw-bold" id="confirmBtn">Confirm Cancellation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function triggerCancelModal(id) {
+        document.getElementById('modalOrderId').value = id;
+        new bootstrap.Modal(document.getElementById('cancelModal')).show();
+    }
+
+    document.getElementById('cancelForm').addEventListener('submit', function() {
+        const btn = document.getElementById('confirmBtn');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Cancelling...';
+        btn.classList.add('disabled');
+    });
+
+    document.querySelectorAll('.js-form-submit').forEach(form => {
+        form.addEventListener('submit', function() {
+            const btn = this.querySelector('button');
+            const text = btn.querySelector('.btn-text');
+            const loader = btn.querySelector('.spinner-border');
+            btn.classList.add('disabled');
+            if(text) text.classList.add('d-none');
+            if(loader) loader.classList.remove('d-none');
+        });
+    });
+</script>

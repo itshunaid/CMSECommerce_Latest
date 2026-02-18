@@ -2,67 +2,219 @@
 using Microsoft.AspNetCore.Mvc;
 using CMSECommerce.Infrastructure;
 using Microsoft.AspNetCore.Identity;
-using System.Threading.Tasks;
 using CMSECommerce.Areas.Admin.Models;
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using CMSECommerce.Models; // Ensure this is included if AdminDashboardViewModel or Order uses models from this namespace
+using CMSECommerce.Services;
 
 namespace CMSECommerce.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    // ⭐ FIX 1: Change Authorize attribute from [Authorize("Admin")] to [Authorize(Roles = "Admin")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    // It is highly recommended to also inject ILogger<DashboardController> for production logging.
     public class DashboardController : Controller
     {
         private readonly DataContext _context;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly IEmailService _emailService;
+        private readonly IConfiguration _configuration;
 
-        // Using Primary Constructor (C# 12) syntax for cleaner injection
-        public DashboardController(DataContext context, UserManager<IdentityUser> userManager)
+        public DashboardController(DataContext context, UserManager<IdentityUser> userManager,
+            IEmailService emailService, IConfiguration configuration)
         {
             _context = context;
             _userManager = userManager;
+            _emailService = emailService;
+            _configuration = configuration;
         }
 
         public async Task<IActionResult> Index()
         {
-            // ⭐ FIX 2: Use CountAsync() on Identity components for better asynchronous performance
-            // NOTE: The user manager count does not have a native async version without iterating, 
-            // so we use the underlying store's IQueryable or rely on the framework's optimization.
-            // Using ToListAsync().Count() is safer and truly async.
-            var usersCount = await _userManager.Users.CountAsync();
-            var productsCount = await _context.Products.CountAsync();
-            var productsRequestCount = await _context.Products.Where(p=> p.Status==ProductStatus.Pending || p.Status==ProductStatus.Rejected).CountAsync();
-            var ordersCount = await _context.Orders.CountAsync();
-            var categories = await _context.Categories.CountAsync();
-            var userprofilesCount = await _context.UserProfiles.Where(p => !p.IsImageApproved && p.ProfileImagePath != null).CountAsync();
-
-            // ⭐ FIX 3: Pending request logic for bool? Approved
-            // Pending requests are those where Approved is explicitly NULL.
-            var pendingRequests = await _context.SubscriberRequests
-                .CountAsync(r => r.Approved == false);
-
-            var recentOrders = await _context.Orders
-                .OrderByDescending(o => o.Id)
-                .Take(5)
-                .ToListAsync();
-
+            // Initialize the model with default (zero) values
             var model = new AdminDashboardViewModel
             {
-                UsersCount = usersCount,
-                ProductsRequestCount= productsRequestCount,
-                ProductsCount = productsCount,
-                OrdersCount = ordersCount,
-                PendingSubscriberRequests = pendingRequests,
-                Categories = categories,
-                RecentOrders = recentOrders,
-                UserProfilesCount= userprofilesCount
+                UsersCount = 0,
+                ProductsRequestCount = 0,
+                ProductsCount = 0,
+                OrdersCount = 0,
+                PendingSubscriberRequests = 0,
+                Categories = 0,
+                RecentOrders = new List<Order>(),
+                UserProfilesCount = 0,
+                DeactivatedStoresCount = 0, // New property initialized
+                PendingUnlockRequests = 0
             };
 
-           
+            try
+            {
+                // 1. Identity User Count
+                model.UsersCount = await _userManager.Users.CountAsync();
+
+                // 2. Total Products
+                model.ProductsCount = await _context.Products.CountAsync();
+
+                // 3. Pending/Rejected Product Requests
+                model.ProductsRequestCount = await _context.Products
+                    .Where(p => p.Status == ProductStatus.Pending || p.Status == ProductStatus.Rejected)
+                    .CountAsync();
+
+                // 4. Global Order Metrics
+                model.OrdersCount = await _context.Orders.CountAsync();
+
+                // 5. Taxonomy Metrics
+                model.Categories = await _context.Categories.CountAsync();
+
+                // 6. Profile Image Moderation Queue
+                model.UserProfilesCount = await _context.UserProfiles
+                    .Where(p => !p.IsImageApproved && p.ProfileImagePath != null)
+                    .CountAsync();
+
+                // 7. Seller Onboarding Queue
+                model.PendingSubscriberRequests = await _context.SubscriberRequests
+                    .CountAsync(r => r.Approved == false);
+
+                // 8. NEW: Deactivated Stores Metric (Architecture Churn Metric)
+                // We count stores where IsActive is explicitly false
+                model.DeactivatedStoresCount = await _context.Stores
+                    .CountAsync(s => !s.IsActive);
+
+                // 9. Recent Activity Feed
+                model.RecentOrders = await _context.Orders
+                    .OrderByDescending(o => o.Id)
+                    .Take(5)
+                    .ToListAsync();
+
+                // 11. Pending Unlock Requests
+                model.PendingUnlockRequests = await _context.UnlockRequests
+                    .CountAsync(r => r.Status == "Pending");
+
+                // 12. Sellers with Declined Orders
+                model.SellersWithDeclines = await _context.OrderDetails
+                    .Where(od => od.IsCancelled == true)
+                    .GroupBy(od => od.ProductOwner)
+                    .Select(g => new CMSECommerce.Areas.Admin.Models.SellerDeclineSummary
+                    {
+                        SellerName = g.Key,
+                        ManualDeclines = g.Count(od => od.CancelledByRole == "Seller"),
+                        AutoDeclines = g.Count(od => od.CancelledByRole == "System"),
+                        TotalDeclines = g.Count()
+                    })
+                    .OrderByDescending(s => s.TotalDeclines)
+                    .Take(10)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                // ARCHITECT NOTE: Ensure you have an ILogger injected to capture 'ex' details
+                // _logger.LogError(ex, "Error fetching Admin Dashboard stats");
+
+                TempData["Error"] = "An error occurred while loading dashboard statistics. Data displayed may be incomplete.";
+            }
 
             return View(model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> TestSmtpConnection()
+        {
+            try
+            {
+                var smtpSettings = _configuration.GetSection("EmailSettings");
+                var smtpServer = smtpSettings["SmtpServer"];
+                var smtpPort = smtpSettings["SmtpPort"];
+                var senderEmail = smtpSettings["SenderEmail"] ?? smtpSettings["Username"];
+                var senderPassword = smtpSettings["SenderPassword"];
+
+                if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPort) ||
+                    string.IsNullOrEmpty(senderEmail) || string.IsNullOrEmpty(senderPassword))
+                {
+                    return Json(new { success = false, message = "SMTP settings are not properly configured." });
+                }
+
+                // Create a test message
+                var message = new MimeKit.MimeMessage();
+                message.From.Add(new MimeKit.MailboxAddress("Test", senderEmail));
+                message.To.Add(MimeKit.MailboxAddress.Parse(senderEmail));
+                message.Subject = "SMTP Connectivity Test";
+
+                var bodyBuilder = new MimeKit.BodyBuilder
+                {
+                    HtmlBody = "<p>This is a test email to verify SMTP connectivity.</p>"
+                };
+                message.Body = bodyBuilder.ToMessageBody();
+
+                var host = smtpServer;
+                var port = int.TryParse(smtpPort, out var p) ? p : 587;
+
+                // Use the same retry and fallback logic for testing
+                await TestSmtpConnectionAsync(message, host, port, senderEmail, senderPassword);
+
+                return Json(new { success = true, message = "SMTP connection test successful!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"SMTP connection test failed: {ex.Message}" });
+            }
+        }
+
+        private async Task TestSmtpConnectionAsync(MimeKit.MimeMessage message, string host, int port,
+            string username, string password)
+        {
+            var maxRetries = 3;
+            var baseDelayMs = 1000; // 1 second
+
+            for (int attempt = 0; attempt < maxRetries; attempt++)
+            {
+                try
+                {
+                    using var client = new MailKit.Net.Smtp.SmtpClient();
+                    client.Timeout = 30000; // 30s
+
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+                    // Try StartTLS first (port 587)
+                    try
+                    {
+                        await client.ConnectAsync(host, port, MailKit.Security.SecureSocketOptions.StartTls, cts.Token);
+                    }
+                    catch (Exception ex) when (attempt == 0) // Only try fallback on first attempt
+                    {
+                        // Fallback to SSL on port 465
+                        try
+                        {
+                            await client.ConnectAsync(host, 465, MailKit.Security.SecureSocketOptions.SslOnConnect, cts.Token);
+                        }
+                        catch (Exception sslEx)
+                        {
+                            throw new Exception("Failed to connect to SMTP server using both StartTLS and SSL", sslEx);
+                        }
+                    }
+
+                    await client.AuthenticateAsync(username, password, cts.Token);
+
+                    // For testing, we don't actually send the email, just verify connection and auth
+                    await client.DisconnectAsync(true);
+
+                    return; // Success, exit retry loop
+                }
+                catch (TimeoutException)
+                {
+                    throw; // Don't retry timeout exceptions
+                }
+                catch (MailKit.Security.AuthenticationException)
+                {
+                    throw; // Don't retry authentication failures
+                }
+                catch (Exception ex) when (attempt < maxRetries - 1)
+                {
+                    // Exponential backoff for transient errors
+                    var delayMs = baseDelayMs * Math.Pow(2, attempt);
+                    await Task.Delay((int)delayMs);
+                }
+                catch (Exception ex)
+                {
+                    throw;
+                }
+            }
         }
     }
 }

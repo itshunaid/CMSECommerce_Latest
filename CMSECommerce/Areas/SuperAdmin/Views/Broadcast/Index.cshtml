@@ -1,0 +1,281 @@
+@{
+    ViewData["Title"] = "Send Broadcast Message";
+}
+
+@{
+    var sellers = ViewBag.Sellers as dynamic;
+    var customers = ViewBag.Customers as dynamic;
+}
+
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white py-4">
+                    <h2 class="mb-0">
+                        <i class="fas fa-broadcast-tower me-2"></i>Send Broadcast Message
+                    </h2>
+                </div>
+
+                <div class="card-body p-4">
+                    @if (TempData["success"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Success!</strong> @TempData["success"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (TempData["error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Error!</strong> @TempData["error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form method="post" asp-action="Send" enctype="multipart/form-data" id="broadcastForm">
+                        @Html.AntiForgeryToken()
+
+                        <input type="hidden" name="audience" id="audienceInput" value="sellers" />
+                        <input type="hidden" name="selectedIds" id="selectedIdsInput" value="" />
+
+                        <!-- Message Subject -->
+                        <div class="mb-4">
+                            <label for="subject" class="form-label fw-bold">
+                                <i class="fas fa-heading me-2"></i>Subject <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   class="form-control form-control-lg"
+                                   id="subject"
+                                   name="subject"
+                                   placeholder="Enter message subject"
+                                   required />
+                            <small class="form-text text-muted">Max 255 characters</small>
+                        </div>
+
+                        <!-- Message Body -->
+                        <div class="mb-4">
+                            <label for="body" class="form-label fw-bold">
+                                <i class="fas fa-pen me-2"></i>Message Body <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control form-control-lg"
+                                      id="body"
+                                      name="body"
+                                      rows="10"
+                                      placeholder="Enter your message here. HTML formatting is supported."
+                                      required></textarea>
+                            <small class="form-text text-muted">You can use HTML formatting (e.g., <code>&lt;b&gt;bold&lt;/b&gt;</code>, <code>&lt;i&gt;italic&lt;/i&gt;</code>, <code>&lt;a href=&quot;url&quot;&gt;link&lt;/a&gt;</code>)</small>
+                        </div>
+
+                        <!-- Audience Selection -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Audience</label>
+                            <div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input audience-radio"
+                                           type="radio"
+                                           name="audienceRadio"
+                                           id="audienceSellers"
+                                           value="sellers"
+                                           checked />
+                                    <label class="form-check-label"
+                                           for="audienceSellers">
+                                        <i class="fas fa-users me-2"></i>
+                                        Sellers (active subscribers)
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input audience-radio"
+                                           type="radio"
+                                           name="audienceRadio"
+                                           id="audienceCustomers"
+                                           value="customers" />
+                                    <label class="form-check-label"
+                                           for="audienceCustomers">
+                                        <i class="fas fa-user-tag me-2"></i>
+                                        Customers (non-subscribed users)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recipient Selection -->
+                        <div class="mb-4 border-top pt-4">
+                            <label class="form-label fw-bold mb-3">
+                                <i class="fas fa-users me-2"></i>Recipients
+                            </label>
+
+                            <!-- Send to All -->
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           id="sendToAll"
+                                           name="sendToAll"
+                                           checked />
+                                    <label class="form-check-label fw-bold"
+                                           for="sendToAll">
+                                        <i class="fas fa-globe me-2"></i>Send to All (selected audience)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Send to Selected Sellers/Customers -->
+                            <div id="selectionContainer" class="mb-3" style="display: none;">
+                                <label class="form-label">Select Recipients:</label>
+                                <select multiple
+                                        class="form-select form-select-lg"
+                                        id="recipientSelect"
+                                        size="8">
+                                    <!-- Will be populated by JavaScript -->
+                                </select>
+                                <small class="form-text text-muted">Hold Ctrl/Cmd and click to select multiple recipients</small>
+                            </div>
+                        </div>
+
+                        <!-- Attachment -->
+                        <div class="mb-4 border-top pt-4">
+                            <label for="attachmentFile" class="form-label fw-bold">
+                                <i class="fas fa-file-upload me-2"></i>Attachment (Optional)
+                            </label>
+                            <input type="file"
+                                   class="form-control form-control-lg"
+                                   id="attachmentFile"
+                                   name="attachmentFile"
+                                   accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.png,.jpeg" />
+                            <small class="form-text text-muted">
+                                Supported: PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, PNG, JPEG (Max 10 MB)
+                            </small>
+                        </div>
+
+                        <!-- File Info Display -->
+                        <div id="fileInfoAlert" class="alert alert-info d-none" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Selected file: <strong id="fileName"></strong> (<span id="fileSize"></span> KB)
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2 d-sm-flex justify-content-sm-end border-top pt-4">
+                            <a href="@Url.Action("History", "Broadcast", new { area = "SuperAdmin" })" 
+                               class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="fas fa-history me-2"></i>View History
+                            </a>
+                            <button type="reset" class="btn btn-outline-secondary btn-lg px-4">
+                                <i class="fas fa-redo me-2"></i>Clear
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="fas fa-paper-plane me-2"></i>Send Broadcast
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="alert alert-info mt-4" role="alert">
+                <h5 class="alert-heading">
+                    <i class="fas fa-lightbulb me-2"></i>Tips
+                </h5>
+                <ul class="mb-0">
+                    <li>Messages are sent asynchronously in the background</li>
+                    <li>You will receive a confirmation once all messages are sent</li>
+                    <li>Failed emails will be logged for debugging</li>
+                    <li>You can view your broadcast history at any time</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Load recipient list based on audience type
+        async function loadList(audience) {
+            const select = document.getElementById('recipientSelect');
+            select.innerHTML = '';
+            try {
+                const url = audience === 'sellers' ?
+                    '@Url.Action("GetSellers", "Broadcast", new { area = "SuperAdmin" })' :
+                    '@Url.Action("GetCustomers", "Broadcast", new { area = "SuperAdmin" })';
+                const res = await fetch(url);
+                const list = await res.json();
+                list.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = `${item.name} (${item.email})`;
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                console.error(e);
+                alert('Failed to load recipients');
+            }
+        }
+
+        document.querySelectorAll('.audience-radio').forEach(r => r.addEventListener('change', function () {
+            document.getElementById('audienceInput').value = this.value;
+            // Reload recipient list for the selected audience
+            loadList(this.value);
+        }));
+
+        document.getElementById('sendToAll').addEventListener('change', function () {
+            const sel = document.getElementById('selectionContainer');
+            if (this.checked) {
+                sel.style.display = 'none';
+                // Clear selection if "Send to All" is checked
+                const select = document.getElementById('recipientSelect');
+                select.value = '';
+                document.getElementById('selectedIdsInput').value = '';
+            } else {
+                sel.style.display = 'block';
+            }
+        });
+
+        // Handle file selection
+        document.getElementById('attachmentFile').addEventListener('change', function () {
+            const fileAlert = document.getElementById('fileInfoAlert');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+
+            if (this.files && this.files[0]) {
+                fileName.textContent = this.files[0].name;
+                fileSize.textContent = (this.files[0].size / 1024).toFixed(2);
+                fileAlert.classList.remove('d-none');
+            } else {
+                fileAlert.classList.add('d-none');
+            }
+        });
+
+        // Update hidden input with selected recipient IDs
+        document.getElementById('recipientSelect').addEventListener('change', function () {
+            const selectedIds = Array.from(this.selectedOptions).map(option => option.value).join(',');
+            document.getElementById('selectedIdsInput').value = selectedIds;
+        });
+
+        // Form submission validation
+        document.getElementById('broadcastForm').addEventListener('submit', function (e) {
+            const sendToAll = document.getElementById('sendToAll').checked;
+            const recipientSelect = document.getElementById('recipientSelect');
+
+            if (!sendToAll && recipientSelect.selectedOptions.length === 0) {
+                e.preventDefault();
+                alert('Please select at least one recipient');
+                return false;
+            }
+
+            // Update hidden input before submit
+            if (!sendToAll) {
+                const selectedIds = Array.from(recipientSelect.selectedOptions).map(option => option.value).join(',');
+                document.getElementById('selectedIdsInput').value = selectedIds;
+            }
+        });
+
+        // Load recipient list on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            loadList('sellers');
+            document.getElementById('selectionContainer').style.display = 'none';
+        });
+    </script>
+}

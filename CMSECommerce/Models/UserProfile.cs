@@ -1,74 +1,98 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CMSECommerce.Models
 {
+    [Index(nameof(ITSNumber), IsUnique = true)]
     public class UserProfile
     {
         [Key]
         public int Id { get; set; }
-
-        // Foreign Key linking to the IdentityUser
         public string UserId { get; set; }
+       
+        public string Profession { get; set; }
+        public string ServicesProvided { get; set; }
+
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        [Required(ErrorMessage = "ITS Number is required")]
+        public string ITSNumber { get; set; }
         
-        [Required, MinLength(3, ErrorMessage = "Minimum length is 3")]
-        [DisplayName("First Name")]
-        public string FirstName { get; set; }= "Sample First Name";
+        [Required(ErrorMessage = "WhatsApp Number is required")]
+        [Phone(ErrorMessage = "Invalid Phone Number")]
+        public string WhatsAppNumber { get; set; }
 
-        [Required, MinLength(3, ErrorMessage = "Minimum length is 3")]
-        [DisplayName("Last Name")]
-        public string LastName { get; set; }= "Sample Last Name";
+        // Missing Fields Fix
+        public string About { get; set; }
+        public bool IsProfileVisible { get; set; } = true;
+        public bool IsImageApproved { get; set; } = false;
+        public bool IsImagePending { get; set; } = false;
+        public string ProfileImagePath { get; set; }
+        public string PendingProfileImagePath { get; set; }
 
+        // Social & Payment QR Paths
+        public string FacebookUrl { get; set; }
+        public string LinkedInUrl { get; set; }
+        public string InstagramUrl { get; set; }
+        public string GpayQRCodePath { get; set; }
+        public string PhonePeQRCodePath { get; set; }
 
-        // Navigation property to the Identity User (optional, but useful)
+        // Address Fields
+        [Required(ErrorMessage = "Home Address is required")]
+        public string HomeAddress { get; set; }
+        public string HomePhoneNumber { get; set; }
+        [Required(ErrorMessage = "Business Address is required")]
+        public string BusinessAddress { get; set; }
+        public string BusinessPhoneNumber { get; set; }
+
+        [ForeignKey("UserId")]
+        public virtual IdentityUser User { get; set; }
+        public int? StoreId { get; set; } // The '?' is essential
+
+        [ForeignKey("StoreId")]
+        public virtual Store Store { get; set; }
+
+        public DateTime? SubscriptionStartDate { get; set; }
+        public DateTime? SubscriptionEndDate { get; set; }
+
+        public int CurrentProductLimit { get; set; }
+
+        /// <summary>
+        /// Stores the ID of the current active subscription tier.
+        /// Used to validate upgrades vs downgrades.
+        /// </summary>
+        public int? CurrentTierId { get; set; }
+
+        // Optional: Navigation property if you want to access Tier details directly from the profile
+        [ForeignKey("CurrentTierId")]
+        public virtual SubscriptionTier? CurrentTier { get; set; }
+        public bool IsDeactivated { get; set; } = false;
+    }
+
+    public class Store
+    {
+        [Key]
+        public int Id { get; set; }
+        public string UserId { get; set; }
+        public string StoreName { get; set; }
+        public string GSTIN { get; set; }
+        public string Email { get; set; }
+        public string Contact { get; set; }
+
+        // Missing Fields Fix
+        public string StreetAddress { get; set; }
+        public string City { get; set; }
+        public string PostCode { get; set; }
+        public string Country { get; set; }
+
         [ForeignKey("UserId")]
         public virtual IdentityUser User { get; set; }
 
-        // --- Custom Fields ---
-
-        // Identification
-        [Display(Name = "ITS Number")]
-        public string ITSNumber { get; set; }
-
-        [Display(Name = "Profile Image Path")]
-        public string ProfileImagePath { get; set; } // Path to the uploaded image
-
-        [Display(Name = "Image Approved")]
-        public bool IsImageApproved { get; set; } = false; // Default to false (unapproved)
-
-        // Bio and Profession
-        [DataType(DataType.MultilineText)]
-        public string About { get; set; }
-        public string Profession { get; set; }
-
-        // List of Services (Consider storing as a comma-separated string or creating a separate table for a true one-to-many relationship if complex)
-        [Display(Name = "Services Provided")]
-        public string ServicesProvided { get; set; }
-
-        // Social Media & Contact
-        public string LinkedInUrl { get; set; }
-        public string FacebookUrl { get; set; }
-        public string InstagramUrl { get; set; }
-        [Display(Name = "WhatsApp Number")]
-        public string WhatsappNumber { get; set; }
-
-        // Addresses
-        [Display(Name = "Home Address")]
-        public string HomeAddress { get; set; }
-        [Display(Name = "Home Phone")]
-        public string HomePhoneNumber { get; set; }
-
-        [Display(Name = "Business Address")]
-        public string BusinessAddress { get; set; }
-        [Display(Name = "Business Phone")]
-        public string BusinessPhoneNumber { get; set; }
-
-        // Payment QR Codes
-        [Display(Name = "GPay QR Code Path")]
-        public string GpayQRCodePath { get; set; } // Path to the uploaded QR image
-        [Display(Name = "PhonePe QR Code Path")]
-        public string PhonePeQRCodePath { get; set; } // Path to the uploaded QR image
+        public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+        public bool IsActive { get; set; } = true; // Default to active
     }
 }

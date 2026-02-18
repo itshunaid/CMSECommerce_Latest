@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Identity.UI.Services;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Mail;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using MailKit.Security;
+using MailKit.Net.Smtp;
+using MimeKit;
 
 namespace CMSECommerce.Infrastructure
 {
@@ -34,31 +36,48 @@ namespace CMSECommerce.Infrastructure
  {
  try
  {
- var host = _config["Smtp:Host"];
- var port = int.TryParse(_config["Smtp:Port"], out var p) ? p :25;
- var user = _config["Smtp:Username"];
- var pass = _config["Smtp:Password"];
- var from = _config["Smtp:From"] ?? user;
- var enableSsl = bool.TryParse(_config["Smtp:EnableSsl"], out var s) ? s : true;
+ var section = _config.GetSection("EmailSettings");
+ var host = section["SmtpServer"] ?? _config["Smtp:Host"];
+ var portStr = section["SmtpPort"] ?? _config["Smtp:Port"];
+ var user = section["Username"] ?? section["SenderEmail"] ?? _config["Smtp:Username"];
+ var pass = section["SenderPassword"] ?? _config["Smtp:Password"];
+ var from = section["SenderEmail"] ?? user;
+ var displayName = section["SenderName"] ?? from;
+ var enableSslStr = section["EnableSsl"] ?? _config["Smtp:EnableSsl"];
 
- using var client = new SmtpClient(host, port)
- {
- EnableSsl = enableSsl,
- Credentials = new NetworkCredential(user, pass),
- Timeout =10000
- };
- using var mail = new MailMessage(from, to, subject, htmlMessage) { IsBodyHtml = true };
- await client.SendMailAsync(mail);
+ var port = int.TryParse(portStr, out var p) ? p : 587;
+ var enableSsl = bool.TryParse(enableSslStr, out var s) ? s : true;
+
+ var message = new MimeMessage();
+ message.From.Add(new MailboxAddress(displayName, from));
+ message.To.Add(MailboxAddress.Parse(to));
+ message.Subject = subject;
+ message.Body = new BodyBuilder { HtmlBody = htmlMessage }.ToMessageBody();
+
+ using var client = new MailKit.Net.Smtp.SmtpClient();
+ client.Timeout = 30000;
+
+ await client.ConnectAsync(host, port, SecureSocketOptions.StartTls);
+ await client.AuthenticateAsync(user, pass);
+ await client.SendAsync(message);
+ await client.DisconnectAsync(true);
+
  _logger.LogInformation("Email sent to {Email} subject={Subject}", to, subject);
  }
- catch (SmtpException ex)
+ catch (SmtpCommandException ex)
  {
- _logger.LogError(ex, "SMTP error sending email to {Email}", to);
- // swallow or rethrow depending on desired behavior
+ _logger.LogError(ex, "SMTP command failed: {StatusCode} - {Message}", ex.StatusCode, ex.Message);
+ throw;
+ }
+ catch (SmtpProtocolException ex)
+ {
+ _logger.LogError(ex, "SMTP protocol error: {Message}", ex.Message);
+ throw;
  }
  catch (Exception ex)
  {
  _logger.LogError(ex, "Unexpected error sending email to {Email}", to);
+ throw;
  }
  }
  }

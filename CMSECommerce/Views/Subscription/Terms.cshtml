@@ -1,0 +1,184 @@
+﻿@{
+    ViewData["Title"] = "Terms of Service";
+    ViewData["HideLayoutSidebar"] = true;
+}
+
+<style>
+    :root {
+        --primary-color: #21409a;
+        --bg-light: #f7fafc;
+        --text-dark: #1a202c;
+        --text-muted: #4a5568;
+        --accent-blue: #ebf8ff;
+        --border-blue: #bee3f8;
+    }
+
+    body {
+        background-color: var(--bg-light);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        color: var(--text-dark);
+    }
+
+    .legal-container {
+        max-width: 900px;
+        margin: 4rem auto;
+        background: white;
+        padding: 3rem;
+        border-radius: 24px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    }
+
+    h1 {
+        color: var(--primary-color);
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+    }
+
+    h3 {
+        font-weight: 700;
+        margin-top: 2.5rem;
+        color: var(--text-dark);
+        border-left: 4px solid var(--primary-color);
+        padding-left: 15px;
+        font-size: 1.25rem;
+    }
+
+    p, li {
+        color: var(--text-muted);
+        line-height: 1.8;
+        margin-bottom: 1rem;
+    }
+
+    .last-updated {
+        font-size: 0.85rem;
+        color: #a0aec0;
+        margin-bottom: 3rem;
+    }
+
+    /* Fair Play Box Design */
+    .fair-play-box {
+        background-color: var(--accent-blue);
+        border-radius: 16px;
+        padding: 2rem;
+        margin: 1.5rem 0;
+        border: 1px solid var(--border-blue);
+    }
+
+    .fair-play-box h5 {
+        color: #2b6cb0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .scenario-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .highlight-text {
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    .calc-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .calc-total {
+        border-top: 2px solid #edf2f7;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: var(--text-dark);
+    }
+
+    @@media (max-width: 768px) {
+        .legal-container {
+            margin: 1rem;
+            padding: 1.5rem;
+        }
+    }
+</style>
+
+<div class="container legal-container">
+    <div class="text-center">
+        <h1>Terms of Service</h1>
+        <p class="last-updated">Last Updated: January 2026</p>
+    </div>
+
+    <section>
+        <h3>1. Acceptance of Agreement</h3>
+        <p>By registering as a seller and purchasing a subscription plan on Weypaari, you agree to comply with and be bound by the following terms. If you do not agree to these terms, you should not proceed with the subscription.</p>
+
+        <h3>2. Subscription & Payment</h3>
+        <ul>
+            <li><strong>Manual Activation:</strong> All payments are processed manually. Sellers must provide a valid transaction receipt or ITS reference. Activation typically occurs within 24–48 hours of verification.</li>
+            <li><strong>Price Stability:</strong> Weypaari reserves the right to modify subscription fees; however, active subscriptions are price-protected until the end of their current billing cycle.</li>
+        </ul>
+
+        <h3>3. Seller Conduct & Content</h3>
+        <p>Sellers are solely responsible for the accuracy of their product listings. Weypaari prohibits the sale of illegal, counterfeit, or restricted items. Violation of this policy results in immediate account termination.</p>
+
+        <h3>4. Upgrade & Fair Play Credit Policy</h3>
+        <p>We provide a flexible upgrade path for sellers who wish to increase their product limits. To ensure you never lose money when switching plans, we use a <span class="highlight-text">Prorated Credit System</span>.</p>
+
+        
+
+        <div class="fair-play-box">
+            <h5><i class="fas fa-sync-alt me-2"></i>How the Upgrade Math Works</h5>
+            <p>Your current plan has a monetary value based on the days remaining. We calculate a "Daily Credit" and subtract that total from the price of your new plan.</p>
+
+            <div class="scenario-card">
+                <h6 class="fw-bold mb-3 text-dark"><i class="fas fa-calculator me-2 text-primary"></i>Example Scenario:</h6>
+                
+                <div class="calc-row">
+                    <span>Current Plan: <strong>Trial (₹99 for 30 days)</strong></span>
+                    <span class="text-muted">Rate: ₹3.30/day</span>
+                </div>
+                <div class="calc-row">
+                    <span>Remaining Duration:</span>
+                    <span class="fw-bold text-primary">15 Days Left</span>
+                </div>
+                <div class="calc-row">
+                    <span>Credit Calculated (15 days × ₹3.30):</span>
+                    <span class="text-success fw-bold">- ₹49.50</span>
+                </div>
+                <hr>
+                <div class="calc-row">
+                    <span>New Plan: <strong>Basic (₹499 for 180 days)</strong></span>
+                    <span>₹499.00</span>
+                </div>
+                <div class="calc-total">
+                    <span>Final Amount to Pay:</span>
+                    <span>₹449.50</span>
+                </div>
+                <p class="text-xs text-muted mt-2 mb-0 italic">Note: Your new 180-day subscription period starts fresh from the moment of approval.</p>
+            </div>
+        </div>
+
+        <ul>
+            <li><strong>Downgrades:</strong> Switching to a cheaper or lower-tier plan is only permitted after your current active plan expires.</li>
+            <li><strong>No-Refund Policy:</strong> Once a payment is confirmed, we do not offer cash refunds. The value of your subscription is only transferable as credit toward a higher-tier upgrade.</li>
+        </ul>
+
+        <h3>5. Limitation of Liability</h3>
+        <p>Weypaari provides a platform for display and connection. We are not liable for direct transactions, shipping disputes, or the quality of items sold by independent sellers.</p>
+    </section>
+
+    @* <div class="mt-5 pt-4 border-top text-center">
+        <p class="text-muted small mb-4">Questions about our terms? Please contact support.</p>
+        <a href="@Url.Action("Index", "Subscription")" class="btn btn-primary rounded-pill px-5 shadow-sm">
+            <i class="fas fa-th-list me-2"></i>View All Plans
+        </a>
+    </div> *@
+</div>

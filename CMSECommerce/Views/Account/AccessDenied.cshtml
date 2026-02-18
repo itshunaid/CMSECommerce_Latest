@@ -1,24 +1,121 @@
 @model CMSECommerce.Models.ViewModels.AccessDeniedViewModel
 
 @{
- ViewData["Title"] = "Access Denied";
+    ViewData["Title"] = "Access Denied";
+    ViewData["HideLayoutSidebar"] = true;
 }
 
-<h1>Access Denied</h1>
+<div class="container my-5 d-flex justify-content-center amazon-access-denied-page">
+    <div class="access-denied-box p-5 border rounded-3 shadow-sm text-center">
 
-<div class="alert alert-warning">
- @Model?.Message
+       
+        <i class="fas fa-lock display-4 text-danger mb-3"></i>
+        <h1 class="h3 fw-bold text-amazon-dark mb-4">
+            Access Denied
+        </h1>
+
+        <hr class="w-75 mx-auto mb-4" />
+
+       
+        <div class="alert alert-amazon-warning p-3 mb-4 rounded-3 d-flex align-items-start text-start">
+            <i class="fas fa-exclamation-triangle fs-4 me-3 mt-1 text-danger"></i>
+            <div class="flex-grow-1">
+                <p class="fw-bold mb-1">Authorization Required</p>
+                <p class="mb-0 small">
+                    @Model?.Message
+                </p>
+            </div>
+        </div>
+
+        @if (User?.Identity?.IsAuthenticated == true)
+        {
+          
+            <p class="text-muted small mb-3">
+                You are currently signed in but do not have permission to view this page.
+            </p>
+            <a asp-controller="Account" asp-action="Logout" class="btn btn-amazon-secondary btn-lg fw-bold w-75">
+                Sign out of your account
+            </a>
+        }
+        else
+        {
+            
+            <p class="text-muted small mb-3">
+                Please sign in to an authorized account to continue.
+            </p>
+            <a asp-controller="Account" asp-action="Login" asp-route-ReturnUrl="@ViewContext.HttpContext.Request.Path"
+               class="btn btn-amazon-checkout btn-lg fw-bold w-75">
+                Sign in securely
+            </a>
+        }
+
+    </div>
 </div>
 
-@if (User?.Identity?.IsAuthenticated == true)
-{
- <p>
- <a asp-controller="Account" asp-action="Logout" class="btn btn-secondary">Sign out</a>
- </p>
-}
-else
-{
- <p>
- <a asp-controller="Account" asp-action="Login" class="btn btn-primary">Sign in</a>
- </p>
+@section Styles {
+    <style>
+        /* --- AMAZON COLOR PALETTE --- */
+        :root {
+            --amazon-price-red: #B12704;
+            --amazon-dark-text: #0F1111;
+            --amazon-yellow-action: #FFD814;
+            --amazon-yellow-action-hover: #F7CA00;
+            --amazon-light-button-bg: #f0f2f2;
+            --amazon-light-button-border: #c9c9c9;
+            --amazon-warning-bg: #fff8f8;
+            --amazon-warning-border: #f5c2c7;
+        }
+
+        .amazon-access-denied-page {
+            min-height: 60vh; /* Ensure content is vertically centered on larger screens */
+        }
+
+        .access-denied-box {
+            max-width: 500px;
+            background-color: #fff;
+            border-color: #ddd !important;
+        }
+
+        .text-amazon-dark {
+            color: var(--amazon-dark-text);
+        }
+
+        /* Amazon Warning Alert Style */
+        .alert-amazon-warning {
+            color: var(--amazon-dark-text);
+            background-color: var(--amazon-warning-bg) !important;
+            border: 1px solid var(--amazon-warning-border) !important;
+            box-shadow: 0 1px 2px rgba(15, 17, 17, 0.1);
+        }
+
+        /* --- BUTTON STYLING --- */
+
+        /* Primary Action Button (Sign In) - Amazon Yellow */
+        .btn-amazon-checkout {
+            background-color: var(--amazon-yellow-action) !important;
+            border-color: #FCD200 !important;
+            color: var(--amazon-dark-text) !important;
+            font-weight: 700;
+            box-shadow: 0 2px 5px 0 rgba(213, 217, 217, .5);
+            border-radius: 7px !important;
+        }
+
+            .btn-amazon-checkout:hover {
+                background-color: var(--amazon-yellow-action-hover) !important;
+            }
+
+        /* Secondary Action Button (Sign Out) - Amazon Light Grey */
+        .btn-amazon-secondary {
+            background-color: var(--amazon-light-button-bg) !important;
+            border: 1px solid var(--amazon-light-button-border) !important;
+            color: var(--amazon-dark-text) !important;
+            border-radius: 7px !important;
+            box-shadow: 0 1px 2px rgba(15, 17, 17, 0.15);
+        }
+
+            .btn-amazon-secondary:hover {
+                background-color: #e0e0e0 !important;
+                border-color: #a2a2a2 !important;
+            }
+    </style>
 }

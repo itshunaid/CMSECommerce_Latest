@@ -4,22 +4,51 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>843518e7-c6a8-4cb2-9c35-d546494f6a5a</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="Pages\Contact.txt" />
+    <Content Include="Pages\Home.txt" />
+    <Content Include="Pages\Services.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ExcelDataReader" Version="3.8.0" />
+    <PackageReference Include="ExcelDataReader.DataSet" Version="3.8.0" />
+    <PackageReference Include="MediatR" Version="14.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.3" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.15.0" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
+    <PackageReference Include="Microsoft.Playwright" Version="1.40.0" />
+    <PackageReference Include="Rotativa.AspNetCore" Version="1.4.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.10.1" />
+
+    <!-- Test helper packages added to main project to allow in-repo unit tests to compile in CI/build agent -->
+    <PackageReference Include="xunit" Version="2.4.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.3" />
+
+    <!-- MailKit for robust SMTP (preferred over System.Net.Mail.SmtpClient) -->
+    <PackageReference Include="MailKit" Version="4.0.2" />
+
+    <!-- External Authentication Providers -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="8.0.0" />
+    <PackageReference Include="AspNet.Security.OAuth.LinkedIn" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Areas\Seller\Views\Categories\" />
     <Folder Include="Views\Cart\" />
+    <Folder Include="wwwroot\images\useruploads\" />
+    <Folder Include="wwwroot\uploads\broadcast-attachments\" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,73 @@
+@page
+@model CMSECommerce.Areas.Admin.Pages.UserStatusSettingsModel
+@{
+    // Setting a descriptive title for the page
+    ViewData["Title"] = "User Status Settings";
+    Layout = "_Layout"; // Assuming your Admin layout is named _Layout
+}
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h3 fw-bold text-dark">
+                    <i class="bi bi-gear-fill me-2 text-primary"></i> User Status Settings
+                </h2>
+            </div>
+
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-x-octagon-fill me-2"></i> @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+
+                    <h4 class="card-title mb-4 border-bottom pb-2">Status Configuration</h4>
+
+                    <form method="post">
+
+                        <div class="mb-4">
+                            <label asp-for="OnlineThresholdMinutes" class="form-label fw-semibold text-dark">
+                                Online Threshold (minutes)
+                            </label>
+                            <input asp-for="OnlineThresholdMinutes" class="form-control form-control-lg" placeholder="e.g., 5" />
+                            <div class="form-text text-muted mt-2">
+                                Users are considered 'Online' if their last activity was within this many minutes.
+                            </div>
+                            <span asp-validation-for="OnlineThresholdMinutes" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-5">
+                            <label asp-for="CleanupThresholdMinutes" class="form-label fw-semibold text-dark">
+                                Cleanup Threshold (minutes)
+                            </label>
+                            <input asp-for="CleanupThresholdMinutes" class="form-control form-control-lg" placeholder="e.g., 60" />
+                            <div class="form-text text-muted mt-2">
+                                Activity records older than this threshold can be safely removed from the database to maintain performance.
+                            </div>
+                            <span asp-validation-for="CleanupThresholdMinutes" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+                                <i class="bi bi-save me-2"></i> Save Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

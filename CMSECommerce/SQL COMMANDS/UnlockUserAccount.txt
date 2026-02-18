@@ -1,0 +1,11 @@
+-- Search by Email or Username to unlock the account
+UPDATE AspNetUsers
+SET 
+    LockoutEnd = NULL, 
+    AccessFailedCount = 0
+WHERE Email = 'superadmin@local.local'; -- Or use UserName = 'your_username'
+
+-- Optional: Verify the change
+SELECT Email, LockoutEnd, AccessFailedCount 
+FROM AspNetUsers 
+WHERE Email = 'superadmin@local.local';

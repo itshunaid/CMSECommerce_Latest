@@ -1,0 +1,386 @@
+﻿@model IEnumerable<CMSECommerce.Models.SubscriptionRequest>
+
+@{
+    ViewData["Title"] = "My Subscription";
+    ViewData["HideLayoutSidebar"] = true;
+
+    var profile = (CMSECommerce.Models.UserProfile)ViewBag.UserProfile;
+    decimal tradeInValue = ViewBag.CurrentTradeInValue ?? 0;
+    int remainingDaysFromBag = ViewBag.RemainingDays ?? 0;
+
+    // Logic for top status card
+    bool hasActiveSub = profile != null &&
+                        profile.SubscriptionEndDate.HasValue &&
+                        profile.SubscriptionEndDate.Value > DateTime.Now &&
+                        profile.CurrentTierId.HasValue;
+
+    // ENHANCED SORTING:
+    // 1. Pending requests first (Active attention)
+    // 2. Approved requests second (Current status)
+    // 3. Rejected/Others last
+    // Then by date descending within those groups
+    var fullSortedList = Model?.OrderBy(r => r.Status == RequestStatus.Pending ? 0 :
+                                            r.Status == RequestStatus.Approved ? 1 : 2)
+                                     .ThenByDescending(r => r.CreatedAt).ToList() ?? new List<CMSECommerce.Models.SubscriptionRequest>();
+
+    var latestActiveRequest = Model?.OrderByDescending(r => r.CreatedAt)
+                                    .FirstOrDefault(r => r.Status == RequestStatus.Approved &&
+                                                         r.TierId == profile?.CurrentTierId);
+
+    bool hasPendingRequest = Model != null && Model.Any(r => r.Status == RequestStatus.Pending);
+    var currentPending = Model?.FirstOrDefault(r => r.Status == RequestStatus.Pending);
+
+    bool canRequestNew = !hasPendingRequest;
+}
+
+<div class="amazon-dashboard py-4">
+    <div class="container">
+        @* --- BREADCRUMB --- *@
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb smallest">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-amazon-link">Your Account</a></li>
+                <li class="breadcrumb-item active">Your Memberships & Subscriptions</li>
+            </ol>
+        </nav>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 fw-normal text-amazon-dark">Your Memberships & Subscriptions</h1>
+            @if (canRequestNew)
+            {
+                <a asp-action="Index" class="btn btn-amazon-primary shadow-sm">
+                    @(hasActiveSub ? "Change or Upgrade Plan" : "See All Plans")
+                </a>
+            }
+        </div>
+
+        <div class="row g-4">
+            @* --- LEFT COLUMN: CURRENT PLAN & HISTORY --- *@
+            <div class="col-lg-8">
+
+                @* 1. Current Subscription Status Card *@
+                <div class="amazon-card shadow-sm border mb-4">
+                    <div class="amazon-card-header d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">Current Subscription Status</span>
+                        @if (hasActiveSub)
+                        {
+                            <span class="text-success small fw-bold"><i class="fas fa-check-circle me-1"></i> Active</span>
+                        }
+                    </div>
+                    <div class="amazon-card-body p-4">
+                        @if (hasActiveSub && profile.CurrentTier != null)
+                        {
+                            <div class="row align-items-center">
+                                <div class="col-md-2 d-none d-md-block">
+                                    <div class="amazon-box-icon">
+                                        <i class="fas fa-box-open fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="col-md-7">
+                                    <h4 class="fw-bold mb-1">@profile.CurrentTier.Name</h4>
+                                    <p class="text-muted small mb-3">Renews on @profile.SubscriptionEndDate.Value.ToString("MMMM dd, yyyy")</p>
+
+                                    <div class="d-flex gap-4">
+                                        <div>
+                                            <div class="smallest text-muted text-uppercase">Items Limit</div>
+                                            <div class="fw-bold">@profile.CurrentProductLimit / @profile.CurrentTier.ProductLimit</div>
+                                        </div>
+                                        <div class="border-start ps-4">
+                                            <div class="smallest text-muted text-uppercase">Time Left</div>
+                                            <div class="fw-bold">@remainingDaysFromBag Days Remaining</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-md-end mt-3 mt-md-0">
+                                    @if (latestActiveRequest != null)
+                                    {
+                                        <a asp-action="DownloadReceipt" asp-route-requestId="@latestActiveRequest.Id" class="btn btn-amazon-secondary w-100 mb-2">View Last Receipt</a>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else if (hasPendingRequest && currentPending != null)
+                        {
+                            <div class="pending-section text-center py-3">
+                                <div class="spinner-border text-amazon-orange mb-3" role="status" style="width: 1.5rem; height: 1.5rem;"></div>
+                                <h5 class="fw-bold">Verifying Your Order...</h5>
+                                <p class="text-muted small">Checking payment for <strong>@currentPending.Tier.Name</strong>. This usually takes 24 hours.</p>
+                                <div class="fw-bold text-amazon-orange">Amount: ₹@currentPending.FinalAmount.ToString("N0")</div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-4">
+                                <p class="text-muted mb-0">No active subscription found. Upgrade to start selling.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                @* 2. Billing & Request History Table *@
+                <h5 class="fw-bold mb-3 mt-5">Invoices & Request History</h5>
+                <div class="amazon-card shadow-sm border overflow-hidden">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0 amazon-table">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-3">DATE</th>
+                                    <th>PLAN</th>
+                                    <th>TOTAL</th>
+                                    <th>STATUS</th>
+                                    <th class="text-end pe-3">ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!fullSortedList.Any())
+                                {
+                                    <tr><td colspan="5" class="text-center py-4 text-muted small">No history available.</td></tr>
+                                }
+                                @foreach (var request in fullSortedList)
+                                {
+                                    <tr class="subscription-request @(request.Status == RequestStatus.Pending ? "bg-light-yellow" : "")" data-id="@request.Id" data-status="@request.Status">
+                                        <td class="ps-3">@request.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                        <td class="fw-bold">@request.Tier.Name</td>
+                                        <td>
+                                            ₹@request.FinalAmount.ToString("N0")
+                                            @if (request.CreditApplied > 0)
+                                            {
+                                                <div class="smallest text-success">Saved ₹@request.CreditApplied.ToString("N0")</div>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (request.Status == RequestStatus.Approved)
+                                            {
+                                                <span class="amazon-status-badge success"><i class="fas fa-check me-1"></i> Approved</span>
+                                            }
+                                            else if (request.Status == RequestStatus.Pending)
+                                            {
+                                                <span class="amazon-status-badge warning"><i class="fas fa-clock me-1"></i> Processing</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="amazon-status-badge danger"><i class="fas fa-exclamation-circle me-1"></i> Rejected</span>
+                                            }
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            @if (request.Status == RequestStatus.Approved)
+                                            {
+                                                <a asp-action="DownloadReceipt" asp-route-requestId="@request.Id" class="text-amazon-link smallest fw-bold text-decoration-none">
+                                                    Invoice <i class="fas fa-chevron-right ms-1"></i>
+                                                </a>
+                                            }
+                                            else if (request.Status == RequestStatus.Rejected)
+                                            {
+                                                <a asp-action="Index" class="text-amazon-link smallest fw-bold text-decoration-none">
+                                                    Try Again <i class="fas fa-redo ms-1"></i>
+                                                </a>
+                                            }
+                                        </td>
+                                    </tr>
+
+                                    @* CONTEXTUAL REJECTION ROW *@
+                                    if (request.Status == RequestStatus.Rejected)
+                                    {
+                                        <tr class="rejection-reason-row">
+                                            <td colspan="5" class="ps-3 py-0 border-0">
+                                                <div class="alert alert-amazon-error d-flex align-items-center mb-3 mt-1">
+                                                    <i class="fas fa-info-circle me-2"></i>
+                                                    <div>
+                                                        <span class="fw-bold smallest">Note:</span>
+                                                        <span class="smallest">@(string.IsNullOrEmpty(request.RejectionReason) ? "We couldn't verify your payment screenshot. Please ensure the UTR is visible." : request.RejectionReason)</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            @* --- RIGHT COLUMN: PROMOS --- *@
+            <div class="col-lg-4">
+                @if (tradeInValue > 0)
+                {
+                    <div class="amazon-card border-amazon-orange shadow-sm p-4 mb-4">
+                        <h5 class="fw-bold text-amazon-orange mb-2">Unused Credit Found</h5>
+                        <p class="small mb-3">You have <strong>₹@tradeInValue.ToString("N0")</strong> remaining from your previous plan. This will be deducted from your next upgrade.</p>
+                        <a asp-action="Index" class="btn btn-amazon-primary w-100 btn-sm">Upgrade Now</a>
+                    </div>
+                }
+
+                <div class="amazon-card shadow-sm border p-4">
+                    <h6 class="fw-bold mb-3">Subscription Benefits</h6>
+                    <ul class="list-unstyled smallest mb-0">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Verified Seller Badge</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Featured Listing Priority</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Advanced Store Analytics</li>
+                        <li><i class="fas fa-check text-success me-2"></i> Dedicated Account Manager</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Live status polling if there is a pending request
+            if ($('.subscription-request[data-status="Pending"]').length > 0) {
+                const statusPoller = setInterval(function () {
+                    $.getJSON('/Subscription/GetLatestStatuses', function (data) {
+                        let hasChange = false;
+                        data.forEach(item => {
+                            const row = $(`.subscription-request[data-id="${item.id}"]`);
+                            if (row.length && row.attr('data-status') !== item.status) {
+                                hasChange = true;
+                            }
+                        });
+                        if (hasChange) {
+                            clearInterval(statusPoller);
+                            location.reload();
+                        }
+                    }).fail(function() { console.log("Status sync paused."); });
+                }, 10000);
+            }
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        :root {
+            --amazon-orange: #FF9900;
+            --amazon-dark: #232F3E;
+            --amazon-blue: #007185;
+            --amazon-gray: #565959;
+            --amazon-bg: #EAEDED;
+            --error-red: #B12704;
+        }
+
+        body {
+            background-color: var(--amazon-bg);
+            font-family: "Amazon Ember", Arial, sans-serif;
+        }
+
+        /* Links */
+        .text-amazon-link {
+            color: var(--amazon-blue);
+        }
+
+            .text-amazon-link:hover {
+                color: #C7511F;
+                text-decoration: underline !important;
+            }
+
+        /* Utility */
+        .smallest {
+            font-size: 0.75rem;
+        }
+
+        .bg-light-yellow {
+            background-color: #fcf8e3 !important;
+        }
+
+        /* Buttons */
+        .btn-amazon-primary {
+            background: #FFD814;
+            border: 1px solid #FCD200;
+            border-radius: 8px;
+            color: #0F1111;
+            font-size: 0.85rem;
+            padding: 0.5rem 1.5rem;
+            transition: background 0.2s;
+        }
+
+            .btn-amazon-primary:hover {
+                background: #F7CA00;
+            }
+
+        .btn-amazon-secondary {
+            background: #FFFFFF;
+            border: 1px solid #D5D9D9;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: #0F1111;
+        }
+
+        /* Cards */
+        .amazon-card {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #D5D9D9 !important;
+        }
+
+        .amazon-card-header {
+            background: #F0F2F2;
+            padding: 12px 20px;
+            border-bottom: 1px solid #D5D9D9;
+            border-radius: 8px 8px 0 0;
+            font-size: 0.85rem;
+        }
+
+        .border-amazon-orange {
+            border: 1.5px solid #C7511F !important;
+        }
+
+        .amazon-box-icon {
+            width: 50px;
+            height: 50px;
+            background: #fdf5f0;
+            color: #e47911;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        /* Status & Badges */
+        .amazon-status-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+            .amazon-status-badge.success {
+                color: #007600;
+            }
+
+            .amazon-status-badge.warning {
+                color: #8a6d3b;
+            }
+
+            .amazon-status-badge.danger {
+                color: var(--error-red);
+            }
+
+        .alert-amazon-error {
+            background-color: #FFF4F2;
+            border: 1px solid #D03915;
+            border-radius: 4px;
+            padding: 8px 12px;
+            color: #0F1111;
+        }
+
+        /* Table */
+        .amazon-table thead th {
+            font-size: 0.65rem;
+            color: var(--amazon-gray);
+            text-transform: uppercase;
+            border-bottom: 1px solid #D5D9D9;
+            padding: 12px 10px;
+        }
+
+        .amazon-table tbody tr td {
+            border-bottom: 1px solid #F0F2F2;
+            font-size: 0.85rem;
+            padding: 16px 10px;
+        }
+
+        .rejection-reason-row td {
+            padding: 0 !important;
+        }
+    </style>
+}

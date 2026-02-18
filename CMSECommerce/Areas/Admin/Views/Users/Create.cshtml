@@ -1,45 +1,393 @@
-@model global::CMSECommerce.Areas.Admin.Models.CreateUserModel
+﻿@model global::CMSECommerce.Areas.Admin.Models.CreateUserModel
 
 @{
- ViewData["Title"] = "Create User";
+    ViewData["Title"] = "Create User";
 }
 
-<h1>Create User</h1>
+<style>
+    body {
+        background-color: #eaeded; /* Amazon light gray background */
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-<form asp-action="Create" method="post">
- @Html.AntiForgeryToken()
- <div asp-validation-summary="ModelOnly" class="text-danger"></div>
- <div class="form-group mt-3">
- <label asp-for="UserName"></label>
- <input asp-for="UserName" class="form-control" />
- <span asp-validation-for="UserName" class="text-danger"></span>
- </div>
- <div class="form-group mt-3">
- <label asp-for="Email"></label>
- <input asp-for="Email" class="form-control" />
- <span asp-validation-for="Email" class="text-danger"></span>
- </div>
-    <div class="form-group mt-3">
-        <label asp-for="PhoneNumber"></label>
-        <input asp-for="PhoneNumber" class="form-control" />
-        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+    :root {
+        --amz-navy: #232f3e;
+        --amz-navy-hover: #131921;
+        --amz-orange: #febd69;
+        --amz-orange-2: #f3a847;
+        --amz-slate: #37475a;
+        --amz-border: #d5d9d9;
+        --amz-link: #007185;
+    }
+
+    /* Header Styling */
+    .amz-header {
+        background: var(--amz-navy);
+        color: #fff;
+        padding: 20px 24px;
+        border-radius: 8px 8px 4px 4px;
+        margin-bottom: 22px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+        .amz-header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+    /* Card Styling */
+    .amz-card {
+        background: #fff;
+        border: 1px solid var(--amz-border);
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 22px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .amz-section-header {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0F1111;
+        margin-bottom: 20px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e7e7e7;
+    }
+
+    /* Form Elements */
+    .amz-label {
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: #0F1111;
+        margin-bottom: 4px;
+        display: block;
+    }
+
+        .amz-label.required::after {
+            content: " *";
+            color: #b12704;
+        }
+
+    .amz-form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #888c8c;
+        border-radius: 3px;
+        font-size: 0.95rem;
+        transition: all 0.1s linear;
+    }
+
+        .amz-form-control:focus {
+            border-color: #e77600;
+            box-shadow: 0 0 3px 2px rgba(228,121,17,0.5);
+            outline: 0;
+        }
+
+    /* Profile Image Preview */
+    .profile-preview-container {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 15px;
+        background: #f0f2f2;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    #profile-preview-circle {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 3px solid #fff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        background: #fff;
+    }
+
+    /* Buttons */
+    .btn-amz-primary {
+        background: #FFD814;
+        border: 1px solid #FCD200;
+        border-radius: 8px;
+        padding: 10px 24px;
+        font-weight: 500;
+        color: #0f1111;
+        box-shadow: 0 2px 5px rgba(213,217,217,0.5);
+    }
+
+        .btn-amz-primary:hover {
+            background: #F7CA00;
+            border-color: #F2C200;
+        }
+
+    .btn-amz-secondary {
+        background: #fff;
+        border: 1px solid var(--amz-border);
+        border-radius: 8px;
+        padding: 10px 24px;
+        color: #0f1111;
+    }
+
+        .btn-amz-secondary:hover {
+            background: #f7fafa;
+        }
+
+    .validation-loader {
+        font-size: 0.75rem;
+        color: var(--amz-link);
+        display: none;
+        font-style: italic;
+    }
+</style>
+
+<div class="container py-4">
+    <div class="amz-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="#febd69" />
+                </svg>
+                Create New User
+            </h1>
+            <a asp-action="Index" class="btn btn-sm btn-outline-light">← Back to Dashboard</a>
+        </div>
     </div>
- <div class="form-group mt-3">
- <label asp-for="Password"></label>
- <input asp-for="Password" class="form-control" />
- <span asp-validation-for="Password" class="text-danger"></span>
- </div>
- <div class="form-group mt-3">
- <label asp-for="Role"></label>
- <select asp-for="Role" class="form-select">
- <option value="">-- none --</option>
- @foreach(var r in ViewBag.Roles as List<string>)
- {
- <option value="@r">@r</option>
- }
- </select>
- </div>
- <div class="form-group mt-3">
- <button class="btn btn-primary">Create</button>
- </div>
-</form>
+
+    <form asp-action="Create" method="post" enctype="multipart/form-data" id="createUserForm">
+        @Html.AntiForgeryToken()
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="amz-card">
+                    <h3 class="amz-section-header">1. Account Identity</h3>
+
+                    <div class="profile-preview-container">
+                        <img id="profile-preview-circle" src="~/images/default-user.png" alt="Preview" />
+                        <div class="flex-grow-1">
+                            <label class="amz-label">Profile Photo</label>
+                            <input asp-for="ProfileImageFile" class="amz-form-control" type="file" accept="image/*" onchange="previewProfileImage(this)" />
+                            <small class="text-muted d-block mt-1">Clear facial photos work best for identity verification.</small>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="UserName" class="amz-label required">Username / Unique ID</label>
+                            <input asp-for="UserName" class="amz-form-control" placeholder="Enter username" />
+                            <span id="userNameLoader" class="validation-loader">Checking availability...</span>
+                            <span asp-validation-for="UserName" class="text-danger small" id="UserName-error"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="amz-label required"></label>
+                            <input asp-for="Password" class="amz-form-control" type="password" placeholder="••••••••" />
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="amz-label required"></label>
+                            <input asp-for="Email" class="amz-form-control" placeholder="email@example.com" />
+                            <span id="emailLoader" class="validation-loader">Verifying email...</span>
+                            <span asp-validation-for="Email" class="text-danger small" id="Email-error"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="amz-label required">Mobile Number</label>
+                            <input asp-for="PhoneNumber" class="amz-form-control" placeholder="10-digit mobile" />
+                            <span id="phoneLoader" class="validation-loader">Checking...</span>
+                            <span asp-validation-for="PhoneNumber" class="text-danger small" id="PhoneNumber-error"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Role" class="amz-label">System Role</label>
+                            <select asp-for="Role" class="amz-form-control">
+                                <option value="">-- No specific role assigned --</option>
+                                @if (ViewBag.Roles is List<string> roles)
+                                {
+                                    @foreach (var r in roles)
+                                    {
+                                        <option value="@r">@r</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="amz-card">
+                    <h3 class="amz-section-header">2. Personal & Professional Profile</h3>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FirstName" class="amz-label">First Name</label>
+                            <input asp-for="FirstName" class="amz-form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LastName" class="amz-label">Last Name</label>
+                            <input asp-for="LastName" class="amz-form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ITSNumber" class="amz-label required">ITS Number (8 Digits)</label>
+                            <input asp-for="ITSNumber" class="amz-form-control" inputmode="numeric" maxlength="8" />
+                            <span id="itsLoader" class="validation-loader">Validating ITS...</span>
+                            <span asp-validation-for="ITSNumber" class="text-danger small" id="ITSNumber-error"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Profession" class="amz-label"></label>
+                            <input asp-for="Profession" class="amz-form-control" />
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="ServicesProvided" class="amz-label">Services Provided</label>
+                            <input asp-for="ServicesProvided" class="amz-form-control" placeholder="e.g. Consulting, Design, Development" />
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="About" class="amz-label">Bio / About</label>
+                            <textarea asp-for="About" class="amz-form-control" rows="3" placeholder="Tell us about this user..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="amz-card">
+                    <h3 class="amz-section-header">Payment QRs</h3>
+                    <div class="mb-3">
+                        <label asp-for="GpayQRCodeFile" class="amz-label">Google Pay QR</label>
+                        <input asp-for="GpayQRCodeFile" class="amz-form-control form-control-sm" type="file" accept="image/*" />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="PhonePeQRCodeFile" class="amz-label">PhonePe QR</label>
+                        <input asp-for="PhonePeQRCodeFile" class="amz-form-control form-control-sm" type="file" accept="image/*" />
+                    </div>
+                </div>
+
+                <div class="amz-card">
+                    <h3 class="amz-section-header">Connectivity</h3>
+                    <div class="mb-3">
+                        <label asp-for="WhatsappNumber" class="amz-label">WhatsApp</label>
+                        <input asp-for="WhatsappNumber" class="amz-form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="LinkedInUrl" class="amz-label">LinkedIn URL</label>
+                        <input asp-for="LinkedInUrl" class="amz-form-control" />
+                    </div>
+                </div>
+
+                <div class="amz-card">
+                    <h3 class="amz-section-header">Visibility</h3>
+                    <div class="form-check mb-2">
+                        <input asp-for="IsProfileVisible" class="form-check-input" />
+                        <label asp-for="IsProfileVisible" class="form-check-label amz-label fw-normal">Public Profile</label>
+                    </div>
+                    <div class="form-check">
+                        <input asp-for="IsImageApproved" class="form-check-input" />
+                        <label asp-for="IsImageApproved" class="form-check-label amz-label fw-normal">Auto-Approve Image</label>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-amz-primary">Create Account</button>
+                    <a asp-action="Index" class="btn btn-amz-secondary text-center text-decoration-none">Cancel</a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Image Preview Logic
+        function previewProfileImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#profile-preview-circle').attr('src', e.target.result);
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        $(document).ready(function () {
+            // Helper for validation visual feedback
+            function setValidationResult(inputSelector, errorSelector, isAvailable, message) {
+                const errorSpan = $(errorSelector);
+                const inputField = $(inputSelector);
+                if (isAvailable) {
+                    errorSpan.text("");
+                    inputField.css("border-color", "#007600"); // Success
+                } else {
+                    errorSpan.text(message);
+                    inputField.css("border-color", "#b12704"); // Error
+                }
+            }
+
+            // 1. ITS Number: Numeric only + Uniqueness
+            $("#ITSNumber").on("input", function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+
+            $("#ITSNumber").on("blur", function () {
+                const val = $(this).val();
+                if (!val) {
+                    setValidationResult("#ITSNumber", "#ITSNumber-error", false, "ITS Number is required.");
+                    return;
+                }
+                if (val.length !== 8) {
+                    setValidationResult("#ITSNumber", "#ITSNumber-error", false, "Must be exactly 8 digits.");
+                    return;
+                }
+                $("#itsLoader").show();
+                $.get('@Url.Action("CheckITSUnique")', { itsNumber: val }, function (data) {
+                    $("#itsLoader").hide();
+                    setValidationResult("#ITSNumber", "#ITSNumber-error", data.isAvailable, data.message);
+                });
+            });
+
+            // 2. UserName Unique Check
+            $("#UserName").on("blur", function () {
+                const val = $(this).val();
+                if (!val) return;
+                $("#userNameLoader").show();
+                $.get('@Url.Action("CheckUserNameUnique")', { userName: val }, function (data) {
+                    $("#userNameLoader").hide();
+                    setValidationResult("#UserName", "#UserName-error", data, "This username is already taken.");
+                });
+            });
+
+            // 3. Email Unique Check
+            $("#Email").on("blur", function () {
+                const val = $(this).val();
+                if (!val) return;
+                $("#emailLoader").show();
+                $.get('@Url.Action("CheckEmailUnique")', { email: val }, function (data) {
+                    $("#emailLoader").hide();
+                    setValidationResult("#Email", "#Email-error", data.isAvailable, data.message);
+                });
+            });
+
+            // 4. Phone Unique Check
+            $("#PhoneNumber").on("blur", function () {
+                const val = $(this).val();
+                if (!val) return;
+                $("#phoneLoader").show();
+                $.get('@Url.Action("CheckPhoneUnique")', { phoneNumber: val }, function (data) {
+                    $("#phoneLoader").hide();
+                    setValidationResult("#PhoneNumber", "#PhoneNumber-error", data, "This phone is already registered.");
+                });
+            });
+
+            // Final Form Validation
+            $("#createUserForm").on("submit", function(e) {
+                const itsVal = $("#ITSNumber").val();
+                if (!itsVal || itsVal.length !== 8) {
+                    e.preventDefault();
+                    setValidationResult("#ITSNumber", "#ITSNumber-error", false, "Valid 8-digit ITS Number is required.");
+                    alert("Please check ITS Number field.");
+                }
+            });
+        });
+    </script>
+}
