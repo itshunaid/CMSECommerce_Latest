@@ -1,4 +1,4 @@
-﻿@using CMSECommerce.Infrastructure
+﻿﻿@using CMSECommerce.Infrastructure
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore @* Added for potential performance extensions *@
 @inject DataContext _context
@@ -43,9 +43,41 @@
             --amz-navy-2: #232f3e;
             --amz-orange: #ff9900;
             --amz-bg-light: #eaeded;
+            /* Jaali Pattern Colors */
+            --jaali-gold: #c5a059;
+            --jaali-bg: #eaeded;
         }
 
-        body { background-color: var(--amz-bg-light); }
+        html, body {
+            font-size: 14px;
+            color: #0f1111;
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* --- Full Page Arabic Jaali Background --- */
+        body {
+            background-color: var(--jaali-bg);
+            /* CSS Pattern mimicking the Jaali lattice */
+            background-image: radial-gradient(circle at 50% 50%, transparent 20%, var(--jaali-bg) 21%, var(--jaali-bg) 34%, transparent 35%, transparent), linear-gradient(30deg, var(--jaali-gold) 12%, transparent 12.5%, transparent 87%, var(--jaali-gold) 87.5%, var(--jaali-gold)), linear-gradient(150deg, var(--jaali-gold) 12%, transparent 12.5%, transparent 87%, var(--jaali-gold) 87.5%, var(--jaali-gold)), linear-gradient(30deg, var(--jaali-gold) 12%, transparent 12.5%, transparent 87%, var(--jaali-gold) 87.5%, var(--jaali-gold)), linear-gradient(150deg, var(--jaali-gold) 12%, transparent 12.5%, transparent 87%, var(--jaali-gold) 87.5%, var(--jaali-gold)), linear-gradient(60deg, #d4af3744 25%, transparent 25.5%, transparent 75%, #d4af3744 75%, #d4af3744), linear-gradient(60deg, #d4af3744 25%, transparent 25.5%, transparent 75%, #d4af3744 75%, #d4af3744);
+            background-size: 80px 140px;
+            background-position: 0 0, 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
+            background-attachment: fixed;
+        }
+
+            /* Overlay to soften the pattern and ensure text readability */
+            body::before {
+                content: "";
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(234, 237, 237, 0.88);
+                z-index: -1;
+            }
+
         .amz-header-primary { background-color: var(--amz-navy); border: none; padding: 5px 0; }
         .amz-header-primary .navbar-brand { color: #fff !important; font-weight: 700; display: flex; align-items: center; }
         .amz-header-primary .nav-link { color: #fff !important; font-size: 0.9rem; padding: 8px 15px; border: 1px solid transparent; }
