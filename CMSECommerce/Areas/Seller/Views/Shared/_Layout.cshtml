@@ -37,6 +37,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CMSECommerce.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/jaali-premium.css" asp-append-version="true" />
 
     <style>
         :root {
@@ -45,8 +46,11 @@
             --amz-orange: #ff9900;
             --amz-yellow: #f3a847;
             --amz-bg-light: #eaeded;
-            /* Jaali Pattern Colors */
-            --jaali-gold: #c5a059;
+            /* Enhanced Jaali Pattern Colors - Amazon Golden & Yellow */
+            --jaali-gold: #FFD814;
+            --jaali-gold-dark: #FF9900;
+            --jaali-gold-light: #F7CA00;
+            --jaali-gold-accent: #e5b100;
             --jaali-bg: #eaeded;
         }
 
@@ -58,27 +62,86 @@
             min-height: 100vh;
         }
 
-        /* --- Full Page Arabic Jaali Background --- */
-        body {
-            background-color: var(--jaali-bg);
-            /* CSS Pattern mimicking the Jaali lattice */
-            background-image: radial-gradient(circle at 50% 50%, transparent 20%, var(--jaali-bg) 21%, var(--jaali-bg) 34%, transparent 35%, transparent), linear-gradient(30deg, var(--jaali-gold) 12%, transparent 12.5%, transparent 87%, var(--jaali-gold) 87.5%, var(--jaali-gold)), linear-gradient(150deg, var(--jaali-gold) 12%, transparent 12.5%, transparent 87%, var(--jaali-gold) 87.5%, var(--jaali-gold)), linear-gradient(30deg, var(--jaali-gold) 12%, transparent 12.5%, transparent 87%, var(--jaali-gold) 87.5%, var(--jaali-gold)), linear-gradient(150deg, var(--jaali-gold) 12%, transparent 12.5%, transparent 87%, var(--jaali-gold) 87.5%, var(--jaali-gold)), linear-gradient(60deg, #d4af3744 25%, transparent 25.5%, transparent 75%, #d4af3744 75%, #d4af3744), linear-gradient(60deg, #d4af3744 25%, transparent 25.5%, transparent 75%, #d4af3744 75%, #d4af3744);
-            background-size: 80px 140px;
-            background-position: 0 0, 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
+        /* --- Rich Golden Arabic Jaali Geometric Pattern --- */
+        body.premium-jaali-body {
+            background-color: #1a1510;
+            /* Rich Golden Islamic Jaali Pattern */
+            background-image: 
+                /* Base metallic gold layer */
+                linear-gradient(135deg, #d4af37 0%, #f5d68a 25%, #d4af37 50%, #c9a227 75%, #d4af37 100%),
+                /* Intricate jaali lattice - geometric star pattern */
+                radial-gradient(circle at 25% 25%, transparent 30%, #1a1510 30.5%, #1a1510 35%, transparent 35.5%),
+                radial-gradient(circle at 75% 25%, transparent 30%, #1a1510 30.5%, #1a1510 35%, transparent 35.5%),
+                radial-gradient(circle at 25% 75%, transparent 30%, #1a1510 30.5%, #1a1510 35%, transparent 35.5%),
+                radial-gradient(circle at 75% 75%, transparent 30%, #1a1510 30.5%, #1a1510 35%, transparent 35.5%),
+                /* Diamond lattice pattern */
+                linear-gradient(45deg, transparent 48%, #f5d68a 48.5%, #f5d68a 50.5%, transparent 51%),
+                linear-gradient(-45deg, transparent 48%, #f5d68a 48.5%, #f5d68a 50.5%, transparent 51%),
+                /* Hexagonal star pattern */
+                linear-gradient(60deg, #d4af3744 25%, transparent 25.5%, transparent 74.5%, #d4af3744 75%),
+                linear-gradient(120deg, #d4af3744 25%, transparent 25.5%, transparent 74.5%, #d4af3744 75%),
+                /* Fine lattice lines */
+                linear-gradient(30deg, #e8c547 5%, transparent 5.5%, transparent 94.5%, #e8c547 95%),
+                linear-gradient(150deg, #e8c547 5%, transparent 5.5%, transparent 94.5%, #e8c547 95%),
+                /* Arches pattern */
+                radial-gradient(circle at 50% 0%, transparent 20%, #f5d68a20 20.5%, #f5d68a20 35%, transparent 35.5%);
+            background-size: 
+                100% 100%,
+                60px 60px,
+                60px 60px,
+                60px 60px,
+                60px 60px,
+                50px 50px,
+                50px 50px,
+                80px 140px,
+                80px 140px,
+                100px 180px,
+                100px 180px,
+                80px 80px;
+            background-position: 
+                0 0,
+                0 0,
+                30px 30px,
+                0 0,
+                30px 30px,
+                0 0,
+                25px 25px,
+                0 0,
+                40px 70px,
+                0 0,
+                50px 90px,
+                0 0;
             background-attachment: fixed;
         }
 
-            /* Overlay to soften the pattern and ensure text readability */
-            body::before {
-                content: "";
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(234, 237, 237, 0.88);
-                z-index: -1;
-            }
+        /* Rich golden overlay */
+        body.premium-jaali-body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 30% 20%, rgba(212, 175, 55, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(245, 214, 138, 0.1) 0%, transparent 50%),
+                linear-gradient(180deg, rgba(26, 21, 16, 0.7) 0%, rgba(26, 21, 16, 0.5) 50%, rgba(26, 21, 16, 0.7) 100%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Add subtle inner shadow for depth */
+        body.premium-jaali-body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 0 0 100px rgba(19, 25, 33, 0.1);
+            z-index: -1;
+            pointer-events: none;
+        }
 
 
         .amz-header-primary {
@@ -140,7 +203,12 @@
         }
     </style>
 </head>
-<body>
+<body class="premium-jaali-body jaali-padded">
+    <!-- Premium Arabic Jaali Top Banner -->
+    <div class="jaali-top-banner">
+        <div class="jaali-top-ornament"></div>
+    </div>
+
     <header>
         <nav class="navbar navbar-expand-lg amz-header-primary shadow-sm">
             <div class="container-fluid">
@@ -215,5 +283,10 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+
+    <!-- Premium Arabic Jaali Bottom Banner -->
+    <div class="jaali-bottom-banner">
+        <div class="jaali-bottom-ornament"></div>
+    </div>
 </body>
 </html>
