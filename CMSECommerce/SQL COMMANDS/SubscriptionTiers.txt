@@ -24,3 +24,16 @@ Update dbo.SubscriptionTiers set Price=0 where Name='Trial'
 SELECT TOP 1000 * FROM dbo.UserProfiles;
 
 update dbo.UserProfiles set currentProductlimit=10 where currentProductlimit=5;
+
+
+UPDATE dbo.UserProfiles 
+SET 
+    SubscriptionStartDate = GETDATE(), 
+    SubscriptionEndDate = DATEADD(month, 1, GETDATE()) 
+WHERE CurrentProductLimit = 10;
+
+
+UPDATE dbo.UserProfiles 
+SET 
+    CurrentTierId = 1, 
+    CurrentProductLimit = 10;

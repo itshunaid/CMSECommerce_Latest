@@ -1,0 +1,280 @@
+@*
+    Hero Section Partial View
+    Features:
+    - Large centered search bar with input group
+    - Horizontal scrollable list of categories
+    - Touch-scrollable for mobile users
+    - OLX minimalist aesthetic with #002f34 primary color
+*@
+
+@{
+    // Define categories with Bootstrap Icons and labels
+    var categories = new List<(string Icon, string Label, string Slug)>
+    {
+        ("bi-car-front-fill", "Cars", "cars"),
+        ("bi-phone-fill", "Mobiles", "mobiles"),
+        ("bi-briefcase-fill", "Jobs", "jobs"),
+        ("bi-house-fill", "Properties", "properties"),
+        ("bi-laptop-fill", "Electronics", "electronics"),
+        ("bi-book-fill", "Books", "books"),
+        ("bi-people-fill", "Services", "services"),
+        ("bi-gift-fill", "Fashion", "fashion"),
+        ("bi-heart-pulse-fill", "Health", "health"),
+        ("bi-controller", "Sports", "sports"),
+        ("bi-music-note-beamed", "Hobbies", "hobbies"),
+        ("bi-shop-fill", "Business", "business")
+    };
+}
+
+<style>
+    /* Hero Section Styles - OLX Minimalist Aesthetic */
+    .hero-section {
+        background-color: #f8f9fa; /* Light gray background */
+        padding: 2rem 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .hero-search-container {
+        max-width: 700px;
+        margin: 0 auto 2rem auto;
+    }
+
+    .hero-search-bar {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        display: flex;
+        border: 2px solid transparent;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .hero-search-bar:focus-within {
+        border-color: #002f34;
+        box-shadow: 0 4px 12px rgba(0, 47, 52, 0.15);
+    }
+
+    .hero-search-input-group {
+        display: flex;
+        width: 100%;
+    }
+
+    .hero-search-icon {
+        background-color: #f8f9fa;
+        border: none;
+        padding: 0 1rem;
+        display: flex;
+        align-items: center;
+        color: #002f34;
+        font-size: 1.1rem;
+    }
+
+    .hero-search-input {
+        border: none;
+        padding: 14px 16px;
+        flex-grow: 1;
+        font-size: 1rem;
+        outline: none;
+    }
+
+    .hero-search-input::placeholder {
+        color: #6c757d;
+    }
+
+    .hero-search-btn {
+        background-color: #002f34;
+        border: none;
+        padding: 0 24px;
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: background-color 0.2s ease;
+    }
+
+    .hero-search-btn:hover {
+        background-color: #004852;
+    }
+
+    /* Horizontal Scrollable Categories */
+    .hero-categories-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .hero-categories-scroll {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        padding: 0.5rem 0.25rem;
+        scrollbar-width: thin;
+        scrollbar-color: #002f34 #f8f9fa;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+    }
+
+    /* Custom scrollbar for webkit browsers */
+    .hero-categories-scroll::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .hero-categories-scroll::-webkit-scrollbar-track {
+        background: #f8f9fa;
+        border-radius: 3px;
+    }
+
+    .hero-categories-scroll::-webkit-scrollbar-thumb {
+        background: #002f34;
+        border-radius: 3px;
+    }
+
+    .hero-category-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-width: 90px;
+        padding: 1rem 1.25rem;
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #002f34;
+        transition: all 0.2s ease;
+        scroll-snap-align: start;
+        cursor: pointer;
+    }
+
+    .hero-category-item:hover {
+        background-color: #002f34;
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 47, 52, 0.2);
+    }
+
+    .hero-category-item:active {
+        transform: translateY(0);
+    }
+
+    .hero-category-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        color: #002f34;
+        transition: color 0.2s ease;
+    }
+
+    .hero-category-item:hover .hero-category-icon {
+        color: #fff;
+    }
+
+    .hero-category-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    /* Hide scrollbar on touch devices but keep functionality */
+    .hero-categories-scroll.hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .hero-categories-scroll.hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Mobile responsiveness */
+    @@media (max-width: 576px) {
+        .hero-section {
+            padding: 1.5rem 0.75rem;
+        }
+
+        .hero-search-bar {
+            flex-direction: column;
+        }
+
+        .hero-search-input-group {
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .hero-search-btn {
+            padding: 14px 20px;
+        }
+
+        .hero-category-item {
+            min-width: 80px;
+            padding: 0.875rem 1rem;
+        }
+
+        .hero-category-icon {
+            font-size: 1.25rem;
+        }
+
+        .hero-category-label {
+            font-size: 0.75rem;
+        }
+    }
+</style>
+
+<div class="hero-section">
+    <!-- Large Centered Search Bar -->
+    <div class="hero-search-container">
+        <form asp-controller="Products" asp-action="Index" method="get" class="hero-search-bar">
+            <input type="hidden" name="p" value="1" />
+            <div class="hero-search-input-group">
+                <span class="hero-search-icon">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input 
+                    type="text" 
+                    name="searchTerm" 
+                    class="hero-search-input" 
+                    placeholder="Search for products, services, jobs..." 
+                    aria-label="Search"
+                />
+            </div>
+            <button type="submit" class="hero-search-btn">
+                <i class="bi bi-search d-md-none"></i>
+                <span class="d-none d-md-inline">Search</span>
+            </button>
+        </form>
+    </div>
+
+    <!-- Horizontal Scrollable Categories -->
+    <div class="hero-categories-container">
+        <div class="hero-categories-scroll" role="listbox" aria-label="Browse categories">
+            @foreach (var category in categories)
+            {
+                <a href="/Products?slug=@category.Slug&p=1" class="hero-category-item" role="option">
+                    <i class="bi @category.Icon hero-category-icon"></i>
+                    <span class="hero-category-label">@category.Label</span>
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    // Add touch scroll momentum and hide scrollbar on mobile
+    document.addEventListener('DOMContentLoaded', function() {
+        const scrollContainer = document.querySelector('.hero-categories-scroll');
+        
+        if (scrollContainer) {
+            // Check if device supports touch
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                scrollContainer.classList.add('hide-scrollbar');
+            }
+
+            // Add momentum scrolling for smoother feel on mobile
+            let isScrolling = false;
+            
+            scrollContainer.addEventListener('wheel', function(e) {
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                    e.preventDefault();
+                    scrollContainer.scrollLeft += e.deltaY;
+                }
+            });
+        }
+    });
+</script>
