@@ -17,17 +17,30 @@ namespace CMSECommerce.Areas.SuperAdmin.Models
         public int TotalUserStatuses { get; set; }
         public int TotalUserStatusSettings { get; set; }
 
+        // Recent broadcasts
+        public int RecentBroadcastsCount { get; set; }
+
         // System health metrics
         public DateTime LastMigrationDate { get; set; }
         public string DatabaseSize { get; set; }
         public int ActiveUsersLast24Hours { get; set; }
         public int FailedLoginAttempts { get; set; }
 
+        // Daily stats for charts
+        public List<DailyStat> DailyStats { get; set; } = new();
+
         // Recent admin activities
-        public IEnumerable<AdminActivity> RecentAdminActivities { get; set; }
+        public IEnumerable<AdminActivity> RecentAdminActivities { get; set; } = new List<AdminActivity>();
 
         // Recent audit logs
-        public List<AuditLog> RecentAuditLogs { get; set; }
+        public List<AuditLog> RecentAuditLogs { get; set; } = new();
+    }
+
+    public class DailyStat
+    {
+        public DateTime Date { get; set; }
+        public int Orders { get; set; }
+        public int ActiveUsers { get; set; }
     }
 
     public class AdminActivity

@@ -166,11 +166,55 @@ namespace CMSECommerce.Areas.SuperAdmin.Controllers
                     .CountAsync();
 
                 // Recent audit logs
+                // Recent broadcasts (last 7 days)
+                // Recent broadcasts (last 7 days)
+                model.RecentBroadcastsCount = await _context.BroadcastMessages
+                    .CountAsync(b => b.DateSent >= DateTime.Now.AddDays(-7));
+
+                // Failed login attempts (from audit logs, last 7 days)
+                model.FailedLoginAttempts = await _context.AuditLogs
+                    .CountAsync(a => a.Action.Contains("Login") && a.Action.Contains("Failed") && 
+                                   a.Timestamp >= DateTime.Now.AddDays(-7));
+
+                // Recent audit logs
                 model.RecentAuditLogs = await _context.AuditLogs
                     .Include(a => a.User)
                     .OrderByDescending(a => a.Timestamp)
                     .Take(10)
                     .ToListAsync();
+
+                // Simple filter for admin activities (avoid async in LINQ)
+                var adminAudits = model.RecentAuditLogs.Where(a => 
+                    a.Action.Contains("Admin") || a.Action.Contains("SuperAdmin") || 
+                    (a.User != null && a.User.UserName.Contains("admin")))
+                    .OrderByDescending(a => a.Timestamp)
+                    .Take(5)
+                    .ToList(); 
+
+                model.RecentAdminActivities = adminAudits.Select(a => new AdminActivity 
+                { 
+                    AdminName = a.User?.UserName ?? "System", 
+                    Action = a.Action, 
+                    Timestamp = a.Timestamp, 
+                    Details = $"{a.EntityType} - {a.EntityId}"
+                }).ToList();
+
+                // Daily stats for charts (last 7 days) - client-side evaluation for complex aggregation
+                var sevenDaysAgo = DateTime.Now.Date.AddDays(-6);
+                var dailyOrderData = await _context.Orders
+                    .Where(o => o.OrderDate.HasValue && o.OrderDate.Value.Date >= sevenDaysAgo)
+                    .GroupBy(o => o.OrderDate.Value.Date)
+                    .Select(g => new { g.Key, Count = g.Count(), Users = g.Select(o => o.UserId).Distinct().Count() })
+                    .OrderBy(x => x.Key)
+                    .ToListAsync();
+
+                model.DailyStats = dailyOrderData.Select(d => new DailyStat 
+                { 
+                    Date = d.Key, 
+                    Orders = d.Count,
+                    ActiveUsers = d.Users
+                }).ToList();
+
             }
             catch (Exception ex)
             {
