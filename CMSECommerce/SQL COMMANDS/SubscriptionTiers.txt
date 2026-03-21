@@ -26,6 +26,11 @@ SELECT TOP 1000 * FROM dbo.UserProfiles;
 update dbo.UserProfiles set currentProductlimit=10 where currentProductlimit=5;
 
 
+
+
+
+-----------------------Extended FREE TRIAL-----------------------
+
 UPDATE dbo.UserProfiles 
 SET 
     SubscriptionStartDate = GETDATE(), 
@@ -37,11 +42,6 @@ UPDATE dbo.UserProfiles
 SET 
     CurrentTierId = 1, 
     CurrentProductLimit = 10;
-
-
-
-
-
 
 
 
@@ -62,3 +62,4 @@ WHERE up.CurrentTierID = 1
       WHERE aur.UserId = u.Id 
       AND aur.RoleId = '7f90378b-3001-443b-8736-411a91341c2e' -- <--- Put Subscriber ID here
   );
+----------------------------------------------------------------------------------------------------
