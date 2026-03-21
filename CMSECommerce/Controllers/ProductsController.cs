@@ -29,6 +29,31 @@ namespace CMSECommerce.Controllers
         private readonly IUserStatusService _userStatusService = userStatusService;
         private readonly IAuditService _auditService = auditService;
 
+        /// <summary>
+        /// StoreFront by email address - e.g., /mystore/itsfatemahunaid@gmail.com
+        /// </summary>
+        [HttpGet("mystore/{email}")]
+        public async Task<IActionResult> StoreFrontByEmail(string email, int p = 1, string search = "", string category = "", string sort = "")
+        {
+            if (string.IsNullOrEmpty(email))
+            {
+                return RedirectToAction("StoreFront");
+            }
+
+            // Find the store by email (through User relationship)
+            var store = await _context.Stores
+                .Include(s => s.User)
+                .FirstOrDefaultAsync(s => s.User.Email.ToLower() == email.ToLower());
+
+            if (store == null)
+            {
+                return NotFound($"Store not found for email: {email}");
+            }
+
+            // Redirect to the existing StoreFront with the store ID
+            return RedirectToAction("StoreFront", new { id = store.Id, p = p, search = search, category = category, sort = sort });
+        }
+
         [HttpGet("mystore")]
         public async Task<IActionResult> StoreFront(int? id, int p = 1, string search = "", string category = "", string sort = "")
         {

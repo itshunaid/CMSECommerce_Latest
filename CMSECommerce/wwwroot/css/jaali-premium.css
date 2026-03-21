@@ -1,0 +1,1160 @@
+/* ================================================
+   PREMIUM GOLDEN JAALI DESIGN SYSTEM
+   Rich Islamic Geometric Patterns with Metallic Gold
+   ================================================ */
+
+/* CSS Custom Properties - Premium Gold Palette */
+:root {
+    /* Primary Gold Colors */
+    --jaali-gold-primary: #d4af37;
+    --jaali-gold-light: #f5d68a;
+    --jaali-gold-dark: #b8962e;
+    --jaali-gold-shimmer: #ffd700;
+    
+    /* Metallic Effects */
+    --jaali-metallic-light: #fff8dc;
+    --jaali-metallic-mid: #f0e68c;
+    --jaali-metallic-dark: #c9a227;
+    
+    /* Background Colors */
+    --jaali-bg-dark: #1a1510;
+    --jaali-bg-overlay: rgba(26, 21, 16, 0.85);
+    --jaali-bg-card: rgba(30, 25, 18, 0.95);
+    
+    /* Accent Colors */
+    --jaali-accent-amber: #ffbf00;
+    --jaali-accent-copper: #b87333;
+    --jaali-accent-bronze: #cd7f32;
+    
+    /* Border Colors */
+    --jaali-border-light: rgba(212, 175, 55, 0.3);
+    --jaali-border-mid: rgba(212, 175, 55, 0.5);
+    --jaali-border-strong: rgba(212, 175, 55, 0.8);
+    
+    /* Text Colors */
+    --jaali-text-primary: #f5f5f5;
+    --jaali-text-secondary: #d4d4d4;
+    --jaali-text-gold: #ffd700;
+    
+    /* Shadows */
+    --jaali-shadow-gold: 0 4px 15px rgba(212, 175, 55, 0.3);
+    --jaali-shadow-deep: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* ================================================
+   PREMIUM BODY BACKGROUND - INTRICATE JAALI PATTERN
+   ================================================ */
+.premium-jaali-body {
+    background-color: var(--jaali-bg-dark);
+    background-image: 
+        /* Layer 1: Base gradient */
+        linear-gradient(135deg, 
+            var(--jaali-gold-primary) 0%, 
+            var(--jaali-gold-light) 25%, 
+            var(--jaali-gold-primary) 50%, 
+            var(--jaali-gold-dark) 75%, 
+            var(--jaali-gold-primary) 100%),
+        
+        /* Layer 2: Geometric star pattern (8-pointed stars) */
+        radial-gradient(circle at 25% 25%, 
+            transparent 28%, 
+            var(--jaali-bg-dark) 28.5%, 
+            var(--jaali-bg-dark) 33%, 
+            transparent 33.5%),
+        radial-gradient(circle at 75% 25%, 
+            transparent 28%, 
+            var(--jaali-bg-dark) 28.5%, 
+            var(--jaali-bg-dark) 33%, 
+            transparent 33.5%),
+        radial-gradient(circle at 25% 75%, 
+            transparent 28%, 
+            var(--jaali-bg-dark) 28.5%, 
+            var(--jaali-bg-dark) 33%, 
+            transparent 33.5%),
+        radial-gradient(circle at 75% 75%, 
+            transparent 28%, 
+            var(--jaali-bg-dark) 28.5%, 
+            var(--jaali-bg-dark) 33%, 
+            transparent 33.5%),
+        
+        /* Layer 3: Interlocking diamonds */
+        linear-gradient(45deg, 
+            transparent 47%, 
+            var(--jaali-gold-light) 47.5%, 
+            var(--jaali-gold-light) 50.5%, 
+            transparent 51%),
+        linear-gradient(-45deg, 
+            transparent 47%, 
+            var(--jaali-gold-light) 47.5%, 
+            var(--jaali-gold-light) 50.5%, 
+            transparent 51%),
+        
+        /* Layer 4: Hexagonal star pattern */
+        linear-gradient(60deg, 
+            rgba(212, 175, 55, 0.25) 25%, 
+            transparent 25.5%, 
+            transparent 74.5%, 
+            rgba(212, 175, 55, 0.25) 75%),
+        linear-gradient(120deg, 
+            rgba(212, 175, 55, 0.25) 25%, 
+            transparent 25.5%, 
+            transparent 74.5%, 
+            rgba(212, 175, 55, 0.25) 75%),
+        
+        /* Layer 5: Fine lattice lines */
+        linear-gradient(30deg, 
+            var(--jaali-gold-shimmer) 5%, 
+            transparent 5.5%, 
+            transparent 94.5%, 
+            var(--jaali-gold-shimmer) 95%),
+        linear-gradient(150deg, 
+            var(--jaali-gold-shimmer) 5%, 
+            transparent 5.5%, 
+            transparent 94.5%, 
+            var(--jaali-gold-shimmer) 95%),
+        
+        /* Layer 6: Arch pattern */
+        radial-gradient(circle at 50% 0%, 
+            transparent 18%, 
+            rgba(245, 214, 138, 0.15) 18.5%, 
+            rgba(245, 214, 138, 0.15) 32%, 
+            transparent 32.5%),
+        
+        /* Layer 7: Subtle dot pattern */
+        radial-gradient(circle, 
+            var(--jaali-gold-primary) 1px, 
+            transparent 1px);
+    
+    background-size: 
+        100% 100%,
+        70px 70px,
+        70px 70px,
+        70px 70px,
+        70px 70px,
+        55px 55px,
+        55px 55px,
+        90px 155px,
+        90px 155px,
+        110px 195px,
+        110px 195px,
+        90px 90px,
+        30px 30px;
+    
+    background-position: 
+        0 0,
+        0 0,
+        35px 35px,
+        0 0,
+        35px 35px,
+        0 0,
+        28px 28px,
+        0 0,
+        45px 78px,
+        0 0,
+        55px 98px,
+        0 0,
+        0 0;
+    
+    background-attachment: fixed;
+}
+
+/* Golden overlay for depth */
+.premium-jaali-body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(ellipse at 20% 15%, 
+            rgba(212, 175, 55, 0.2) 0%, 
+            transparent 50%),
+        radial-gradient(ellipse at 80% 85%, 
+            rgba(245, 214, 138, 0.15) 0%, 
+            transparent 50%),
+        radial-gradient(ellipse at 50% 50%, 
+            rgba(26, 21, 16, 0.3) 0%, 
+            transparent 70%),
+        linear-gradient(180deg, 
+            rgba(26, 21, 16, 0.75) 0%, 
+            rgba(26, 21, 16, 0.5) 50%, 
+            rgba(26, 21, 16, 0.75) 100%);
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Inner shadow for depth */
+.premium-jaali-body::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-shadow: inset 0 0 150px rgba(19, 25, 33, 0.15);
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* ================================================
+   PREMIUM JAALI CARD STYLES
+   ================================================ */
+.jaali-card {
+    background: var(--jaali-bg-card);
+    border: 1px solid var(--jaali-border-light);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.jaali-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--jaali-gold-primary), 
+        var(--jaali-gold-light), 
+        var(--jaali-gold-primary), 
+        transparent);
+}
+
+.jaali-card:hover {
+    border-color: var(--jaali-border-mid);
+    box-shadow: var(--jaali-shadow-gold), var(--jaali-shadow-deep);
+    transform: translateY(-2px);
+}
+
+.jaali-card-header {
+    background: linear-gradient(135deg, 
+        rgba(212, 175, 55, 0.15) 0%, 
+        rgba(212, 175, 55, 0.05) 100%);
+    border-bottom: 1px solid var(--jaali-border-light);
+    padding: 15px 20px;
+    position: relative;
+}
+
+.jaali-card-header::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 2px;
+    background: var(--jaali-gold-primary);
+}
+
+.jaali-card-body {
+    padding: 20px;
+    position: relative;
+}
+
+/* Corner ornaments */
+.jaali-card.jaali-ornament::before,
+.jaali-card.jaali-ornament::after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--jaali-gold-primary);
+    opacity: 0.6;
+}
+
+.jaali-card.jaali-ornament::before {
+    top: 10px;
+    left: 10px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.jaali-card.jaali-ornament::after {
+    bottom: 10px;
+    right: 10px;
+    border-left: none;
+    border-top: none;
+}
+
+/* ================================================
+   PREMIUM JAALI BORDERS
+   ================================================ */
+.jaali-border {
+    border: 1px solid var(--jaali-border-light);
+    position: relative;
+}
+
+.jaali-border-light {
+    border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.jaali-border-medium {
+    border: 2px solid var(--jaali-border-mid);
+}
+
+.jaali-border-strong {
+    border: 2px solid var(--jaali-border-strong);
+}
+
+/* Decorative border with corners */
+.jaali-border-decorative {
+    border: 1px solid var(--jaali-border-light);
+    position: relative;
+}
+
+.jaali-border-decorative::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    border: 1px solid rgba(212, 175, 55, 0.15);
+    pointer-events: none;
+}
+
+/* ================================================
+   PREMIUM JAALI BUTTONS
+   ================================================ */
+.btn-jaali-primary {
+    background: linear-gradient(135deg, 
+        var(--jaali-gold-primary) 0%, 
+        var(--jaali-gold-dark) 100%);
+    color: var(--jaali-bg-dark);
+    border: none;
+    padding: 10px 24px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.btn-jaali-primary::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.3), 
+        transparent);
+    transition: left 0.5s ease;
+}
+
+.btn-jaali-primary:hover {
+    background: linear-gradient(135deg, 
+        var(--jaali-gold-light) 0%, 
+        var(--jaali-gold-primary) 100%);
+    box-shadow: var(--jaali-shadow-gold);
+    transform: translateY(-1px);
+}
+
+.btn-jaali-primary:hover::before {
+    left: 100%;
+}
+
+.btn-jaali-secondary {
+    background: transparent;
+    color: var(--jaali-gold-primary);
+    border: 2px solid var(--jaali-gold-primary);
+    padding: 8px 22px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.btn-jaali-secondary:hover {
+    background: rgba(212, 175, 55, 0.1);
+    color: var(--jaali-gold-light);
+    border-color: var(--jaali-gold-light);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+}
+
+.btn-jaali-glow {
+    background: linear-gradient(135deg, 
+        var(--jaali-gold-primary) 0%, 
+        var(--jaali-gold-dark) 100%);
+    color: var(--jaali-bg-dark);
+    border: none;
+    padding: 12px 30px;
+    border-radius: 50px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+    animation: jaali-glow-pulse 2s infinite;
+}
+
+@keyframes jaali-glow-pulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+    }
+}
+
+/* ================================================
+   PREMIUM JAALI PANELS & SECTIONS
+   ================================================ */
+.jaali-panel {
+    background: var(--jaali-bg-card);
+    border: 1px solid var(--jaali-border-light);
+    border-radius: 12px;
+    padding: 25px;
+    position: relative;
+}
+
+.jaali-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        linear-gradient(135deg, 
+            rgba(212, 175, 55, 0.03) 0%, 
+            transparent 50%),
+        linear-gradient(225deg, 
+            rgba(212, 175, 55, 0.03) 0%, 
+            transparent 50%);
+    border-radius: 12px;
+    pointer-events: none;
+}
+
+.jaali-section {
+    background: linear-gradient(180deg, 
+        var(--jaali-bg-card) 0%, 
+        rgba(30, 25, 18, 0.9) 100%);
+    border-top: 2px solid var(--jaali-gold-primary);
+    border-bottom: 2px solid var(--jaali-gold-primary);
+    padding: 40px 0;
+    position: relative;
+}
+
+.jaali-section::before,
+.jaali-section::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--jaali-gold-primary), 
+        transparent);
+}
+
+.jaali-section::before {
+    top: 4px;
+}
+
+.jaali-section::after {
+    bottom: 4px;
+}
+
+/* ================================================
+   PREMIUM JAALI FORM ELEMENTS
+   ================================================ */
+.jaali-input {
+    background: rgba(26, 21, 16, 0.6);
+    border: 1px solid var(--jaali-border-light);
+    border-radius: 4px;
+    color: var(--jaali-text-primary);
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+}
+
+.jaali-input:focus {
+    outline: none;
+    border-color: var(--jaali-gold-primary);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
+}
+
+.jaali-input::placeholder {
+    color: rgba(212, 212, 212, 0.5);
+}
+
+.jaali-select {
+    background: rgba(26, 21, 16, 0.6);
+    border: 1px solid var(--jaali-border-light);
+    border-radius: 4px;
+    color: var(--jaali-text-primary);
+    padding: 12px 15px;
+}
+
+.jaali-select:focus {
+    outline: none;
+    border-color: var(--jaali-gold-primary);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
+}
+
+/* ================================================
+   PREMIUM JAALI TABLES
+   ================================================ */
+.jaali-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.jaali-table thead th {
+    background: linear-gradient(135deg, 
+        rgba(212, 175, 55, 0.2) 0%, 
+        rgba(212, 175, 55, 0.1) 100%);
+    color: var(--jaali-gold-primary);
+    padding: 15px;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--jaali-gold-primary);
+    text-align: left;
+}
+
+.jaali-table thead th:first-child {
+    border-radius: 8px 0 0 0;
+}
+
+.jaali-table thead th:last-child {
+    border-radius: 0 8px 0 0;
+}
+
+.jaali-table tbody td {
+    padding: 15px;
+    border-bottom: 1px solid var(--jaali-border-light);
+    color: var(--jaali-text-secondary);
+}
+
+.jaali-table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.jaali-table tbody tr:hover {
+    background: rgba(212, 175, 55, 0.05);
+}
+
+.jaali-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.jaali-table tbody tr:last-child td:first-child {
+    border-radius: 0 0 0 8px;
+}
+
+.jaali-table tbody tr:last-child td:last-child {
+    border-radius: 0 0 8px 0;
+}
+
+/* ================================================
+   PREMIUM JAALI NAVIGATION
+   ================================================ */
+.jaali-nav {
+    background: linear-gradient(180deg, 
+        rgba(26, 21, 16, 0.98) 0%, 
+        rgba(26, 21, 16, 0.95) 100%);
+    border-bottom: 2px solid var(--jaali-gold-primary);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.jaali-nav-item {
+    color: var(--jaali-text-secondary);
+    padding: 15px 20px;
+    text-decoration: none;
+    position: relative;
+    transition: color 0.3s ease;
+}
+
+.jaali-nav-item::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background: var(--jaali-gold-primary);
+    transition: width 0.3s ease;
+}
+
+.jaali-nav-item:hover,
+.jaali-nav-item.active {
+    color: var(--jaali-gold-primary);
+}
+
+.jaali-nav-item:hover::after,
+.jaali-nav-item.active::after {
+    width: 80%;
+}
+
+/* ================================================
+   PREMIUM JAALI FOOTER
+   ================================================ */
+.jaali-footer {
+    background: linear-gradient(180deg, 
+        rgba(26, 21, 16, 0.95) 0%, 
+        rgba(19, 25, 33, 1) 100%);
+    border-top: 3px solid var(--jaali-gold-primary);
+    padding: 40px 0 20px;
+    position: relative;
+}
+
+.jaali-footer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--jaali-gold-primary), 
+        transparent);
+}
+
+.jaali-footer-links a {
+    color: var(--jaali-text-secondary);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    position: relative;
+}
+
+.jaali-footer-links a:hover {
+    color: var(--jaali-gold-primary);
+}
+
+.jaali-footer-links a::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--jaali-gold-primary);
+    transition: width 0.3s ease;
+}
+
+.jaali-footer-links a:hover::after {
+    width: 100%;
+}
+
+/* ================================================
+   PREMIUM JAALI BADGES & TAGS
+   ================================================ */
+.jaali-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 12px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, 
+        var(--jaali-gold-primary) 0%, 
+        var(--jaali-gold-dark) 100%);
+    color: var(--jaali-bg-dark);
+}
+
+.jaali-badge-outline {
+    background: transparent;
+    border: 1px solid var(--jaali-gold-primary);
+    color: var(--jaali-gold-primary);
+}
+
+/* ================================================
+   PREMIUM JAALI MODALS
+   ================================================ */
+.jaali-modal .modal-content {
+    background: var(--jaali-bg-card);
+    border: 1px solid var(--jaali-border-light);
+    border-radius: 12px;
+    box-shadow: var(--jaali-shadow-deep);
+}
+
+.jaali-modal .modal-header {
+    background: linear-gradient(135deg, 
+        rgba(212, 175, 55, 0.15) 0%, 
+        rgba(212, 175, 55, 0.05) 100%);
+    border-bottom: 1px solid var(--jaali-border-light);
+    border-radius: 12px 12px 0 0;
+    padding: 20px 25px;
+}
+
+.jaali-modal .modal-title {
+    color: var(--jaali-gold-primary);
+    font-weight: 600;
+}
+
+.jaali-modal .modal-footer {
+    border-top: 1px solid var(--jaali-border-light);
+    padding: 15px 25px;
+}
+
+/* ================================================
+   PREMIUM JAALI ALERTS
+   ================================================ */
+.jaali-alert {
+    padding: 15px 20px;
+    border-radius: 8px;
+    border-left: 4px solid;
+    position: relative;
+    overflow: hidden;
+}
+
+.jaali-alert::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.05));
+}
+
+.jaali-alert-gold {
+    background: rgba(212, 175, 55, 0.1);
+    border-color: var(--jaali-gold-primary);
+    color: var(--jaali-gold-light);
+}
+
+.jaali-alert-success {
+    background: rgba(40, 167, 69, 0.1);
+    border-color: #28a745;
+    color: #75ff91;
+}
+
+.jaali-alert-danger {
+    background: rgba(220, 53, 69, 0.1);
+    border-color: #dc3545;
+    color: #ff6b7a;
+}
+
+/* ================================================
+   PREMIUM JAALI LOADERS
+   ================================================ */
+.jaali-loader {
+    width: 50px;
+    height: 50px;
+    border: 3px solid var(--jaali-border-light);
+    border-top-color: var(--jaali-gold-primary);
+    border-radius: 50%;
+    animation: jaali-spin 1s linear infinite;
+}
+
+@keyframes jaali-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.jaali-loader-dots {
+    display: flex;
+    gap: 8px;
+}
+
+.jaali-loader-dots span {
+    width: 12px;
+    height: 12px;
+    background: var(--jaali-gold-primary);
+    border-radius: 50%;
+    animation: jaali-bounce 1.4s infinite ease-in-out both;
+}
+
+.jaali-loader-dots span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.jaali-loader-dots span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes jaali-bounce {
+    0%, 80%, 100% {
+        transform: scale(0);
+    }
+    40% {
+        transform: scale(1);
+    }
+}
+
+/* ================================================
+   PREMIUM JAALI DIVIDERS
+   ================================================ */
+.jaali-divider {
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent, 
+        var(--jaali-border-light), 
+        var(--jaali-gold-primary), 
+        var(--jaali-border-light), 
+        transparent);
+    margin: 25px 0;
+}
+
+.jaali-divider-ornate {
+    height: 2px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        var(--jaali-gold-primary) 20%, 
+        var(--jaali-gold-light) 50%, 
+        var(--jaali-gold-primary) 80%, 
+        transparent 100%);
+    margin: 30px 0;
+    position: relative;
+}
+
+.jaali-divider-ornate::before {
+    content: "◆";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--jaali-gold-primary);
+    background: var(--jaali-bg-dark);
+    padding: 0 15px;
+}
+
+/* ================================================
+   RESPONSIVE ADJUSTMENTS
+   ================================================ */
+@media (max-width: 768px) {
+    .jaali-card {
+        margin-bottom: 15px;
+    }
+    
+    .jaali-section {
+        padding: 25px 0;
+    }
+    
+    .btn-jaali-glow {
+        padding: 10px 20px;
+        font-size: 0.85rem;
+    }
+}
+
+/* ================================================
+   PREMIUM JAALI TOP & BOTTOM BANNERS
+   Arabic Geometric Lattice Work - Golden & White
+   ================================================ */
+
+/* Top Jaali Banner */
+.jaali-top-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 35px;
+    background: linear-gradient(180deg, 
+        #1a1510 0%, 
+        rgba(26, 21, 16, 0.95) 50%,
+        rgba(26, 21, 16, 0.85) 100%);
+    border-bottom: 2px solid var(--jaali-gold-primary);
+    z-index: 9999;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* Golden ornate top border */
+.jaali-top-banner::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        /* Central diamond pattern */
+        linear-gradient(90deg, 
+            transparent 0%, 
+            transparent 10%,
+            rgba(212, 175, 55, 0.15) 10%,
+            rgba(212, 175, 55, 0.25) 12%,
+            rgba(255, 255, 255, 0.1) 14%,
+            rgba(212, 175, 55, 0.25) 16%,
+            rgba(212, 175, 55, 0.15) 18%,
+            transparent 18%,
+            transparent 22%,
+            rgba(212, 175, 55, 0.15) 22%,
+            rgba(212, 175, 55, 0.25) 24%,
+            rgba(255, 255, 255, 0.1) 26%,
+            rgba(212, 175, 55, 0.25) 28%,
+            rgba(212, 175, 55, 0.15) 30%,
+            transparent 30%,
+            transparent 70%,
+            rgba(212, 175, 55, 0.15) 70%,
+            rgba(212, 175, 55, 0.25) 72%,
+            rgba(255, 255, 255, 0.1) 74%,
+            rgba(212, 175, 55, 0.25) 76%,
+            rgba(212, 175, 55, 0.15) 78%,
+            transparent 78%,
+            transparent 82%,
+            rgba(212, 175, 55, 0.15) 82%,
+            rgba(212, 175, 55, 0.25) 84%,
+            rgba(255, 255, 255, 0.1) 86%,
+            rgba(212, 175, 55, 0.25) 88%,
+            rgba(212, 175, 55, 0.15) 90%,
+            transparent 90%,
+            transparent 100%);
+    background-size: 100px 100%;
+}
+
+/* Fine lattice pattern */
+.jaali-top-banner::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        /* Vertical fine lines */
+        repeating-linear-gradient(90deg,
+            transparent 0px,
+            transparent 8px,
+            rgba(212, 175, 55, 0.08) 8px,
+            rgba(212, 175, 55, 0.08) 9px,
+            transparent 9px,
+            transparent 15px),
+        /* Diagonal lattice */
+        linear-gradient(60deg, 
+            rgba(212, 175, 55, 0.05) 25%, 
+            transparent 25.5%, 
+            transparent 75%, 
+            rgba(212, 175, 55, 0.05) 75.5%),
+        linear-gradient(-60deg, 
+            rgba(212, 175, 55, 0.05) 25%, 
+            transparent 25.5%, 
+            transparent 75%, 
+            rgba(212, 175, 55, 0.05) 75.5%),
+        /* Small diamond accents */
+        linear-gradient(45deg, 
+            transparent 45%, 
+            rgba(255, 255, 255, 0.08) 47%, 
+            rgba(255, 255, 255, 0.08) 53%, 
+            transparent 55%),
+        linear-gradient(-45deg, 
+            transparent 45%, 
+            rgba(255, 255, 255, 0.08) 47%, 
+            rgba(255, 255, 255, 0.08) 53%, 
+            transparent 55%);
+    background-size: 
+        100% 100%,
+        30px 52px,
+        30px 52px,
+        40px 40px,
+        40px 40px;
+    background-position: 
+        0 0,
+        0 0,
+        15px 26px,
+        0 0,
+        20px 20px;
+}
+
+/* Top jaali center ornament */
+.jaali-top-ornament {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.jaali-top-ornament::before {
+    content: "✦";
+    color: var(--jaali-gold-primary);
+    font-size: 14px;
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.8);
+    animation: jaali-ornament-glow 2s ease-in-out infinite;
+}
+
+@keyframes jaali-ornament-glow {
+    0%, 100% { 
+        opacity: 0.8;
+        text-shadow: 0 0 10px rgba(212, 175, 55, 0.6);
+    }
+    50% { 
+        opacity: 1;
+        text-shadow: 0 0 20px rgba(212, 175, 55, 1), 0 0 30px rgba(255, 215, 0, 0.5);
+    }
+}
+
+/* Bottom Jaali Banner */
+.jaali-bottom-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 35px;
+    background: linear-gradient(0deg, 
+        #1a1510 0%, 
+        rgba(26, 21, 16, 0.95) 50%,
+        rgba(26, 21, 16, 0.85) 100%);
+    border-top: 2px solid var(--jaali-gold-primary);
+    z-index: 9999;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* Golden ornate bottom border */
+.jaali-bottom-banner::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        /* Central diamond pattern */
+        linear-gradient(90deg, 
+            transparent 0%, 
+            transparent 10%,
+            rgba(212, 175, 55, 0.15) 10%,
+            rgba(212, 175, 55, 0.25) 12%,
+            rgba(255, 255, 255, 0.1) 14%,
+            rgba(212, 175, 55, 0.25) 16%,
+            rgba(212, 175, 55, 0.15) 18%,
+            transparent 18%,
+            transparent 22%,
+            rgba(212, 175, 55, 0.15) 22%,
+            rgba(212, 175, 55, 0.25) 24%,
+            rgba(255, 255, 255, 0.1) 26%,
+            rgba(212, 175, 55, 0.25) 28%,
+            rgba(212, 175, 55, 0.15) 30%,
+            transparent 30%,
+            transparent 70%,
+            rgba(212, 175, 55, 0.15) 70%,
+            rgba(212, 175, 55, 0.25) 72%,
+            rgba(255, 255, 255, 0.1) 74%,
+            rgba(212, 175, 55, 0.25) 76%,
+            rgba(212, 175, 55, 0.15) 78%,
+            transparent 78%,
+            transparent 82%,
+            rgba(212, 175, 55, 0.15) 82%,
+            rgba(212, 175, 55, 0.25) 84%,
+            rgba(255, 255, 255, 0.1) 86%,
+            rgba(212, 175, 55, 0.25) 88%,
+            rgba(212, 175, 55, 0.15) 90%,
+            transparent 90%,
+            transparent 100%);
+    background-size: 100px 100%;
+}
+
+/* Fine lattice pattern */
+.jaali-bottom-banner::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        /* Vertical fine lines */
+        repeating-linear-gradient(90deg,
+            transparent 0px,
+            transparent 8px,
+            rgba(212, 175, 55, 0.08) 8px,
+            rgba(212, 175, 55, 0.08) 9px,
+            transparent 9px,
+            transparent 15px),
+        /* Diagonal lattice */
+        linear-gradient(60deg, 
+            rgba(212, 175, 55, 0.05) 25%, 
+            transparent 25.5%, 
+            transparent 75%, 
+            rgba(212, 175, 55, 0.05) 75.5%),
+        linear-gradient(-60deg, 
+            rgba(212, 175, 55, 0.05) 25%, 
+            transparent 25.5%, 
+            transparent 75%, 
+            rgba(212, 175, 55, 0.05) 75.5%),
+        /* Small diamond accents */
+        linear-gradient(45deg, 
+            transparent 45%, 
+            rgba(255, 255, 255, 0.08) 47%, 
+            rgba(255, 255, 255, 0.08) 53%, 
+            transparent 55%),
+        linear-gradient(-45deg, 
+            transparent 45%, 
+            rgba(255, 255, 255, 0.08) 47%, 
+            rgba(255, 255, 255, 0.08) 53%, 
+            transparent 55%);
+    background-size: 
+        100% 100%,
+        30px 52px,
+        30px 52px,
+        40px 40px,
+        40px 40px;
+    background-position: 
+        0 0,
+        0 0,
+        15px 26px,
+        0 0,
+        20px 20px;
+}
+
+/* Bottom jaali center ornament */
+.jaali-bottom-ornament {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.jaali-bottom-ornament::before {
+    content: "❂";
+    color: var(--jaali-gold-primary);
+    font-size: 16px;
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.8);
+    animation: jaali-ornament-glow 2s ease-in-out infinite;
+}
+
+/* Add padding to body to account for fixed top banner */
+body.jaali-padded {
+    padding-top: 35px;
+    padding-bottom: 35px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .jaali-top-banner,
+    .jaali-bottom-banner {
+        height: 25px;
+    }
+    
+    body.jaali-padded {
+        padding-top: 25px;
+        padding-bottom: 25px;
+    }
+    
+    .jaali-top-ornament::before,
+    .jaali-bottom-ornament::before {
+        font-size: 12px;
+    }
+}

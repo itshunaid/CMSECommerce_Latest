@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="Views\Subscription\Register.cshtml" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="Pages\Contact.txt" />
     <Content Include="Pages\Home.txt" />
     <Content Include="Pages\Services.txt" />
@@ -49,6 +53,10 @@
     <Folder Include="Views\Cart\" />
     <Folder Include="wwwroot\images\useruploads\" />
     <Folder Include="wwwroot\uploads\broadcast-attachments\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Views\Subscription\Register.cshtml" />
   </ItemGroup>
 
 </Project>

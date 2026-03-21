@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CMSECommerce.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/jaali-premium.css" asp-append-version="true" />
     @RenderSection("Styles", required: false)
     <style>
         :root {
@@ -18,14 +19,101 @@
             --amazon-btn-yellow-hover: #f7ca00;
             --amazon-teal: #007185;
             --amazon-link-hover: #c45500;
+            /* Enhanced Jaali Pattern Colors - Amazon Golden & Yellow */
+            --jaali-gold: #FFD814;
+            --jaali-gold-dark: #FF9900;
+            --jaali-gold-light: #F7CA00;
+            --jaali-gold-accent: #e5b100;
+            --jaali-bg: #eaeded;
         }
 
         html, body {
             font-size: 14px;
-            background-color: #eaeded;
             color: #0f1111;
             font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* --- Rich Golden Arabic Jaali Geometric Pattern --- */
+        body.premium-jaali-body {
+            background-color: #1a1510;
+            /* Rich Golden Islamic Jaali Pattern */
+            background-image: 
+                /* Base metallic gold layer */
+                linear-gradient(135deg, #d4af37 0%, #f5d68a 25%, #d4af37 50%, #c9a227 75%, #d4af37 100%),
+                /* Intricate jaali lattice - geometric star pattern */
+                radial-gradient(circle at 25% 25%, transparent 30%, #1a1510 30.5%, #1a1510 35%, transparent 35.5%),
+                radial-gradient(circle at 75% 25%, transparent 30%, #1a1510 30.5%, #1a1510 35%, transparent 35.5%),
+                radial-gradient(circle at 25% 75%, transparent 30%, #1a1510 30.5%, #1a1510 35%, transparent 35.5%),
+                radial-gradient(circle at 75% 75%, transparent 30%, #1a1510 30.5%, #1a1510 35%, transparent 35.5%),
+                /* Diamond lattice pattern */
+                linear-gradient(45deg, transparent 48%, #f5d68a 48.5%, #f5d68a 50.5%, transparent 51%),
+                linear-gradient(-45deg, transparent 48%, #f5d68a 48.5%, #f5d68a 50.5%, transparent 51%),
+                /* Hexagonal star pattern */
+                linear-gradient(60deg, #d4af3744 25%, transparent 25.5%, transparent 74.5%, #d4af3744 75%),
+                linear-gradient(120deg, #d4af3744 25%, transparent 25.5%, transparent 74.5%, #d4af3744 75%),
+                /* Fine lattice lines */
+                linear-gradient(30deg, #e8c547 5%, transparent 5.5%, transparent 94.5%, #e8c547 95%),
+                linear-gradient(150deg, #e8c547 5%, transparent 5.5%, transparent 94.5%, #e8c547 95%),
+                /* Arches pattern */
+                radial-gradient(circle at 50% 0%, transparent 20%, #f5d68a20 20.5%, #f5d68a20 35%, transparent 35.5%);
+            background-size: 
+                100% 100%,
+                60px 60px,
+                60px 60px,
+                60px 60px,
+                60px 60px,
+                50px 50px,
+                50px 50px,
+                80px 140px,
+                80px 140px,
+                100px 180px,
+                100px 180px,
+                80px 80px;
+            background-position: 
+                0 0,
+                0 0,
+                30px 30px,
+                0 0,
+                30px 30px,
+                0 0,
+                25px 25px,
+                0 0,
+                40px 70px,
+                0 0,
+                50px 90px,
+                0 0;
+            background-attachment: fixed;
+        }
+
+        /* Rich golden overlay */
+        body.premium-jaali-body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 30% 20%, rgba(212, 175, 55, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(245, 214, 138, 0.1) 0%, transparent 50%),
+                linear-gradient(180deg, rgba(26, 21, 16, 0.7) 0%, rgba(26, 21, 16, 0.5) 50%, rgba(26, 21, 16, 0.7) 100%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Add subtle inner shadow for depth */
+        body.premium-jaali-body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 0 0 100px rgba(19, 25, 33, 0.1);
+            z-index: -1;
+            pointer-events: none;
         }
 
         /* --- Global Cart Styling --- */
@@ -38,10 +126,10 @@
             color: white !important;
         }
 
-        .nav-cart-link:hover {
-            border: 1px solid white;
-            border-radius: 2px;
-        }
+            .nav-cart-link:hover {
+                border: 1px solid white;
+                border-radius: 2px;
+            }
 
         .cart-icon-container {
             position: relative;
@@ -77,32 +165,35 @@
             position: relative;
         }
 
-        .service-promo-banner::after {
-            content: "";
-            position: absolute;
-            right: 0; top: 0; width: 200px; height: 100%;
-            background: linear-gradient(to left, rgba(255,216,20,0.05), transparent);
-            pointer-events: none;
-        }
+            .service-promo-banner::after {
+                content: "";
+                position: absolute;
+                right: 0;
+                top: 0;
+                width: 200px;
+                height: 100%;
+                background: linear-gradient(to left, rgba(255,216,20,0.05), transparent);
+                pointer-events: none;
+            }
 
-        .service-promo-banner .banner-icon {
-            color: var(--amazon-orange);
-            opacity: 0.8;
-        }
+            .service-promo-banner .banner-icon {
+                color: var(--amazon-orange);
+                opacity: 0.8;
+            }
 
-        .service-promo-banner .btn-warning {
-            background-color: var(--amazon-btn-yellow);
-            color: #111;
-            border: none;
-            font-weight: 700;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            transition: all 0.2s;
-        }
+            .service-promo-banner .btn-warning {
+                background-color: var(--amazon-btn-yellow);
+                color: #111;
+                border: none;
+                font-weight: 700;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                transition: all 0.2s;
+            }
 
-        .service-promo-banner .btn-warning:hover {
-            background-color: var(--amazon-btn-yellow-hover);
-            transform: translateY(-1px);
-        }
+                .service-promo-banner .btn-warning:hover {
+                    background-color: var(--amazon-btn-yellow-hover);
+                    transform: translateY(-1px);
+                }
 
         .contact-details .small {
             font-size: 0.85rem;
@@ -116,6 +207,8 @@
             border-bottom: 2px solid var(--amazon-btn-yellow);
             overflow: hidden;
             display: flex;
+            position: relative;
+            z-index: 1030;
         }
 
         .marquee-content {
@@ -133,11 +226,18 @@
             text-transform: uppercase;
         }
 
-        .marquee-item span { color: var(--amazon-btn-yellow); }
+            .marquee-item span {
+                color: var(--amazon-btn-yellow);
+            }
 
         @@keyframes marquee-infinite {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
         }
 
         .bg-amazon-main {
@@ -153,10 +253,10 @@
             line-height: 1;
         }
 
-        .navbar-brand:hover {
-            border: 1px solid white;
-            border-radius: 2px;
-        }
+            .navbar-brand:hover {
+                border: 1px solid white;
+                border-radius: 2px;
+            }
 
         .brand-tag-line {
             font-size: 0.7rem;
@@ -184,10 +284,10 @@
             border: 2px solid transparent;
         }
 
-        .amazon-search-bar:focus-within {
-            border: 2px solid #ff9900;
-            box-shadow: 0 0 5px rgba(255, 153, 0, 0.5);
-        }
+            .amazon-search-bar:focus-within {
+                border: 2px solid #ff9900;
+                box-shadow: 0 0 5px rgba(255, 153, 0, 0.5);
+            }
 
         .search-category-pill {
             background: #f3f3f3;
@@ -220,18 +320,18 @@
             padding: 0 10px;
         }
 
-        .sub-nav-bar .nav-link {
-            color: #fff !important;
-            font-weight: 500;
-            font-size: 0.85rem;
-            border: 1px solid transparent;
-            padding: 5px 10px !important;
-        }
+            .sub-nav-bar .nav-link {
+                color: #fff !important;
+                font-weight: 500;
+                font-size: 0.85rem;
+                border: 1px solid transparent;
+                padding: 5px 10px !important;
+            }
 
-        .sub-nav-bar .nav-link:hover {
-            border: 1px solid white;
-            border-radius: 2px;
-        }
+                .sub-nav-bar .nav-link:hover {
+                    border: 1px solid white;
+                    border-radius: 2px;
+                }
 
         .nav-tool-link {
             border: 1px solid transparent;
@@ -241,18 +341,35 @@
             display: block;
         }
 
-        .nav-tool-link:hover {
-            border: 1px solid white;
-            border-radius: 2px;
+            .nav-tool-link:hover {
+                border: 1px solid white;
+                border-radius: 2px;
+            }
+
+        .nav-line-1 {
+            font-size: 0.75rem;
+            color: #ccc;
+            display: block;
         }
 
-        .nav-line-1 { font-size: 0.75rem; color: #ccc; display: block; }
-        .nav-line-2 { font-size: 0.9rem; font-weight: 700; display: block; }
+        .nav-line-2 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            display: block;
+        }
 
         .main-content-container {
             max-width: 1500px;
             margin: auto;
             min-height: 80vh;
+            position: relative;
+        }
+
+        .category-sidebar-header {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            padding-left: 5px;
         }
 
         .back-to-top {
@@ -264,12 +381,16 @@
             text-decoration: none;
             display: block;
             font-size: 0.85rem;
+            position: relative;
+            z-index: 5;
         }
 
         footer.amazon-footer {
             background-color: var(--amazon-blue) !important;
             color: #ddd !important;
             padding-bottom: 40px;
+            position: relative;
+            z-index: 5;
         }
 
         .footer-link {
@@ -278,29 +399,36 @@
             font-size: 0.8rem;
         }
 
-        .footer-link:hover {
-            text-decoration: underline;
-            color: #fff;
-        }
+            .footer-link:hover {
+                text-decoration: underline;
+                color: #fff;
+            }
 
         @@media (max-width: 768px) {
             .service-promo-banner {
                 text-align: center;
                 justify-content: center !important;
             }
+
             .banner-contact {
                 flex-direction: column;
                 width: 100%;
             }
+
             .contact-details {
                 margin-right: 0 !important;
                 margin-bottom: 15px;
                 text-align: center !important;
             }
         }
-    </style>
+</style>
 </head>
-<body>
+<body class="premium-jaali-body jaali-padded">
+    <!-- Premium Arabic Jaali Top Banner -->
+    <div class="jaali-top-banner">
+        <div class="jaali-top-ornament"></div>
+    </div>
+
     <div class="brand-top-header">
         <div class="marquee-content">
             @for (int i = 0; i < 5; i++)
@@ -411,7 +539,7 @@
     </header>
 
     <div class="container-fluid main-content-container py-4">
-        
+
         <div class="service-promo-banner d-flex align-items-center justify-content-between flex-wrap shadow-sm">
             <div class="banner-content d-flex align-items-center p-3">
                 <div class="banner-icon me-4 d-none d-md-block">
@@ -426,9 +554,9 @@
                 <div class="contact-details me-4 text-md-end">
                     <div class="small fw-bold text-warning">Direct Consultation:</div>
                     <div class="small text-white-50"><i class="fas fa-envelope me-1"></i> reach_hunaid@outlook.com</div>
-                    <div class="small text-white-50"><i class="fab fa-whatsapp me-1 text-success"></i> +91 9603303252</div>
+                    <div class="small text-white-50"><i class="fab fa-whatsapp me-1 text-success"></i> +91 9603302152</div>
                 </div>
-                <a href="https://wa.me/919603303252" target="_blank" class="btn btn-warning px-4 py-2">
+                <a href="https://wa.me/919603302152" target="_blank" class="btn btn-warning px-4 py-2">
                     Start Your Project
                 </a>
             </div>
@@ -481,7 +609,10 @@
                     <div class="d-flex align-items-center justify-content-center mb-3">
                         <span class="fw-light text-white" style="font-size: 1.2rem;">WE</span><span class="text-warning" style="font-size: 1.2rem;">y</span>paari
                     </div>
-                    <div class="small text-white-50">Developed by <span class="text-white">Mulla Hunaid Mulla Hasan Jamali</span></div>
+                    <div class="small text-white-50">An Initiative by</div>
+                    <div class="small text-white-50"><span class="text-white">Anjuman-E-Burhani, Hyderabad, Hussaini Alam Jamaat</span></div>
+                    <div class="small text-white-50">Developed by</div>
+                    <div class="small text-white-50"><span class="text-white">Mulla Hunaid Mulla Hasan Jamali</span></div>
                 </div>
                 <div class="col-md-4 mb-4 text-md-end">
                     <h6 class="fw-bold text-white mb-3">Community</h6>
@@ -519,5 +650,10 @@
             }
         });
     </script>
+
+    <!-- Premium Arabic Jaali Bottom Banner -->
+    <div class="jaali-bottom-banner">
+        <div class="jaali-bottom-ornament"></div>
+    </div>
 </body>
 </html>

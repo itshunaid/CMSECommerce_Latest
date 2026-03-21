@@ -312,43 +312,110 @@
                     </div>
 
                     <!-- Sellers with Most Declines -->
-                    @if (Model.SellersWithDeclines.Any())
-                    {
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Sellers with Order Declines</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="table-responsive">
-                                            <table class="table table-striped">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Seller</th>
-                                                        <th>Manual Declines</th>
-                                                        <th>Auto Declines</th>
-                                                        <th>Total Declines</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach (var seller in Model.SellersWithDeclines)
-                                                    {
+@if (Model.SellersWithDeclines.Any())
+                        {
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Sellers with Order Declines</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-striped">
+                                                    <thead>
                                                         <tr>
-                                                            <td>@seller.SellerName</td>
-                                                            <td><span class="badge badge-warning">@seller.ManualDeclines</span></td>
-                                                            <td><span class="badge badge-danger">@seller.AutoDeclines</span></td>
-                                                            <td><span class="badge badge-dark">@seller.TotalDeclines</span></td>
+                                                            <th>Seller</th>
+                                                            <th>Manual Declines</th>
+                                                            <th>Auto Declines</th>
+                                                            <th>Total Declines</th>
                                                         </tr>
-                                                    }
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var seller in Model.SellersWithDeclines)
+                                                        {
+                                                            <tr>
+                                                                <td>@seller.SellerName</td>
+                                                                <td><span class="badge badge-warning">@seller.ManualDeclines</span></td>
+                                                                <td><span class="badge badge-danger">@seller.AutoDeclines</span></td>
+                                                                <td><span class="badge badge-dark">@seller.TotalDeclines</span></td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        }
+
+                    <!-- New: Recent Activity -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="mb-0"><i class="fas fa-list"></i> Recent Admin Activities</h5>
+                                </div>
+                                <div class="card-body">
+                                    @if (Model.RecentAdminActivities.Any())
+                                    {
+                                        <ul class="list-group list-group-flush">
+                                            @foreach (var activity in Model.RecentAdminActivities.Take(5))
+                                            {
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>@activity.AdminName</strong> - @activity.Action
+                                                        <br />
+                                                        <small class="text-muted">@activity.Timestamp.ToString("MMM dd, HH:mm") - @activity.Details</small>
+                                                    </div>
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">No recent admin activities.</p>
+                                    }
+                                </div>
+                            </div>
                         </div>
-                    }
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-secondary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-broadcast-tower"></i> Recent Broadcasts (@Model.RecentBroadcastsCount)</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted">Broadcast messages sent in last 7 days.</p>
+                                    <a href="@Url.Action("History", "Broadcast")" class="btn btn-outline-secondary btn-sm">View All Broadcasts</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Section -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> User Role Distribution</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="roleChart" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Daily Orders (7 Days)</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="ordersChart" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -356,8 +423,53 @@
 </div>
 
 @section Scripts {
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         $(document).ready(function () {
+            // Role Pie Chart
+            const roleCtx = document.getElementById('roleChart').getContext('2d');
+            new Chart(roleCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Admins', 'Subscribers', 'Customers'],
+                    datasets: [{
+                        data: [@Model.TotalAdmins, @Model.TotalSubscribers, @Model.TotalCustomers],
+                        backgroundColor: ['#6f42c1', '#28a745', '#17a2b8']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+
+            // Daily Orders Line Chart
+            const ordersCtx = document.getElementById('ordersChart').getContext('2d');
+            new Chart(ordersCtx, {
+                type: 'line',
+                data: {
+                    labels: [@Html.Raw(string.Join(",", Model.DailyStats.Select(ds => $"'{ds.Date:MMM dd}'")))],
+                    datasets: [{
+                        label: 'Orders',
+                        data: [@Html.Raw(string.Join(",", Model.DailyStats.Select(ds => ds.Orders)))],
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Active Users',
+                        data: [@Html.Raw(string.Join(",", Model.DailyStats.Select(ds => ds.ActiveUsers)))],
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'top' } }
+                }
+            });
+
             $('#testSmtpBtn').click(function () {
                 $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Testing...');
 
@@ -376,3 +488,4 @@
         });
     </script>
 }
+

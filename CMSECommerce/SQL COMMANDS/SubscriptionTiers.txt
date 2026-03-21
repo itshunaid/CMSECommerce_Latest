@@ -24,3 +24,42 @@ Update dbo.SubscriptionTiers set Price=0 where Name='Trial'
 SELECT TOP 1000 * FROM dbo.UserProfiles;
 
 update dbo.UserProfiles set currentProductlimit=10 where currentProductlimit=5;
+
+
+
+
+
+-----------------------Extended FREE TRIAL-----------------------
+
+UPDATE dbo.UserProfiles 
+SET 
+    SubscriptionStartDate = GETDATE(), 
+    SubscriptionEndDate = DATEADD(month, 1, GETDATE()) 
+WHERE CurrentProductLimit = 10;
+
+
+UPDATE dbo.UserProfiles 
+SET 
+    CurrentTierId = 1, 
+    CurrentProductLimit = 10;
+
+
+
+INSERT INTO dbo.AspNetUserRoles (UserId, RoleId)
+SELECT u.Id, '7f90378b-3001-443b-8736-411a91341c2e' -- <--- Put Subscriber ID here
+FROM dbo.AspNetUsers u
+JOIN dbo.UserProfiles up ON u.Id = up.UserId
+WHERE up.CurrentTierID = 1
+  -- Exclude existing Admins
+  AND NOT EXISTS (
+      SELECT 1 FROM dbo.AspNetUserRoles aur 
+      WHERE aur.UserId = u.Id 
+      AND aur.RoleId = '5f90378b-3001-443b-8736-411a91341c2c' -- <--- Put Admin ID here
+  )
+  -- Prevent duplicate Subscriber roles
+  AND NOT EXISTS (
+      SELECT 1 FROM dbo.AspNetUserRoles aur 
+      WHERE aur.UserId = u.Id 
+      AND aur.RoleId = '7f90378b-3001-443b-8736-411a91341c2e' -- <--- Put Subscriber ID here
+  );
+----------------------------------------------------------------------------------------------------
