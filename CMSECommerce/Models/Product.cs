@@ -90,6 +90,9 @@ namespace CMSECommerce.Models
         // Navigation Property
         [ForeignKey("StoreId")]
         public virtual Store Store { get; set; }
+
+        [NotMapped]
+        public string WhatsAppUrl { get; set; }
     }
 
     public class Review

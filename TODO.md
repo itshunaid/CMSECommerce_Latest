@@ -1,12 +1,25 @@
-# TODO - Premium Arabic Jaali Implementation
+# Task: Add email notifications (already exist) and WhatsApp button for product approve/reject on /admin/products/pendingproducts
 
-## Task: Implement premium Arabic golden yellow and white jaali in top and bottom of all pages
+## Steps to Complete (Approved Plan):
 
-### Steps:
-- [x] 1. Add premium jaali CSS styles (top/bottom decorative bands) to jaali-premium.css
-- [x] 2. Add jaali top and bottom to Main Layout (Views/Shared/_Layout.cshtml)
-- [x] 3. Add jaali top and bottom to Admin Layout (Areas/Admin/Views/Shared/_Layout.cshtml)
-- [x] 4. Add jaali top and bottom to SuperAdmin Layout (Areas/SuperAdmin/Views/Shared/_Layout.cshtml)
-- [x] 5. Add jaali top and bottom to Seller Layout (Areas/Seller/Views/Shared/_Layout.cshtml)
+### 1. ✅ Update ProductListViewModel.cs
+- Added WhatsAppUrl property.
+- Add `public string WhatsAppUrl { get; set; }` property.
 
-### Status: Completed
+### 2. Update Areas/Admin/Controllers/ProductsController.cs
+- In `PendingProducts()` action: For each product, fetch UserProfile.WhatsAppNumber, clean it (remove non-digits, prepend '91' if needed), construct `https://wa.me/{number}?text=...` (pre-filled msg with status), set in viewmodel.
+- Enhance Approve/Reject: Already sends email; optionally log WhatsApp URL or improve msg.
+
+### 3. ✅ Update Areas/Admin/Views/Products/Index.cshtml
+- Added WhatsApp button in action-group for products with WhatsAppUrl (pending/rejected).
+- In product card action-group (for non-Approved): Add WhatsApp button `<a href="@item.WhatsAppUrl" target="_blank" class="btn btn-success btn-sm"><i class="bi bi-whatsapp"></i> WA</a>`.
+
+### 4. Test
+- Submit product as seller → pending.
+- Admin: Approve → check email + WA button opens chat.
+- Admin: Reject → check email with reason + WA button.
+
+### 5. Completion
+- use attempt_completion
+
+**Progress: 4/5**

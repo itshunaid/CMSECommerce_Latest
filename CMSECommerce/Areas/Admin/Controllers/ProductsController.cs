@@ -144,6 +144,7 @@ namespace CMSECommerce.Areas.Admin.Controllers
                 // 2. Base Query and Filtering
                 var productsQuery = _context.Products
                                              .Include(x => x.Category)
+                                             .Include(x => x.User)
                                              .Where(x => x.Status != ProductStatus.Approved)
                                              .AsQueryable();
 
@@ -162,6 +163,28 @@ namespace CMSECommerce.Areas.Admin.Controllers
                                              .Skip((p - 1) * pageSize)
                                              .Take(pageSize)
                                              .ToListAsync();
+
+                // Set WhatsAppUrl for each product
+                foreach (var product in products)
+                {
+                    if (!string.IsNullOrEmpty(product.UserId))
+                    {
+                        var profile = await _context.UserProfiles
+                            .Where(up => up.UserId == product.UserId)
+                            .Select(up => up.WhatsAppNumber)
+                            .FirstOrDefaultAsync();
+                        
+                        if (!string.IsNullOrEmpty(profile))
+                        {
+                            var cleanNumber = System.Text.RegularExpressions.Regex.Replace(profile, @"[^\d]", "");
+                            if (cleanNumber.StartsWith("0")) cleanNumber = cleanNumber.Substring(1);
+                            if (!cleanNumber.StartsWith("91")) cleanNumber = "91" + cleanNumber;
+                            
+                            var message = System.Uri.EscapeDataString($"Hi, regarding your product '{product.Name}' - Status: PENDING ADMIN REVIEW. Please check your dashboard.");
+                            product.WhatsAppUrl = $"https://wa.me/{cleanNumber}?text={message}";
+                        }
+                    }
+                }
 
                 // 4. Instantiate PaginatedList
                 paginatedProducts = new PaginatedList<Product>(products, totalCount, p, pageSize);
