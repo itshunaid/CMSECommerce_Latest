@@ -59,5 +59,8 @@ namespace CMSECommerce.Models
         [Display(Name = "Status")]
         [StringLength(50)]
         public string Status { get; set; } = "Pending"; // Pending, Sent, Failed
+
+        // ✅ NEW
+        public ICollection<BroadcastRecipient> Recipients { get; set; }
     }
 }

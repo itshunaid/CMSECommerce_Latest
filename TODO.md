@@ -1,25 +1,36 @@
-# Task: Add email notifications (already exist) and WhatsApp button for product approve/reject on /admin/products/pendingproducts
+# SuperAdmin Dashboard Improvements - Approved Plan (User Focus: Dashboard + Real-time Monitoring)
 
-## Steps to Complete (Approved Plan):
+Status: In Progress ✅
 
-### 1. ✅ Update ProductListViewModel.cs
-- Added WhatsAppUrl property.
-- Add `public string WhatsAppUrl { get; set; }` property.
+## Steps:
 
-### 2. Update Areas/Admin/Controllers/ProductsController.cs
-- In `PendingProducts()` action: For each product, fetch UserProfile.WhatsAppNumber, clean it (remove non-digits, prepend '91' if needed), construct `https://wa.me/{number}?text=...` (pre-filled msg with status), set in viewmodel.
-- Enhance Approve/Reject: Already sends email; optionally log WhatsApp URL or improve msg.
+### 1. [IN PROGRESS] Create TODO.md ✅
+   - Track approved plan progress.
 
-### 3. ✅ Update Areas/Admin/Views/Products/Index.cshtml
-- Added WhatsApp button in action-group for products with WhatsAppUrl (pending/rejected).
-- In product card action-group (for non-Approved): Add WhatsApp button `<a href="@item.WhatsAppUrl" target="_blank" class="btn btn-success btn-sm"><i class="bi bi-whatsapp"></i> WA</a>`.
+### 2. Read/Understand Files ✅
+   - SuperAdminDashboardViewModel.cs ✅
+   - DashboardController.cs ✅
+   - Dashboard/Index.cshtml ✅
 
-### 4. Test
-- Submit product as seller → pending.
-- Admin: Approve → check email + WA button opens chat.
-- Admin: Reject → check email with reason + WA button.
+### 3. Enhance DashboardController ✅
+   - Add IMemoryCache for metrics (reduce DB load) ✅
+   - Add PDF Export action (PlaywrightPdfController) 
+   - Add SignalR integration for real-time pushes (extend existing ChatHub or new method).
 
-### 5. Completion
-- use attempt_completion
+### 4. Update ViewModel (if needed)
+   - Add properties for real-time flags/cached expiry.
 
-**Progress: 4/5**
+### 5. Enhance Dashboard View
+   - Add real-time refresh: SignalR client or AJAX polling (30s interval).
+   - PDF export button.
+   - Loading spinners for charts/metrics.
+   - Auto-update charts on new data.
+
+### 6. Test & Update TODOs
+   - dotnet build & run.
+   - Verify real-time updates (simulate new order/activity).
+   - Update TODO_SUPERADMIN_*.md files.
+   - Mark complete.
+
+Next Step: File analysis complete, proceed to enhancements.
+

@@ -1,4 +1,4 @@
-using CMSECommerce.Infrastructure;
+﻿using CMSECommerce.Infrastructure;
 using CMSECommerce.Models;
 using CMSECommerce.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -23,18 +23,22 @@ namespace CMSECommerce.Areas.SuperAdmin.Controllers
         private readonly ILogger<BroadcastController> _logger;
         private readonly IWebHostEnvironment _webHostEnvironment;
 
+        private readonly IConfiguration _configuration;
+
         public BroadcastController(
             DataContext context,
             IEmailService emailService,
             UserManager<IdentityUser> userManager,
             ILogger<BroadcastController> logger,
-            IWebHostEnvironment webHostEnvironment)
+            IWebHostEnvironment webHostEnvironment,
+            IConfiguration configuration)
         {
             _context = context;
             _emailService = emailService;
             _userManager = userManager;
             _logger = logger;
             _webHostEnvironment = webHostEnvironment;
+            _configuration = configuration;
         }
 
         private async Task<List<IdentityUser>> GetActiveSellersAsync()
@@ -105,305 +109,194 @@ namespace CMSECommerce.Areas.SuperAdmin.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Send(
-            [FromForm] string subject,
-            [FromForm] string body,
-            [FromForm] string audience, // "sellers" or "customers" or "both"
-            [FromForm] bool sendToAll,
-            [FromForm] string selectedIds,
-            [FromForm] IFormFile attachmentFile)
+            string subject,
+            string body,
+            string audience,
+            bool sendToAll,
+            string selectedIds,
+            IFormFile attachmentFile)
         {
             if (string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(body))
             {
-                TempData["error"] = "Subject and message body are required.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            if (string.IsNullOrWhiteSpace(audience) || (audience != "sellers" && audience != "customers" && audience != "both"))
-            {
-                TempData["error"] = "Invalid audience selected.";
+                TempData["error"] = "Subject and body are required.";
                 return RedirectToAction(nameof(Index));
             }
 
             try
             {
-                // Robustly interpret checkbox value: HTML checkbox often posts "on" when checked
-                var sendToAllRaw = (Request.Form["sendToAll"].FirstOrDefault() ?? string.Empty).ToLowerInvariant();
-                bool sendToAllFlag = sendToAll || sendToAllRaw == "on" || sendToAllRaw == "true" || sendToAllRaw == "1";
-
                 var currentUser = await _userManager.GetUserAsync(User);
                 if (currentUser == null)
-                {
-                    TempData["error"] = "User not found.";
                     return RedirectToAction(nameof(Index));
-                }
 
-                // Verify the user exists in the database to ensure foreign key validity
-                var dbUser = await _context.Users.FindAsync(currentUser.Id);
-                if (dbUser == null)
-                {
-                    _logger.LogError("Current user {UserId} not found in database context", currentUser.Id);
-                    TempData["error"] = "User validation failed. Please log in again.";
-                    return RedirectToAction(nameof(Index));
-                }
-
-
-                List<IdentityUser> recipients = new();
-                var selectedSellerIds = new List<string>();
-                var selectedCustomerIds = new List<string>();
+                var recipients = new List<IdentityUser>();
 
                 if (audience == "sellers" || audience == "both")
-                {
-                    if (sendToAllFlag && audience == "sellers")
-                    {
-                        recipients = (await GetActiveSellersAsync()).ToList();
-                    }
-                    else if (sendToAllFlag && audience == "both")
-                    {
-                        // we'll populate later by combining both lists
-                    }
-                    else if (!sendToAllFlag && (audience == "sellers" || audience == "both"))
-                    {
-                        if (string.IsNullOrWhiteSpace(selectedIds))
-                        {
-                            TempData["error"] = "Please select at least one seller.";
-                            return RedirectToAction(nameof(Index));
-                        }
-
-                        var ids = selectedIds.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
-                        foreach (var id in ids)
-                        {
-                            var user = await _userManager.FindByIdAsync(id);
-                            if (user == null) continue;
-                            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
-                            var now = DateTime.UtcNow;
-                            // classify
-                            if (profile != null && profile.SubscriptionStartDate != null && profile.SubscriptionEndDate != null && profile.SubscriptionEndDate >= now)
-                            {
-                                if (!selectedSellerIds.Contains(user.Id)) selectedSellerIds.Add(user.Id);
-                                if (!recipients.Any(r => r.Id == user.Id)) recipients.Add(user);
-                            }
-                            else
-                            {
-                                if (!selectedCustomerIds.Contains(user.Id)) selectedCustomerIds.Add(user.Id);
-                                if (!recipients.Any(r => r.Id == user.Id)) recipients.Add(user);
-                            }
-                        }
-                    }
-                }
+                    recipients.AddRange(await GetActiveSellersAsync());
 
                 if (audience == "customers" || audience == "both")
-                {
-                    if (sendToAllFlag && audience == "customers")
-                    {
-                        recipients = (await GetCustomersAsync()).ToList();
-                    }
-                    else if (sendToAllFlag && audience == "both")
-                    {
-                        // we'll populate later by combining both lists
-                    }
-                    else if (!sendToAllFlag && audience == "customers")
-                    {
-                        if (string.IsNullOrWhiteSpace(selectedIds))
-                        {
-                            TempData["error"] = "Please select at least one customer.";
-                            return RedirectToAction(nameof(Index));
-                        }
+                    recipients.AddRange(await GetCustomersAsync());
 
-                        var ids = selectedIds.Split(',').Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
-                        foreach (var id in ids)
-                        {
-                            var user = await _userManager.FindByIdAsync(id);
-                            if (user == null) continue;
-                            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
-                            var now = DateTime.UtcNow;
-                            if (profile == null || !(profile.SubscriptionStartDate != null && profile.SubscriptionEndDate != null && profile.SubscriptionEndDate >= now))
-                            {
-                                if (!selectedCustomerIds.Contains(user.Id)) selectedCustomerIds.Add(user.Id);
-                                if (!recipients.Any(r => r.Id == user.Id)) recipients.Add(user);
-                            }
-                        }
-                    }
+                recipients = recipients.GroupBy(x => x.Id).Select(g => g.First()).ToList();
+
+                if (!sendToAll && !string.IsNullOrWhiteSpace(selectedIds))
+                {
+                    var ids = selectedIds.Split(',');
+                    recipients = recipients.Where(r => ids.Contains(r.Id)).ToList();
                 }
 
-                // Handle sendToAll for 'both' audience by combining both lists
-                if (sendToAllFlag && audience == "both")
-                {
-                    var sellers = await GetActiveSellersAsync();
-                    var customers = await GetCustomersAsync();
-                    // combine distinct by Id
-                    var combined = sellers.Concat(customers).GroupBy(u => u.Id).Select(g => g.First()).ToList();
-                    recipients = combined;
-                }
-
-                // Remove recipients without a valid email and log them
-                var initialCount = recipients.Count;
-                var invalidEmails = new List<string>();
-                recipients = recipients.Where(u =>
-                {
-                    if (string.IsNullOrWhiteSpace(u?.Email))
-                    {
-                        invalidEmails.Add(u?.Id ?? "<unknown>");
-                        return false;
-                    }
-                    return true;
-                }).ToList();
-
-                if (invalidEmails.Any())
-                {
-                    _logger.LogWarning("Broadcast recipients removed due to missing email addresses: {Ids}", string.Join(',', invalidEmails));
-                }
+                recipients = recipients.Where(r => !string.IsNullOrWhiteSpace(r.Email)).ToList();
 
                 if (!recipients.Any())
                 {
-                    TempData["error"] = "No recipients with valid email addresses found for the selected audience.";
+                    TempData["error"] = "No valid recipients found.";
                     return RedirectToAction(nameof(Index));
                 }
 
-                // Handle attachment upload
+                // File Upload
                 string attachmentPath = null;
                 string attachmentFileName = null;
 
                 if (attachmentFile != null && attachmentFile.Length > 0)
                 {
-                    // Validate file size (max 10 MB)
-                    if (attachmentFile.Length > 10 * 1024 * 1024)
-                    {
-                        TempData["error"] = "File size cannot exceed 10 MB.";
-                        return RedirectToAction(nameof(Index));
-                    }
+                    var folder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "broadcast");
+                    Directory.CreateDirectory(folder);
 
-                    try
-                    {
-                        attachmentFileName = Path.GetFileName(attachmentFile.FileName);
-                        var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "broadcast-attachments");
-                        Directory.CreateDirectory(uploadsFolder);
+                    attachmentFileName = $"{Guid.NewGuid()}_{attachmentFile.FileName}";
+                    attachmentPath = Path.Combine(folder, attachmentFileName);
 
-                        var uniqueFileName = $"{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid()}_{attachmentFileName}";
-                        attachmentPath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                        using var fileStream = new FileStream(attachmentPath, FileMode.Create);
-                        await attachmentFile.CopyToAsync(fileStream);
-
-                        _logger.LogInformation("Attachment uploaded: {AttachmentPath}", attachmentPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to upload attachment");
-                        TempData["warning"] = "Attachment upload failed, sending without attachment.";
-                        attachmentPath = null;
-                        attachmentFileName = null;
-                    }
+                    using var stream = new FileStream(attachmentPath, FileMode.Create);
+                    await attachmentFile.CopyToAsync(stream);
                 }
 
+                // Validate SMTP config before sending
+                var smtpSection = _configuration.GetSection("EmailSettings"); // Add IConfiguration to constructor if needed
+                if (!smtpSection.Exists() || string.IsNullOrEmpty(smtpSection["SmtpServer"]) || string.IsNullOrEmpty(smtpSection["SenderEmail"]))
+                {
+                    TempData["error"] = "Email configuration is missing. Check appsettings.json EmailSettings.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Save Broadcast
                 var broadcast = new BroadcastMessage
                 {
                     Subject = subject,
                     Body = body,
-                    AttachmentFileName = attachmentFileName,
-                    AttachmentPath = attachmentPath,
-                    SendToAllSellers = (audience == "sellers" && sendToAllFlag) || (audience == "both" && sendToAllFlag),
-                    SelectedSellerIds = selectedSellerIds.Any() ? string.Join(',', selectedSellerIds) : null,
-                    SendToAllCustomers = (audience == "customers" && sendToAllFlag) || (audience == "both" && sendToAllFlag),
-                    SelectedCustomerIds = selectedCustomerIds.Any() ? string.Join(',', selectedCustomerIds) : null,
                     SentByUserId = currentUser.Id,
                     DateSent = DateTime.UtcNow,
                     RecipientCount = recipients.Count,
-                    Status = "Pending"
+                    Status = "Sending",
+                    AttachmentFileName = attachmentFileName,
+                    AttachmentPath = attachmentPath
                 };
 
                 _context.BroadcastMessages.Add(broadcast);
-                try
+                await _context.SaveChangesAsync();
+
+                // Save recipients
+                var recipientEntities = recipients.Select(r => new BroadcastRecipient
                 {
-                    await _context.SaveChangesAsync();
-                }
-                catch (Exception ex)
-                {
-                    // Log detailed information about the failure
-                    _logger.LogError(ex, "Failed to save BroadcastMessage entity to database. " +
-                        "Subject: {Subject}, Body Length: {BodyLength}, SentByUserId: {SentByUserId}, " +
-                        "RecipientCount: {RecipientCount}, Status: {Status}, Audience: {Audience}, " +
-                        "SendToAllSellers: {SendToAllSellers}, SendToAllCustomers: {SendToAllCustomers}, " +
-                        "SelectedSellerIds: {SelectedSellerIds}, SelectedCustomerIds: {SelectedCustomerIds}",
-                        broadcast.Subject,
-                        broadcast.Body?.Length ?? 0,
-                        broadcast.SentByUserId,
-                        broadcast.RecipientCount,
-                        broadcast.Status,
-                        audience,
-                        broadcast.SendToAllSellers,
-                        broadcast.SendToAllCustomers,
-                        broadcast.SelectedSellerIds,
-                        broadcast.SelectedCustomerIds);
-                    
-                    // Log inner exception if available
-                    if (ex.InnerException != null)
-                    {
-                        _logger.LogError(ex.InnerException, "Inner exception: {InnerMessage}", ex.InnerException.Message);
-                    }
-                    
-                    TempData["error"] = "Failed to save broadcast record. See logs for details.";
+                    BroadcastMessageId = broadcast.Id,
+                    UserId = r.Id,
+                    Email = r.Email,
+                    Status = "Pending"
+                }).ToList();
 
-                    // Clean up uploaded attachment file if present to avoid orphan files
-                    if (!string.IsNullOrEmpty(attachmentPath) && System.IO.File.Exists(attachmentPath))
-                    {
-                        try { System.IO.File.Delete(attachmentPath); } catch { }
-                    }
+                _context.BroadcastRecipients.AddRange(recipientEntities);
+                await _context.SaveChangesAsync();
 
-                    return RedirectToAction(nameof(Index));
-                }
+                // 🆕 SYNCHRONOUS EMAIL SENDING WITH PROGRESS TRACKING
+                await SendBroadcastEmailsAsync(broadcast.Id);
 
-                // Send emails asynchronously
-                _ = SendBroadcastEmailsAsync(broadcast, recipients, attachmentPath, body);
-
-                TempData["success"] = $"Broadcast queued for sending to {recipients.Count} recipient(s).";
-                return RedirectToAction(nameof(Index));
+                TempData["success"] = $"Broadcast sent to {recipients.Count} users. Status: {broadcast.Status}.";
+                return RedirectToAction(nameof(History));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error sending broadcast message");
-                TempData["error"] = "An error occurred while sending the broadcast message. See logs for details.";
+                _logger.LogError(ex, "Broadcast sending failed: {Message}", ex.Message);
+                TempData["error"] = $"Failed to send broadcast: {ex.Message}";
                 return RedirectToAction(nameof(Index));
             }
         }
 
         /// <summary>
-        /// Send emails in background (fire and forget with error logging)
+        /// Send emails SYNCHRONOUSLY with retries and detailed tracking
         /// </summary>
-        private async Task SendBroadcastEmailsAsync(BroadcastMessage broadcastMessage, List<IdentityUser> recipients, string attachmentPath, string htmlBody)
+        private async Task SendBroadcastEmailsAsync(int broadcastId)
         {
-            var successCount = 0;
-            var failureCount = 0;
+            var broadcast = await _context.BroadcastMessages
+                .Include(b => b.Recipients)
+                .FirstOrDefaultAsync(b => b.Id == broadcastId);
 
-            foreach (var recipient in recipients)
+            if (broadcast == null) 
             {
-                try
+                _logger.LogWarning("Broadcast {Id} not found", broadcastId);
+                return;
+            }
+
+            int success = 0;
+            int failure = 0;
+            var total = broadcast.Recipients.Count;
+
+            _logger.LogInformation("Starting broadcast {Id} to {Total} recipients", broadcastId, total);
+
+            foreach (var r in broadcast.Recipients)
+            {
+                var attempt = 0;
+                const int maxAttempts = 3;
+                bool sent = false;
+
+                while (attempt < maxAttempts && !sent)
                 {
-                    if (!string.IsNullOrEmpty(attachmentPath))
+                    try
                     {
-                        await _emailService.SendEmailWithAttachmentAsync(recipient.Email, broadcastMessage.Subject, htmlBody, attachmentPath);
+                        if (!string.IsNullOrEmpty(broadcast.AttachmentPath))
+                        {
+                            await _emailService.SendEmailWithAttachmentAsync(r.Email, broadcast.Subject, broadcast.Body, broadcast.AttachmentPath);
+                        }
+                        else
+                        {
+                            await _emailService.SendEmailAsync(r.Email, broadcast.Subject, broadcast.Body);
+                        }
+
+                        r.Status = "Sent";
+                        r.SentAt = DateTime.UtcNow;
+                        r.ErrorMessage = null;
+                        success++;
+                        sent = true;
+                        _logger.LogInformation("Email sent to {Email} (attempt {Attempt})", r.Email, attempt + 1);
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        await _emailService.SendEmailAsync(recipient.Email, broadcastMessage.Subject, htmlBody);
+                        attempt++;
+                        if (attempt >= maxAttempts)
+                        {
+                            r.Status = "Failed";
+                            r.ErrorMessage = $"{ex.Message} (after {maxAttempts} attempts)";
+                            failure++;
+                            _logger.LogError(ex, "Email FAILED to {Email} after {Attempts} attempts: {Message}", r.Email, maxAttempts, ex.Message);
+                        }
+                        else
+                        {
+                            r.Status = "Retrying";
+                            _logger.LogWarning(ex, "Email retry {Attempt}/{Max} for {Email}: {Message}", attempt + 1, maxAttempts, r.Email, ex.Message);
+                            await Task.Delay(1000 * attempt); // Backoff
+                        }
                     }
-                    successCount++;
-                }
-                catch (Exception ex)
-                {
-                    failureCount++;
-                    _logger.LogError(ex, "Failed to send broadcast message {MessageId} to {Email}", broadcastMessage.Id, recipient.Email);
                 }
             }
 
-            // Update broadcast message status
-            broadcastMessage.Status = failureCount == 0 ? "Sent" : (failureCount == recipients.Count ? "Failed" : "PartialSent");
-            _context.BroadcastMessages.Update(broadcastMessage);
+            // Update broadcast status with better granularity
+            if (failure == 0)
+                broadcast.Status = "Sent";
+            else if (success == 0)
+                broadcast.Status = "Failed";
+            else
+                broadcast.Status = $"Partial ({success}/{total})";
+
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Broadcast {MessageId} completed: {SuccessCount} sent, {FailureCount} failed", 
-                broadcastMessage.Id, successCount, failureCount);
+            _logger.LogInformation("Broadcast {Id} completed: {Success}/{Total} sent, {Failure} failed", broadcastId, success, total, failure);
         }
-
         /// <summary>
         /// Get sellers as JSON for dropdown
         /// </summary>
@@ -446,6 +339,7 @@ namespace CMSECommerce.Areas.SuperAdmin.Controllers
         {
             var broadcast = await _context.BroadcastMessages
                 .Include(b => b.SentByUser)
+                .Include(b => b.Recipients) // ✅ NEW
                 .FirstOrDefaultAsync(b => b.Id == id);
 
             if (broadcast == null)
