@@ -70,20 +70,43 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
                 using var document = SKDocument.CreatePdf(ms);
                 using var canvas = document.BeginPage(width, height);
 
-                // =====================================================
-                // 🌙 BACKGROUND (DO FIRST)
-                // =====================================================
+                // =========================
+                // SAFE BACKGROUND
+                // =========================
                 canvas.Clear(new SKColor(252, 250, 245));
 
-                // =====================================================
-                // 🌫 LIGHT WATERMARK (VERY IMPORTANT FIX)
-                // =====================================================
+                // =========================
+                // SAFE FONT LOADING (CRITICAL FIX)
+                // =========================
+                SKTypeface font;
+
+                try
+                {
+                    var fontPath = Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "wwwroot/fonts/Amiri-Regular.ttf"
+                    );
+
+                    if (System.IO.File.Exists(fontPath))
+                        font = SKTypeface.FromFile(fontPath);
+                    else
+                        font = SKTypeface.FromFamilyName("Arial"); // SAFE FALLBACK
+                }
+                catch
+                {
+                    font = SKTypeface.FromFamilyName("Arial");
+                }
+
+                // =========================
+                // WATERMARK (SAFE ALPHA)
+                // =========================
                 using (var wm = new SKPaint
                 {
-                    Color = new SKColor(120, 120, 120, 12),
+                    Color = new SKColor(120, 120, 120, 18), // SAFE (not too light or too strong)
                     TextSize = 28,
+                    TextAlign = SKTextAlign.Center,
                     IsAntialias = true,
-                    TextAlign = SKTextAlign.Center
+                    Typeface = font
                 })
                 {
                     canvas.Save();
@@ -91,198 +114,117 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
                     canvas.RotateDegrees(-30);
 
                     canvas.DrawText("ANJUMAN E BURHANI", 0, 0, wm);
-                    canvas.DrawText("HYDERABAD HUSSAINI ALAM", 0, 40, wm);
+                    canvas.DrawText("HUSSAINI ALAM", 0, 40, wm);
 
                     canvas.Restore();
                 }
 
-                // =====================================================
-                // 🟡 BORDER (SAFE)
-                // =====================================================
-                using var borderGold = new SKPaint
+                // =========================
+                // BORDER
+                // =========================
+                using var border = new SKPaint
                 {
                     Style = SKPaintStyle.Stroke,
-                    StrokeWidth = 5,
+                    StrokeWidth = 4,
                     Color = new SKColor(212, 175, 55),
                     IsAntialias = true
                 };
 
-                using var borderTeal = new SKPaint
-                {
-                    Style = SKPaintStyle.Stroke,
-                    StrokeWidth = 1.5f,
-                    Color = new SKColor(0, 102, 102),
-                    IsAntialias = true
-                };
+                canvas.DrawRect(12, 12, width - 24, height - 24, border);
 
-                canvas.DrawRect(10, 10, width - 20, height - 20, borderGold);
-                canvas.DrawRect(20, 20, width - 40, height - 40, borderTeal);
-
-                // =====================================================
-                // 🌸 FLORAL CORNERS (MULTI COLOR)
-                // =====================================================
-                using var gold = new SKPaint { Color = new SKColor(212, 175, 55, 160), IsAntialias = true };
-                using var teal = new SKPaint { Color = new SKColor(0, 102, 102, 140), IsAntialias = true };
-                using var maroon = new SKPaint { Color = new SKColor(128, 0, 32, 120), IsAntialias = true };
-                using var emerald = new SKPaint { Color = new SKColor(0, 128, 96, 120), IsAntialias = true };
-
-                void Flower(float x, float y)
-                {
-                    canvas.DrawCircle(x, y, 10, gold);
-                    canvas.DrawCircle(x + 8, y + 5, 6, teal);
-                    canvas.DrawCircle(x - 8, y + 5, 6, maroon);
-                    canvas.DrawCircle(x, y + 10, 6, emerald);
-                }
-
-                Flower(35, 35);
-                Flower(width - 35, 35);
-                Flower(35, height - 35);
-                Flower(width - 35, height - 35);
-
-                // =====================================================
-                // 🏷 HEADER
-                // =====================================================
+                // =========================
+                // HEADER
+                // =========================
                 using var header = new SKPaint
                 {
-                    Color = new SKColor(40, 40, 40),
-                    TextSize = 22,
-                    FakeBoldText = true,
+                    Color = SKColors.Black,
+                    TextSize = 20,
                     TextAlign = SKTextAlign.Center,
-                    IsAntialias = true
+                    IsAntialias = true,
+                    Typeface = font
                 };
 
-                canvas.DrawText("ASHARA AZAM", width / 2, 95, header);
+                canvas.DrawText("ASHARA AZAM CERTIFICATE", width / 2, 90, header);
 
-                header.TextSize = 13;
-                header.Color = new SKColor(0, 102, 102);
-                canvas.DrawText("A Declaration of Faith & Commitment", width / 2, 118, header);
-
-                // =====================================================
-                // 📜 BODY INTRO
-                // =====================================================
-                using var body = new SKPaint
-                {
-                    Color = new SKColor(90, 90, 90),
-                    TextSize = 12,
-                    TextAlign = SKTextAlign.Center
-                };
-
-                canvas.DrawText("This certificate respectfully acknowledges the Niyyat of", width / 2, 165, body);
-
-                // =====================================================
-                // 👤 NAME (SAFE + NO UNDERLINE)
-                // =====================================================
-                string fontPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/fonts/Amiri-Regular.ttf");
-
-                SKTypeface font = System.IO.File.Exists(fontPath)
-                    ? SKTypeface.FromFile(fontPath)
-                    : SKTypeface.FromFamilyName("serif");
-
-                using var glow = new SKPaint
-                {
-                    Color = new SKColor(212, 175, 55, 35),
-                    TextSize = 30,
-                    TextAlign = SKTextAlign.Center,
-                    Typeface = font,
-                    IsAntialias = true
-                };
-
+                // =========================
+                // NAME (SAFE)
+                // =========================
                 using var namePaint = new SKPaint
                 {
                     Color = new SKColor(184, 134, 11),
-                    TextSize = 26,
-                    FakeBoldText = true,
+                    TextSize = 24,
                     TextAlign = SKTextAlign.Center,
+                    IsAntialias = true,
                     Typeface = font,
-                    IsAntialias = true
-                };
-
-                float maxWidth = width - 90;
-
-                string[] words = entry.FullName
-                    .ToUpper()
-                    .Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                string line1 = "", line2 = "";
-
-                foreach (var w in words)
-                {
-                    if (namePaint.MeasureText(line1 + " " + w) < maxWidth)
-                        line1 += (line1 == "" ? w : " " + w);
-                    else
-                        line2 += (line2 == "" ? w : " " + w);
-                }
-
-                float nameY = 205;
-
-                canvas.DrawText(line1.Trim(), width / 2 + 1, nameY + 1, glow);
-                canvas.DrawText(line1.Trim(), width / 2, nameY, namePaint);
-
-                if (!string.IsNullOrEmpty(line2))
-                    canvas.DrawText(line2.Trim(), width / 2, nameY + 25, namePaint);
-
-                // =====================================================
-                // ITS (FIXED POSITION)
-                // =====================================================
-                body.Color = SKColors.Black;
-                body.TextSize = 13;
-
-                canvas.DrawText($"ITS ID: {entry.ITSNumber}", width / 2, 245, body);
-
-                // =====================================================
-                // 📌 CONSENT (SAFE POSITIONING FIX)
-                // =====================================================
-                using var txt = new SKPaint
-                {
-                    Color = new SKColor(40, 40, 40),
-                    TextSize = 11,
-                    TextAlign = SKTextAlign.Center
-                };
-
-                float y = 285;
-                float gap = 38;
-
-                canvas.DrawText("• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma", width / 2, y, txt);
-                canvas.DrawText("Mein Maro Business 100% close raakhis.", width / 2, y + 14, txt);
-
-                canvas.DrawText("• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma", width / 2, y + gap, txt);
-                canvas.DrawText("Mein Job Si Raza Lay-Lais.", width / 2, y + gap + 14, txt);
-
-                canvas.DrawText("• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma", width / 2, y + gap * 2, txt);
-                canvas.DrawText("Mein Studies Si Raza Lay-Lais.", width / 2, y + gap * 2 + 14, txt);
-
-                canvas.DrawText("• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma", width / 2, y + gap * 3, txt);
-                canvas.DrawText("Qablal Waqt Majlis Ma Hazir Rahis.", width / 2, y + gap * 3 + 14, txt);
-
-                // =====================================================
-                // ✍ FOOTER
-                // =====================================================
-                using var footer = new SKPaint
-                {
-                    Color = new SKColor(0, 102, 102),
-                    TextSize = 12,
-                    TextAlign = SKTextAlign.Center,
                     FakeBoldText = true
                 };
 
-                canvas.DrawText("Anjuman E Burhani", width / 2, height - 80, footer);
+                float nameY = 180;
 
-                footer.TextSize = 10;
-                footer.FakeBoldText = false;
-                footer.Color = new SKColor(184, 134, 11);
+                canvas.DrawText(entry.FullName, width / 2, nameY, namePaint);
 
-                canvas.DrawText("Hyderabad - Hussaini Alam", width / 2, height - 60, footer);
-                canvas.DrawText($"Dated: {entry.CreatedDate:dd MMM yyyy}", width / 2, height - 40, footer);
+                // =========================
+                // ITS
+                // =========================
+                using var body = new SKPaint
+                {
+                    Color = SKColors.Black,
+                    TextSize = 12,
+                    TextAlign = SKTextAlign.Center,
+                    IsAntialias = true,
+                    Typeface = font
+                };
+
+                canvas.DrawText($"ITS ID: {entry.ITSNumber}", width / 2, 220, body);
+
+                // =========================
+                // CONSENT (UNCHANGED)
+                // =========================
+                float y = 270;
+                float gap = 40;
+
+                canvas.DrawText("• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma", width / 2, y, body);
+                canvas.DrawText("Mein Maro Business 100% close raakhis.", width / 2, y + 15, body);
+
+                canvas.DrawText("• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma", width / 2, y + gap, body);
+                canvas.DrawText("Mein Job Si Raza Lay-Lais.", width / 2, y + gap + 15, body);
+
+                canvas.DrawText("• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma", width / 2, y + gap * 2, body);
+                canvas.DrawText("Mein Studies Si Raza Lay-Lais.", width / 2, y + gap * 2 + 15, body);
+
+                canvas.DrawText("• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma", width / 2, y + gap * 3, body);
+                canvas.DrawText("Qablal Waqt Majlis Ma Hazir Rahis.", width / 2, y + gap * 3 + 15, body);
+
+                // =========================
+                // FOOTER
+                // =========================
+                using var footer = new SKPaint
+                {
+                    Color = new SKColor(0, 102, 102),
+                    TextSize = 11,
+                    TextAlign = SKTextAlign.Center,
+                    IsAntialias = true,
+                    Typeface = font
+                };
+
+                canvas.DrawText("Anjuman E Burhani", width / 2, height - 70, footer);
+                canvas.DrawText("Hyderabad - Hussaini Alam", width / 2, height - 50, footer);
+                canvas.DrawText($"Dated: {entry.CreatedDate:dd MMM yyyy}", width / 2, height - 30, footer);
 
                 document.EndPage();
                 document.Close();
 
+                // =========================
+                // CRITICAL FIX: RESET STREAM
+                // =========================
+                ms.Position = 0;
+
                 return File(ms.ToArray(), "application/pdf",
-                    $"{entry.ITSNumber}_AsharaAzamCertificate.pdf");
+                    $"{entry.ITSNumber}_Certificate.pdf");
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                return StatusCode(500, "PDF Generation Error: " + ex.Message);
             }
         }
     }
