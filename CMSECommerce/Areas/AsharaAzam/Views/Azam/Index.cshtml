@@ -1,0 +1,81 @@
+@model AzamEntryViewModel
+@{
+    ViewData["Title"] = "Ashara Azam Niyyat";
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+    :root { --matte-gold: #c5a059; --deep-gold: #947436; --charcoal: #1a1a1a; --soft-cream: #faf9f6; }
+    body { background-color: var(--soft-cream); font-family: 'Inter', sans-serif; color: var(--charcoal); margin: 0; }
+    .premium-wrapper { width: 100%; max-width: 550px; margin: 50px auto; padding: 0 15px; }
+    .azam-card { background: #fff; border: 1px solid rgba(197, 160, 89, 0.2); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden; }
+    .card-accent { height: 5px; background: linear-gradient(90deg, #c5a059, #947436, #c5a059); }
+    .azam-header { padding: 40px 20px 20px; text-align: center; }
+    .azam-header h1 { font-family: 'Bodoni Moda', serif; font-size: 2.2rem; margin: 0; letter-spacing: 1px; }
+    .form-body { padding: 20px 40px 40px; }
+    .input-label { font-size: 0.75rem; font-weight: 700; color: var(--deep-gold); text-transform: uppercase; display: block; margin-bottom: 8px; }
+    .azam-input { width: 100%; border: none; border-bottom: 1px solid #e2e8f0; padding: 12px 0; font-size: 16px; margin-bottom: 25px; transition: 0.3s; background: transparent; }
+    .azam-input:focus { outline: none; border-bottom-color: var(--matte-gold); }
+    .niyyat-box { background: #fdfbf7; border-left: 4px solid var(--matte-gold); padding: 25px; margin-bottom: 30px; border-radius: 0 4px 4px 0; }
+    .niyyat-list { list-style: none; padding: 0; margin: 0; font-size: 0.95rem; line-height: 1.6; color: #2d3748; }
+    .niyyat-list li { margin-bottom: 12px; padding-left: 20px; position: relative; }
+    .niyyat-list li::before { content: "•"; color: var(--matte-gold); position: absolute; left: 0; font-weight: bold; }
+    .btn-submit { background: var(--charcoal); color: var(--matte-gold); width: 100%; padding: 18px; border: 1px solid var(--matte-gold); font-weight: 700; text-transform: uppercase; cursor: pointer; transition: 0.3s; letter-spacing: 1px; }
+    .btn-submit:hover { background: var(--matte-gold); color: #fff; }
+</style>
+
+<div class="premium-wrapper">
+    <div class="azam-card">
+        <div class="card-accent"></div>
+        <div class="azam-header">
+            <h1>Ashara Azam</h1>
+            <p style="color: #718096; font-size: 0.95rem; margin-top: 10px;">Sacred Niyyat Registration</p>
+        </div>
+
+        <div class="form-body">
+            @if (TempData["Message"] != null)
+            {
+                <div style="background-color: #fff5f5; color: #c53030; padding: 15px; border-radius: 4px; margin-bottom: 20px; border: 1px solid #feb2b2; font-size: 0.9rem; text-align: center;">
+                    @TempData["Message"]
+                </div>
+            }
+
+            <form asp-action="Index" method="post" id="azamForm">
+                @Html.AntiForgeryToken()
+                
+                <label class="input-label">ITS Number</label>
+                <input asp-for="ITSNumber" name="ITSNumber" class="azam-input" type="tel" placeholder="Enter 8-digit ITS ID" required maxlength="10" />
+
+                <label class="input-label">Full Name</label>
+                <input asp-for="FullName" name="FullName" class="azam-input" placeholder="Name as per ITS" required />
+
+                <div class="niyyat-box">
+                    <ul class="niyyat-list">
+                        <li>Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein Maro Business 100% Close Raakhis.</li>
+                        <li>Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein Job Si Raza Lay-Lais.</li>
+                        <li>Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein Studies Si Raza Lay-Lais.</li>
+                        <li>Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Qablal Waqt Majlis Ma Hazir Rahis.</li>
+                    </ul>
+                    <div style="margin-top: 20px; display: flex; align-items: flex-start;">
+                        <input asp-for="ConsentGiven" name="ConsentGiven" type="checkbox" id="consent" value="true" required style="margin-top: 5px; transform: scale(1.2);" />
+                        <label for="consent" style="margin-left: 12px; font-size: 0.9rem; font-weight: 600; cursor: pointer; color: #1a202c;">I solemnly affirm this Azam Niyyat.</label>
+                        <input name="ConsentGiven" type="hidden" value="false" />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submitBtn">Confirm & Download Certificate</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('azamForm').onsubmit = function() {
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = "Processing Registration...";
+        btn.style.opacity = "0.7";
+        return true;
+    };
+</script>

@@ -30,6 +30,7 @@ namespace CMSECommerce.Infrastructure
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<BroadcastMessage> BroadcastMessages { get; set; }
         public DbSet<BroadcastRecipient> BroadcastRecipients { get; set; }
+        public DbSet<AsharaAzamEntry> AsharaAzamEntries { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -89,6 +90,14 @@ namespace CMSECommerce.Infrastructure
                     .WithMany()
                     .HasForeignKey(b => b.SentByUserId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<AsharaAzamEntry>(entity =>
+            {
+                entity.HasKey(e => e.ITSNumber);
+                entity.Property(e => e.FullName).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.ConsentMessage).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.CreatedDate).HasDefaultValueSql("GETUTCDATE()");
             });
 
             // --- 2. IDENTITY SEEDING ---
