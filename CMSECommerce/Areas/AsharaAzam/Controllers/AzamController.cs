@@ -1,10 +1,18 @@
 using CMSECommerce.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MimeKit;
+using QuestPDF.Helpers;
 using SkiaSharp;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using QuestPDF.Fluent;
+using QuestPDF.Infrastructure;
+using QuestPDF.Previewer;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace CMSECommerce.Areas.AsharaAzam.Controllers
 {
@@ -52,223 +60,215 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             return RedirectToAction(nameof(GenerateAsharaAzam), new { itsNumber = entry.ITSNumber });
         }
 
-        public async Task<IActionResult> GenerateAsharaAzam(string itsNumber)
+        public async Task<IActionResult> GenerateAsharaAzamOld(string itsNumber)
         {
-            var entry = await _context.AsharaAzamEntries
-                .FirstOrDefaultAsync(e => e.ITSNumber == itsNumber);
-
+            var entry = await _context.AsharaAzamEntries.FirstOrDefaultAsync(e => e.ITSNumber == itsNumber);
             if (entry == null) return NotFound();
 
             using var ms = new MemoryStream();
-
-            float width = 595;
-            float height = 842;
+            float width = 842;
+            float height = 595;
 
             using var document = SKDocument.CreatePdf(ms);
-            using var canvas = document.BeginPage(width, height);
+            SKCanvas canvas = null;
 
-            // =====================================================
-            // 🎨 BACKGROUND
-            // =====================================================
+            // Palette
+            var primaryTeal = new SKColor(0, 78, 80);
+            var accentGold = new SKColor(197, 159, 70);
+            var textDark = new SKColor(50, 50, 50);
+
+            // FONT LOADING LOGIC (FIXED)
+            SKTypeface GetFont(bool bold)
+            {
+                string fontPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "fonts", "OpenSans-Regular.ttf");
+                if (System.IO.File.Exists(fontPath))
+                {
+                    var tf = SKTypeface.FromFile(fontPath);
+                    return bold ? SKTypeface.FromFamilyName(tf.FamilyName, SKFontStyleWeight.Bold, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright) : tf;
+                }
+                return SKTypeface.FromFamilyName(null, bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright);
+            }
+
+            var fontRegular = GetFont(false);
+            var fontBold = GetFont(true);
+
+            canvas = document.BeginPage(width, height);
             canvas.Clear(new SKColor(252, 251, 247));
 
-            float margin = 55;
             float centerX = width / 2;
+            float currentY = 160; // Adjusted starting point for title
 
-            // =====================================================
-            // 🖼️ LOGO RESERVED SPACE (IMPORTANT FIX)
-            // =====================================================
-            float logoBlockHeight = 140;
-            float logoSize = 95;
-            float logoTopPadding = 35;
-
-            float y = logoBlockHeight + 20;
-
+            // LOGO
             try
             {
-                var logoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/images/logo.png");
-
+                var logoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "logo.png");
                 if (System.IO.File.Exists(logoPath))
                 {
-                    using var stream = new FileStream(logoPath, FileMode.Open);
+                    using var stream = System.IO.File.OpenRead(logoPath);
                     using var bitmap = SKBitmap.Decode(stream);
-
-                    var rect = new SKRect(
-                        centerX - logoSize / 2,
-                        logoTopPadding,
-                        centerX + logoSize / 2,
-                        logoTopPadding + logoSize
-                    );
-
-                    canvas.DrawBitmap(bitmap, rect, new SKPaint
-                    {
-                        IsAntialias = true,
-                        FilterQuality = SKFilterQuality.High
-                    });
+                    canvas.DrawBitmap(bitmap, new SKRect(centerX - 40, 30, centerX + 40, 110));
                 }
             }
             catch { }
 
-            // =====================================================
-            // 🔠 FONT SETUP
-            // =====================================================
-            SKTypeface font;
-            try
+            // TITLE
+            using (var p = new SKPaint { Typeface = fontBold, TextSize = 32, Color = primaryTeal, TextAlign = SKTextAlign.Center, IsAntialias = true })
             {
-                var fontPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/fonts/Amiri-Regular.ttf");
-                font = System.IO.File.Exists(fontPath)
-                    ? SKTypeface.FromFile(fontPath)
-                    : SKTypeface.FromFamilyName("Georgia");
-            }
-            catch
-            {
-                font = SKTypeface.FromFamilyName("Arial");
+                canvas.DrawText("MY ASHARA AZAM", centerX, currentY, p);
             }
 
-            float centerY = height / 2;
-
-            // =====================================================
-            // 📏 AUTO FONT ENGINE
-            // =====================================================
-            float AutoFont(float baseSize, string text, float maxWidth, bool bold = false)
+            // ACKNOWLEDGMENT
+            currentY += 45;
+            using (var p = new SKPaint { Typeface = fontRegular, TextSize = 15, Color = new SKColor(100, 100, 100), TextAlign = SKTextAlign.Center, IsAntialias = true })
             {
-                float size = baseSize;
-
-                using var paint = new SKPaint
-                {
-                    Typeface = font,
-                    TextSize = size,
-                    FakeBoldText = bold
-                };
-
-                while (size > 8 && paint.MeasureText(text) > maxWidth)
-                {
-                    size -= 0.5f;
-                    paint.TextSize = size;
-                }
-
-                return size;
+                canvas.DrawText("Acknowledging the sincere Niyyat of", centerX, currentY, p);
+                currentY += 35;
+                p.Typeface = fontBold; p.TextSize = 30; p.Color = accentGold;
+                canvas.DrawText(entry.FullName.ToUpper(), centerX, currentY, p);
+                currentY += 30;
+                p.Typeface = fontRegular; p.TextSize = 16; p.Color = primaryTeal;
+                canvas.DrawText($"ITS ID: {entry.ITSNumber}", centerX, currentY, p);
             }
 
-            // =====================================================
-            // 🧠 TEXT ENGINE (AUTO WRAP + CENTER)
-            // =====================================================
-            void DrawText(string text, float size, SKColor color, bool bold = false, float spacing = 14)
+            // CONSENT HEADER
+            currentY += 65;
+            using (var p = new SKPaint { Typeface = fontBold, TextSize = 17, Color = primaryTeal, TextAlign = SKTextAlign.Center, IsAntialias = true })
             {
-                float maxWidth = width - (margin * 2);
+                canvas.DrawText("Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein:", centerX, currentY, p);
+            }
 
-                using var paint = new SKPaint
+            // BULLETS
+            currentY += 45;
+            string[] items = { "Maro Business 100% close raakhis.", "Job Si Raza Lay-Lais.", "Studies Si Raza Lay-Lais.", "Qablal Waqt Waaz ni Majlis Ma Hazir Rahis." };
+            using (var textP = new SKPaint { Typeface = fontRegular, TextSize = 15, Color = textDark, IsAntialias = true })
+            using (var bulletP = new SKPaint { Typeface = fontBold, TextSize = 15, Color = accentGold, IsAntialias = true })
+            {
+                float margin = centerX - 180;
+                foreach (var item in items)
                 {
-                    Typeface = font,
-                    TextSize = AutoFont(size, text, maxWidth, bold),
-                    Color = color,
-                    IsAntialias = true,
-                    FakeBoldText = bold,
-                    TextAlign = SKTextAlign.Center
-                };
-
-                var words = text.Split(' ');
-                string line = "";
-
-                foreach (var word in words)
-                {
-                    var test = string.IsNullOrEmpty(line) ? word : line + " " + word;
-
-                    if (paint.MeasureText(test) > maxWidth)
-                    {
-                        canvas.DrawText(line, centerX, y, paint);
-                        y += paint.TextSize + 6;
-                        line = word;
-                    }
-                    else
-                    {
-                        line = test;
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(line))
-                {
-                    canvas.DrawText(line, centerX, y, paint);
-                    y += paint.TextSize + spacing;
+                    canvas.DrawText("•", margin, currentY, bulletP);
+                    canvas.DrawText(item, margin + 20, currentY, textP);
+                    currentY += 30;
                 }
             }
 
-            // =====================================================
-            // 🟡 BORDER DESIGN
-            // =====================================================
-            void DrawBorder()
+            // FOOTER
+            string footerLine = $"ANJUMAN E BURHANI  •  Hussaini Alam, Hyderabad  •  Issued: {DateTime.Now:dd MMM yyyy}";
+            using (var p = new SKPaint { Typeface = fontRegular, TextSize = 10, Color = primaryTeal.WithAlpha(180), TextAlign = SKTextAlign.Center, IsAntialias = true })
             {
-                using var p = new SKPaint { Style = SKPaintStyle.Stroke, IsAntialias = true };
-
-                p.Color = new SKColor(184, 134, 11);
-                p.StrokeWidth = 6;
-                canvas.DrawRoundRect(margin - 20, 30, width - (margin * 2) + 40, height - 60, 12, 12, p);
-
-                p.Color = new SKColor(0, 70, 70);
-                p.StrokeWidth = 2;
-                canvas.DrawRoundRect(margin - 10, 40, width - (margin * 2) + 20, height - 80, 10, 10, p);
+                canvas.DrawText(footerLine, centerX, height - 55, p);
             }
-
-            DrawBorder();
-
-            // =====================================================
-            // 🏷️ TITLE
-            // =====================================================
-            DrawText("MY ASHARA AZAM", 34, new SKColor(0, 70, 70), true, 10);
-
-            // =====================================================
-            // 💫 FAITH MESSAGE (HIGHLIGHTED)
-            // =====================================================
-            using (var paint = new SKPaint
-            {
-                Color = new SKColor(212, 175, 55, 60),
-                IsAntialias = true
-            })
-            {
-                canvas.DrawRoundRect(margin, y - 30, width - (margin * 2), 45, 10, 10, paint);
-            }
-
-            DrawText("A Sacred Declaration of Faith & Commitment", 16,
-                new SKColor(120, 0, 0), true, 20);
-
-            // =====================================================
-            // 👤 DETAILS
-            // =====================================================
-            DrawText("Acknowledging the sincere Niyyat of", 12, SKColors.DimGray);
-
-            DrawText(entry.FullName.ToUpper(), 30, new SKColor(184, 134, 11), true, 6);
-
-            DrawText($"ITS ID: {entry.ITSNumber}", 12, SKColors.Black, true, 25);
-
-            // =====================================================
-            // 📜 CONSENT LINES (UNCHANGED - DO NOT MODIFY)
-            // =====================================================
-            string[] lines = {
-                "• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein Maro Business 100% close raakhis.",
-                "• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein Job Si Raza Lay-Lais.",
-                "• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein Studies Si Raza Lay-Lais.",
-                "• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Qablal Waqt Majlis Ma Hazir Rahis."
-            };
-
-            foreach (var line in lines)
-            {
-                DrawText(line, 12, new SKColor(45, 45, 45), false, 12);
-            }
-
-            // =====================================================
-            // 📌 FOOTER
-            // =====================================================
-            y = height - 120;
-
-            DrawText("ANJUMAN E BURHANI", 14, new SKColor(0, 70, 70), true, 5);
-            DrawText("Hussaini Alam, Hyderabad", 11, new SKColor(184, 134, 11));
-            DrawText($"Issued on {entry.CreatedDate:dd MMM yyyy}", 10, SKColors.Gray);
 
             document.EndPage();
             document.Close();
+            return File(ms.ToArray(), "application/pdf", $"AsharaAzam_{entry.ITSNumber}.pdf");
+        }
+        public async Task<IActionResult> GenerateAsharaAzam(string itsNumber)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
 
-            return File(ms.ToArray(), "application/pdf",
-                $"AsharaAzam_{entry.ITSNumber}.pdf");
+            var entry = await _context.AsharaAzamEntries.FirstOrDefaultAsync(e => e.ITSNumber == itsNumber);
+            if (entry == null) return NotFound();
+
+            // 1. Exact Image Dimensions in Points (1024x722px / 1.33)
+            var customPageSize = new PageSize(768, 542);
+
+            var pdf = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(customPageSize);
+                    page.Margin(0);
+
+                    // 2. Background Layer - Locked to Page Size
+                    page.Background().Element(output =>
+                    {
+                        var bgPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "floral-bg.jpg");
+                        if (System.IO.File.Exists(bgPath))
+                        {
+                            // FitArea() ensures the image matches the 768x542 canvas exactly
+                            output.Image(bgPath).FitArea();
+                        }
+                        else
+                        {
+                            output.Background("#FCFBF7");
+                        }
+                    });
+
+                    // 3. Uplifted Content Layer
+                    page.Content()
+                        .AlignCenter()
+                        .AlignTop()
+                        .PaddingTop(55)
+                        .PaddingHorizontal(180)
+                        .PaddingBottom(30)
+                        .Column(mainCol =>
+                        {
+                            // Logo
+                            var logoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "logo.png");
+                            if (System.IO.File.Exists(logoPath))
+                            {
+                                mainCol.Item().AlignCenter().Width(45).Image(logoPath);
+                            }
+
+                            // Tight Header Section (Padding removed between lines)
+                            mainCol.Item().PaddingTop(8).AlignCenter().Text("MY ASHARA AZAM")
+                            .FontFamily(Fonts.Verdana).FontSize(20).ExtraBold().FontColor("#004E50");
+
+                            mainCol.Item().PaddingTop(5).AlignCenter().Text("Acknowledging the sincere Niyyat of")
+                            .FontSize(11).Italic().FontColor("#666666");
+
+                            // Name & ID
+                            mainCol.Item().PaddingTop(2).AlignCenter().Text(entry.FullName.ToUpper())
+                            .FontFamily(Fonts.Georgia).FontSize(26).Bold().FontColor("#C59F46");
+
+                            mainCol.Item().AlignCenter().Text($"ITS ID: {entry.ITSNumber}")
+                            .FontSize(13).Medium().FontColor("#004E50");
+
+                            // Commitment Header (Tightened to ID)
+                            mainCol.Item().PaddingTop(5).AlignCenter()
+                            .Text("Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein:")
+                            .FontSize(14).SemiBold().FontColor("#004E50");
+
+                            // Content List
+                            mainCol.Item().PaddingTop(12).PaddingLeft(25).Column(listCol =>
+                            {
+                                string[] items = {
+                        "Maro Business 100% close raakhis.",
+                        "Job Si Raza Lay-Lais.",
+                        "Studies Si Raza Lay-Lais.",
+                        "Qablal Waqt Waaz ni Majlis Ma Hazir Rahis."
+                            };
+
+                                foreach (var item in items)
+                                {
+                                    listCol.Item().PaddingBottom(4).Row(row =>
+                                    {
+                                        row.ConstantItem(20).Text("•").FontSize(16).FontColor("#C59F46");
+                                        row.RelativeItem().PaddingTop(2).Text(item)
+                                        .FontSize(12).FontColor("#333333").LineHeight(1.1f);
+                                    });
+                                }
+                            });
+
+                            // Centered Footer
+                            mainCol.Item().AlignBottom().PaddingBottom(10).AlignCenter().Column(ft =>
+                            {
+                                ft.Item().AlignCenter().Text("ANJUMAN E BURHANI")
+                                .Bold().FontSize(10).FontColor("#004E50");
+
+                                ft.Item().AlignCenter().Text("Hussaini Alam, Hyderabad")
+                                .FontSize(9).FontColor("#666666");
+
+                                ft.Item().AlignCenter().PaddingTop(2).Text($"DATE: {DateTime.Now:dd MMM yyyy}")
+                                .Bold().FontSize(9).FontColor("#004E50");
+                            });
+                        });
+                });
+            });
+
+            byte[] pdfBytes = pdf.GeneratePdf();
+            return File(pdfBytes, "application/pdf", $"AsharaAzam_{entry.ITSNumber}.pdf");
         }
     }
 }
