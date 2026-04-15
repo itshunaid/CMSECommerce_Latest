@@ -111,23 +111,23 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
                                 mainCol.Item().PaddingTop(8).AlignCenter().Text("MY ASHARA AZAM")
                                 .FontFamily(Fonts.Verdana).FontSize(20).ExtraBold().FontColor("#004E50");
 
-                                mainCol.Item().PaddingTop(2).AlignCenter().Text("Acknowledging the sincere Niyyat of")
+                                mainCol.Item().PaddingTop(6).AlignCenter().Text("Acknowledging the sincere Niyyat of")
                                 .FontSize(11).Italic().FontColor("#666666");
 
                                 // Name & ID
-                                mainCol.Item().PaddingTop(2).AlignCenter().Text(entry.FullName.ToUpper())
-                                .FontFamily(Fonts.Georgia).FontSize(26).Bold().FontColor("#C59F46");
+                                mainCol.Item().PaddingTop(12).AlignCenter().Text(entry.FullName.ToUpper())
+                                .FontFamily(Fonts.Georgia).FontSize(20).Bold().FontColor("#C59F46");
 
                                 mainCol.Item().AlignCenter().Text($"ITS ID: {entry.ITSNumber}")
                                 .FontSize(13).Medium().FontColor("#004E50");
 
                                 // Commitment Header (Tightened)
-                                mainCol.Item().PaddingTop(5).AlignCenter()
+                                mainCol.Item().PaddingTop(2).AlignCenter()
                                 .Text("Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein:")
                                 .FontSize(14).SemiBold().FontColor("#004E50");
 
                                 // Content List
-                                mainCol.Item().PaddingTop(10).PaddingLeft(25).Column(listCol =>
+                                mainCol.Item().PaddingTop(1).PaddingLeft(25).Column(listCol =>
                                 {
                                     string[] items = {
                             "Maro Business 100% close raakhis.",
@@ -138,7 +138,7 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
 
                                     foreach (var item in items)
                                     {
-                                        listCol.Item().PaddingBottom(4).Row(row =>
+                                        listCol.Item().PaddingBottom(1).Row(row =>
                                         {
                                             row.ConstantItem(20).Text("•").FontSize(16).FontColor("#C59F46");
                                             row.RelativeItem().PaddingTop(2).Text(item)
@@ -149,7 +149,7 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
                             });
 
                             // --- FOOTER SECTION (Kept just above bottom vine) ---
-                            column.Item().AlignBottom().PaddingBottom(45).AlignCenter().Column(ft =>
+                            column.Item().AlignBottom().PaddingBottom(153).AlignCenter().Column(ft =>
                             {
                                 ft.Item().AlignCenter().Text("ANJUMAN E BURHANI")
                                 .Bold().FontSize(10).FontColor("#004E50");
