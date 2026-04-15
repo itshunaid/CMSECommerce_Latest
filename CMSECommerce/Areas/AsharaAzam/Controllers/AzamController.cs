@@ -74,7 +74,7 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             return RedirectToAction(nameof(GenerateAsharaAzam), new { itsNumber = model.ITSNumber });
         }
 
-        public async Task<IActionResult> GenerateAsharaAzamOld(string itsNumber)
+        public async Task<IActionResult> GenerateAsharaAzam(string itsNumber)
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
@@ -183,7 +183,7 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             return File(pdfBytes, "application/pdf", $"AsharaAzam_Certificate_{entry.ITSNumber}.pdf");
         }
 
-        public async Task<IActionResult> GenerateAsharaAzam(string itsNumber)
+        public async Task<IActionResult> GenerateAsharaAzamNew(string itsNumber)
         {
             var entry = await _context.AsharaAzamEntries
                 .FirstOrDefaultAsync(e => e.ITSNumber == itsNumber);
