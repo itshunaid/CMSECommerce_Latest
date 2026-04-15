@@ -272,7 +272,8 @@
             Preview is optimized for desktop viewing.
         </div>
 
-        <button onclick="downloadVideo()">HD Video</button>
+        <!-- <button onclick="downloadVideo()">HD Video</button> -->
+        <button onclick="startMobileDownload()">Download HD Video</button>
         <button onclick="downloadImageHD()">HD Image</button>
         <button onclick="downloadImage()">Normal Image</button>
         <button onclick="downloadPDF()">Download PDF</button>
@@ -280,6 +281,43 @@
     </div>
 
     <script>
+
+        /* MOBILE DETECTION */
+        function isMobileDevice() {
+        return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+        }
+
+        /* AUTO DOWNLOAD VIDEO ON MOBILE */
+        window.addEventListener("load", async function () {
+
+        if (isMobileDevice()) {
+
+        console.log("Mobile detected → Auto downloading video");
+
+        // Small delay ensures DOM + images ready
+        setTimeout(async () => {
+        await downloadVideo();
+        }, 800);
+        }
+        });
+
+        async function startMobileDownload() {
+        await downloadVideo();
+        }
+
+        /*window.addEventListener("load", async function () {
+
+        if (isMobileDevice()) {
+
+        try {
+        await downloadVideo();
+        } catch (e) {
+        console.warn("Auto download blocked, waiting for user interaction...");
+        }
+        }
+        });*/
+
+
 
         /* WAIT FOR IMAGES */
         function waitForImages() {
@@ -357,19 +395,20 @@
 
         const element = document.getElementById("certificate");
 
+        // ✅ FULL HD
         const canvas = document.createElement("canvas");
-        canvas.width = 1280;
-        canvas.height = 720;
+        canvas.width = 1920;
+        canvas.height = 1080;
 
         const ctx = canvas.getContext("2d");
 
-        const stream = canvas.captureStream(25);
+        const stream = canvas.captureStream(30);
 
-        // ✅ AUDIO
+        // ✅ AUDIO SETUP
         const audio = new Audio('/audio/ya-hussain.mp3');
         audio.crossOrigin = "anonymous";
 
-        const audioCtx = new AudioContext();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const source = audioCtx.createMediaElementSource(audio);
         const dest = audioCtx.createMediaStreamDestination();
 
@@ -381,17 +420,15 @@
         ...dest.stream.getTracks()
         ]);
 
-        // ✅ MIME fallback
-        let mimeType = "";
-        if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8")) {
-        mimeType = "video/webm;codecs=vp8";
-        } else {
-        mimeType = "video/webm";
+        // ✅ MIME (WebM internally)
+        let mimeType = "video/webm;codecs=vp8";
+        if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
+        mimeType = "video/webm;codecs=vp9";
         }
 
         const recorder = new MediaRecorder(combinedStream, {
         mimeType: mimeType,
-        videoBitsPerSecond: 5 * 1024 * 1024
+        videoBitsPerSecond: 8 * 1024 * 1024
         });
 
         let chunks = [];
@@ -404,46 +441,51 @@
 
         const blob = new Blob(chunks, { type: mimeType });
 
-        // ✅ MP4 workaround
-        const file = new File([blob], "certificate-whatsapp.mp4", {
+        // ✅ FAKE MP4 (your requirement)
+        const fakeMp4 = new File([blob], "certificate-hd.mp4", {
         type: "video/mp4"
         });
 
-        const url = URL.createObjectURL(file);
+        const url = URL.createObjectURL(fakeMp4);
 
+        // ✅ AUTO DOWNLOAD
         const a = document.createElement("a");
         a.href = url;
-        a.download = file.name;
+        a.download = fakeMp4.name;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
 
         URL.revokeObjectURL(url);
         };
 
         recorder.start();
 
-        // ✅ START AUDIO
+        // ✅ PLAY AUDIO
         await audio.play();
 
-        // ✅ DRAW LOOP
-        async function draw() {
+        const duration = (audio.duration || 5) * 1000; // fallback 5 sec
+        const start = Date.now();
 
-        const temp = await html2canvas(element, {
-        scale: 2,
+        async function renderFrame() {
+
+        const tempCanvas = await html2canvas(element, {
+        scale: 3,
         useCORS: true,
         backgroundColor: "#ffffff"
         });
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(temp, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
 
-        if (!audio.ended) {
-        requestAnimationFrame(draw);
+        if (Date.now() - start < duration) {
+        requestAnimationFrame(renderFrame);
         } else {
         recorder.stop();
         }
         }
 
-        draw();
+        renderFrame();
         }
 
     </script>
