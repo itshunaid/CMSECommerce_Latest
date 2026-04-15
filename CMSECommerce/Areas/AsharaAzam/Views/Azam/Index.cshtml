@@ -1,219 +1,255 @@
 @model AzamEntryViewModel
 @{
-    ViewData["Title"] = "Ashara Azam Niyyat";
+    ViewData["Title"] = "My Ashara Azam";
 }
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,700;1,700&family=Inter:wght@300;400;600;700&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
     :root {
-        --matte-gold: #c5a059;
-        --deep-gold: #947436;
-        --charcoal: #1a1a1a;
-        --soft-cream: #faf9f6;
+        --gold-light: #f3e5ab;
+        --gold-primary: #c5a059;
+        --gold-deep: #947436;
+        --dark-bg: #121212;
+        --glass-bg: rgba(255, 255, 255, 0.95);
+        --text-main: #2d3436;
     }
 
     body {
-        background-color: var(--soft-cream);
-        font-family: 'Inter', sans-serif;
-        color: var(--charcoal);
         margin: 0;
+        font-family: 'Inter', sans-serif;
+        background: #fdfcf8;
+        color: var(--text-main);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        background-image: 
+            radial-gradient(circle at 2px 2px, rgba(197, 160, 89, 0.1) 1px, transparent 0);
+        background-size: 24px 24px;
     }
 
-    .premium-wrapper {
+    /* 🔴 DARK RED YA HUSSAIN WATERMARK */
+    .watermark-layer {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+        align-content: space-around;
+        opacity: 0.08;
+        font-family: 'Amiri', serif;
+        font-size: 5rem;
+        pointer-events: none;
+        z-index: 0;
+        user-select: none;
+        color: rgba(139, 0, 0, 0.85);
+    }
+
+    .premium-container {
         width: 100%;
-        max-width: 550px;
-        margin: 40px auto;
-        padding: 0 16px;
+        max-width: 500px;
+        padding: 20px;
+        position: relative;
+        z-index: 10;
     }
 
     .azam-card {
-        background: #fff;
-        border: 1px solid rgba(197, 160, 89, 0.2);
-        border-radius: 6px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        background: var(--glass-bg);
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(148, 116, 54, 0.15);
+        border: 1px solid rgba(197, 160, 89, 0.3);
         overflow: hidden;
+        position: relative;
+        backdrop-filter: blur(2px);
     }
 
-    .card-accent {
-        height: 5px;
-        background: linear-gradient(90deg, #c5a059, #947436, #c5a059);
+    .card-top-design {
+        height: 8px;
+        background: linear-gradient(90deg, var(--gold-deep), var(--gold-primary), var(--gold-light), var(--gold-primary), var(--gold-deep));
     }
 
+    /* ⬇️ HEADING VISIBLY LOWER */
     .azam-header {
-        padding: 32px 20px 16px;
-        text-align: center;
+    padding: 35px 30px 20px; /* slightly increased top padding */
+    margin-top: 110px;        /* subtle downward shift */
+    text-align: center;
+}
+
+    .azam-header h1 {
+        font-family: 'Bodoni Moda', serif;
+        font-size: 2.4rem;
+        color: var(--gold-deep);
+        margin: 0;
+        letter-spacing: -0.5px;
     }
 
-        .azam-header h1 {
-            font-family: 'Bodoni Moda', serif;
-            font-size: 2rem;
-            margin: 0;
-            letter-spacing: 1px;
-        }
+    .azam-header .subtitle {
+        font-family: 'Amiri', serif;
+        font-size: 1.4rem;
+        color: var(--gold-primary);
+        margin-top: 5px;
+        display: block;
+    }
 
     .form-body {
-        padding: 20px 30px 30px;
+        padding: 0 35px 40px;
     }
 
-    .input-label {
+    .input-group {
+        position: relative;
+        margin-bottom: 25px;
+    }
+
+    .input-group label {
+        display: block;
         font-size: 0.75rem;
         font-weight: 700;
-        color: var(--deep-gold);
         text-transform: uppercase;
-        display: block;
-        margin-bottom: 6px;
+        letter-spacing: 1.2px;
+        color: var(--gold-deep);
+        margin-bottom: 8px;
     }
 
     .azam-input {
         width: 100%;
-        border: none;
-        border-bottom: 1px solid #e2e8f0;
-        padding: 10px 0;
-        font-size: 16px;
-        margin-bottom: 20px;
-        transition: 0.3s;
-        background: transparent;
+        box-sizing: border-box;
+        padding: 12px 16px;
+        border: 1.5px solid #eee;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: #fff;
     }
 
-        .azam-input:focus {
-            outline: none;
-            border-bottom-color: var(--matte-gold);
-        }
+    .azam-input:focus {
+        outline: none;
+        border-color: var(--gold-primary);
+        box-shadow: 0 0 0 4px rgba(197, 160, 89, 0.1);
+    }
 
-    .niyyat-box {
-        background: #fdfbf7;
-        border-left: 4px solid var(--matte-gold);
+    .niyyat-section {
+        background: linear-gradient(to bottom right, #ffffff, #fffdf9);
+        border: 1px dashed var(--gold-primary);
+        border-radius: 16px;
         padding: 20px;
-        margin-bottom: 25px;
-        border-radius: 0 4px 4px 0;
+        margin-bottom: 30px;
     }
 
     .niyyat-list {
         list-style: none;
         padding: 0;
-        margin: 0;
-        font-size: 0.9rem;
-        line-height: 1.5;
-        color: #2d3748;
+        margin: 0 0 20px 0;
     }
 
-        .niyyat-list li {
-            margin-bottom: 10px;
-            padding-left: 18px;
-            position: relative;
-        }
+    .niyyat-list li {
+        font-size: 0.92rem;
+        line-height: 1.6;
+        margin-bottom: 12px;
+        padding-left: 25px;
+        position: relative;
+        color: #444;
+    }
 
-            .niyyat-list li::before {
-                content: "•";
-                color: var(--matte-gold);
-                position: absolute;
-                left: 0;
-                font-weight: bold;
-            }
+    .niyyat-list li::before {
+        content: "◈";
+        position: absolute;
+        left: 0;
+        color: var(--gold-primary);
+        font-size: 14px;
+    }
 
-    .consent-wrapper {
-        margin-top: 15px;
+    .consent-container {
         display: flex;
-        align-items: flex-start;
-        gap: 10px;
+        align-items: center;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--gold-deep);
+        gap: 12px;
+        padding: 10px;
+        border-radius: 8px;
+        transition: background 0.2s;
     }
 
-        .consent-wrapper input {
-            margin-top: 4px;
-            transform: scale(1.2);
-            flex-shrink: 0;
-        }
+    .consent-container:hover {
+        background: rgba(197, 160, 89, 0.05);
+    }
 
-        .consent-wrapper label {
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            color: #1a202c;
-            line-height: 1.4;
-        }
+    .consent-container input {
+        width: 20px;
+        height: 20px;
+        accent-color: var(--gold-deep);
+        cursor: pointer;
+    }
 
     .btn-submit {
-        background: var(--charcoal);
-        color: var(--matte-gold);
         width: 100%;
-        padding: 16px;
-        border: 1px solid var(--matte-gold);
+        background: var(--dark-bg);
+        color: var(--gold-light);
+        border: none;
+        padding: 18px;
+        border-radius: 14px;
+        font-size: 1rem;
         font-weight: 700;
         text-transform: uppercase;
-        cursor: pointer;
-        transition: 0.3s;
         letter-spacing: 1px;
-        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
 
-        .btn-submit:hover {
-            background: var(--matte-gold);
-            color: #fff;
-        }
+    .btn-submit:hover {
+        background: var(--gold-deep);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px rgba(148, 116, 54, 0.3);
+    }
 
-    /* ✅ MOBILE RESPONSIVENESS */
-    @@media (max-width: 768px) {
+    .btn-submit:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+    }
 
-        .premium-wrapper {
-            margin: 20px auto;
-        }
-
-        .azam-header h1 {
-            font-size: 1.7rem;
-        }
-
-        .form-body {
-            padding: 20px;
-        }
-
-        .btn-submit {
-            padding: 14px;
-            font-size: 0.9rem;
-        }
+    .alert-premium {
+        background: #fff5f5;
+        border-left: 4px solid #f56565;
+        color: #c53030;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
     }
 
     @@media (max-width: 480px) {
-
-        .azam-header {
-            padding: 25px 15px 10px;
-        }
-
-            .azam-header h1 {
-                font-size: 1.5rem;
-            }
-
-        .niyyat-box {
-            padding: 15px;
-        }
-
-        .niyyat-list {
-            font-size: 0.85rem;
-        }
-
-        .input-label {
-            font-size: 0.7rem;
-        }
+        .azam-header h1 { font-size: 1.8rem; }
+        .form-body { padding: 0 20px 30px; }
+        .premium-container { padding: 10px; }
     }
 </style>
 
-<div class="premium-wrapper">
-    <div class="azam-card">
-        <div class="card-accent"></div>
+<div class="watermark-layer">
+    <span>يا حسين</span><span>يا حسين</span><span>يا حسين</span>
+    <span>يا حسين</span><span>يا حسين</span><span>يا حسين</span>
+    <span>يا حسين</span><span>يا حسين</span><span>يا حسين</span>
+</div>
 
-        <div class="azam-header">
-            <h1>Ashara Azam</h1>
-            <p style="color: #718096; font-size: 0.9rem; margin-top: 8px;">
-                Sacred Niyyat Registration
-            </p>
-        </div>
+<div class="premium-container">
+    <div class="azam-card">
+        <div class="card-top-design"></div>       
+        <header class="azam-header">
+            <h1>My Ashara Azam</h1>
+            <span class="subtitle">عشرة مباركة</span>
+        </header>
 
         <div class="form-body">
             @if (TempData["Message"] != null)
             {
-                <div style="background-color: #fff5f5; color: #c53030; padding: 12px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #feb2b2; font-size: 0.85rem; text-align: center;">
+                <div class="alert-premium">
                     @TempData["Message"]
                 </div>
             }
@@ -221,39 +257,43 @@
             <form asp-action="Index" method="post" id="azamForm">
                 @Html.AntiForgeryToken()
 
-                <label class="input-label">ITS Number</label>
-                <input asp-for="ITSNumber" name="ITSNumber" class="azam-input"
-                       type="tel" placeholder="Enter 8-digit ITS ID"
-                       required maxlength="10" />
+                <div class="input-group">
+                    <label>ITS Number</label>
+                    <input asp-for="ITSNumber" name="ITSNumber"
+                           class="azam-input"
+                           type="tel"
+                           placeholder="8-digit ID"
+                           required maxlength="8" 
+                           oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');" />
+                </div>
 
-                <label class="input-label">Full Name</label>
-                <input asp-for="FullName" name="FullName"
-                       class="azam-input"
-                       placeholder="Name as per ITS" required />
+                <div class="input-group">
+                    <label>Full Name</label>
+                    <input asp-for="FullName" name="FullName"
+                           class="azam-input"
+                           placeholder="Enter your name"
+                           required />
+                </div>
 
-                <div class="niyyat-box">
+                <div class="niyyat-section">
                     <ul class="niyyat-list">
-                        <li>Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein Maro Business 100% Close Raakhis.</li>
-                        <li>Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein Job Si Raza Lay-Lais.</li>
-                        <li>Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein Studies Si Raza Lay-Lais.</li>
-                        <li>Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Qablal Waqt Majalis Ma Hazir Rahis.</li>
+                        <li>I will keep my business 100% closed.</li>
+                        <li>I will take leave from my professional job.</li>
+                        <li>I will take leave from my academic studies.</li>
+                        <li>I will arrive before time for all Majalis.</li>
                     </ul>
 
-                    <div class="consent-wrapper">
+                    <label class="consent-container" for="consent">
                         <input asp-for="ConsentGiven" name="ConsentGiven"
                                type="checkbox" id="consent"
                                value="true" required />
-
-                        <label for="consent">
-                            I solemnly affirm this Azam Niyyat.
-                        </label>
-
-                        <input name="ConsentGiven" type="hidden" value="false" />
-                    </div>
+                        <span>I solemnly affirm this Azam.</span>
+                    </label>
+                    <input name="ConsentGiven" type="hidden" value="false" />
                 </div>
 
                 <button type="submit" class="btn-submit" id="submitBtn">
-                    Confirm & Download Certificate
+                    Confirm Azam Niyyat
                 </button>
             </form>
         </div>
@@ -264,8 +304,7 @@
     document.getElementById('azamForm').onsubmit = function () {
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
-        btn.innerHTML = "Processing Registration...";
-        btn.style.opacity = "0.7";
+        btn.innerHTML = "Submitting Niyyat...";
         return true;
     };
 </script>
