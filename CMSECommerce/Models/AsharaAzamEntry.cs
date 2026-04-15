@@ -17,14 +17,15 @@ namespace CMSECommerce.Models
 
         [Required]
         public bool ConsentGiven { get; set; }
-        
+
         [Required]
         [MaxLength(1000)]
         public string ConsentMessage { get; set; } =
-    "• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein Maro Business 100% close raakhis.\n" +
-    "• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein Job Si Raza Lay-Lais.\n" +
-    "• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein Studies Si Raza Lay-Lais.\n" +
-    "• Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Qablal Waqt Majlis Ma Hazir Rahis";
+        "Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein:\n" + "" +
+        "Maro Business 100% close raakhis.\n" +
+        "Job Si Raza Lay-Lais.\n" +
+        "Studies Si Raza Lay-Lais.\n" +
+        "Qablal Waqt Waaz ni Majalis Ma Hazir Rahis.";
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     }
 }

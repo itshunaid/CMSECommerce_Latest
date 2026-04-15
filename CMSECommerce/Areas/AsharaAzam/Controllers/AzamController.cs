@@ -39,25 +39,39 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
+            // 1. Check if the record already exists
             var existing = await _context.AsharaAzamEntries
                 .FirstOrDefaultAsync(x => x.ITSNumber == model.ITSNumber);
 
             if (existing != null)
-                return RedirectToAction(nameof(GenerateAsharaAzam), new { itsNumber = existing.ITSNumber });
-
-            var entry = new AsharaAzamEntry
             {
-                ITSNumber = model.ITSNumber,
-                FullName = model.FullName,
-                ConsentGiven = model.ConsentGiven,
-                ConsentMessage = "Azam Niyyat 4 Points Confirmed",
-                CreatedDate = DateTime.Now
-            };
+                // --- UPDATE LOGIC ---
+                existing.FullName = model.FullName;
+                existing.ConsentGiven = model.ConsentGiven;
+                existing.ConsentMessage = "Azam Niyyat 4 Points Confirmed (Updated)";
+                existing.CreatedDate = DateTime.Now; // Recommended to track modification
 
-            _context.AsharaAzamEntries.Add(entry);
+                _context.AsharaAzamEntries.Update(existing);
+            }
+            else
+            {
+                // --- INSERT LOGIC ---
+                var entry = new AsharaAzamEntry
+                {
+                    ITSNumber = model.ITSNumber,
+                    FullName = model.FullName,
+                    ConsentGiven = model.ConsentGiven,
+                    ConsentMessage = "Azam Niyyat 4 Points Confirmed",
+                    CreatedDate = DateTime.Now
+                };
+
+                _context.AsharaAzamEntries.Add(entry);
+            }
+
+            // 2. Save changes (Works for both Add and Update)
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(GenerateAsharaAzam), new { itsNumber = entry.ITSNumber });
+            return RedirectToAction(nameof(GenerateAsharaAzam), new { itsNumber = model.ITSNumber });
         }
 
         public async Task<IActionResult> GenerateAsharaAzam(string itsNumber)
@@ -133,7 +147,7 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
                             "Maro Business 100% close raakhis.",
                             "Job Si Raza Lay-Lais.",
                             "Studies Si Raza Lay-Lais.",
-                            "Qablal Waqt Waaz ni Majlis Ma Hazir Rahis."
+                            "Qablal Waqt Waaz ni Majalis Ma Hazir Rahis."
                                 };
 
                                     foreach (var item in items)
@@ -149,7 +163,7 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
                             });
 
                             // --- FOOTER SECTION (Kept just above bottom vine) ---
-                            column.Item().AlignBottom().PaddingBottom(153).AlignCenter().Column(ft =>
+                            column.Item().AlignBottom().PaddingBottom(53).AlignCenter().Column(ft =>
                             {
                                 ft.Item().AlignCenter().Text("ANJUMAN E BURHANI")
                                 .Bold().FontSize(10).FontColor("#004E50");
@@ -157,7 +171,8 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
                                 ft.Item().AlignCenter().Text("Hussaini Alam, Hyderabad")
                                 .FontSize(9).FontColor("#666666");
 
-                                ft.Item().AlignCenter().PaddingTop(2).Text("DATE: 14 Apr 2026")
+                                ft.Item().AlignCenter().PaddingTop(2).Text($"DATE: {DateTime.Now:dd MMM yyyy}")
+
                                 .Bold().FontSize(9).FontColor("#004E50");
                             });
                         });
