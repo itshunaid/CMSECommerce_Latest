@@ -358,14 +358,16 @@
         const element = document.getElementById("certificate");
 
         const canvas = document.createElement("canvas");
-        canvas.width = 2048;
-        canvas.height = 1444;
+        canvas.width = 1280;
+        canvas.height = 720;
 
         const ctx = canvas.getContext("2d");
 
-        const stream = canvas.captureStream(30);
+        const stream = canvas.captureStream(25);
 
+        // ✅ AUDIO
         const audio = new Audio('/audio/ya-hussain.mp3');
+        audio.crossOrigin = "anonymous";
 
         const audioCtx = new AudioContext();
         const source = audioCtx.createMediaElementSource(audio);
@@ -374,37 +376,61 @@
         source.connect(dest);
         source.connect(audioCtx.destination);
 
-        const combined = new MediaStream([
+        const combinedStream = new MediaStream([
         ...stream.getTracks(),
         ...dest.stream.getTracks()
         ]);
 
-        const recorder = new MediaRecorder(combined, {
-        mimeType: "video/webm;codecs=vp9",
-        videoBitsPerSecond: 10 * 1024 * 1024
+        // ✅ MIME fallback
+        let mimeType = "";
+        if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8")) {
+        mimeType = "video/webm;codecs=vp8";
+        } else {
+        mimeType = "video/webm";
+        }
+
+        const recorder = new MediaRecorder(combinedStream, {
+        mimeType: mimeType,
+        videoBitsPerSecond: 5 * 1024 * 1024
         });
 
         let chunks = [];
 
-        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.ondataavailable = e => {
+        if (e.data.size > 0) chunks.push(e.data);
+        };
 
         recorder.onstop = () => {
-        const blob = new Blob(chunks);
+
+        const blob = new Blob(chunks, { type: mimeType });
+
+        // ✅ MP4 workaround
+        const file = new File([blob], "certificate-whatsapp.mp4", {
+        type: "video/mp4"
+        });
+
+        const url = URL.createObjectURL(file);
+
         const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "certificate-hd.webm";
+        a.href = url;
+        a.download = file.name;
         a.click();
+
+        URL.revokeObjectURL(url);
         };
 
         recorder.start();
-        audio.play();
 
+        // ✅ START AUDIO
+        await audio.play();
+
+        // ✅ DRAW LOOP
         async function draw() {
+
         const temp = await html2canvas(element, {
-        scale: 3,
+        scale: 2,
         useCORS: true,
-        allowTaint: true,
-        backgroundColor: null
+        backgroundColor: "#ffffff"
         });
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
