@@ -1,18 +1,22 @@
 using CMSECommerce.Infrastructure;
+using ExcelDataReader.Log;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Playwright;
 using MimeKit;
+using QuestPDF.Fluent;
+using QuestPDF.Fluent;
 using QuestPDF.Helpers;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+using QuestPDF.Infrastructure;
+using QuestPDF.Previewer;
 using SkiaSharp;
 using System;
 using System.IO;
+using System.Reflection;
+using System.Runtime.Intrinsics.Arm;
 using System.Threading.Tasks;
-using QuestPDF.Fluent;
-using QuestPDF.Infrastructure;
-using QuestPDF.Previewer;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 
 namespace CMSECommerce.Areas.AsharaAzam.Controllers
 {
@@ -279,13 +283,31 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
                 });
             });
 
-            // --- CHANGE IS HERE ---
-            // Generate image instead of PDF. 
-            // .GenerateImages() returns an IEnumerable<byte[]>, one per page.
-            // Since we have one page, we take First().
-            byte[] imageBytes = document.GenerateImages().First();
+            //DPI,Quality,Size(Approx),Best Use Case
+            //288,High,5 - 10 MB,Professional Printing
+            //150, Medium,1 - 2 MB,High - quality emails
+            //96,Medium,300 - 600 KB,Standard Web / Mobile download
+            //72,Low,100 - 200 KB,Fast loading / Low bandwidth
 
-            return File(imageBytes, "image/png", $"AsharaAzam_Certificate_{entry.ITSNumber}.png");
+            // Define settings to control quality and size
+            var settings = new ImageGenerationSettings
+            {
+                // Use 'RasterDpi' instead of 'ImageRasterDpi'
+                RasterDpi = 96,
+
+                // Use 'ImageFormat' and the 'ImageFormat' enum
+                ImageFormat = ImageFormat.Jpeg,
+
+                // Quality is an integer (1-100)
+                ImageCompressionQuality = ImageCompressionQuality.Medium
+            };
+
+            // Generate image with the new settings
+            byte[] imageBytes = document.GenerateImages(settings).First();
+
+            return File(imageBytes, "image/jpeg", $"AsharaAzam_Certificate_{entry.ITSNumber}.jpg");
+
+            //return File(imageBytes, "image/png", $"AsharaAzam_Certificate_{entry.ITSNumber}.png");
         }
 
         public async Task<IActionResult> GenerateAsharaAzamMultipleButtons(string itsNumber)
