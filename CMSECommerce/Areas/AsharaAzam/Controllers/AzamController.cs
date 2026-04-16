@@ -31,8 +31,10 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
         }
 
         [HttpGet]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            // Assuming you have a DbContext injected
+            ViewBag.TotalAzamCount = await _context.AsharaAzamEntries.CountAsync();
             return View(new AzamEntryViewModel());
         }
 

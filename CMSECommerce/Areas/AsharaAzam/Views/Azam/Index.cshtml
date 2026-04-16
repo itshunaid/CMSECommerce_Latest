@@ -310,6 +310,37 @@
     .main-wrapper { flex-direction: column; align-items: center; gap: 20px; }
     .image-container { position: relative; top: 0; width: 280px; flex: 0 0 auto; }
 }
+
+/* --- COUNT BADGE --- */
+.count-badge {
+    background: var(--glass-bg);
+    border: 1px solid rgba(197, 160, 89, 0.3);
+    border-radius: 16px;
+    padding: 12px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 10px 25px -5px rgba(148, 116, 54, 0.1);
+}
+
+.count-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--gold-deep);
+    letter-spacing: 1px;
+}
+
+.count-number {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gold-primary);
+    background: rgba(197, 160, 89, 0.1);
+    padding: 2px 12px;
+    border-radius: 8px;
+}
 </style>
 
 <div class="watermark-layer">
@@ -339,6 +370,10 @@
         <img src="~/images/MufaddalMoula.jpg" alt="Moula" />
     </div>
     <div class="premium-container">
+        <div class="count-badge">
+        <span class="count-label">Total Azam Submitted</span>
+        <span class="count-number">@ViewBag.TotalAzamCount</span>
+    </div>
         <div class="azam-card">
             <div class="card-top-design"></div>        
             
