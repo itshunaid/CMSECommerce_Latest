@@ -283,6 +283,33 @@
         .azam-header h1 { font-size: 1.7rem; }
         .audio-fab { bottom: 20px; right: 20px; width: 45px; height: 45px; }
     }
+
+    /* --- IMAGE CONTAINER (Replaces Video) --- */
+.image-container {
+    flex: 0 0 320px;
+    max-width: 320px;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    border: 2px solid var(--gold-primary);
+    aspect-ratio: 9/16; /* Keeps the portrait look */
+    position: sticky;
+    top: 20px;
+    background: #fff;
+}
+
+.image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensures the image fills the area beautifully */
+    display: block;
+}
+
+/* Update media query to handle the image container on mobile */
+@@media (max-width: 850px) {
+    .main-wrapper { flex-direction: column; align-items: center; gap: 20px; }
+    .image-container { position: relative; top: 0; width: 280px; flex: 0 0 auto; }
+}
 </style>
 
 <div class="watermark-layer">
@@ -308,7 +335,9 @@
             allowfullscreen>
         </iframe>
     </div> *@
-
+    <div class="image-container">
+        <img src="~/images/MufaddalMoula.jpg" alt="Moula" />
+    </div>
     <div class="premium-container">
         <div class="azam-card">
             <div class="card-top-design"></div>        
