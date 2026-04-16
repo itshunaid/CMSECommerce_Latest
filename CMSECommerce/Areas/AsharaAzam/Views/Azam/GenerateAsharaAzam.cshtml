@@ -1,0 +1,132 @@
+﻿@model AsharaAzamEntry
+
+@{
+    ViewData["Title"] = "Certificate Preview";
+}
+
+<div style="text-align:center; padding:40px;">
+
+    <h2>Certificate Ready</h2>
+
+    <p><strong>Name:</strong> @Model.FullName</p>
+    <p><strong>ITS:</strong> @Model.ITSNumber</p>
+
+    <br />
+
+    <a href="/download-pdf/@Model.ITSNumber"
+           style="padding:10px 20px; background:#004E50; color:white; text-decoration:none; margin-right:10px;">
+        Download PDF
+    </a>
+
+    <a href="javascript:void(0)" onclick="downloadVideo()"
+           class="btn"
+           style="background:#8B0000;">
+        🎥 Download Video
+    </a>
+
+    <a href="/download-image/@Model.ITSNumber"
+           style="padding:10px 20px; background:#C59F46; color:white; text-decoration:none;">
+        Download Image
+    </a>
+
+</div>
+
+<script>
+    async function downloadVideo() {
+
+        const btn = event.target;
+        btn.innerText = "Generating Video...";
+        btn.disabled = true;
+
+        const width = 1024;
+        const height = 722;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+
+        // 🎥 Capture stream
+        const stream = canvas.captureStream(30);
+
+        // 🔊 Audio
+        const audio = new Audio('/audio/ya-hussain.mp3');
+        const audioCtx = new AudioContext();
+        const source = audioCtx.createMediaElementSource(audio);
+        const dest = audioCtx.createMediaStreamDestination();
+
+        source.connect(dest);
+        source.connect(audioCtx.destination);
+
+        // Combine video + audio
+        const combinedStream = new MediaStream([
+            ...stream.getVideoTracks(),
+            ...dest.stream.getAudioTracks()
+        ]);
+
+        // 🎬 Recorder
+        const recorder = new MediaRecorder(combinedStream, {
+            mimeType: 'video/webm'
+        });
+
+        let chunks = [];
+
+        recorder.ondataavailable = e => chunks.push(e.data);
+
+        recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "AsharaAzamVideo.webm";
+            a.click();
+
+            btn.innerText = "🎥 Download Video";
+            btn.disabled = false;
+        };
+
+        recorder.start();
+
+        // ▶️ Play audio
+        audio.play();
+
+        // 🖼️ Render frames (simple animation)
+        let duration = 6000; // 6 sec
+        let start = Date.now();
+
+        function drawFrame() {
+
+            let elapsed = Date.now() - start;
+
+            // Background
+            ctx.fillStyle = "#FCFBF7";
+            ctx.fillRect(0, 0, width, height);
+
+            // Title
+            ctx.fillStyle = "#004E50";
+            ctx.font = "bold 40px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("MY ASHARA AZAM", width / 2, 150);
+
+            // Name
+            ctx.fillStyle = "#C59F46";
+            ctx.font = "bold 32px Arial";
+            ctx.fillText("@Model.FullName", width / 2, 300);
+
+            // ITS
+            ctx.fillStyle = "#000";
+            ctx.font = "24px Arial";
+            ctx.fillText("ITS: @Model.ITSNumber", width / 2, 350);
+
+            if (elapsed < duration) {
+                requestAnimationFrame(drawFrame);
+            } else {
+                recorder.stop();
+                audio.pause();
+            }
+        }
+
+        drawFrame();
+    }
+</script>

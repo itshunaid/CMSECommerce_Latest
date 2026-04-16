@@ -71,10 +71,10 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             // 2. Save changes (Works for both Add and Update)
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(GenerateAsharaAzam), new { itsNumber = model.ITSNumber });
+            return RedirectToAction(nameof(GenerateAsharaAzamImage), new { itsNumber = model.ITSNumber });
         }
 
-        public async Task<IActionResult> GenerateAsharaAzam(string itsNumber)
+        public async Task<IActionResult> GenerateAsharaAzamPDF(string itsNumber)
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
@@ -183,7 +183,112 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             return File(pdfBytes, "application/pdf", $"AsharaAzam_Certificate_{entry.ITSNumber}.pdf");
         }
 
-        public async Task<IActionResult> GenerateAsharaAzamNew(string itsNumber)
+        public async Task<IActionResult> GenerateAsharaAzamImage(string itsNumber)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            var entry = await _context.AsharaAzamEntries.FirstOrDefaultAsync(e => e.ITSNumber == itsNumber);
+            if (entry == null) return NotFound();
+
+            // Dimensions for image quality
+            var customPageSize = new PageSize(768, 542);
+
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(customPageSize);
+                    page.Margin(0);
+
+                    // 1. Background Layer
+                    page.Background().Element(output =>
+                    {
+                        var bgPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "floral-bg.jpg");
+                        if (System.IO.File.Exists(bgPath))
+                        {
+                            output.Image(bgPath).FitArea();
+                        }
+                        else
+                        {
+                            output.Background("#FCFBF7");
+                        }
+                    });
+
+                    // 2. Main Content Layer
+                    page.Content()
+                        .PaddingHorizontal(180)
+                        .Column(column =>
+                        {
+                            column.Item().PaddingTop(85).Column(mainCol =>
+                            {
+                                var logoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "logo.png");
+                                if (System.IO.File.Exists(logoPath))
+                                {
+                                    mainCol.Item().AlignCenter().Width(65).Image(logoPath);
+                                }
+
+                                mainCol.Item().PaddingTop(8).AlignCenter().Text("MY ASHARA AZAM")
+                                    .FontFamily(Fonts.Verdana).FontSize(20).ExtraBold().FontColor("#004E50");
+
+                                mainCol.Item().PaddingTop(6).AlignCenter().Text("Acknowledging the sincere Niyyat of")
+                                    .FontSize(11).Italic().FontColor("#666666");
+
+                                mainCol.Item().PaddingTop(12).AlignCenter().Text(entry.FullName.ToUpper())
+                                    .FontFamily(Fonts.Georgia).FontSize(20).Bold().FontColor("#C59F46");
+
+                                mainCol.Item().AlignCenter().Text($"ITS ID: {entry.ITSNumber}")
+                                    .FontSize(13).Medium().FontColor("#004E50");
+
+                                mainCol.Item().PaddingTop(2).AlignCenter()
+                                    .Text("Mein Em Azam Karoon Choon Ke Ashara Mubaraka Ma Mein:")
+                                    .FontSize(14).SemiBold().FontColor("#004E50");
+
+                                mainCol.Item().PaddingTop(1).PaddingLeft(25).Column(listCol =>
+                                {
+                                    string[] items = {
+                                "Maro Business 100% close raakhis.",
+                                "Job Si Raza Lay-Lais.",
+                                "Studies Si Raza Lay-Lais.",
+                                "Qablal Waqt Waaz ni Majalis Ma Hazir Rahis."
+                                    };
+
+                                    foreach (var item in items)
+                                    {
+                                        listCol.Item().PaddingBottom(1).Row(row =>
+                                        {
+                                            row.ConstantItem(20).Text("•").FontSize(16).FontColor("#C59F46");
+                                            row.RelativeItem().PaddingTop(2).Text(item)
+                                                .FontSize(12).FontColor("#333333").LineHeight(1.1f);
+                                        });
+                                    }
+                                });
+                            });
+
+                            column.Item().AlignBottom().PaddingBottom(53).AlignCenter().Column(ft =>
+                            {
+                                ft.Item().AlignCenter().Text("ANJUMAN E BURHANI")
+                                    .Bold().FontSize(10).FontColor("#004E50");
+
+                                ft.Item().AlignCenter().Text("Hussaini Alam, Hyderabad")
+                                    .FontSize(9).FontColor("#666666");
+
+                                ft.Item().AlignCenter().PaddingTop(2).Text($"DATE: {DateTime.Now:dd MMM yyyy}")
+                                    .Bold().FontSize(9).FontColor("#004E50");
+                            });
+                        });
+                });
+            });
+
+            // --- CHANGE IS HERE ---
+            // Generate image instead of PDF. 
+            // .GenerateImages() returns an IEnumerable<byte[]>, one per page.
+            // Since we have one page, we take First().
+            byte[] imageBytes = document.GenerateImages().First();
+
+            return File(imageBytes, "image/png", $"AsharaAzam_Certificate_{entry.ITSNumber}.png");
+        }
+
+        public async Task<IActionResult> GenerateAsharaAzamMultipleButtons(string itsNumber)
         {
             var entry = await _context.AsharaAzamEntries
                 .FirstOrDefaultAsync(e => e.ITSNumber == itsNumber);
