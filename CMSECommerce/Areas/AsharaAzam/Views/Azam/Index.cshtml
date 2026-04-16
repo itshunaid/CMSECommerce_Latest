@@ -33,7 +33,7 @@
         overflow-x: hidden;
     }
 
-    /* ⬇️ LAYOUT WRAPPER ⬇️ */
+    /* --- LAYOUT WRAPPER --- */
     .main-wrapper {
         display: flex;
         flex-direction: row;
@@ -47,7 +47,7 @@
         margin: 20px 0;
     }
 
-    /* ⬇️ VIDEO CONTAINER ⬇️ */
+    /* --- VIDEO CONTAINER --- */
     .video-container {
         flex: 0 0 320px;
         max-width: 320px;
@@ -67,7 +67,7 @@
         border: none;
     }
 
-    /* ⬇️ AZAM CARD ⬇️ */
+    /* --- AZAM CARD --- */
     .premium-container {
         flex: 1;
         max-width: 480px;
@@ -213,6 +213,42 @@
         transform: translateY(-2px);
     }
 
+    /* --- AUDIO FAB --- */
+    .audio-fab {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 50px;
+        height: 50px;
+        background: var(--dark-bg);
+        border: 1px solid var(--gold-primary);
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        transition: all 0.3s ease;
+    }
+
+    .audio-fab:hover { transform: scale(1.1); background: var(--gold-deep); }
+    
+    .audio-fab.playing::after {
+        content: "";
+        position: absolute;
+        width: 100%; height: 100%;
+        border-radius: 50%;
+        border: 2px solid var(--gold-primary);
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0% { transform: scale(1); opacity: 0.8; }
+        100% { transform: scale(1.5); opacity: 0; }
+    }
+
     .form-footer {
         text-align: center;
         margin-top: 25px;
@@ -227,7 +263,6 @@
         margin: 0;
     }
 
-    /* ⬇️ WATERMARK ⬇️ */
     .watermark-layer {
         position: fixed;
         inset: 0;
@@ -242,20 +277,11 @@
         color: rgba(153, 0, 0, 0.7);
     }
 
-    /* ⬇️ RESPONSIVE ⬇️ */
     @@media (max-width: 850px) {
-        .main-wrapper {
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-        .video-container {
-            position: relative;
-            top: 0;
-            width: 280px;
-            flex: 0 0 auto;
-        }
+        .main-wrapper { flex-direction: column; align-items: center; gap: 20px; }
+        .video-container { position: relative; top: 0; width: 280px; flex: 0 0 auto; }
         .azam-header h1 { font-size: 1.7rem; }
+        .audio-fab { bottom: 20px; right: 20px; width: 45px; height: 45px; }
     }
 </style>
 
@@ -265,19 +291,27 @@
     <span>يا حسين</span><span>يا حسين</span><span>يا حسين</span>
 </div>
 
+<audio id="bgAudio" loop>
+    <source src="/audio/ya-hussain.mp3" type="audio/mpeg">
+</audio>
+
+<button id="audioToggle" class="audio-fab" title="Toggle Sound">
+    <span id="audioIcon">🔈</span>
+</button>
+
 <div class="main-wrapper">
-    <div class="video-container">
+    @* <div class="video-container">
         <iframe 
             src="https://www.youtube.com/embed/sCID2SBEgk4?autoplay=1&mute=1&loop=1&playlist=sCID2SBEgk4&controls=1&enablejsapi=1" 
             title="Ashara Video" 
             allow="autoplay; encrypted-media" 
             allowfullscreen>
         </iframe>
-    </div>
+    </div> *@
 
     <div class="premium-container">
         <div class="azam-card">
-            <div class="card-top-design"></div>       
+            <div class="card-top-design"></div>        
             
             <header class="azam-header">
                 <div class="logo-wrapper">
@@ -335,6 +369,47 @@
 </div>
 
 <script>
+    const audio = document.getElementById('bgAudio');
+    const audioBtn = document.getElementById('audioToggle');
+    const audioIcon = document.getElementById('audioIcon');
+
+    // Function to attempt playback
+    function startAutoplay() {
+        audio.play().then(() => {
+            // Success: update UI
+            audioIcon.innerText = "🔊";
+            audioBtn.classList.add('playing');
+            
+            // Remove listeners once audio has successfully started
+            document.removeEventListener('click', startAutoplay);
+            document.removeEventListener('touchstart', startAutoplay);
+            document.removeEventListener('keydown', startAutoplay);
+        }).catch(error => {
+            // Still blocked by browser; will try again on next click
+            console.log("Autoplay waiting for user interaction...");
+        });
+    }
+
+    // Listen for any interaction to trigger the "autoplay"
+    document.addEventListener('click', startAutoplay);
+    document.addEventListener('touchstart', startAutoplay);
+    document.addEventListener('keydown', startAutoplay);
+
+    // Manual Toggle Logic (in case they want to mute it)
+    audioBtn.addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent the 'click' listener above from firing
+        if (audio.paused) {
+            audio.play();
+            audioIcon.innerText = "🔊";
+            audioBtn.classList.add('playing');
+        } else {
+            audio.pause();
+            audioIcon.innerText = "🔈";
+            audioBtn.classList.remove('playing');
+        }
+    });
+
+    // Form Loading Logic
     document.getElementById('azamForm').onsubmit = function () {
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
