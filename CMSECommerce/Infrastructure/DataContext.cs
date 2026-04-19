@@ -31,6 +31,8 @@ namespace CMSECommerce.Infrastructure
         public DbSet<BroadcastMessage> BroadcastMessages { get; set; }
         public DbSet<BroadcastRecipient> BroadcastRecipients { get; set; }
         public DbSet<AsharaAzamEntry> AsharaAzamEntries { get; set; }
+        // Add this line to map the class to a database table
+        public DbSet<SabeelPaymentDetail> SabeelPaymentDetails { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

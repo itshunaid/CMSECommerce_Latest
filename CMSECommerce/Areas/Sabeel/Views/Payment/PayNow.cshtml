@@ -1,0 +1,38 @@
+﻿@model SabeelPaymentDetail
+@{
+    ViewData["Title"] = "Scan & Pay";
+    string upiId = "abbaszoher51-1@oksbi";
+    // Dynamic QR including the exact amount and a reference
+    string qrUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa={upiId}&am={Model.Amount}&cu=INR&tn=Sabeel-{Model.ITSNumber}";
+}
+
+<div class="container py-5 text-center">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-lg border-0" style="border-radius: 20px;">
+                <div class="card-body p-5">
+                    <h3 class="mb-4 text-primary">Scan to Pay</h3>
+                    
+                    <div class="p-3 border rounded-4 bg-light mb-4">
+                        <img src="@qrUrl" class="img-fluid" alt="UPI QR Code" style="max-width: 200px;" />
+                    </div>
+
+                    <h2 class="display-6 fw-bold text-dark">₹@Model.Amount.ToString("N2")</h2>
+                    <p class="text-muted">Payable by <strong>@Model.FullName</strong></p>
+                    <hr />
+                    
+                    <div class="text-start small">
+                        <p class="mb-1"><strong>UPI ID:</strong> @upiId</p>
+                        <p class="mb-1"><strong>ITS:</strong> @Model.ITSNumber</p>
+                        <p class="mb-0"><strong>UTR Saved:</strong> @Model.UTRNumber</p>
+                    </div>
+
+                    <div class="mt-4">
+                        <a asp-action="Index" class="btn btn-outline-secondary w-100 mb-2">Back to Dashboard</a>
+                        <p class="small text-success"><i class="fas fa-lock"></i> Secure Payment via UPI</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

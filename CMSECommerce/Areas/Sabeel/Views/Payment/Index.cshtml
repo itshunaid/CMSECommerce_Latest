@@ -1,0 +1,237 @@
+﻿@model IEnumerable<SabeelPaymentDetail>
+
+@{
+    ViewData["Title"] = "Payment History";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    :root {
+        --primary: #21409a;
+        --accent: #f39c12;
+        --success: #27ae60;
+        --pending: #f39c12;
+        --bg-light: #f8f9fc;
+    }
+
+    body {
+        background-color: var(--bg-light);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .dashboard-header {
+        background: linear-gradient(135deg, var(--primary) 0%, #2d5aa8 100%);
+        color: white;
+        padding: 2rem 0;
+        border-radius: 0 0 25px 25px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .glass-card {
+        background: white;
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+
+    .table thead {
+        background-color: #f1f4f9;
+    }
+
+        .table thead th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            color: #5a6a85;
+            border: none;
+            padding: 1.25rem;
+        }
+
+    .table tbody td {
+        padding: 1.25rem;
+        vertical-align: middle;
+        color: #2a3547;
+        border-bottom: 1px solid #f1f4f9;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .badge-verified {
+        background-color: rgba(39, 174, 96, 0.1);
+        color: var(--success);
+    }
+
+    .badge-pending {
+        background-color: rgba(243, 156, 18, 0.1);
+        color: var(--pending);
+    }
+
+    .utr-code {
+        background: #f1f4f9;
+        padding: 0.3rem 0.6rem;
+        border-radius: 6px;
+        font-family: 'Courier New', Courier, monospace;
+        font-weight: 600;
+        color: var(--primary);
+    }
+
+    .btn-action {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .btn-action-qr {
+        background-color: rgba(33, 64, 154, 0.1);
+        color: var(--primary);
+        border: none;
+    }
+
+        .btn-action-qr:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+    .btn-verify {
+        background-color: var(--success);
+        color: white;
+        border: none;
+        padding: 0.4rem 1rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+        .btn-verify:hover {
+            background-color: #219150;
+            box-shadow: 0 4px 10px rgba(39, 174, 96, 0.3);
+        }
+
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        background-color: #e8efff;
+        color: var(--primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+</style>
+
+<div class="dashboard-header mb-4">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-1 fw-bold">Sabeel Dashboard</h2>
+                <p class="mb-0 opacity-75">Track and verify contributions</p>
+            </div>
+            <a asp-action="Create" class="btn btn-light fw-bold px-4 py-2 rounded-pill shadow-sm">
+                <i class="fas fa-plus-circle me-2"></i> New Entry
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container mb-5">
+    <div class="glass-card card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Contributor</th>
+                        <th>Amount</th>
+                        <th>Reference (UTR)</th>
+                        <th>Submission Date</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle me-3">
+                                        @(string.IsNullOrEmpty(item.FullName) ? "?" : item.FullName.Substring(0, 1).ToUpper())
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">@item.FullName</div>
+                                        <div class="text-muted small">ITS: @item.ITSNumber</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-dark">₹@item.Amount.ToString("N2")</span>
+                            </td>
+                            <td>
+                                <span class="utr-code">@item.UTRNumber</span>
+                            </td>
+                            <td>
+                                <span class="text-muted">@item.CreatedAt.ToString("dd MMM, yyyy")</span>
+                            </td>
+                            <td>
+                                @if (item.IsVerified)
+                                {
+                                    <span class="status-badge badge-verified">
+                                        <i class="fas fa-check-circle"></i> Verified
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge badge-pending">
+                                        <i class="fas fa-spinner fa-spin"></i> Pending
+                                    </span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end align-items-center gap-2">
+                                    <a asp-action="PayNow" asp-route-id="@item.Id" class="btn-action btn-action-qr" title="View QR Code">
+                                        <i class="fas fa-qrcode"></i>
+                                    </a>
+                                    
+                                    @if (!item.IsVerified)
+                                    {
+                                        <form asp-action="ConfirmPayment" asp-route-id="@item.Id" method="post" class="m-0">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn-verify">
+                                                Verify
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fas fa-folder-open fa-3x mb-3 opacity-25"></i>
+                                <p>No payment records found.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

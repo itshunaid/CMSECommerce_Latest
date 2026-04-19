@@ -51,6 +51,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Areas\Sabeel\Controllers\" />
     <Folder Include="Areas\Seller\Views\Categories\" />
     <Folder Include="Views\Cart\" />
     <Folder Include="wwwroot\images\useruploads\" />
