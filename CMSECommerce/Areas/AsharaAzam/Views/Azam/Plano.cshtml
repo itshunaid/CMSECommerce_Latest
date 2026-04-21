@@ -61,11 +61,11 @@
         top: 20px;
     }
 
-        .video-container iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
+    .video-container iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
 
     /* --- AZAM CARD --- */
     .premium-container {
@@ -108,11 +108,11 @@
         justify-content: center;
     }
 
-        .logo-wrapper img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
+    .logo-wrapper img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
 
     .azam-header h1 {
         font-family: 'Bodoni Moda', serif;
@@ -138,14 +138,14 @@
         margin-bottom: 20px;
     }
 
-        .input-group label {
-            display: block;
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: var(--gold-deep);
-            margin-bottom: 6px;
-        }
+    .input-group label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--gold-deep);
+        margin-bottom: 6px;
+    }
 
     .azam-input {
         width: 100%;
@@ -157,11 +157,11 @@
         transition: 0.3s;
     }
 
-        .azam-input:focus {
-            outline: none;
-            border-color: var(--gold-primary);
-            box-shadow: 0 0 0 4px rgba(197, 160, 89, 0.1);
-        }
+    .azam-input:focus {
+        outline: none;
+        border-color: var(--gold-primary);
+        box-shadow: 0 0 0 4px rgba(197, 160, 89, 0.1);
+    }
 
     .niyyat-section {
         background: linear-gradient(to bottom right, #ffffff, #fffdf9);
@@ -177,21 +177,21 @@
         margin: 0 0 15px 0;
     }
 
-        .niyyat-list li {
-            font-size: 0.88rem;
-            line-height: 1.5;
-            margin-bottom: 10px;
-            padding-left: 20px;
-            position: relative;
-            color: #444;
-        }
+    .niyyat-list li {
+        font-size: 0.88rem;
+        line-height: 1.5;
+        margin-bottom: 10px;
+        padding-left: 20px;
+        position: relative;
+        color: #444;
+    }
 
-            .niyyat-list li::before {
-                content: "◈";
-                position: absolute;
-                left: 0;
-                color: var(--gold-primary);
-            }
+    .niyyat-list li::before {
+        content: "◈";
+        position: absolute;
+        left: 0;
+        color: var(--gold-primary);
+    }
 
     .btn-submit {
         width: 100%;
@@ -207,11 +207,11 @@
         transition: all 0.3s;
     }
 
-        .btn-submit:hover {
-            background: var(--gold-deep);
-            color: white;
-            transform: translateY(-2px);
-        }
+    .btn-submit:hover {
+        background: var(--gold-deep);
+        color: white;
+        transform: translateY(-2px);
+    }
 
     /* --- AUDIO FAB --- */
     .audio-fab {
@@ -233,31 +233,20 @@
         transition: all 0.3s ease;
     }
 
-        .audio-fab:hover {
-            transform: scale(1.1);
-            background: var(--gold-deep);
-        }
-
-        .audio-fab.playing::after {
-            content: "";
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 2px solid var(--gold-primary);
-            animation: pulse 2s infinite;
-        }
+    .audio-fab:hover { transform: scale(1.1); background: var(--gold-deep); }
+    
+    .audio-fab.playing::after {
+        content: "";
+        position: absolute;
+        width: 100%; height: 100%;
+        border-radius: 50%;
+        border: 2px solid var(--gold-primary);
+        animation: pulse 2s infinite;
+    }
 
     @@keyframes pulse {
-        0% {
-            transform: scale(1);
-            opacity: 0.8;
-        }
-
-        100% {
-            transform: scale(1.5);
-            opacity: 0;
-        }
+        0% { transform: scale(1); opacity: 0.8; }
+        100% { transform: scale(1.5); opacity: 0; }
     }
 
     .form-footer {
@@ -267,12 +256,12 @@
         border-top: 1px solid rgba(197, 160, 89, 0.1);
     }
 
-        .form-footer p {
-            font-family: 'Amiri', serif;
-            font-size: 1.1rem;
-            color: var(--gold-deep);
-            margin: 0;
-        }
+    .form-footer p {
+        font-family: 'Amiri', serif;
+        font-size: 1.1rem;
+        color: var(--gold-deep);
+        margin: 0;
+    }
 
     .watermark-layer {
         position: fixed;
@@ -289,99 +278,202 @@
     }
 
     @@media (max-width: 850px) {
-        .main-wrapper {
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .video-container {
-            position: relative;
-            top: 0;
-            width: 280px;
-            flex: 0 0 auto;
-        }
-
-        .azam-header h1 {
-            font-size: 1.7rem;
-        }
-
-        .audio-fab {
-            bottom: 20px;
-            right: 20px;
-            width: 45px;
-            height: 45px;
-        }
+        .main-wrapper { flex-direction: column; align-items: center; gap: 20px; }
+        .video-container { position: relative; top: 0; width: 280px; flex: 0 0 auto; }
+        .azam-header h1 { font-size: 1.7rem; }
+        .audio-fab { bottom: 20px; right: 20px; width: 45px; height: 45px; }
     }
 
     /* --- IMAGE CONTAINER (Replaces Video) --- */
-    .image-container {
-        flex: 0 0 320px;
-        max-width: 320px;
-        border-radius: 24px;
+.image-container {
+    flex: 0 0 320px;
+    max-width: 320px;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    border: 2px solid var(--gold-primary);
+    aspect-ratio: 9/16; /* Keeps the portrait look */
+    position: sticky;
+    top: 20px;
+    background: #fff;
+}
+
+.image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensures the image fills the area beautifully */
+    display: block;
+}
+
+/* Update media query to handle the image container on mobile */
+@@media (max-width: 850px) {
+    .main-wrapper { flex-direction: column; align-items: center; gap: 20px; }
+    .image-container { position: relative; top: 0; width: 280px; flex: 0 0 auto; }
+}
+
+/* --- COUNT BADGE --- */
+.count-badge {
+    background: var(--glass-bg);
+    border: 1px solid rgba(197, 160, 89, 0.3);
+    border-radius: 16px;
+    padding: 12px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 10px 25px -5px rgba(148, 116, 54, 0.1);
+}
+
+.count-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--gold-deep);
+    letter-spacing: 1px;
+}
+
+.count-number {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gold-primary);
+    background: rgba(197, 160, 89, 0.1);
+    padding: 2px 12px;
+    border-radius: 8px;
+}
+
+
+ .scroll-text {
+        position: fixed;
+        z-index: 9999;
+        font-weight: 700;
+        color: red;
+        font-size: 72px;
+        white-space: nowrap;
+        pointer-events: none;
+        text-shadow: 0 0 6px rgba(255,0,0,0.6);
+    }
+
+    /* TOP */
+    .scroll-top {
+        top: 0;
+        left: 0;
+        width: 100%;
         overflow: hidden;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        border: 2px solid var(--gold-primary);
-        aspect-ratio: 9/16; /* Keeps the portrait look */
-        position: sticky;
-        top: 20px;
-        background: #fff;
+        background: rgba(0,0,0,0.6);
+        padding: 2px 0;
     }
 
-        .image-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* Ensures the image fills the area beautifully */
-            display: block;
+    .scroll-top span {
+        display: inline-block;
+        padding-left: 100%;
+        animation: scroll-left 12s linear infinite;
+    }
+
+    /* BOTTOM */
+    .scroll-bottom {
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        overflow: hidden;
+        background: rgba(0,0,0,0.6);
+        padding: 2px 0;
+    }
+
+    .scroll-bottom span {
+    display: inline-block;
+    white-space: nowrap;
+    animation: scroll-left 12s linear infinite;
+}
+
+    /* LEFT */
+    .scroll-left-vertical {
+        top: 0;
+        left: 0;
+        height: 100%;
+        writing-mode: vertical-rl;
+        overflow: hidden;
+        background: rgba(0,0,0,0.6);
+        padding: 5px 2px;
+    }
+
+    .scroll-left-vertical span {
+        display: inline-block;
+        padding-top: 100%;
+        animation: scroll-up 12s linear infinite;
+    }
+
+    /* RIGHT */
+    .scroll-right-vertical {
+        top: 0;
+        right: 0;
+        height: 100%;
+        writing-mode: vertical-rl;
+        overflow: hidden;
+        background: rgba(0,0,0,0.6);
+        padding: 5px 2px;
+    }
+
+    .scroll-right-vertical span {
+        display: inline-block;
+        padding-top: 100%;
+        animation: scroll-up 12s linear infinite;
+    }
+
+    /* ANIMATIONS */
+    @@keyframes scroll-left {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+    @@keyframes scroll-up {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-100%); }
+    }
+
+    /* ✅ MOBILE OPTIMIZATION */
+    @@media (max-width: 768px) {
+        .scroll-text {
+            font-size: 16px;
         }
 
-    /* Update media query to handle the image container on mobile */
-    @@media (max-width: 850px) {
-        .main-wrapper {
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
+        .scroll-left-vertical,
+        .scroll-right-vertical {
+            display: none; /* Hide vertical on small screens for better UX */
         }
 
-        .image-container {
-            position: relative;
-            top: 0;
-            width: 280px;
-            flex: 0 0 auto;
+        .scroll-top,
+        .scroll-bottom {
+            padding: 3px 0;
         }
     }
 
-    /* --- COUNT BADGE --- */
-    .count-badge {
-        background: var(--glass-bg);
-        border: 1px solid rgba(197, 160, 89, 0.3);
-        border-radius: 16px;
-        padding: 12px 20px;
-        margin-bottom: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 10px 25px -5px rgba(148, 116, 54, 0.1);
-    }
-
-    .count-label {
-        font-size: 0.8rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        color: var(--gold-deep);
-        letter-spacing: 1px;
-    }
-
-    .count-number {
-        font-family: 'Bodoni Moda', serif;
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--gold-primary);
-        background: rgba(197, 160, 89, 0.1);
-        padding: 2px 12px;
-        border-radius: 8px;
-    }
+ 
 </style>
+
+<!-- TOP 
+<div class="scroll-text scroll-top">
+    <span>يا حسين • يا حسين • يا حسين • يا حسين • يا حسين •</span>
+</div> -->
+
+<!-- BOTTOM -->
+<div class="scroll-text scroll-bottom">
+    <span>
+        • يا حسين • يا حسين • يا حسين • يا حسين • يا حسين •
+        • يا حسين • يا حسين • يا حسين • يا حسين • يا حسين 
+    </span>
+</div>
+
+@* <!-- LEFT (Desktop Only) -->
+<div class="scroll-text scroll-left-vertical">
+    <span>يا حسين • يا حسين • يا حسين •</span>
+</div>
+
+<!-- RIGHT (Desktop Only) -->
+<div class="scroll-text scroll-right-vertical">
+    <span>يا حسين • يا حسين • يا حسين •</span>
+</div> *@
+
 
 <div class="watermark-layer">
     <span>يا حسين</span><span>يا حسين</span><span>يا حسين</span>
