@@ -35,7 +35,9 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
         public async Task<IActionResult> Index()
         {
             // Assuming you have a DbContext injected
-            ViewBag.TotalAzamCount = await _context.AsharaAzamEntries.CountAsync();
+            ViewBag.TotalAzamCount = await _context.AsharaAzamEntries
+    .Where(x => x.Location.ToLower().Trim() == "hyderabad")
+    .CountAsync();
             return View(new AzamEntryViewModel());
         }
 
@@ -99,7 +101,9 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
         public async Task<IActionResult> Plano()
         {
             // Assuming you have a DbContext injected
-            ViewBag.TotalAzamCount = await _context.AsharaAzamEntries.Where(x => x.Location == "Plano").CountAsync();
+            ViewBag.TotalAzamCount = await _context.AsharaAzamEntries
+    .Where(x => x.Location.ToLower() == "plano")
+    .CountAsync();
             return View(new AzamEntryViewModel());
         }
 
