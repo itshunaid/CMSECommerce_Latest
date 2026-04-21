@@ -1,0 +1,38 @@
+﻿<script>
+    window.onload = function () {
+
+        const itsNumber = "@ViewBag.ITSNumber";
+        const next = "@ViewBag.Next";
+
+        // ✅ Correct URL (matches controller route)
+        const link = document.createElement('a');
+        if(next=="plano")
+        {
+            link.href = `/asharaazam/azam/GenerateAsharaAzamPlanoImage/${itsNumber}`;
+        }
+        else
+        {
+            link.href = `/asharaazam/azam/GenerateAsharaAzamImage/${itsNumber}`;
+        }
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        if(next=="plano")
+        {
+            // Redirect
+        setTimeout(() => {
+            window.location.href = `/asharaazam/azam/${next}`;
+        }, 2000);
+        }
+        else
+        {
+            // Redirect
+        setTimeout(() => {
+            window.location.href = `/asharaazam/azam`;
+        }, 2000);
+        }     
+        
+    };
+</script>

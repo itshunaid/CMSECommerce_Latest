@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 namespace CMSECommerce.Areas.AsharaAzam.Controllers
 {
     [Area("AsharaAzam")]
+    [Route("asharaazam/azam")]
     public class AzamController : Controller
     {
         private readonly DataContext _context;
@@ -30,7 +31,7 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             _context = context;
         }
 
-        [HttpGet]
+        [HttpGet("")]        
         public async Task<IActionResult> Index()
         {
             // Assuming you have a DbContext injected
@@ -38,7 +39,7 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             return View(new AzamEntryViewModel());
         }
 
-        [HttpPost]
+        [HttpPost("")]        
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Index(AzamEntryViewModel model)
         {
@@ -81,11 +82,20 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             // 2. Save changes (Works for both Add and Update)
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(GenerateAsharaAzamImage), new { itsNumber = model.ITSNumber });
+            //return RedirectToAction(nameof(GenerateAsharaAzamImage), new { itsNumber = model.ITSNumber });
+
+            // ✅ CLEAN REDIRECT
+            return RedirectToAction(nameof(DownloadPage), new
+            {
+                itsNumber = model.ITSNumber,
+                next = "index"
+            });
+
+
         }
 
 
-        [HttpGet]
+        [HttpGet("plano")]
         public async Task<IActionResult> Plano()
         {
             // Assuming you have a DbContext injected
@@ -93,7 +103,7 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             return View(new AzamEntryViewModel());
         }
 
-        [HttpPost]
+        [HttpPost("plano")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Plano(AzamEntryViewModel model)
         {
@@ -136,9 +146,21 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             // 2. Save changes (Works for both Add and Update)
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(GenerateAsharaAzamPlanoImage), new { itsNumber = model.ITSNumber });
+            return RedirectToAction(nameof(DownloadPage), new
+            {
+                itsNumber = model.ITSNumber,
+                next = "plano"
+            });
         }
 
+
+        [HttpGet("download-page/{itsNumber}")]
+        public IActionResult DownloadPage(string itsNumber, string next)
+        {
+            ViewBag.ITSNumber = itsNumber;
+            ViewBag.Next = next;
+            return View();
+        }
 
 
         public async Task<IActionResult> GenerateAsharaAzamPDF(string itsNumber)
@@ -250,6 +272,7 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             return File(pdfBytes, "application/pdf", $"AsharaAzam_Certificate_{entry.ITSNumber}.pdf");
         }
 
+        [HttpGet("GenerateAsharaAzamImage/{itsNumber}")]
         public async Task<IActionResult> GenerateAsharaAzamImage(string itsNumber)
         {
             QuestPDF.Settings.License = LicenseType.Community;
@@ -373,6 +396,7 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             //return File(imageBytes, "image/png", $"AsharaAzam_Certificate_{entry.ITSNumber}.png");
         }
 
+        [HttpGet("GenerateAsharaAzamPlanoImage/{itsNumber}")]
         public async Task<IActionResult> GenerateAsharaAzamPlanoImage(string itsNumber)
         {
             QuestPDF.Settings.License = LicenseType.Community;
