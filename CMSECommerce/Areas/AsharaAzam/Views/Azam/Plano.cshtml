@@ -1,0 +1,523 @@
+﻿@model AzamEntryViewModel
+@{
+    ViewData["Title"] = "My Ashara Azam";
+}
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,700;1,700&family=Inter:wght@300;400;600;700&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --gold-light: #f3e5ab;
+        --gold-primary: #c5a059;
+        --gold-deep: #947436;
+        --dark-bg: #121212;
+        --glass-bg: rgba(255, 255, 255, 0.98);
+        --text-main: #2d3436;
+    }
+
+    body {
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+        background: #fdfcf8;
+        color: var(--text-main);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 20px;
+        box-sizing: border-box;
+        background-image: radial-gradient(circle at 2px 2px, rgba(197, 160, 89, 0.1) 1px, transparent 0);
+        background-size: 24px 24px;
+        overflow-x: hidden;
+    }
+
+    /* --- LAYOUT WRAPPER --- */
+    .main-wrapper {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 40px;
+        width: 100%;
+        max-width: 1100px;
+        position: relative;
+        z-index: 10;
+        margin: 20px 0;
+    }
+
+    /* --- VIDEO CONTAINER --- */
+    .video-container {
+        flex: 0 0 320px;
+        max-width: 320px;
+        background: #000;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        border: 2px solid var(--gold-primary);
+        aspect-ratio: 9/16;
+        position: sticky;
+        top: 20px;
+    }
+
+        .video-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+    /* --- AZAM CARD --- */
+    .premium-container {
+        flex: 1;
+        max-width: 480px;
+        width: 100%;
+    }
+
+    .azam-card {
+        background: var(--glass-bg);
+        border-radius: 28px;
+        box-shadow: 0 25px 50px -12px rgba(148, 116, 54, 0.15);
+        border: 1px solid rgba(197, 160, 89, 0.3);
+        overflow: hidden;
+        position: relative;
+        backdrop-filter: blur(10px);
+    }
+
+    .card-top-design {
+        height: 10px;
+        background: linear-gradient(90deg, var(--gold-deep), var(--gold-primary), var(--gold-light), var(--gold-primary), var(--gold-deep));
+    }
+
+    .azam-header {
+        padding: 30px 20px 15px;
+        text-align: center;
+    }
+
+    .logo-wrapper {
+        width: 85px;
+        height: 85px;
+        background: white;
+        border-radius: 50%;
+        margin: 0 auto 15px;
+        padding: 8px;
+        box-shadow: 0 8px 20px rgba(148, 116, 54, 0.15);
+        border: 1.5px solid var(--gold-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .logo-wrapper img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+    .azam-header h1 {
+        font-family: 'Bodoni Moda', serif;
+        font-size: 1.9rem;
+        color: var(--gold-deep);
+        margin: 0;
+        letter-spacing: -0.5px;
+    }
+
+    .azam-header .subtitle {
+        font-family: 'Amiri', serif;
+        font-size: 1.3rem;
+        color: var(--gold-primary);
+        margin-top: 5px;
+        display: block;
+    }
+
+    .form-body {
+        padding: 0 30px 35px;
+    }
+
+    .input-group {
+        margin-bottom: 20px;
+    }
+
+        .input-group label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--gold-deep);
+            margin-bottom: 6px;
+        }
+
+    .azam-input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 12px 16px;
+        border: 1.5px solid #eee;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: 0.3s;
+    }
+
+        .azam-input:focus {
+            outline: none;
+            border-color: var(--gold-primary);
+            box-shadow: 0 0 0 4px rgba(197, 160, 89, 0.1);
+        }
+
+    .niyyat-section {
+        background: linear-gradient(to bottom right, #ffffff, #fffdf9);
+        border: 1px dashed var(--gold-primary);
+        border-radius: 16px;
+        padding: 18px;
+        margin-bottom: 25px;
+    }
+
+    .niyyat-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 15px 0;
+    }
+
+        .niyyat-list li {
+            font-size: 0.88rem;
+            line-height: 1.5;
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+            color: #444;
+        }
+
+            .niyyat-list li::before {
+                content: "◈";
+                position: absolute;
+                left: 0;
+                color: var(--gold-primary);
+            }
+
+    .btn-submit {
+        width: 100%;
+        background: var(--dark-bg);
+        color: var(--gold-light);
+        border: none;
+        padding: 16px;
+        border-radius: 14px;
+        font-size: 1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+        .btn-submit:hover {
+            background: var(--gold-deep);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+    /* --- AUDIO FAB --- */
+    .audio-fab {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 50px;
+        height: 50px;
+        background: var(--dark-bg);
+        border: 1px solid var(--gold-primary);
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        transition: all 0.3s ease;
+    }
+
+        .audio-fab:hover {
+            transform: scale(1.1);
+            background: var(--gold-deep);
+        }
+
+        .audio-fab.playing::after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--gold-primary);
+            animation: pulse 2s infinite;
+        }
+
+    @@keyframes pulse {
+        0% {
+            transform: scale(1);
+            opacity: 0.8;
+        }
+
+        100% {
+            transform: scale(1.5);
+            opacity: 0;
+        }
+    }
+
+    .form-footer {
+        text-align: center;
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(197, 160, 89, 0.1);
+    }
+
+        .form-footer p {
+            font-family: 'Amiri', serif;
+            font-size: 1.1rem;
+            color: var(--gold-deep);
+            margin: 0;
+        }
+
+    .watermark-layer {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+        opacity: 0.05;
+        font-family: 'Amiri', serif;
+        font-size: 5rem;
+        pointer-events: none;
+        z-index: 0;
+        color: rgba(153, 0, 0, 0.7);
+    }
+
+    @@media (max-width: 850px) {
+        .main-wrapper {
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .video-container {
+            position: relative;
+            top: 0;
+            width: 280px;
+            flex: 0 0 auto;
+        }
+
+        .azam-header h1 {
+            font-size: 1.7rem;
+        }
+
+        .audio-fab {
+            bottom: 20px;
+            right: 20px;
+            width: 45px;
+            height: 45px;
+        }
+    }
+
+    /* --- IMAGE CONTAINER (Replaces Video) --- */
+    .image-container {
+        flex: 0 0 320px;
+        max-width: 320px;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        border: 2px solid var(--gold-primary);
+        aspect-ratio: 9/16; /* Keeps the portrait look */
+        position: sticky;
+        top: 20px;
+        background: #fff;
+    }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Ensures the image fills the area beautifully */
+            display: block;
+        }
+
+    /* Update media query to handle the image container on mobile */
+    @@media (max-width: 850px) {
+        .main-wrapper {
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .image-container {
+            position: relative;
+            top: 0;
+            width: 280px;
+            flex: 0 0 auto;
+        }
+    }
+
+    /* --- COUNT BADGE --- */
+    .count-badge {
+        background: var(--glass-bg);
+        border: 1px solid rgba(197, 160, 89, 0.3);
+        border-radius: 16px;
+        padding: 12px 20px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 10px 25px -5px rgba(148, 116, 54, 0.1);
+    }
+
+    .count-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--gold-deep);
+        letter-spacing: 1px;
+    }
+
+    .count-number {
+        font-family: 'Bodoni Moda', serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--gold-primary);
+        background: rgba(197, 160, 89, 0.1);
+        padding: 2px 12px;
+        border-radius: 8px;
+    }
+</style>
+
+<div class="watermark-layer">
+    <span>يا حسين</span><span>يا حسين</span><span>يا حسين</span>
+    <span>يا حسين</span><span>يا حسين</span><span>يا حسين</span>
+    <span>يا حسين</span><span>يا حسين</span><span>يا حسين</span>
+</div>
+
+<audio id="bgAudio" loop>
+    <source src="/audio/ya-hussain.mp3" type="audio/mpeg">
+</audio>
+
+<button id="audioToggle" class="audio-fab" title="Toggle Sound">
+    <span id="audioIcon">🔈</span>
+</button>
+
+<div class="main-wrapper">
+    @* <div class="video-container">
+        <iframe
+            src="https://www.youtube.com/embed/sCID2SBEgk4?autoplay=1&mute=1&loop=1&playlist=sCID2SBEgk4&controls=1&enablejsapi=1"
+            title="Ashara Video"
+            allow="autoplay; encrypted-media"
+            allowfullscreen>
+        </iframe>
+    </div> *@
+    @* <div class="image-container">
+        <img src="~/images/MufaddalMoula.jpg" alt="Moula" />
+    </div> *@
+    <div class="premium-container">
+        <div class="count-badge">
+            <span class="count-label">Total Azam Submitted</span>
+            <span class="count-number">@ViewBag.TotalAzamCount</span>
+        </div>
+        <div class="azam-card">
+            <div class="card-top-design"></div>
+
+            <header class="azam-header">
+                <div class="logo-wrapper">
+                    <img src="~/images/logo.png" alt="Logo" asp-append-version="true" />
+                </div>
+                <h1>My Ashara Azam</h1>
+                <span class="subtitle">عشرة مباركة</span>
+            </header>
+
+            <div class="form-body">
+                @if (TempData["Message"] != null)
+                {
+                    <div style="background:#fff5f5; color:#c53030; padding:12px; border-radius:8px; margin-bottom:20px; font-size:0.85rem; font-weight:600; border-left:4px solid #f56565;">
+                        @TempData["Message"]
+                    </div>
+                }
+
+                <form asp-action="Index" method="post" id="azamForm">
+                    @Html.AntiForgeryToken()
+
+                    <div class="input-group">
+                        <label>ITS Number</label>
+                        <input asp-for="ITSNumber" name="ITSNumber" class="azam-input" type="tel" placeholder="8-digit ID" required maxlength="8" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
+                    </div>
+
+                    <div class="input-group">
+                        <label>Full Name</label>
+                        <input asp-for="FullName" name="FullName" class="azam-input" placeholder="Enter your name" required />
+                    </div>
+
+                    <div class="niyyat-section">
+                        <ul class="niyyat-list">
+                            <li>I will keep my business 100% closed.</li>
+                            <li>I will take leave from my professional job.</li>
+                            <li>I will take leave from my academic studies.</li>
+                            <li>I will arrive before time for all Majalis.</li>
+                        </ul>
+
+                        <label style="display:flex; align-items:center; gap:12px; color:var(--gold-deep); font-weight:600; cursor:pointer; font-size:0.9rem;">
+                            <input asp-for="ConsentGiven" name="ConsentGiven" type="checkbox" id="consent" value="true" required style="accent-color:var(--gold-deep); width:18px; height:18px;" />
+                            <span>I solemnly affirm this Azam.</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="submitBtn">Confirm Azam Niyyat</button>
+                </form>
+
+                <div class="form-footer">
+                    <p>PLANO JAMAAT</p>
+                    <p style="font-size: 0.85rem; font-family: 'Inter', sans-serif; opacity: 0.8; margin-top: 4px;">PLANO</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const audio = document.getElementById('bgAudio');
+    const audioBtn = document.getElementById('audioToggle');
+    const audioIcon = document.getElementById('audioIcon');
+
+    // Function to attempt playback
+    function startAutoplay() {
+        audio.play().then(() => {
+            // Success: update UI
+            audioIcon.innerText = "🔊";
+            audioBtn.classList.add('playing');
+
+            // Remove listeners once audio has successfully started
+            document.removeEventListener('click', startAutoplay);
+            document.removeEventListener('touchstart', startAutoplay);
+            document.removeEventListener('keydown', startAutoplay);
+        }).catch(error => {
+            // Still blocked by browser; will try again on next click
+            console.log("Autoplay waiting for user interaction...");
+        });
+    }
+
+    // Listen for any interaction to trigger the "autoplay"
+    document.addEventListener('click', startAutoplay);
+    document.addEventListener('touchstart', startAutoplay);
+    document.addEventListener('keydown', startAutoplay);
+
+    // Manual Toggle Logic (in case they want to mute it)
+    audioBtn.addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent the 'click' listener above from firing
+        if (audio.paused) {
+            audio.play();
+            audioIcon.innerText = "🔊";
+            audioBtn.classList.add('playing');
+        } else {
+            audio.pause();
+            audioIcon.innerText = "🔈";
+            audioBtn.classList.remove('playing');
+        }
+    });
+
+    // Form Loading Logic
+    document.getElementById('azamForm').onsubmit = function () {
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = "Submitting Niyyat...";
+        return true;
+    };
+</script>

@@ -53,6 +53,18 @@ namespace CMSECommerce.Areas.Sabeel.Controllers
                 return View(paymentDetail);
             }
 
+            // Server-side duplicate UTR check (final protection)
+            if (!string.IsNullOrWhiteSpace(paymentDetail.UTRNumber))
+            {
+                var utrTrim = paymentDetail.UTRNumber.Trim();
+                bool exists = await _context.SabeelPaymentDetails.AnyAsync(p => p.UTRNumber == utrTrim);
+                if (exists)
+                {
+                    ModelState.AddModelError("UTRNumber", "⚠️ This UTR Number already exists in the system. Please verify your UTR.");
+                    return View(paymentDetail);
+                }
+            }
+
             try
             {
                 paymentDetail.CreatedAt = DateTime.Now;
@@ -71,6 +83,54 @@ namespace CMSECommerce.Areas.Sabeel.Controllers
             {
                 ModelState.AddModelError("", "Database error: " + ex.Message);
                 return View(paymentDetail);
+            }
+        }
+
+        // GET: Sabeel/Payment/GetExistingUtrs
+        // Returns a JSON array of existing UTR numbers (non-null, non-empty)
+        [HttpGet]
+        public async Task<JsonResult> GetExistingUtrs()
+        {
+            try
+            {
+                var utrs = await _context.SabeelPaymentDetails
+                    .AsNoTracking()
+                    .Where(p => !string.IsNullOrEmpty(p.UTRNumber))
+                    .Select(p => p.UTRNumber)
+                    .ToListAsync();
+
+                return Json(new { success = true, utrs });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GetExistingUtrs error: {ex.Message}");
+                return Json(new { success = false, message = ex.Message, utrs = Array.Empty<string>() });
+            }
+        }
+
+        // GET: Sabeel/Payment/CheckDuplicateUTR?utrNumber=123456789012
+        [HttpGet]
+        public async Task<JsonResult> CheckDuplicateUTR(string utrNumber)
+        {
+            System.Diagnostics.Debug.WriteLine($"CheckDuplicateUTR called with: '{utrNumber}'");
+
+            if (string.IsNullOrWhiteSpace(utrNumber) || utrNumber.Length != 12 || !utrNumber.All(char.IsDigit))
+            {
+                return Json(new { isDuplicate = false, message = "UTR must be 12 digits" });
+            }
+
+            try
+            {
+                bool exists = await _context.SabeelPaymentDetails
+                    .AnyAsync(p => p.UTRNumber == utrNumber.Trim());
+
+                System.Diagnostics.Debug.WriteLine($"CheckDuplicateUTR result for {utrNumber}: {exists}");
+                return Json(new { isDuplicate = exists });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"CheckDuplicateUTR error: {ex.Message}");
+                return Json(new { isDuplicate = false, message = ex.Message });
             }
         }
 
@@ -181,5 +241,9 @@ namespace CMSECommerce.Areas.Sabeel.Controllers
 
             return isMobile;
         }
+
+      
+
+
     }
 }

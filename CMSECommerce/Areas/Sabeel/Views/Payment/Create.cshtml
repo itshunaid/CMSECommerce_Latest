@@ -465,9 +465,29 @@
                 <label class="form-label">UTR / Transaction ID</label>
                 <i class="fas fa-receipt form-icon"></i>
                 <input type="text" name="UTRNumber" id="utrNumber" class="form-control" placeholder="12-digit UTR Number" inputmode="numeric" maxlength="12" minlength="12" required />
+
+                <!-- Inline client-side duplicate message for blur check -->
+                <span id="utrError" style="color: var(--danger); font-size: 12px; display: none; margin-top: 8px;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    This UTR has already been used. Please verify your transaction ID.
+                </span>
+
+                <!-- Real-time validation feedback (AJAX) -->
+                <div class="utr-validation-feedback" id="utrFeedback"></div>
+
                 <small style="display: block; margin-top: 5px; color: var(--text-secondary);">
-                    <i class="fas fa-help-circle"></i> Find this in your payment confirmation
+                    <i class="fas fa-help-circle"></i> Find this in your payment confirmation (only 12 digits)
                 </small>
+
+                @if (ViewData.ModelState.TryGetValue("UTRNumber", out var utrState))
+                {
+                    @foreach (var error in utrState.Errors)
+                    {
+                        <div style="margin-top: 8px; padding: 10px; background: #fee; border: 1px solid #e74c3c; border-radius: 6px; color: #e74c3c; font-size: 12px; font-weight: 600;">
+                            <i class="fas fa-times-circle"></i> @error.ErrorMessage
+                        </div>
+                    }
+                }
             </div>
 
             <!-- Buttons -->
@@ -495,6 +515,11 @@
         const qrContainer = document.getElementById('qrContainer');
         const mobilePaySection = document.getElementById('mobilePaySection');
         const upiId = "@upiId";
+        const utrInput = document.getElementById('utrNumber');
+        const utrFeedback = document.getElementById('utrFeedback');
+        let utrCheckTimeout = null;
+        // client-side cache of existing UTRs (populated on DOMContentLoaded)
+        let existingUtrs = new Set();
 
         // Log initial device detection from server
         console.log('📱 Device Detection:', {
@@ -534,6 +559,133 @@
             if (mobileLink) {
                 mobileLink.href = upiString;
             }
+        }
+
+        // AJAX: Check UTR exists in real-time (debounced). Uses GET CheckDuplicateUTR?utrNumber=...
+        async function validateUtrAjax(utr) {
+            if (!utrInput) return;
+            // Reset previous feedback
+            utrFeedback.classList.remove('show', 'error', 'success', 'loading');
+            utrInput.classList.remove('is-invalid');
+
+            if (utr.length === 12) {
+                showUtrCheckingStatus();
+                await checkUtrViaAjax(utr);
+            }
+        }
+
+        function showUtrCheckingStatus() {
+            utrFeedback.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking UTR...';
+            utrFeedback.classList.remove('success', 'error');
+            utrFeedback.classList.add('show', 'loading');
+            utrInput.classList.remove('is-invalid');
+        }
+
+        function showUtrDuplicate() {
+            utrFeedback.innerHTML = '<i class="fas fa-exclamation-circle"></i> This UTR has already been used.';
+            utrFeedback.classList.remove('loading', 'success');
+            utrFeedback.classList.add('show', 'error');
+            utrInput.classList.add('is-invalid');
+            // show inline utrError and disable submit
+            const utrErrorSpan = document.getElementById('utrError');
+            if (utrErrorSpan) {
+                utrErrorSpan.style.display = 'block';
+            }
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) submitBtn.disabled = true;
+            utrValidationStatus = 'invalid';
+            // Set HTML5 validation error so browsers show inline message
+            try {
+                utrInput.setCustomValidity('This UTR has already been used.');
+                // show browser validation bubble if focused
+                if (document.activeElement === utrInput) utrInput.reportValidity();
+            } catch (e) {
+                // ignore if not supported
+            }
+        }
+
+        function showUtrAvailable() {
+            utrFeedback.innerHTML = '<i class="fas fa-check-circle"></i> UTR looks good.';
+            utrFeedback.classList.remove('loading', 'error');
+            utrFeedback.classList.add('show', 'success');
+            utrInput.classList.remove('is-invalid');
+            // hide inline utrError and enable submit
+            const utrErrorSpan = document.getElementById('utrError');
+            if (utrErrorSpan) {
+                utrErrorSpan.style.display = 'none';
+            }
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) submitBtn.disabled = false;
+            utrValidationStatus = 'valid';
+            try {
+                utrInput.setCustomValidity('');
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        function checkUtrViaAjax(utr) {
+            return new Promise((resolve) => {
+                clearTimeout(utrCheckTimeout);
+                utrCheckTimeout = setTimeout(() => {
+                const url = (window.__checkUtrUrl || '/Sabeel/Payment/CheckDuplicateUTR') + '?utrNumber=' + encodeURIComponent(utr);
+                fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && (data.exists || data.isDuplicate)) {
+                            showUtrDuplicate();
+                        } else {
+                            showUtrAvailable();
+                        }
+                        resolve(data);
+                    })
+                    .catch(error => {
+                        console.error('❌ AJAX Error:', error);
+                        utrFeedback.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Network error checking UTR</span>';
+                        utrFeedback.classList.remove('success', 'loading');
+                        utrFeedback.classList.add('show', 'error');
+                        utrInput.classList.add('is-invalid');
+                        resolve({ exists: false });
+                    });
+                }, 500); // Debounce for 500ms
+            });
+        }
+
+        // Wire up input and blur events for UTR field
+        if (utrInput) {
+            utrInput.addEventListener('input', function () {
+                // Clear inline feedback while typing
+                utrFeedback.classList.remove('show', 'error', 'success', 'loading');
+                validateUtrAjax(utrInput.value.trim());
+            });
+            // Validate on blur immediately (bypass debounce for instant check)
+            utrInput.addEventListener('blur', function () {
+                const val = utrInput.value.trim();
+                if (val.length === 12) {
+                    // Quick client-side cache check first to avoid unnecessary server calls
+                    if (existingUtrs.has(val)) {
+                        utrFeedback.innerHTML = '<i class="fas fa-exclamation-circle"></i> This UTR has already been used.';
+                        utrFeedback.classList.remove('loading', 'success');
+                        utrFeedback.classList.add('show', 'error');
+                        utrInput.classList.add('is-invalid');
+                        return;
+                    }
+
+                    // Fallback to server check (immediate, bypass debounce)
+                    showUtrCheckingStatus();
+                    checkUtrViaAjax(val).then((data) => {
+                        // If server reports duplicate, cache it for future fast checks
+                        if (data && data.exists) {
+                            existingUtrs.add(val);
+                        }
+                    });
+                }
+            });
         }
 
         // Form submission with validation and confirmation
@@ -637,6 +789,91 @@
             console.log('🚀 DOM loaded, verifying device detection...');
             ensureCorrectUI();
             updateUpiLinks();
+
+            // Ensure UTR AJAX validation uses correct route (Razor-generated)
+            try {
+                const checkUtrUrl = '@Url.Action("CheckDuplicateUTR","Payment", new { area = "Sabeel" })';
+                const getExistingUrl = '@Url.Action("GetExistingUtrs","Payment", new { area = "Sabeel" })';
+                console.log('Using server URL for UTR check:', checkUtrUrl);
+                console.log('Using server URL for GetExistingUtrs:', getExistingUrl);
+                // expose to global scope
+                window.__checkUtrUrl = checkUtrUrl;
+                window.__getExistingUtrsUrl = getExistingUrl;
+
+                // Fetch existing UTRs once on load and cache them for client-side validation
+                fetch(window.__getExistingUtrsUrl, {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    // Expecting { success: true, utrs: [ "123...", ... ] } or plain array
+                    if (data) {
+                        const arr = Array.isArray(data) ? data : (data.utrs || []);
+                        if (Array.isArray(arr)) {
+                            arr.forEach(u => { if (u) existingUtrs.add(String(u).trim()); });
+                            console.log('Loaded existing UTRs count:', existingUtrs.size);
+                        } else {
+                            console.warn('GetExistingUtrs returned unexpected payload', data);
+                        }
+                    }
+                })
+                .catch(err => console.warn('Failed to load existing UTRs', err));
+
+            } catch (e) {
+                console.warn('Could not generate server URL via Url.Action', e);
+                window.__checkUtrUrl = '/Sabeel/Payment/CheckDuplicateUTR';
+                window.__getExistingUtrsUrl = '/Sabeel/Payment/GetExistingUtrs';
+            }
+
+            // Add a developer-facing Test UTR button next to Submit for quick endpoint verification
+            try {
+                const submitBtn = document.getElementById('submitBtn');
+                if (submitBtn && submitBtn.parentElement) {
+                    const testBtn = document.createElement('button');
+                    testBtn.type = 'button';
+                    testBtn.id = 'testUtrBtn';
+                    testBtn.className = 'btn-back';
+                    testBtn.style.minWidth = '120px';
+                    testBtn.style.marginRight = '8px';
+                    testBtn.textContent = 'Test UTR';
+                    // insert before submit button
+                    submitBtn.parentElement.insertBefore(testBtn, submitBtn);
+
+                    testBtn.addEventListener('click', async function () {
+                        const val = (utrInput && utrInput.value) ? utrInput.value.trim() : '';
+                        if (!val) {
+                            Swal.fire('Enter UTR', 'Please enter a 12-digit UTR to test.', 'info');
+                            return;
+                        }
+
+                        // show checking status
+                        showUtrCheckingStatus();
+
+                        const url = (window.__checkUtrUrl || '/Sabeel/Payment/CheckDuplicateUTR') + '?utrNumber=' + encodeURIComponent(val);
+                        try {
+                            const resp = await fetch(url, { method: 'GET', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                            const data = await resp.json();
+                            console.log('TestUtr response:', data);
+                            if (data && (data.exists || data.isDuplicate)) {
+                                showUtrDuplicate();
+                                Swal.fire('Duplicate UTR', data.message || 'This UTR already exists.', 'error');
+                            } else {
+                                showUtrAvailable();
+                                Swal.fire('UTR Available', data.message || 'UTR looks available.', 'success');
+                            }
+                        } catch (err) {
+                            console.error('Test UTR fetch error', err);
+                            Swal.fire('Error', 'Network or server error while checking UTR.', 'error');
+                            utrFeedback.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Network error checking UTR';
+                            utrFeedback.classList.remove('success', 'loading');
+                            utrFeedback.classList.add('show', 'error');
+                        }
+                    });
+                }
+            } catch (ex) {
+                console.warn('Could not add Test UTR button', ex);
+            }
         });
 
         // Re-check on resize

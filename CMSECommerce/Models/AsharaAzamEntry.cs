@@ -16,6 +16,13 @@ namespace CMSECommerce.Models
         public string FullName { get; set; } = string.Empty;
 
         [Required]
+        [MaxLength(200)]
+        public string JammatName { get; set; } = string.Empty;
+        [Required]
+        [MaxLength(200)]
+        public string Location { get; set; } = string.Empty;
+
+        [Required]
         public bool ConsentGiven { get; set; }
 
         [Required]
