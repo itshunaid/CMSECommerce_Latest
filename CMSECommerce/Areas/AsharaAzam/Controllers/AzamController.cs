@@ -57,7 +57,7 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
                 // --- UPDATE LOGIC ---
                 existing.FullName = model.FullName;
                 existing.JammatName = "Anjuman E Burhani";
-                existing.Location = "Hyderabad Hussaini Alam";
+                existing.Location = "Hyderabad";
                 existing.ConsentGiven = model.ConsentGiven;
                 existing.ConsentMessage = "Azam Niyyat 4 Points Confirmed (Updated)";
                 existing.CreatedDate = DateTime.Now; // Recommended to track modification
