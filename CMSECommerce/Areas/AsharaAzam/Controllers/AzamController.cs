@@ -1,22 +1,10 @@
 using CMSECommerce.Infrastructure;
-using ExcelDataReader.Log;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Playwright;
-using MimeKit;
-using QuestPDF.Fluent;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
-using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using QuestPDF.Infrastructure;
-using QuestPDF.Previewer;
-using SkiaSharp;
-using System;
-using System.IO;
-using System.Reflection;
-using System.Runtime.Intrinsics.Arm;
-using System.Threading.Tasks;
+
 
 namespace CMSECommerce.Areas.AsharaAzam.Controllers
 {
@@ -395,9 +383,17 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             // Generate image with the new settings
             byte[] imageBytes = document.GenerateImages(settings).First();
 
-            return File(imageBytes, "image/jpeg", $"AsharaAzam_Certificate_{entry.ITSNumber}.jpg");
+            //return File(imageBytes, "image/jpeg", $"AsharaAzam_Certificate_{entry.ITSNumber}.jpg");
 
             //return File(imageBytes, "image/png", $"AsharaAzam_Certificate_{entry.ITSNumber}.png");
+            // ✅ FIX: Use a static filename so the browser identifies it as the same file.
+            // By providing the same filename every time, the browser/OS will offer to "Replace" the file.
+            string fileName = $"AsharaAzam_{entry.ITSNumber}.jpg";
+
+            // Set the Content-Disposition header to 'attachment' to force download
+            Response.Headers.Add("Content-Disposition", $"attachment; filename={fileName}");
+
+            return File(imageBytes, "image/jpeg", fileName);
         }
 
         [HttpGet("GenerateAsharaAzamPlanoImage/{itsNumber}")]
@@ -519,9 +515,18 @@ namespace CMSECommerce.Areas.AsharaAzam.Controllers
             // Generate image with the new settings
             byte[] imageBytes = document.GenerateImages(settings).First();
 
-            return File(imageBytes, "image/jpeg", $"AsharaAzam_Certificate_{entry.ITSNumber}.jpg");
+            //return File(imageBytes, "image/jpeg", $"AsharaAzam_Certificate_{entry.ITSNumber}.jpg");
 
             //return File(imageBytes, "image/png", $"AsharaAzam_Certificate_{entry.ITSNumber}.png");
+
+            // ✅ FIX: Use a static filename so the browser identifies it as the same file.
+            // By providing the same filename every time, the browser/OS will offer to "Replace" the file.
+            string fileName = $"AsharaAzam_{entry.ITSNumber}.jpg";
+
+            // Set the Content-Disposition header to 'attachment' to force download
+            Response.Headers.Add("Content-Disposition", $"attachment; filename={fileName}");
+
+            return File(imageBytes, "image/jpeg", fileName);
         }
 
         public async Task<IActionResult> GenerateAsharaAzamMultipleButtons(string itsNumber)
